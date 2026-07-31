@@ -5,6 +5,7 @@ import { join, normalize } from 'node:path';
 import { authController } from './modules/auth/auth.module.js';
 import { error, json } from './core/interceptors/http-response.js';
 const publicDir = join(process.cwd(), 'public');
+const vueBrowserBuild = join(process.cwd(), 'node_modules', 'vue', 'dist', 'vue.esm-browser.prod.js');
 const mime = { '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript', '.svg': 'image/svg+xml' };
 async function body(request) {
     let raw = '';
@@ -29,6 +30,11 @@ async function serveFile(pathname, response) {
 }
 const server = createServer(async (request, response) => {
     try {
+        if (request.method === 'GET' && request.url?.split('?')[0] === '/assets/vue.js') {
+            response.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=86400' });
+            createReadStream(vueBrowserBuild).pipe(response);
+            return;
+        }
         if (request.method === 'POST' && request.url === '/api/auth/login') {
             const result = await authController.signIn(await body(request));
             return json(response, 200, result);
