@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#101828" />
+    <title>Nexo — ERP inteligente</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/dashboard.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="brand-panel" aria-label="Información de Nexo ERP">
+        <div class="brand-top">
+          <a class="brand" href="/" aria-label="Nexo ERP">
+            <span class="brand-mark"><i></i><i></i><i></i></span>
+            <span>NEXO</span>
+          </a>
+          <span class="badge"><span></span> Plataforma activa</span>
+        </div>
+        <div class="statement">
+          <p class="eyebrow">OPERACIÓN CONECTADA</p>
+          <h1>Dirige tu empresa<br />con <em>claridad.</em></h1>
+          <p class="statement-copy">Una única plataforma para convertir el movimiento diario de tu negocio en decisiones seguras.</p>
+        </div>
+        <div class="preview-card" aria-hidden="true">
+          <div class="preview-top"><span>Resumen operativo</span><span class="mini-period">Este mes</span></div>
+          <div class="metric-row"><div><small>Flujo de caja</small><strong>₡ 12.8 M</strong></div><div class="trend">↗ 18.4%</div></div>
+          <div class="bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+        <footer><span>© 2026 Nexo Systems</span><span>Hecho para equipos que avanzan.</span></footer>
+      </section>
+
+      <section class="auth-panel">
+        <div class="auth-wrap" id="authView">
+          <div class="mobile-brand brand"><span class="brand-mark"><i></i><i></i><i></i></span><span>NEXO</span></div>
+          <div class="heading"><p class="eyebrow">BIENVENIDO DE NUEVO</p><h2>Ingresa a tu espacio.</h2><p>Gestiona cada área de tu empresa desde un solo lugar.</p></div>
+          <form id="loginForm" novalidate>
+            <label for="email">Correo corporativo</label>
+            <div class="input-wrap"><span class="input-icon">@</span><input id="email" name="email" type="email" autocomplete="email" placeholder="nombre@empresa.com" required /></div>
+            <div class="label-row"><label for="password">Contraseña</label><a href="#">¿La olvidaste?</a></div>
+            <div class="input-wrap"><span class="input-icon lock">⌑</span><input id="password" name="password" type="password" autocomplete="current-password" placeholder="Ingresa tu contraseña" required /><button class="toggle-pass" type="button" aria-label="Mostrar contraseña">◉</button></div>
+            <div class="options"><label class="check"><input type="checkbox" checked /><span></span>Recordar este equipo</label></div>
+            <p class="form-error" id="formError" role="alert"></p>
+            <button class="submit" id="submitButton" type="submit"><span>Ingresar a Nexo</span><b>→</b></button>
+          </form>
+          <p class="help">¿Necesitas ayuda? <a href="mailto:soporte@nexo.local">Habla con soporte</a></p>
+          <div class="secure"><span>◈</span> Conexión segura y cifrada</div>
+        </div>
+        <div class="success" id="successView" hidden><div class="success-icon">✓</div><p class="eyebrow">SESIÓN INICIADA</p><h2>Todo listo.</h2><p id="welcomeText"></p><button class="submit" type="button" id="backButton">Volver al acceso</button></div>
+      </section>
+    </main>
+    <main class="workspace" id="workspace" hidden>
+      <aside class="sidebar">
+        <a class="brand" href="#inicio"><span class="brand-mark"><i></i><i></i><i></i></span><span>NEXO</span></a>
+        <div class="tenant-card"><span class="tenant-logo">N</span><span><small>EMPRESA ACTIVA</small><strong>Nexo Demo</strong></span><b>⌄</b></div>
+        <nav aria-label="Menú principal">
+          <p>OPERACIÓN</p>
+          <a class="nav-link active" href="#inicio" data-section="Inicio"><span>⌂</span>Inicio</a>
+          <a class="nav-link" href="#empresa" data-section="Empresa"><span>▣</span>Empresa</a>
+          <a class="nav-link" href="#clientes" data-section="Clientes"><span>♧</span>Clientes</a>
+          <a class="nav-link" href="#proveedores" data-section="Proveedores"><span>♙</span>Proveedores</a>
+          <p>GESTIÓN</p>
+          <a class="nav-link" href="#facturacion" data-section="Facturación"><span>◫</span>Facturación</a>
+          <a class="nav-link" href="#contabilidad" data-section="Contabilidad"><span>◈</span>Contabilidad</a>
+          <a class="nav-link" href="#reportes" data-section="Reportes"><span>◌</span>Reportes</a>
+        </nav>
+        <div class="sidebar-bottom"><a class="nav-link" href="#configuracion" data-section="Configuración"><span>⚙</span>Configuración</a><button id="logoutButton"><span>↪</span>Cerrar sesión</button></div>
+      </aside>
+      <section class="dashboard">
+        <header class="dashboard-header"><button class="menu-button" id="menuButton" aria-label="Abrir menú">☰</button><div class="crumb"><span>Espacio de trabajo</span><b>/</b><strong id="pageTitle">Inicio</strong></div><div class="header-actions"><button class="bell" aria-label="Notificaciones">♢<i></i></button><span class="avatar" id="userInitial">U</span></div></header>
+        <div class="dashboard-content">
+          <div id="dashboardView"><p class="eyebrow">VISTA GENERAL</p><h1>Buenos días, <span id="dashboardName">equipo</span>.</h1><p class="dashboard-copy">Aquí tienes el estado de tu operación hoy.</p>
+            <div class="stat-grid"><article><span class="stat-icon green">↗</span><small>Ventas del mes</small><strong>₡ 12.8 M</strong><em>+18.4% <i>vs. mes anterior</i></em></article><article><span class="stat-icon blue">♧</span><small>Clientes activos</small><strong>248</strong><em>+12 <i>este mes</i></em></article><article><span class="stat-icon amber">◫</span><small>Facturas pendientes</small><strong>16</strong><em class="neutral">₡ 2.4 M <i>por cobrar</i></em></article></div>
+            <article class="activity"><div><h2>Actividad reciente</h2><p>Los últimos movimientos de tu empresa.</p></div><button>Ver todo</button><div class="activity-empty"><span>◌</span><p>Tu actividad aparecerá aquí cuando comiences a operar.</p></div></article>
+          </div>
+          <section class="records-view" id="recordsView" hidden>
+            <div class="records-head"><div><p class="eyebrow" id="recordsEyebrow">DIRECTORIO</p><h1 id="recordsTitle">Empresas</h1><p class="dashboard-copy" id="recordsCopy">Administra la información de tus empresas.</p></div><button class="new-record" id="newRecord">+ Nueva empresa</button></div>
+            <div class="table-card"><div class="table-tools"><div class="search-box">⌕ <input type="search" placeholder="Buscar" aria-label="Buscar registros" /></div><button>Filtros</button></div><div class="table-scroll"><table><thead id="recordsHead"></thead><tbody id="recordsBody"></tbody></table></div><footer class="table-footer"><span id="recordsCount"></span><span>‹ &nbsp; 1 &nbsp; ›</span></footer></div>
+          </section>
+        </div>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>
