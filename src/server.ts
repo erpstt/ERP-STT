@@ -3,7 +3,11 @@ import { stat } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { join, normalize } from 'node:path';
 import { authController } from './modules/auth/auth.module.js';
+import { createCountry, deleteCountry, listCountries, updateCountry } from './modules/countries/countries.module.js';
 import { error, json } from './core/interceptors/http-response.js';
+
+const loadEnvFile = (process as typeof process & { loadEnvFile?: (path?: string) => void }).loadEnvFile;
+try { loadEnvFile?.('.env'); } catch { /* Las variables también pueden venir del entorno del proceso. */ }
 
 const publicDir = join(process.cwd(), 'public');
 const vueBrowserBuild = join(process.cwd(), 'node_modules', 'vue', 'dist', 'vue.esm-browser.prod.js');
@@ -37,6 +41,26 @@ const server = createServer(async (request, response) => {
     if (request.method === 'POST' && request.url === '/api/auth/login') {
       const result = await authController.signIn(await body(request) as { email: string; password: string });
       return json(response, 200, result);
+    }
+    if (request.method === 'GET' && request.url === '/api/countries') {
+      const authorization = request.headers.authorization;
+      if (!authorization?.startsWith('Bearer ')) return error(response, 401, 'Debe iniciar sesión para consultar los países.');
+      return json(response, 200, await listCountries(authorization));
+    }
+    if (request.url === '/api/countries' && request.method === 'POST') {
+      const authorization = request.headers.authorization;
+      if (!authorization?.startsWith('Bearer ')) return error(response, 401, 'Debe iniciar sesión para administrar países.');
+      const input = await body(request) as { name?: string };
+      return json(response, 201, await createCountry(authorization, input.name?.trim() ?? ''));
+    }
+    const countryRoute = request.url?.match(/^\/api\/countries\/(\d+)$/);
+    if (countryRoute && (request.method === 'PATCH' || request.method === 'DELETE')) {
+      const authorization = request.headers.authorization;
+      if (!authorization?.startsWith('Bearer ')) return error(response, 401, 'Debe iniciar sesión para administrar países.');
+      const id = Number(countryRoute[1]);
+      if (request.method === 'DELETE') { await deleteCountry(authorization, id); return json(response, 200, { success: true }); }
+      const input = await body(request) as { name?: string };
+      return json(response, 200, await updateCountry(authorization, id, input.name?.trim() ?? ''));
     }
     await serveFile(request.url?.split('?')[0] ?? '/', response);
   } catch (cause) {
