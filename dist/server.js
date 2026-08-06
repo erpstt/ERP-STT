@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import { join, normalize } from 'node:path';
 import { authController } from './modules/auth/auth.module.js';
 import { createCountry, deleteCountry, listCountries, updateCountry } from './modules/countries/countries.module.js';
+import { createCatalogRow, deleteCatalogRow, getCoreCatalog, listCatalogRows, updateCatalogRow } from './modules/core-catalogs/core-catalogs.module.js';
 import { error, json } from './core/interceptors/http-response.js';
 const loadEnvFile = process.loadEnvFile;
 try {
@@ -44,6 +45,24 @@ const server = createServer(async (request, response) => {
         if (request.method === 'POST' && request.url === '/api/auth/login') {
             const result = await authController.signIn(await body(request));
             return json(response, 200, result);
+        }
+        const coreRoute = request.url?.match(/^\/api\/core\/([a-z-]+)(?:\/(\d+))?$/);
+        if (coreRoute) {
+            const authorization = request.headers.authorization;
+            if (!authorization?.startsWith('Bearer '))
+                return error(response, 401, 'Debe iniciar sesión para administrar catálogos.');
+            const catalog = getCoreCatalog(coreRoute[1]);
+            const id = coreRoute[2] ? Number(coreRoute[2]) : null;
+            if (request.method === 'GET' && id === null)
+                return json(response, 200, await listCatalogRows(catalog, authorization));
+            if (request.method === 'POST' && id === null)
+                return json(response, 201, await createCatalogRow(catalog, authorization, await body(request)));
+            if (request.method === 'PATCH' && id !== null)
+                return json(response, 200, await updateCatalogRow(catalog, authorization, id, await body(request)));
+            if (request.method === 'DELETE' && id !== null) {
+                await deleteCatalogRow(catalog, authorization, id);
+                return json(response, 200, { success: true });
+            }
         }
         if (request.method === 'GET' && request.url === '/api/countries') {
             const authorization = request.headers.authorization;
