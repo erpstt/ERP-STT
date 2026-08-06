@@ -14,7 +14,8 @@
 </head>
 <body>
 <div id="app">
-  <main v-if="!authenticated" class="page-shell">
+  <div v-if="!sessionReady" class="session-loading"><span class="brand"><span class="brand-mark"><i></i><i></i><i></i></span>NEXO</span><p>Restaurando tu sesión…</p></div>
+  <main v-else-if="!authenticated" class="page-shell">
     <section class="brand-panel">
       <div class="brand-top"><span class="brand"><span class="brand-mark"><i></i><i></i><i></i></span>NEXO</span><span class="badge"><span></span>Plataforma activa</span></div>
       <div class="statement"><p class="eyebrow">OPERACIÓN CONECTADA</p><h1>Dirige tu empresa<br>con <em>claridad.</em></h1><p class="statement-copy">Una única plataforma para su ERP en Latinoamerica</p></div>
@@ -30,7 +31,6 @@
   <main v-else class="workspace">
     <aside class="sidebar" :class="{open: sidebarOpen}">
       <span class="brand"><span class="brand-mark"><i></i><i></i><i></i></span>NEXO</span>
-      <button type="button" class="tenant-card" @click="changeCompany"><span class="tenant-logo">{{ activeCompany?.name?.charAt(0)?.toUpperCase() || 'N' }}</span><span><small>EMPRESA ACTIVA</small><strong>{{ activeCompany?.name }}</strong></span><b>⌄</b></button>
       <nav>
         <p>MÓDULOS</p>
         <template v-for="module in modules" :key="module.name">
@@ -46,7 +46,7 @@
     </aside>
 
     <section class="dashboard">
-      <header class="dashboard-header"><button class="menu-button" @click="sidebarOpen=!sidebarOpen">☰</button><div class="crumb"><span>Espacio de trabajo</span><b>/</b><span>{{ currentModule }}</span><template v-if="currentSection !== currentModule"><b>/</b><strong>{{ currentSection }}</strong></template></div><span class="avatar">{{ userInitial }}</span></header>
+      <header class="dashboard-header"><button class="menu-button" @click="sidebarOpen=!sidebarOpen">☰</button><div class="crumb"><span>Espacio de trabajo</span><b>/</b><span>{{ currentModule }}</span><template v-if="currentSection !== currentModule"><b>/</b><strong>{{ currentSection }}</strong></template></div><div class="header-identity"><details v-if="companies.length > 1" class="company-selector"><summary><span class="company-badge">{{ activeCompany?.name?.charAt(0)?.toUpperCase() }}</span><span class="role-copy"><small>EMPRESA ACTIVA</small><strong>{{ activeCompany?.name }}</strong></span><span class="role-chevron">⌄</span></summary><div class="company-menu"><div class="role-menu-head"><strong>Cambiar empresa</strong><small>{{ companies.length }} empresas asignadas</small></div><button v-for="company in companies" :key="company.subsidiaryId" type="button" :class="{active:String(company.subsidiaryId)===String(activeCompany?.subsidiaryId)}" :disabled="isSelectingCompany" @click="chooseCompany(company,$event)"><span class="company-option-icon">{{ company.name.charAt(0).toUpperCase() }}</span><span><strong>{{ company.name }}</strong><small>{{ company.legalName }}</small></span><b>{{ String(company.subsidiaryId)===String(activeCompany?.subsidiaryId) ? '✓' : '→' }}</b></button></div></details><div v-else class="company-switch-single"><span class="company-badge">{{ activeCompany?.name?.charAt(0)?.toUpperCase() }}</span><span class="role-copy"><small>EMPRESA ACTIVA</small><strong>{{ activeCompany?.name }}</strong></span></div><details v-if="roles.length > 1" class="role-selector"><summary><span class="role-badge" aria-hidden="true">✓</span><span class="role-copy"><small>ROL ACTIVO</small><strong>{{ activeRole?.name }}</strong></span><span class="role-chevron" aria-hidden="true">⌄</span></summary><div class="role-menu"><div class="role-menu-head"><strong>Cambiar rol</strong><small>{{ roles.length }} roles asignados</small></div><button v-for="role in roles" :key="role.roleId" type="button" :class="{active:String(role.roleId)===String(activeRole?.roleId)}" :disabled="isSelectingRole" @click="chooseRole(role,$event)"><span class="role-option-icon">{{ role.name.charAt(0).toUpperCase() }}</span><span><strong>{{ role.name }}</strong><small>{{ role.description || 'Rol del sistema' }}</small></span><b>{{ String(role.roleId)===String(activeRole?.roleId) ? '✓' : '→' }}</b></button></div></details><div v-else class="role-switch role-switch-single"><span class="role-badge" aria-hidden="true">✓</span><span class="role-copy"><small>ROL ACTIVO</small><strong>{{ activeRole?.name }}</strong></span></div><span class="avatar">{{ userInitial }}</span></div></header>
       <div class="dashboard-content">
         <section v-if="!activeCatalog" class="module-empty"><div class="module-mark" v-html="activeModuleIcon"></div><p class="eyebrow">MÓDULO</p><h1>{{ currentModule }}</h1><p class="dashboard-copy">Selecciona una opción del módulo para comenzar a trabajar.</p></section>
 
