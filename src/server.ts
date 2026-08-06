@@ -23,6 +23,7 @@ import { createDocumentRow, deleteDocumentRow, getDocumentCatalog, listDocumentR
 import { createAuditRow, deleteAuditRow, getAuditCatalog, listAuditRows, updateAuditRow } from './modules/audit-catalogs/audit-catalogs.module.js';
 import { createConsolidationRow, deleteConsolidationRow, getConsolidationCatalog, listConsolidationRows, updateConsolidationRow } from './modules/consolidation-catalogs/consolidation-catalogs.module.js';
 import { createAiRow, deleteAiRow, getAiCatalog, listAiRows, updateAiRow } from './modules/ai-catalogs/ai-catalogs.module.js';
+import { listUserCompanies, selectUserCompany } from './modules/auth/services/company-access.service.js';
 import { error, json } from './core/interceptors/http-response.js';
 
 const loadEnvFile = (process as typeof process & { loadEnvFile?: (path?: string) => void }).loadEnvFile;
@@ -61,6 +62,8 @@ const server = createServer(async (request, response) => {
       const result = await authController.signIn(await body(request) as { email: string; password: string });
       return json(response, 200, result);
     }
+    if(request.method==='GET'&&request.url==='/api/auth/companies'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');return json(response,200,await listUserCompanies(authorization));}
+    if(request.method==='POST'&&request.url==='/api/auth/select-company'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const input=await body(request)as{subsidiaryId?:number};return json(response,200,await selectUserCompany(authorization,Number(input.subsidiaryId)));}
     const coreRoute = request.url?.match(/^\/api\/core\/([a-z-]+)(?:\/(\d+))?$/);
     if (coreRoute) {
       const authorization = request.headers.authorization;

@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/dashboard.css">
+  <link rel="stylesheet" href="/company-selection.css">
 </head>
 <body>
 <div id="app">
@@ -22,10 +23,14 @@
     <section class="auth-panel"><div class="auth-wrap"><div class="heading"><p class="eyebrow">BIENVENIDO DE NUEVO</p><h2>Ingresa a tu espacio.</h2><p>Gestiona cada área de tu empresa desde un solo lugar.</p></div><form @submit.prevent="signIn"><label for="email">Correo corporativo</label><div class="input-wrap"><span class="input-icon">@</span><input id="email" v-model="email" type="email" required placeholder="nombre@empresa.com"></div><div class="label-row"><label for="password">Contraseña</label></div><div class="input-wrap"><input id="password" v-model="password" :type="showPassword ? 'text' : 'password'" required placeholder="Ingresa tu contraseña"><button class="toggle-pass" type="button" @click="showPassword=!showPassword">{{ showPassword ? '◌' : '◉' }}</button></div><p class="form-error">{{ formError }}</p><button class="submit" :disabled="isSubmitting"><span>{{ isSubmitting ? 'Verificando acceso…' : 'Ingresar a Nexo' }}</span><b>→</b></button></form></div></section>
   </main>
 
+  <main v-else-if="selectingCompany" class="company-selection">
+    <section class="company-picker"><span class="brand"><span class="brand-mark"><i></i><i></i><i></i></span>NEXO</span><p class="eyebrow">ACCESO POR EMPRESA</p><h1>¿En cuál empresa deseas trabajar?</h1><p>Solo podrás consultar y administrar la información de la empresa seleccionada.</p><div class="company-list"><button v-for="company in companies" :key="company.subsidiaryId" type="button" :disabled="isSelectingCompany" @click="selectCompany(company)"><span class="tenant-logo">{{ company.name.charAt(0).toUpperCase() }}</span><span><strong>{{ company.name }}</strong><small>{{ company.legalName }}</small></span><b>→</b></button></div><p class="form-error">{{ companyError }}</p><button class="company-logout" type="button" @click="logout">Cerrar sesión</button></section>
+  </main>
+
   <main v-else class="workspace">
     <aside class="sidebar" :class="{open: sidebarOpen}">
       <span class="brand"><span class="brand-mark"><i></i><i></i><i></i></span>NEXO</span>
-      <div class="tenant-card"><span class="tenant-logo">N</span><span><small>EMPRESA ACTIVA</small><strong>Nexo Demo</strong></span></div>
+      <button type="button" class="tenant-card" @click="changeCompany"><span class="tenant-logo">{{ activeCompany?.name?.charAt(0)?.toUpperCase() || 'N' }}</span><span><small>EMPRESA ACTIVA</small><strong>{{ activeCompany?.name }}</strong></span><b>⌄</b></button>
       <nav>
         <p>MÓDULOS</p>
         <template v-for="module in modules" :key="module.name">

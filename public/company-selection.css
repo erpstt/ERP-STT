@@ -1,0 +1,11 @@
+.tenant-card{width:calc(100% - 4px);font-family:inherit;text-align:left;cursor:pointer}
+.company-selection{min-height:100vh;background:#f4f7f9;display:grid;place-items:center;padding:30px}
+.company-picker{width:min(560px,100%);background:#fff;border:1px solid #e1e7ec;border-radius:14px;padding:36px;box-shadow:0 18px 50px #17324d14}
+.company-picker>.brand{display:inline-flex;color:#102033;margin-bottom:36px}
+.company-picker h1{font:700 27px Manrope;margin:8px 0}
+.company-picker>p:not(.eyebrow):not(.form-error){color:#758194;margin:0 0 24px}
+.company-list{display:grid;gap:10px}
+.company-list button{display:flex;align-items:center;gap:12px;width:100%;padding:13px;border:1px solid #dce4e9;border-radius:9px;background:#fff;text-align:left;font-family:inherit;cursor:pointer}
+.company-list button:hover{border-color:#208761;background:#f1faf6}
+.company-list button span:nth-child(2){display:grid;gap:3px}.company-list button strong{color:#1c2938}.company-list button small{color:#7a8796}.company-list button b{margin-left:auto;color:#208761;font-size:18px}
+.company-logout{border:0;background:none;color:#657384;margin-top:18px;cursor:pointer}
