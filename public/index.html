@@ -1,21 +1,71 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nexo — ERP inteligente</title><link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css" /><link rel="stylesheet" href="/dashboard.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexo — ERP inteligente</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/dashboard.css">
 </head>
-<body><div id="app">
+<body>
+<div id="app">
   <main v-if="!authenticated" class="page-shell">
-    <section class="brand-panel"><div class="brand-top"><span class="brand"><span class="brand-mark"><i></i><i></i><i></i></span>NEXO</span><span class="badge"><span></span>Plataforma activa</span></div><div class="statement"><p class="eyebrow">OPERACIÓN CONECTADA</p><h1>Dirige tu empresa<br>con <em>claridad.</em></h1><p class="statement-copy">Una única plataforma para convertir el movimiento diario de tu negocio en decisiones seguras.</p></div><footer><span>© 2026 Nexo Systems</span></footer></section>
+    <section class="brand-panel">
+      <div class="brand-top"><span class="brand"><span class="brand-mark"><i></i><i></i><i></i></span>NEXO</span><span class="badge"><span></span>Plataforma activa</span></div>
+      <div class="statement"><p class="eyebrow">OPERACIÓN CONECTADA</p><h1>Dirige tu empresa<br>con <em>claridad.</em></h1><p class="statement-copy">Una única plataforma para convertir el movimiento diario de tu negocio en decisiones seguras.</p></div>
+      <footer><span>© 2026 Nexo Systems</span></footer>
+    </section>
     <section class="auth-panel"><div class="auth-wrap"><div class="heading"><p class="eyebrow">BIENVENIDO DE NUEVO</p><h2>Ingresa a tu espacio.</h2><p>Gestiona cada área de tu empresa desde un solo lugar.</p></div><form @submit.prevent="signIn"><label for="email">Correo corporativo</label><div class="input-wrap"><span class="input-icon">@</span><input id="email" v-model="email" type="email" required placeholder="nombre@empresa.com"></div><div class="label-row"><label for="password">Contraseña</label></div><div class="input-wrap"><input id="password" v-model="password" :type="showPassword ? 'text' : 'password'" required placeholder="Ingresa tu contraseña"><button class="toggle-pass" type="button" @click="showPassword=!showPassword">{{ showPassword ? '◌' : '◉' }}</button></div><p class="form-error">{{ formError }}</p><button class="submit" :disabled="isSubmitting"><span>{{ isSubmitting ? 'Verificando acceso…' : 'Ingresar a Nexo' }}</span><b>→</b></button></form></div></section>
   </main>
-  <main v-else class="workspace"><aside class="sidebar" :class="{open: sidebarOpen}"><span class="brand"><span class="brand-mark"><i></i><i></i><i></i></span>NEXO</span><div class="tenant-card"><span class="tenant-logo">N</span><span><small>EMPRESA ACTIVA</small><strong>Nexo Demo</strong></span></div><nav><p>OPERACIÓN</p><a v-for="section in ['Inicio','Empresa','Clientes','Proveedores','Países']" :key="section" class="nav-link" :class="{active:currentSection===section}" href="#" @click.prevent="navigate(section)"><span>◈</span>{{ section }}</a></nav><div class="sidebar-bottom"><button @click="logout"><span>↪</span>Cerrar sesión</button></div></aside>
-    <section class="dashboard"><header class="dashboard-header"><button class="menu-button" @click="sidebarOpen=!sidebarOpen">☰</button><div class="crumb"><span>Espacio de trabajo</span><b>/</b><strong>{{ currentSection }}</strong></div><span class="avatar">{{ userInitial }}</span></header><div class="dashboard-content">
-      <template v-if="currentSection !== 'Países'"><p class="eyebrow">VISTA GENERAL</p><h1>Buenos días, <span>{{ userName }}</span>.</h1><p class="dashboard-copy">Aquí tienes el estado de tu operación hoy.</p></template>
-      <section v-else class="records-view"><div class="records-head"><div><p class="eyebrow">CONFIGURACIÓN</p><h1>Países</h1><p class="dashboard-copy">Mantén el catálogo de países en Supabase.</p></div><button class="new-record" @click="saveCountry()">+ Nuevo país</button></div><div class="table-card"><div class="table-tools"><div class="search-box">⌕ <input v-model="search" placeholder="Buscar país"></div></div><p v-if="countriesLoading" class="table-message">Cargando países…</p><p v-else-if="countriesError" class="table-message form-error">{{ countriesError }}</p><div v-else class="table-scroll"><table><thead><tr><th>ID interno</th><th>Nombre</th><th></th></tr></thead><tbody><tr v-for="country in filteredRows" :key="country[0]"><td>{{ country[0] }}</td><td>{{ country[1] }}</td><td><button class="table-action" @click="saveCountry({id:Number(country[0]),name:country[1]})">Editar</button><button class="table-action danger" @click="removeCountry({id:Number(country[0]),name:country[1]})">Eliminar</button></td></tr><tr v-if="!filteredRows.length"><td colspan="3">No hay países registrados.</td></tr></tbody></table></div><footer class="table-footer"><span>{{ filteredRows.length }} registros</span></footer></div></section>
-    </div></section>
+
+  <main v-else class="workspace">
+    <aside class="sidebar" :class="{open: sidebarOpen}">
+      <span class="brand"><span class="brand-mark"><i></i><i></i><i></i></span>NEXO</span>
+      <div class="tenant-card"><span class="tenant-logo">N</span><span><small>EMPRESA ACTIVA</small><strong>Nexo Demo</strong></span></div>
+      <nav>
+        <p>MÓDULOS</p>
+        <template v-for="module in modules" :key="module.name">
+          <a class="nav-link" :class="{active: currentModule===module.name}" href="#" @click.prevent="selectModule(module)">
+            <span class="nav-icon" v-html="module.icon"></span><span class="nav-label">{{ module.name }}</span><span v-if="module.children" class="nav-chevron" :class="{expanded: expandedModules.includes(module.name)}">›</span>
+          </a>
+          <div v-if="module.children && expandedModules.includes(module.name)" class="nav-children">
+            <a v-for="child in module.children" :key="child" href="#" :class="{active:currentSection===child}" @click.prevent="navigateChild(module.name, child)"><span></span>{{ child }}</a>
+          </div>
+        </template>
+      </nav>
+      <div class="sidebar-bottom"><button @click="logout"><span>↪</span>Cerrar sesión</button></div>
+    </aside>
+
+    <section class="dashboard">
+      <header class="dashboard-header"><button class="menu-button" @click="sidebarOpen=!sidebarOpen">☰</button><div class="crumb"><span>Espacio de trabajo</span><b>/</b><span>{{ currentModule }}</span><template v-if="currentSection !== currentModule"><b>/</b><strong>{{ currentSection }}</strong></template></div><span class="avatar">{{ userInitial }}</span></header>
+      <div class="dashboard-content">
+        <section v-if="currentSection !== 'Países'" class="module-empty"><div class="module-mark" v-html="activeModuleIcon"></div><p class="eyebrow">MÓDULO</p><h1>{{ currentModule }}</h1><p class="dashboard-copy">Selecciona una opción del módulo para comenzar a trabajar.</p></section>
+
+        <section v-else class="records-view">
+          <div class="records-head"><div><p class="eyebrow">CORE · CATÁLOGOS</p><h1>Países</h1><p class="dashboard-copy">Administra el catálogo de países disponible en la organización.</p></div><button class="new-record" @click="openCountryForm()"><span>＋</span> Crear país</button></div>
+          <div class="table-card">
+            <div class="table-tools"><div class="search-box"><span>⌕</span><input v-model="search" placeholder="Buscar por nombre o ID" aria-label="Buscar países"></div><span class="record-count">{{ filteredCountries.length }} {{ filteredCountries.length === 1 ? 'registro' : 'registros' }}</span></div>
+            <p v-if="countriesLoading" class="table-message">Cargando países…</p><p v-else-if="countriesError" class="table-message form-error">{{ countriesError }}</p>
+            <div v-else class="table-scroll"><table><thead><tr><th>ID interno</th><th>Nombre</th><th class="actions-heading">Acciones</th></tr></thead><tbody><tr v-for="country in filteredCountries" :key="country.id"><td><span class="id-cell">#{{ country.id }}</span></td><td><strong class="country-name">{{ country.name }}</strong></td><td class="row-actions"><button class="icon-action edit" title="Editar país" aria-label="Editar país" @click="openCountryForm(country)"><span>✎</span><b>Editar</b></button><button class="icon-action delete" title="Eliminar país" aria-label="Eliminar país" @click="requestDelete(country)"><span>⌫</span><b>Eliminar</b></button></td></tr><tr v-if="!filteredCountries.length"><td colspan="3" class="empty-row">No se encontraron países.</td></tr></tbody></table></div>
+            <footer class="table-footer"><span>Catálogo de Core</span><span>Actualizado en tiempo real</span></footer>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <div v-if="countryDialog.open" class="modal-backdrop" @click.self="closeCountryDialog">
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="country-modal-title">
+        <div class="modal-head"><div><span class="modal-icon">{{ countryDialog.mode === 'delete' ? '!' : (countryDialog.id ? '✎' : '+') }}</span><div><p>{{ countryDialog.mode === 'delete' ? 'CONFIRMAR ACCIÓN' : 'CATÁLOGO DE PAÍSES' }}</p><h2 id="country-modal-title">{{ countryDialog.mode === 'delete' ? 'Eliminar país' : (countryDialog.id ? 'Editar país' : 'Crear país') }}</h2></div></div><button class="modal-close" @click="closeCountryDialog" aria-label="Cerrar">×</button></div>
+        <form v-if="countryDialog.mode !== 'delete'" @submit.prevent="submitCountry"><label for="country-name">Nombre del país</label><input id="country-name" ref="countryNameInput" v-model.trim="countryDialog.name" maxlength="100" required placeholder="Ej. Costa Rica"><p v-if="dialogError" class="dialog-error">{{ dialogError }}</p><div class="modal-actions"><button type="button" class="button-secondary" @click="closeCountryDialog">Cancelar</button><button class="button-primary" :disabled="dialogSaving">{{ dialogSaving ? 'Guardando…' : (countryDialog.id ? 'Guardar cambios' : 'Crear país') }}</button></div></form>
+        <div v-else class="delete-confirm"><p>¿Deseas eliminar <strong>{{ countryDialog.name }}</strong>? Esta acción no se puede deshacer.</p><p v-if="dialogError" class="dialog-error">{{ dialogError }}</p><div class="modal-actions"><button class="button-secondary" @click="closeCountryDialog">Cancelar</button><button class="button-danger" :disabled="dialogSaving" @click="confirmDelete">{{ dialogSaving ? 'Eliminando…' : 'Sí, eliminar' }}</button></div></div>
+      </section>
+    </div>
   </main>
-</div><script type="module" src="/app.js"></script></body></html>
+</div>
+<script type="module" src="/app.js"></script>
+</body>
+</html>
