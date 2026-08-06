@@ -16,7 +16,7 @@
   <main v-if="!authenticated" class="page-shell">
     <section class="brand-panel">
       <div class="brand-top"><span class="brand"><span class="brand-mark"><i></i><i></i><i></i></span>NEXO</span><span class="badge"><span></span>Plataforma activa</span></div>
-      <div class="statement"><p class="eyebrow">OPERACIÓN CONECTADA</p><h1>Dirige tu empresa<br>con <em>claridad.</em></h1><p class="statement-copy">Una única plataforma PARA SU ERP</p></div>
+      <div class="statement"><p class="eyebrow">OPERACIÓN CONECTADA</p><h1>Dirige tu empresa<br>con <em>claridad.</em></h1><p class="statement-copy">Una única plataforma para su ERP en Latinoamerica</p></div>
       <footer><span>© 2026 Nexo Systems</span></footer>
     </section>
     <section class="auth-panel"><div class="auth-wrap"><div class="heading"><p class="eyebrow">BIENVENIDO DE NUEVO</p><h2>Ingresa a tu espacio.</h2><p>Gestiona cada área de tu empresa desde un solo lugar.</p></div><form @submit.prevent="signIn"><label for="email">Correo corporativo</label><div class="input-wrap"><span class="input-icon">@</span><input id="email" v-model="email" type="email" required placeholder="nombre@empresa.com"></div><div class="label-row"><label for="password">Contraseña</label></div><div class="input-wrap"><input id="password" v-model="password" :type="showPassword ? 'text' : 'password'" required placeholder="Ingresa tu contraseña"><button class="toggle-pass" type="button" @click="showPassword=!showPassword">{{ showPassword ? '◌' : '◉' }}</button></div><p class="form-error">{{ formError }}</p><button class="submit" :disabled="isSubmitting"><span>{{ isSubmitting ? 'Verificando acceso…' : 'Ingresar a Nexo' }}</span><b>→</b></button></form></div></section>
