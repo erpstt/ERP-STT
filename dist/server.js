@@ -5,6 +5,8 @@ import { join, normalize } from 'node:path';
 import { authController } from './modules/auth/auth.module.js';
 import { createCountry, deleteCountry, listCountries, updateCountry } from './modules/countries/countries.module.js';
 import { createCatalogRow, deleteCatalogRow, getCoreCatalog, listCatalogRows, updateCatalogRow } from './modules/core-catalogs/core-catalogs.module.js';
+import { createSecurityRow, deleteSecurityRow, getSecurityCatalog, listSecurityRows, updateSecurityRow } from './modules/security-catalogs/security-catalogs.module.js';
+import { createOrganizationRow, deleteOrganizationRow, getOrganizationCatalog, listOrganizationRows, updateOrganizationRow } from './modules/organization-catalogs/organization-catalogs.module.js';
 import { error, json } from './core/interceptors/http-response.js';
 const loadEnvFile = process.loadEnvFile;
 try {
@@ -61,6 +63,42 @@ const server = createServer(async (request, response) => {
                 return json(response, 200, await updateCatalogRow(catalog, authorization, id, await body(request)));
             if (request.method === 'DELETE' && id !== null) {
                 await deleteCatalogRow(catalog, authorization, id);
+                return json(response, 200, { success: true });
+            }
+        }
+        const securityRoute = request.url?.match(/^\/api\/security\/([a-z-]+)(?:\/(\d+))?$/);
+        if (securityRoute) {
+            const authorization = request.headers.authorization;
+            if (!authorization?.startsWith('Bearer '))
+                return error(response, 401, 'Debe iniciar sesión para administrar Seguridad.');
+            const catalog = getSecurityCatalog(securityRoute[1]);
+            const id = securityRoute[2] ? Number(securityRoute[2]) : null;
+            if (request.method === 'GET' && id === null)
+                return json(response, 200, await listSecurityRows(catalog, authorization));
+            if (request.method === 'POST' && id === null)
+                return json(response, 201, await createSecurityRow(catalog, authorization, await body(request)));
+            if (request.method === 'PATCH' && id !== null)
+                return json(response, 200, await updateSecurityRow(catalog, authorization, id, await body(request)));
+            if (request.method === 'DELETE' && id !== null) {
+                await deleteSecurityRow(catalog, authorization, id);
+                return json(response, 200, { success: true });
+            }
+        }
+        const organizationRoute = request.url?.match(/^\/api\/organization\/([a-z-]+)(?:\/(\d+))?$/);
+        if (organizationRoute) {
+            const authorization = request.headers.authorization;
+            if (!authorization?.startsWith('Bearer '))
+                return error(response, 401, 'Debe iniciar sesión para administrar Organización.');
+            const catalog = getOrganizationCatalog(organizationRoute[1]);
+            const id = organizationRoute[2] ? Number(organizationRoute[2]) : null;
+            if (request.method === 'GET' && id === null)
+                return json(response, 200, await listOrganizationRows(catalog, authorization));
+            if (request.method === 'POST' && id === null)
+                return json(response, 201, await createOrganizationRow(catalog, authorization, await body(request)));
+            if (request.method === 'PATCH' && id !== null)
+                return json(response, 200, await updateOrganizationRow(catalog, authorization, id, await body(request)));
+            if (request.method === 'DELETE' && id !== null) {
+                await deleteOrganizationRow(catalog, authorization, id);
                 return json(response, 200, { success: true });
             }
         }
