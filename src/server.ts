@@ -104,4 +104,4 @@ const server = createServer(async (request, response) => {
   }
 });
 
-server.listen(Number(process.env.PORT ?? 3000), () => console.log('Nexo ERP disponible en http://localhost:3000'));
+server.listen(Number(process.env.PORT ?? 3000), '0.0.0.0', () => console.log(`Nexo ERP disponible en el puerto ${process.env.PORT ?? 3000}`));
