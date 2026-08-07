@@ -25,6 +25,7 @@ import { createConsolidationRow, deleteConsolidationRow, getConsolidationCatalog
 import { createAiRow, deleteAiRow, getAiCatalog, listAiRows, updateAiRow } from './modules/ai-catalogs/ai-catalogs.module.js';
 import { listUserCompanies, selectUserCompany } from './modules/auth/services/company-access.service.js';
 import { listUserRoles, selectUserRole } from './modules/auth/services/role-access.service.js';
+import { assertActiveSession, revokeCurrentSession, SessionAuthenticationError } from './modules/auth/services/session.service.js';
 import { error, json } from './core/interceptors/http-response.js';
 
 const loadEnvFile = (process as typeof process & { loadEnvFile?: (path?: string) => void }).loadEnvFile;
@@ -38,6 +39,12 @@ async function body(request: IncomingMessage): Promise<unknown> {
   let raw = '';
   for await (const chunk of request) raw += chunk;
   return JSON.parse(raw || '{}');
+}
+
+function clientIp(request: IncomingMessage) {
+  const forwarded = request.headers['x-forwarded-for'];
+  const value = Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(',')[0];
+  return value?.trim() || request.socket.remoteAddress?.replace(/^::ffff:/, '') || null;
 }
 
 async function serveFile(pathname: string, response: ServerResponse) {
@@ -60,8 +67,18 @@ const server = createServer(async (request, response) => {
       return;
     }
     if (request.method === 'POST' && request.url === '/api/auth/login') {
-      const result = await authController.signIn(await body(request) as { email: string; password: string });
+      const result = await authController.signIn(await body(request) as { email: string; password: string }, clientIp(request));
       return json(response, 200, result);
+    }
+    if (request.method === 'POST' && request.url === '/api/auth/logout') {
+      const authorization = request.headers.authorization;
+      if (authorization?.startsWith('Bearer ')) await revokeCurrentSession(authorization);
+      return json(response, 200, { success: true });
+    }
+    if (request.url?.startsWith('/api/')) {
+      const authorization = request.headers.authorization;
+      if (!authorization?.startsWith('Bearer ')) return error(response, 401, 'Debe iniciar sesión.');
+      await assertActiveSession(authorization);
     }
     if(request.method==='GET'&&request.url==='/api/auth/companies'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');return json(response,200,await listUserCompanies(authorization));}
     if(request.method==='POST'&&request.url==='/api/auth/select-company'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const input=await body(request)as{subsidiaryId?:number};return json(response,200,await selectUserCompany(authorization,Number(input.subsidiaryId)));}
@@ -139,7 +156,7 @@ const server = createServer(async (request, response) => {
     }
     await serveFile(request.url?.split('?')[0] ?? '/', response);
   } catch (cause) {
-    error(response, 400, cause instanceof Error ? cause.message : 'No fue posible procesar la solicitud.');
+    error(response, cause instanceof SessionAuthenticationError ? 401 : 400, cause instanceof Error ? cause.message : 'No fue posible procesar la solicitud.');
   }
 });
 

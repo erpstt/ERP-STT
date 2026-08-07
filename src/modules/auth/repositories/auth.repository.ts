@@ -2,11 +2,11 @@ import type { LoginDto } from '../dto/login.dto.js';
 import { getSupabaseConfig } from '../../../core/database/supabase.client.js';
 
 export interface AuthRepository {
-  signIn(input: LoginDto): Promise<{ accessToken: string; user: { name: string; email: string } }>;
+  signIn(input: LoginDto, ipAddress?: string | null): Promise<{ accessToken: string; user: { name: string; email: string } }>;
 }
 
 export class SupabaseAuthRepository implements AuthRepository {
-  async signIn(input: LoginDto) {
+  async signIn(input: LoginDto, ipAddress: string | null = null) {
     const config = getSupabaseConfig();
     if (!config) throw new Error('La autenticación con Supabase no está configurada.');
 
@@ -39,6 +39,8 @@ export class SupabaseAuthRepository implements AuthRepository {
     const erpUserId=erpUsers[0].user_id;
     const links=await request<Array<{id:number}>>(`user_subsidiaries?select=id&user_id=eq.${erpUserId}&limit=1`);
     if(!links.length&&email.toLowerCase()==='demo@nexo.com'){const companies=await request<Array<{subsidiary_id:number}>>('subsidiaries?select=subsidiary_id&is_active=eq.true');if(companies.length)await request('user_subsidiaries',{method:'POST',body:JSON.stringify(companies.map(company=>({user_id:erpUserId,subsidiary_id:company.subsidiary_id})))});}
+    const { registerSession } = await import('../services/session.service.js');
+    await registerSession(`Bearer ${accessToken}`, erpUserId, ipAddress);
     return {
       accessToken,
       user: { name: email.split('@')[0], email }

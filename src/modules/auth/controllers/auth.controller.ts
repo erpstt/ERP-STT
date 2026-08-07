@@ -3,5 +3,5 @@ import type { AuthService } from '../services/auth.service.js';
 
 export class AuthController {
   constructor(private readonly service: AuthService) {}
-  signIn(body: LoginDto) { return this.service.signIn(body); }
+  signIn(body: LoginDto, ipAddress?: string | null) { return this.service.signIn(body, ipAddress); }
 }
