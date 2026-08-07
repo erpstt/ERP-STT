@@ -42,7 +42,7 @@
           </div>
         </template>
       </nav>
-      <div class="sidebar-bottom"><button @click="logout"><span>↪</span>Cerrar sesión</button></div>
+      <div class="sidebar-bottom"><button @click="openPasswordDialog"><span>⚿</span>Cambiar contraseña</button><button @click="logout"><span>↪</span>Cerrar sesión</button></div>
     </aside>
 
     <section class="dashboard">
@@ -61,6 +61,8 @@
         </section>
       </div>
     </section>
+
+    <div v-if="passwordDialog.open" class="modal-backdrop" @click.self="passwordDialog.open=false"><section class="modal" role="dialog" aria-modal="true"><div class="modal-head"><div><span class="modal-icon">⚿</span><div><p>SEGURIDAD</p><h2>Cambiar contraseña</h2></div></div><button class="modal-close" @click="passwordDialog.open=false">×</button></div><form @submit.prevent="submitPasswordChange"><div class="form-grid"><label><span>Contraseña actual *</span><input v-model="passwordDialog.currentPassword" type="password" required autocomplete="current-password"></label><label><span>Nueva contraseña *</span><input v-model="passwordDialog.newPassword" type="password" required minlength="15" maxlength="128" autocomplete="new-password"></label><label><span>Confirmar nueva contraseña *</span><input v-model="passwordDialog.confirmation" type="password" required minlength="15" maxlength="128" autocomplete="new-password"></label></div><small>Use al menos 15 caracteres. No puede reutilizar ninguna de sus últimas 6 contraseñas.</small><p v-if="passwordDialog.error" class="dialog-error">{{ passwordDialog.error }}</p><div class="modal-actions"><button type="button" class="button-secondary" @click="passwordDialog.open=false">Cancelar</button><button class="button-primary" :disabled="passwordDialog.saving">{{ passwordDialog.saving ? 'Actualizando…' : 'Actualizar contraseña' }}</button></div></form></section></div>
 
     <div v-if="recordDialog.open" class="modal-backdrop" @click.self="closeRecordDialog">
       <section class="modal" role="dialog" aria-modal="true" aria-labelledby="country-modal-title">

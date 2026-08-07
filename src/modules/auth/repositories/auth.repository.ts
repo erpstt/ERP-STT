@@ -37,8 +37,12 @@ export class SupabaseAuthRepository implements AuthRepository {
     let erpUsers=await request<Array<{user_id:number}>>(`users?select=user_id&email=eq.${encodeURIComponent(email)}&limit=1`);
     if(!erpUsers.length){const firstName=String(metadata.first_name??metadata.full_name??email.split('@')[0]);const inserted=await request<Array<{user_id:number}>>('users',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({email,password_hash:`auth:${authId}`,first_name:firstName,last_name:String(metadata.last_name??''),is_active:true})});erpUsers=inserted;}
     const erpUserId=erpUsers[0].user_id;
+    const passwordHistory=await request<Array<{history_id:number}>>(`password_history?select=history_id&user_id=eq.${erpUserId}&limit=1`);
+    if(!passwordHistory.length){const{hashPassword}=await import('../../../shared/services/password.service.js');await request('password_history',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({user_id:erpUserId,password_hash:await hashPassword(input.password)})});}
     const links=await request<Array<{id:number}>>(`user_subsidiaries?select=id&user_id=eq.${erpUserId}&limit=1`);
     if(!links.length&&email.toLowerCase()==='demo@nexo.com'){const companies=await request<Array<{subsidiary_id:number}>>('subsidiaries?select=subsidiary_id&is_active=eq.true');if(companies.length)await request('user_subsidiaries',{method:'POST',body:JSON.stringify(companies.map(company=>({user_id:erpUserId,subsidiary_id:company.subsidiary_id})))});}
+    const { registerDevice } = await import('../services/device.service.js');
+    await registerDevice(`Bearer ${accessToken}`, erpUserId, input.deviceToken, input.deviceName);
     const { registerSession } = await import('../services/session.service.js');
     await registerSession(`Bearer ${accessToken}`, erpUserId, ipAddress);
     return {

@@ -26,6 +26,8 @@ import { createAiRow, deleteAiRow, getAiCatalog, listAiRows, updateAiRow } from 
 import { listUserCompanies, selectUserCompany } from './modules/auth/services/company-access.service.js';
 import { listUserRoles, selectUserRole } from './modules/auth/services/role-access.service.js';
 import { assertActiveSession, revokeCurrentSession, SessionAuthenticationError } from './modules/auth/services/session.service.js';
+import { assertRegisteredDevice } from './modules/auth/services/device.service.js';
+import { changePassword } from './modules/auth/services/password-history.service.js';
 import { error, json } from './core/interceptors/http-response.js';
 
 const loadEnvFile = (process as typeof process & { loadEnvFile?: (path?: string) => void }).loadEnvFile;
@@ -67,7 +69,7 @@ const server = createServer(async (request, response) => {
       return;
     }
     if (request.method === 'POST' && request.url === '/api/auth/login') {
-      const result = await authController.signIn(await body(request) as { email: string; password: string }, clientIp(request));
+      const result = await authController.signIn(await body(request) as { email: string; password: string; deviceToken?: string; deviceName?: string }, clientIp(request));
       return json(response, 200, result);
     }
     if (request.method === 'POST' && request.url === '/api/auth/logout') {
@@ -79,11 +81,13 @@ const server = createServer(async (request, response) => {
       const authorization = request.headers.authorization;
       if (!authorization?.startsWith('Bearer ')) return error(response, 401, 'Debe iniciar sesión.');
       await assertActiveSession(authorization);
+      await assertRegisteredDevice(authorization, Array.isArray(request.headers['x-device-token']) ? request.headers['x-device-token'][0] : request.headers['x-device-token']);
     }
     if(request.method==='GET'&&request.url==='/api/auth/companies'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');return json(response,200,await listUserCompanies(authorization));}
     if(request.method==='POST'&&request.url==='/api/auth/select-company'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const input=await body(request)as{subsidiaryId?:number};return json(response,200,await selectUserCompany(authorization,Number(input.subsidiaryId)));}
     if(request.method==='GET'&&request.url==='/api/auth/roles'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');return json(response,200,await listUserRoles(authorization));}
     if(request.method==='POST'&&request.url==='/api/auth/select-role'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const input=await body(request)as{roleId?:number};return json(response,200,await selectUserRole(authorization,Number(input.roleId)));}
+    if(request.method==='POST'&&request.url==='/api/auth/change-password'){const authorization=request.headers.authorization!;return json(response,200,await changePassword(authorization,await body(request)as{currentPassword?:string;newPassword?:string;confirmation?:string}));}
     const coreRoute = request.url?.match(/^\/api\/core\/([a-z-]+)(?:\/(\d+))?$/);
     if (coreRoute) {
       const authorization = request.headers.authorization;
