@@ -56,7 +56,7 @@ async function serveFile(pathname: string, response: ServerResponse) {
   try {
     await stat(file);
     const extension = file.slice(file.lastIndexOf('.'));
-    response.writeHead(200, { 'Content-Type': `${mime[extension] ?? 'application/octet-stream'}; charset=utf-8` });
+    response.writeHead(200, { 'Content-Type': `${mime[extension] ?? 'application/octet-stream'}; charset=utf-8`, 'Cache-Control': ['.html','.js'].includes(extension) ? 'no-store, max-age=0' : 'no-cache' });
     createReadStream(file).pipe(response);
   } catch { error(response, 404, 'Recurso no encontrado.'); }
 }
