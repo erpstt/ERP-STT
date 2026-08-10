@@ -1,0 +1,88 @@
+.modal-backdrop {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.modal {
+  display: flex;
+  max-height: calc(100dvh - 32px);
+  flex-direction: column;
+}
+
+.modal-head {
+  flex: 0 0 auto;
+}
+
+.modal form,
+.modal .delete-confirm {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-color: #b8c2ce #f1f4f6;
+  scrollbar-width: thin;
+}
+
+.modal form::-webkit-scrollbar,
+.modal .delete-confirm::-webkit-scrollbar {
+  width: 9px;
+}
+
+.modal form::-webkit-scrollbar-track,
+.modal .delete-confirm::-webkit-scrollbar-track {
+  background: #f1f4f6;
+}
+
+.modal form::-webkit-scrollbar-thumb,
+.modal .delete-confirm::-webkit-scrollbar-thumb {
+  border: 2px solid #f1f4f6;
+  border-radius: 999px;
+  background: #b8c2ce;
+}
+
+.modal .modal-actions {
+  position: sticky;
+  z-index: 3;
+  bottom: -22px;
+  margin: 22px -23px -22px;
+  padding: 15px 23px;
+  border-top: 1px solid #edf0f3;
+  background: #fff;
+  box-shadow: 0 -8px 18px rgba(31, 47, 61, 0.06);
+}
+
+.entity-master-modal {
+  width: min(760px, 100%);
+}
+
+.entity-master-modal .form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+.entity-master-modal .multi-select {
+  max-height: 165px;
+}
+
+.entity-master-modal input[readonly] {
+  cursor: not-allowed;
+  color: #667382;
+  background: #f4f6f8;
+}
+
+@media (max-width: 560px) {
+  .modal-backdrop {
+    place-items: start center;
+    padding: 10px;
+  }
+
+  .modal {
+    max-height: calc(100dvh - 20px);
+  }
+
+  .entity-master-modal .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal .modal-actions {
+    flex-wrap: wrap;
+  }
+}
