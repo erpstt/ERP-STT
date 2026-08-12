@@ -26,7 +26,18 @@
   </main>
 
   <main v-else-if="selectingCompany" class="company-selection">
-    <section class="company-picker"><span class="brand"><span class="brand-mark"><i></i><i></i><i></i></span>NEXO</span><p class="eyebrow">ACCESO POR EMPRESA</p><h1>¿En cuál empresa deseas trabajar?</h1><p>Solo podrás consultar y administrar la información de la empresa seleccionada.</p><div class="company-list"><button v-for="company in companies" :key="company.subsidiaryId" type="button" :disabled="isSelectingCompany" @click="selectCompany(company)"><span class="tenant-logo">{{ company.name.charAt(0).toUpperCase() }}</span><span><strong>{{ company.name }}</strong><small>{{ company.legalName }}</small></span><b>→</b></button></div><p class="form-error">{{ companyError }}</p><button class="company-logout" type="button" @click="logout">Cerrar sesión</button></section>
+    <section class="company-picker" aria-labelledby="company-picker-title">
+      <header class="company-picker-brand"><span class="brand"><span class="brand-mark"><i></i><i></i><i></i></span>NEXO</span><span class="company-access-badge"><i></i>Acceso seguro</span></header>
+      <div class="company-picker-heading"><span class="company-picker-icon" aria-hidden="true">⌂</span><div><p class="eyebrow">ACCESO POR EMPRESA</p><h1 id="company-picker-title">¿En cuál empresa deseas trabajar?</h1><p>Selecciona el espacio empresarial que deseas administrar durante esta sesión.</p></div></div>
+      <div class="company-list-head"><strong>Empresas disponibles</strong><span>{{ companies.length }} asignadas</span></div>
+      <div class="company-list">
+        <button v-for="company in companies" :key="company.subsidiaryId" type="button" :disabled="isSelectingCompany" @click="selectCompany(company)">
+          <span class="tenant-logo">{{ company.name.charAt(0).toUpperCase() }}</span><span class="company-copy"><strong>{{ company.name }}</strong><small>{{ company.legalName || 'Empresa asignada' }}</small></span><span class="company-enter">{{ isSelectingCompany ? '···' : '→' }}</span>
+        </button>
+      </div>
+      <p class="form-error company-selection-error">{{ companyError }}</p>
+      <footer class="company-picker-footer"><span><i>✓</i> Solo verás información de la empresa seleccionada</span><button class="company-logout" type="button" @click="logout">Cerrar sesión</button></footer>
+    </section>
   </main>
 
   <main v-else class="workspace">
@@ -74,6 +85,6 @@
     </div>
   </main>
 </div>
-<script type="module" src="/app.js?v=20260810-asset-category-depreciation"></script>
+<script type="module" src="/app.js?v=20260811-remove-api-oauth"></script>
 </body>
 </html>
