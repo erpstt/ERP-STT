@@ -1,0 +1,21 @@
+alter table public.chart_accounts add column if not exists level integer not null default 4;
+alter table public.chart_accounts add column if not exists nature text;
+alter table public.chart_accounts add column if not exists financial_statement text;
+alter table public.chart_accounts add column if not exists category text;
+alter table public.chart_accounts add column if not exists accepts_entries boolean not null default true;
+alter table public.chart_accounts add column if not exists full_ifrs_only boolean not null default false;
+alter table public.chart_accounts add column if not exists pending_fx_revaluation boolean not null default false;
+alter table public.chart_accounts alter column account_type drop not null;
+
+alter table public.chart_accounts drop constraint if exists chart_accounts_level_four;
+alter table public.chart_accounts add constraint chart_accounts_level_four check(level=4);
+alter table public.chart_accounts drop constraint if exists chart_accounts_nature_allowed;
+alter table public.chart_accounts add constraint chart_accounts_nature_allowed check(nature in ('Deudora','Acreedora')) not valid;
+alter table public.chart_accounts drop constraint if exists chart_accounts_statement_allowed;
+alter table public.chart_accounts add constraint chart_accounts_statement_allowed check(financial_statement in ('Balance General','Estado de Resultados')) not valid;
+alter table public.chart_accounts drop constraint if exists chart_accounts_category_allowed;
+alter table public.chart_accounts add constraint chart_accounts_category_allowed check(category in ('Activo','Pasivo','Patrimonio','Ingreso','Costo','Gasto')) not valid;
+alter table public.chart_accounts drop constraint if exists chart_accounts_fx_scope;
+alter table public.chart_accounts add constraint chart_accounts_fx_scope check(not pending_fx_revaluation or category in ('Activo','Pasivo'));
+alter table public.chart_accounts drop constraint if exists chart_accounts_receive_movements;
+alter table public.chart_accounts add constraint chart_accounts_receive_movements check(accepts_entries);
