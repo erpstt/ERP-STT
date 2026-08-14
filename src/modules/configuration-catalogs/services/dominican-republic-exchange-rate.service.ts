@@ -12,7 +12,7 @@ function effectiveDate(value?:Date|string){
  return date.toISOString().slice(0,10);
 }
 
-/** Consulta la tasa oficial de compra publicada por el Banco Central de la República Dominicana. */
+/** Consulta la tasa oficial de venta publicada por el Banco Central de la República Dominicana. */
 export async function obtenerTipoDeCambioRD(monedaOrigen='USD',monedaDestino='DOP',fechaEfectiva?:Date|string){
  const from=monedaOrigen.trim().toUpperCase();const to=monedaDestino.trim().toUpperCase();
  if(from===to)return{monedaOrigen:from,monedaDestino:to,fechaEfectiva:effectiveDate(fechaEfectiva),tipoCambio:1,fuente:'Banco Central de la República Dominicana'};
@@ -23,9 +23,9 @@ export async function obtenerTipoDeCambioRD(monedaOrigen='USD',monedaDestino='DO
  const form=new URLSearchParams({fromDate:`${date}T00:00:00.000Z`});
  const response=await fetch(BCRD_RATE,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'XMLHttpRequest',Referer:BCRD_PAGE,Cookie:cookie,'User-Agent':'Nexo ERP/1.0'},body:form});
  const raw=await response.text();if(!response.ok||!raw)throw new Error('El Banco Central no devolvió una tasa para la fecha solicitada.');
- const payload=JSON.parse(raw) as BcrdResponse;const buy=Number(payload.result?.buyingValue);
- if(!payload.success||!Number.isFinite(buy)||buy<=0)throw new Error(payload.error?.message||'No existe una tasa válida para la fecha solicitada.');
- return{monedaOrigen:from,monedaDestino:to,fechaEfectiva:date,tipoCambio:from==='USD'?buy:1/buy,tasaCompra:buy,tasaVenta:Number(payload.result?.sellingValue),fuente:'Banco Central de la República Dominicana'};
+ const payload=JSON.parse(raw) as BcrdResponse;const buy=Number(payload.result?.buyingValue),sell=Number(payload.result?.sellingValue);
+ if(!payload.success||!Number.isFinite(sell)||sell<=0)throw new Error(payload.error?.message||'No existe una tasa de venta válida para la fecha solicitada.');
+ return{monedaOrigen:from,monedaDestino:to,fechaEfectiva:date,tipoCambio:from==='USD'?sell:1/sell,tasaCompra:buy,tasaVenta:sell,fuente:'Banco Central de la República Dominicana'};
 }
 
 function claims(authorization:string){const part=authorization.replace(/^Bearer\s+/,'').split('.')[1];if(!part)throw new Error('La sesión no es válida.');return JSON.parse(Buffer.from(part,'base64url').toString('utf8')) as Record<string,unknown>;}
@@ -39,5 +39,12 @@ export async function consultarYGuardarTipoDeCambioRD(authorization:string,input
  const rate=await obtenerTipoDeCambioRD(origin.currency_code,destination.currency_code,input.fechaEfectiva);
  if(origin.currency_id===destination.currency_id)return{...rate,guardado:false};
  const rows=await rest<Array<Record<string,unknown>>>('exchange_rates?on_conflict=from_currency_id,to_currency_id,effective_date',authorization,{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify({from_currency_id:origin.currency_id,to_currency_id:destination.currency_id,effective_date:rate.fechaEfectiva,spot_rate:rate.tipoCambio})});
+ return{...rate,guardado:true,registro:rows[0]};
+}
+
+export async function consultarYGuardarTipoDeCambioRDAutomatico(fechaEfectiva?:Date|string){
+ const serviceKey=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!serviceKey)throw new Error('SUPABASE_SERVICE_ROLE_KEY no está configurada para la automatización.');
+ const authorization=`Bearer ${serviceKey}`;const [origin,destination]=await Promise.all([currency(authorization,'USD'),currency(authorization,'DOP')]);const rate=await obtenerTipoDeCambioRD('USD','DOP',fechaEfectiva);
+ const rows=await rest<Array<Record<string,unknown>>>('exchange_rates?on_conflict=from_currency_id,to_currency_id,effective_date',authorization,{method:'POST',headers:{apikey:serviceKey,Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify({from_currency_id:origin.currency_id,to_currency_id:destination.currency_id,effective_date:rate.fechaEfectiva,spot_rate:rate.tipoCambio})});
  return{...rate,guardado:true,registro:rows[0]};
 }

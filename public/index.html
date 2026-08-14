@@ -65,7 +65,7 @@
         <section v-if="!activeCatalog" class="module-empty"><div class="module-mark" v-html="activeModuleIcon"></div><p class="eyebrow">MÓDULO</p><h1>{{ currentModule }}</h1><p class="dashboard-copy">Selecciona una opción del módulo para comenzar a trabajar.</p></section>
 
         <section v-else class="records-view">
-          <div class="records-head"><div><p class="eyebrow">{{ currentModule.toUpperCase() }} · CATÁLOGOS</p><h1>{{ activeCatalog.title }}</h1><p class="dashboard-copy">{{ activeCatalog.description }}</p></div><div class="records-head-actions"><button v-if="activeCatalog.slug==='exchange-rates'" class="new-record" :disabled="tableLoading" @click="consultarTipoCambioRD"><span>↻</span> Consultar tasa RD</button><button v-if="activeCatalog.allowCreate !== false" class="new-record" @click="openRecordForm()"><span>＋</span> Crear {{ activeCatalog.singular }}</button></div></div>
+          <div class="records-head"><div><p class="eyebrow">{{ currentModule.toUpperCase() }} · CATÁLOGOS</p><h1>{{ activeCatalog.title }}</h1><p class="dashboard-copy">{{ activeCatalog.description }}</p></div><div class="records-head-actions"><details v-if="activeCatalog.slug==='exchange-rates' && exchangeRateActions.length" class="rate-query-menu"><summary class="new-record"><span>↻</span> Consultar tasa <b>⌄</b></summary><div><button v-for="action in exchangeRateActions" :key="action.code" type="button" :disabled="tableLoading" @click="consultarTipoCambio(action,$event)"><span>{{ action.code }}</span><strong>{{ action.country }}</strong><small>USD → {{ action.currency }}</small></button></div></details><button v-if="activeCatalog.allowCreate !== false" class="new-record" @click="openRecordForm()"><span>＋</span> Crear {{ activeCatalog.singular }}</button></div></div>
           <div class="table-card">
             <div class="table-tools"><div class="search-box"><span>⌕</span><input v-model="search" placeholder="Buscar en el catálogo" aria-label="Buscar registros"></div><span class="record-count">{{ filteredRows.length }} {{ filteredRows.length === 1 ? 'registro' : 'registros' }}</span></div>
             <p v-if="tableLoading" class="table-message">Cargando registros…</p><p v-else-if="tableError" class="table-message form-error">{{ tableError }}</p>
@@ -87,6 +87,6 @@
     </div>
   </main>
 </div>
-<script type="module" src="/app.js?v=20260814-rd-exchange-rate"></script>
+<script type="module" src="/app.js?v=20260814-argentina-exchange-rate"></script>
 </body>
 </html>
