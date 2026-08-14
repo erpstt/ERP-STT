@@ -1,0 +1,2 @@
+.records-head-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+@media(max-width:700px){.records-head-actions{width:100%;justify-content:flex-start}}

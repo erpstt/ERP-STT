@@ -1,0 +1,5 @@
+.company-badge[style*="background-image"]{background-color:#fff;border:1px solid #e4ebe8;color:transparent!important}
+.logo-upload{display:grid;gap:8px;padding:10px;border:1px dashed #b9cec6;border-radius:10px;background:#f8fbfa}
+.logo-upload img{width:120px;height:70px;object-fit:contain;padding:5px;border:1px solid #e3eae7;border-radius:8px;background:#fff}
+.logo-upload input[type="file"]{width:100%;font-size:12px}
+.logo-upload small{color:#77847e;font-size:10px}
