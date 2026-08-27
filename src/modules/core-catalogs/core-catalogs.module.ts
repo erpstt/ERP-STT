@@ -1,7 +1,7 @@
 import { getSupabaseConfig } from '../../core/database/supabase.client.js';
 
 type FieldType = 'text' | 'number' | 'boolean';
-export interface CatalogField { key: string; label: string; type: FieldType; required?: boolean; }
+export interface CatalogField { key: string; label: string; type: FieldType; required?: boolean; readOnly?: boolean; }
 export interface CatalogDefinition { slug: string; table: string; title: string; description: string; primaryKey: string; fields: CatalogField[]; }
 
 export const coreCatalogs: CatalogDefinition[] = [
@@ -11,7 +11,7 @@ export const coreCatalogs: CatalogDefinition[] = [
   { slug: 'currencies', table: 'currencies', title: 'Monedas', description: 'Catálogo maestro de monedas', primaryKey: 'currency_id', fields: [{key:'currency_code',label:'Código',type:'text',required:true},{key:'name',label:'Nombre',type:'text',required:true},{key:'symbol',label:'Símbolo',type:'text',required:true},{key:'fx_rate_precision',label:'Precisión cambiaria',type:'number',required:true}] },
   { slug: 'status', table: 'status', title: 'Estados', description: 'Estados maestros del sistema', primaryKey: 'status_id', fields: [{key:'code',label:'Código',type:'text',required:true},{key:'name',label:'Nombre',type:'text',required:true},{key:'module',label:'Módulo',type:'text',required:true},{key:'description',label:'Descripción',type:'text'}] },
   { slug: 'number-sequences', table: 'number_sequences', title: 'Secuencias numéricas', description: 'Secuencias numéricas autonumerables', primaryKey: 'sequence_id', fields: [{key:'prefix',label:'Prefijo',type:'text'},{key:'suffix',label:'Sufijo',type:'text'},{key:'current_number',label:'Número actual',type:'number',required:true},{key:'padding_length',label:'Longitud',type:'number',required:true}] },
-  { slug: 'transaction-types', table: 'transaction_types', title: 'Tipos de transacción', description: 'Tipos de transacciones del motor ERP', primaryKey: 'transaction_type_id', fields: [{key:'code',label:'Código',type:'text',required:true},{key:'name',label:'Nombre',type:'text',required:true},{key:'module_category',label:'Categoría de módulo',type:'text',required:true}] },
+  { slug: 'transaction-types', table: 'transaction_types', title: 'Tipos de transacción', description: 'Tipos de transacciones del motor ERP', primaryKey: 'transaction_type_id', fields: [{key:'code',label:'Código',type:'text',readOnly:true},{key:'abbreviation',label:'Abreviación',type:'text',required:true},{key:'name',label:'Nombre',type:'text',required:true},{key:'module_category',label:'Categoría de módulo',type:'text',required:true},{key:'description',label:'Descripción',type:'text',required:true}] },
   { slug: 'parameters', table: 'parameters', title: 'Parámetros', description: 'Parámetros globales del sistema', primaryKey: 'parameter_id', fields: [{key:'parameter_key',label:'Clave',type:'text',required:true},{key:'parameter_value',label:'Valor',type:'text'},{key:'description',label:'Descripción',type:'text'}] },
   { slug: 'settings', table: 'settings', title: 'Configuraciones', description: 'Configuraciones del sistema', primaryKey: 'setting_id', fields: [{key:'setting_key',label:'Clave',type:'text',required:true},{key:'setting_value',label:'Valor',type:'text'},{key:'scope',label:'Alcance',type:'text',required:true}] }
 ];
@@ -23,7 +23,7 @@ export function getCoreCatalog(slug: string): CatalogDefinition {
 }
 
 function sanitize(catalog: CatalogDefinition, input: Record<string, unknown>) {
-  return Object.fromEntries(catalog.fields.map(field => {
+  return Object.fromEntries(catalog.fields.filter(field => !field.readOnly).map(field => {
     const raw = input[field.key];
     if (field.required && (raw === undefined || raw === null || String(raw).trim() === '')) throw new Error(`${field.label} es obligatorio.`);
     if (field.type === 'boolean') return [field.key, raw === true || raw === 'true'];
