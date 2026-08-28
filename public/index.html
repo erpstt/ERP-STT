@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -17,76 +17,430 @@
 </head>
 <body>
 <div id="app">
-  <div v-if="!sessionReady" class="session-loading"><span class="brand"><span class="brand-mark"><i></i><i></i><i></i></span>NEXO</span><p>Restaurando tu sesión…</p></div>
+  <div v-if="!sessionReady" class="session-loading">
+<span class="brand">
+<span class="brand-mark">
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+</span>NEXO</span>
+<p>Restaurando tu sesión…</p>
+</div>
   <main v-else-if="!authenticated" class="page-shell">
     <section class="brand-panel">
-      <div class="brand-top"><span class="brand"><span class="brand-mark"><i></i><i></i><i></i></span>NEXO</span><span class="badge"><span></span>Plataforma activa</span></div>
-      <div class="statement"><p class="eyebrow">OPERACIÓN CONECTADA</p><h1>Dirige tu empresa<br>con <em>claridad.</em></h1><p class="statement-copy">Una única plataforma para su ERP en Latinoamerica</p></div>
-      <footer><span>© 2026 Nexo Systems</span></footer>
+      <div class="brand-top">
+<span class="brand">
+<span class="brand-mark">
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+</span>NEXO</span>
+<span class="badge">
+<span>
+</span>Plataforma activa</span>
+</div>
+      <div class="statement">
+<p class="eyebrow">OPERACIÓN CONECTADA</p>
+<h1>Dirige tu empresa<br>con <em>claridad.</em>
+</h1>
+<p class="statement-copy">Una única plataforma para su ERP en Latinoamerica</p>
+</div>
+      <footer>
+<span>© 2026 Nexo Systems</span>
+</footer>
     </section>
-    <section class="auth-panel"><div class="auth-wrap"><div class="heading"><p class="eyebrow">BIENVENIDO DE NUEVO</p><h2>Ingresa a tu espacio.</h2><p>Gestiona cada área de tu empresa desde un solo lugar.</p></div><form @submit.prevent="signIn"><label for="email">Correo corporativo</label><div class="input-wrap"><span class="input-icon">@</span><input id="email" v-model="email" type="email" required placeholder="nombre@empresa.com"></div><div class="label-row"><label for="password">Contraseña</label></div><div class="input-wrap"><input id="password" v-model="password" :type="showPassword ? 'text' : 'password'" required placeholder="Ingresa tu contraseña"><button class="toggle-pass" type="button" @click="showPassword=!showPassword">{{ showPassword ? '◌' : '◉' }}</button></div><p class="form-error">{{ formError }}</p><button class="submit" :disabled="isSubmitting"><span>{{ isSubmitting ? 'Verificando acceso…' : 'Ingresar a Nexo' }}</span><b>→</b></button></form></div></section>
+    <section class="auth-panel">
+<div class="auth-wrap">
+<div class="heading">
+<p class="eyebrow">BIENVENIDO DE NUEVO</p>
+<h2>Ingresa a tu espacio.</h2>
+<p>Gestiona cada área de tu empresa desde un solo lugar.</p>
+</div>
+<form @submit.prevent="signIn">
+<label for="email">Correo corporativo</label>
+<div class="input-wrap">
+<span class="input-icon">@</span>
+<input id="email" v-model="email" type="email" required placeholder="nombre@empresa.com">
+</div>
+<div class="label-row">
+<label for="password">Contraseña</label>
+</div>
+<div class="input-wrap">
+<input id="password" v-model="password" :type="showPassword ? 'text' : 'password'" required placeholder="Ingresa tu contraseña">
+<button class="toggle-pass" type="button" @click="showPassword=!showPassword">{{ showPassword ? '◌' : '◉' }}</button>
+</div>
+<p class="form-error">{{ formError }}</p>
+<button class="submit" :disabled="isSubmitting">
+<span>{{ isSubmitting ? 'Verificando acceso…' : 'Ingresar a Nexo' }}</span>
+<b>→</b>
+</button>
+</form>
+</div>
+</section>
   </main>
 
   <main v-else-if="selectingCompany" class="company-selection">
     <section class="company-picker" aria-labelledby="company-picker-title">
-      <header class="company-picker-brand"><span class="brand"><span class="brand-mark"><i></i><i></i><i></i></span>NEXO</span><span class="company-access-badge"><i></i>Acceso seguro</span></header>
-      <div class="company-picker-heading"><span class="company-picker-icon" aria-hidden="true">⌂</span><div><p class="eyebrow">ACCESO POR EMPRESA</p><h1 id="company-picker-title">¿En cuál empresa deseas trabajar?</h1><p>Selecciona el espacio empresarial que deseas administrar durante esta sesión.</p></div></div>
-      <div class="company-list-head"><strong>Empresas disponibles</strong><span>{{ companies.length }} asignadas</span></div>
+      <header class="company-picker-brand">
+<span class="brand">
+<span class="brand-mark">
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+</span>NEXO</span>
+<span class="company-access-badge">
+<i>
+</i>Acceso seguro</span>
+</header>
+      <div class="company-picker-heading">
+<span class="company-picker-icon" aria-hidden="true">⌂</span>
+<div>
+<p class="eyebrow">ACCESO POR EMPRESA</p>
+<h1 id="company-picker-title">¿En cuál empresa deseas trabajar?</h1>
+<p>Selecciona el espacio empresarial que deseas administrar durante esta sesión.</p>
+</div>
+</div>
+      <div class="company-list-head">
+<strong>Empresas disponibles</strong>
+<span>{{ companies.length }} asignadas</span>
+</div>
       <div class="company-list">
         <button v-for="company in companies" :key="company.subsidiaryId" type="button" :disabled="isSelectingCompany" @click="selectCompany(company)">
-          <span class="tenant-logo">{{ company.name.charAt(0).toUpperCase() }}</span><span class="company-copy"><strong>{{ company.name }}</strong><small>{{ company.legalName || 'Empresa asignada' }}</small></span><span class="company-enter">{{ isSelectingCompany ? '···' : '→' }}</span>
+          <span class="tenant-logo">{{ company.name.charAt(0).toUpperCase() }}</span>
+<span class="company-copy">
+<strong>{{ company.name }}</strong>
+<small>{{ company.legalName || 'Empresa asignada' }}</small>
+</span>
+<span class="company-enter">{{ isSelectingCompany ? '···' : '→' }}</span>
         </button>
       </div>
       <p class="form-error company-selection-error">{{ companyError }}</p>
-      <footer class="company-picker-footer"><span><i>✓</i> Solo verás información de la empresa seleccionada</span><button class="company-logout" type="button" @click="logout">Cerrar sesión</button></footer>
+      <footer class="company-picker-footer">
+<span>
+<i>✓</i> Solo verás información de la empresa seleccionada</span>
+<button class="company-logout" type="button" @click="logout">Cerrar sesión</button>
+</footer>
     </section>
   </main>
 
   <main v-else class="workspace">
     <aside class="sidebar" :class="{open: sidebarOpen}">
-      <span class="brand"><span class="brand-mark"><i></i><i></i><i></i></span>NEXO</span>
+      <span class="brand">
+<span class="brand-mark">
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+</span>NEXO</span>
       <nav>
         <p>MÓDULOS</p>
         <template v-for="module in modules" :key="module.name">
           <a class="nav-link" :class="{active: currentModule===module.name}" href="#" @click.prevent="selectModule(module)">
-            <span class="nav-icon" v-html="module.icon"></span><span class="nav-label">{{ module.name }}</span><span v-if="module.children" class="nav-chevron" :class="{expanded: expandedModules.includes(module.name)}">›</span>
+            <span class="nav-icon" v-html="module.icon">
+</span>
+<span class="nav-label">{{ module.name }}</span>
+<span v-if="module.children" class="nav-chevron" :class="{expanded: expandedModules.includes(module.name)}">›</span>
           </a>
           <div v-if="module.children && expandedModules.includes(module.name)" class="nav-children">
-            <a v-for="child in module.children" :key="child" href="#" :class="{active:currentSection===child}" @click.prevent="navigateChild(module.name, child)"><span></span>{{ child }}</a>
+            <a v-for="child in module.children" :key="child" href="#" :class="{active:currentSection===child}" @click.prevent="navigateChild(module.name, child)">
+<span>
+</span>{{ child }}</a>
           </div>
         </template>
       </nav>
-      <div class="sidebar-bottom"><button @click="openPasswordDialog"><span>⚿</span>Cambiar contraseña</button><button @click="logout"><span>↪</span>Cerrar sesión</button></div>
+      <div class="sidebar-bottom">
+<button @click="openPasswordDialog">
+<span>⚿</span>Cambiar contraseña</button>
+<button @click="logout">
+<span>↪</span>Cerrar sesión</button>
+</div>
     </aside>
 
     <section class="dashboard">
-      <header class="dashboard-header"><button class="menu-button" @click="sidebarOpen=!sidebarOpen">☰</button><div class="crumb"><span>Espacio de trabajo</span><b>/</b><span>{{ currentModule }}</span><template v-if="currentSection !== currentModule"><b>/</b><strong>{{ currentSection }}</strong></template></div><div class="header-identity"><details v-if="companies.length > 1" class="company-selector"><summary><span class="company-badge">{{ activeCompany?.name?.charAt(0)?.toUpperCase() }}</span><span class="role-copy"><small>EMPRESA ACTIVA</small><strong>{{ activeCompany?.name }}</strong></span><span class="role-chevron">⌄</span></summary><div class="company-menu"><div class="role-menu-head"><strong>Cambiar empresa</strong><small>{{ companies.length }} empresas asignadas</small></div><button v-for="company in companies" :key="company.subsidiaryId" type="button" :class="{active:String(company.subsidiaryId)===String(activeCompany?.subsidiaryId)}" :disabled="isSelectingCompany" @click="chooseCompany(company,$event)"><span class="company-option-icon">{{ company.name.charAt(0).toUpperCase() }}</span><span><strong>{{ company.name }}</strong><small>{{ company.legalName }}</small></span><b>{{ String(company.subsidiaryId)===String(activeCompany?.subsidiaryId) ? '✓' : '→' }}</b></button></div></details><div v-else class="company-switch-single"><span class="company-badge">{{ activeCompany?.name?.charAt(0)?.toUpperCase() }}</span><span class="role-copy"><small>EMPRESA ACTIVA</small><strong>{{ activeCompany?.name }}</strong></span></div><details v-if="roles.length > 1" class="role-selector"><summary><span class="role-badge" aria-hidden="true">✓</span><span class="role-copy"><small>ROL ACTIVO</small><strong>{{ activeRole?.name }}</strong></span><span class="role-chevron" aria-hidden="true">⌄</span></summary><div class="role-menu"><div class="role-menu-head"><strong>Cambiar rol</strong><small>{{ roles.length }} roles asignados</small></div><button v-for="role in roles" :key="role.roleId" type="button" :class="{active:String(role.roleId)===String(activeRole?.roleId)}" :disabled="isSelectingRole" @click="chooseRole(role,$event)"><span class="role-option-icon">{{ role.name.charAt(0).toUpperCase() }}</span><span><strong>{{ role.name }}</strong><small>{{ role.description || 'Rol del sistema' }}</small></span><b>{{ String(role.roleId)===String(activeRole?.roleId) ? '✓' : '→' }}</b></button></div></details><div v-else class="role-switch role-switch-single"><span class="role-badge" aria-hidden="true">✓</span><span class="role-copy"><small>ROL ACTIVO</small><strong>{{ activeRole?.name }}</strong></span></div><span class="avatar">{{ userInitial }}</span></div></header>
+      <header class="dashboard-header">
+<button class="menu-button" @click="sidebarOpen=!sidebarOpen">☰</button>
+<div class="crumb">
+<span>Espacio de trabajo</span>
+<b>/</b>
+<span>{{ currentModule }}</span>
+<template v-if="currentSection !== currentModule">
+<b>/</b>
+<strong>{{ currentSection }}</strong>
+</template>
+</div>
+<div class="header-identity">
+<details v-if="companies.length > 1" class="company-selector">
+<summary>
+<span class="company-badge">{{ activeCompany?.name?.charAt(0)?.toUpperCase() }}</span>
+<span class="role-copy">
+<small>EMPRESA ACTIVA</small>
+<strong>{{ activeCompany?.name }}</strong>
+</span>
+<span class="role-chevron">⌄</span>
+</summary>
+<div class="company-menu">
+<div class="role-menu-head">
+<strong>Cambiar empresa</strong>
+<small>{{ companies.length }} empresas asignadas</small>
+</div>
+<button v-for="company in companies" :key="company.subsidiaryId" type="button" :class="{active:String(company.subsidiaryId)===String(activeCompany?.subsidiaryId)}" :disabled="isSelectingCompany" @click="chooseCompany(company,$event)">
+<span class="company-option-icon">{{ company.name.charAt(0).toUpperCase() }}</span>
+<span>
+<strong>{{ company.name }}</strong>
+<small>{{ company.legalName }}</small>
+</span>
+<b>{{ String(company.subsidiaryId)===String(activeCompany?.subsidiaryId) ? '✓' : '→' }}</b>
+</button>
+</div>
+</details>
+<div v-else class="company-switch-single">
+<span class="company-badge">{{ activeCompany?.name?.charAt(0)?.toUpperCase() }}</span>
+<span class="role-copy">
+<small>EMPRESA ACTIVA</small>
+<strong>{{ activeCompany?.name }}</strong>
+</span>
+</div>
+<details v-if="roles.length > 1" class="role-selector">
+<summary>
+<span class="role-badge" aria-hidden="true">✓</span>
+<span class="role-copy">
+<small>ROL ACTIVO</small>
+<strong>{{ activeRole?.name }}</strong>
+</span>
+<span class="role-chevron" aria-hidden="true">⌄</span>
+</summary>
+<div class="role-menu">
+<div class="role-menu-head">
+<strong>Cambiar rol</strong>
+<small>{{ roles.length }} roles asignados</small>
+</div>
+<button v-for="role in roles" :key="role.roleId" type="button" :class="{active:String(role.roleId)===String(activeRole?.roleId)}" :disabled="isSelectingRole" @click="chooseRole(role,$event)">
+<span class="role-option-icon">{{ role.name.charAt(0).toUpperCase() }}</span>
+<span>
+<strong>{{ role.name }}</strong>
+<small>{{ role.description || 'Rol del sistema' }}</small>
+</span>
+<b>{{ String(role.roleId)===String(activeRole?.roleId) ? '✓' : '→' }}</b>
+</button>
+</div>
+</details>
+<div v-else class="role-switch role-switch-single">
+<span class="role-badge" aria-hidden="true">✓</span>
+<span class="role-copy">
+<small>ROL ACTIVO</small>
+<strong>{{ activeRole?.name }}</strong>
+</span>
+</div>
+<span class="avatar">{{ userInitial }}</span>
+</div>
+</header>
       <div class="dashboard-content">
-        <section v-if="!activeCatalog" class="module-empty"><div class="module-mark" v-html="activeModuleIcon"></div><p class="eyebrow">MÓDULO</p><h1>{{ currentModule }}</h1><p class="dashboard-copy">Selecciona una opción del módulo para comenzar a trabajar.</p></section>
+        <section v-if="!activeCatalog" class="module-empty">
+<div class="module-mark" v-html="activeModuleIcon">
+</div>
+<p class="eyebrow">MÓDULO</p>
+<h1>{{ currentModule }}</h1>
+<p class="dashboard-copy">Selecciona una opción del módulo para comenzar a trabajar.</p>
+</section>
 
         <section v-else class="records-view">
-          <div class="records-head"><div><p class="eyebrow">{{ currentModule.toUpperCase() }} · CATÁLOGOS</p><h1>{{ activeCatalog.title }}</h1><p class="dashboard-copy">{{ activeCatalog.description }}</p></div><div class="records-head-actions"><details v-if="activeCatalog.slug==='exchange-rates' && exchangeRateActions.length" class="rate-query-menu"><summary class="new-record"><span>↻</span> Consultar tasa <b>⌄</b></summary><div><button v-for="action in exchangeRateActions" :key="action.code" type="button" :disabled="tableLoading" @click="consultarTipoCambio(action,$event)"><span>{{ action.code }}</span><strong>{{ action.country }}</strong><small>USD → {{ action.currency }}</small></button></div></details><button v-if="activeCatalog.allowCreate !== false" class="new-record" @click="openRecordForm()"><span>＋</span> Crear {{ activeCatalog.singular }}</button></div></div>
+          <div class="records-head">
+<div>
+<p class="eyebrow">{{ currentModule.toUpperCase() }} · CATÁLOGOS</p>
+<h1>{{ activeCatalog.title }}</h1>
+<p class="dashboard-copy">{{ activeCatalog.description }}</p>
+</div>
+<div class="records-head-actions">
+<details v-if="activeCatalog.slug==='exchange-rates' && exchangeRateActions.length" class="rate-query-menu">
+<summary class="new-record">
+<span>↻</span> Consultar tasa <b>⌄</b>
+</summary>
+<div>
+<button v-for="action in exchangeRateActions" :key="action.code" type="button" :disabled="tableLoading" @click="consultarTipoCambio(action,$event)">
+<span>{{ action.code }}</span>
+<strong>{{ action.country }}</strong>
+<small>USD → {{ action.currency }}</small>
+</button>
+</div>
+</details>
+<button v-if="activeCatalog.allowCreate !== false" class="new-record" @click="openRecordForm()">
+<span>＋</span> Crear {{ activeCatalog.singular }}</button>
+</div>
+</div>
           <div class="table-card">
-            <div class="table-tools"><div class="search-box"><span>⌕</span><input v-model="search" placeholder="Buscar en el catálogo" aria-label="Buscar registros"></div><span class="record-count">{{ filteredRows.length }} {{ filteredRows.length === 1 ? 'registro' : 'registros' }}</span></div>
-            <p v-if="tableLoading" class="table-message">Cargando registros…</p><p v-else-if="tableError" class="table-message form-error">{{ tableError }}</p>
-            <div v-else class="table-scroll"><table :class="{'wide-table':tableFields.length >= 6}" :style="{minWidth: Math.max(700,(tableFields.length + 2) * 125) + 'px'}"><thead><tr><th>ID interno</th><th v-for="field in tableFields" :key="field.key" :class="'field-'+field.key">{{ field.label }}</th><th class="actions-heading">Acciones</th></tr></thead><tbody><tr v-for="row in filteredRows" :key="row[activeCatalog.primaryKey]"><td><span class="id-cell">#{{ row[activeCatalog.primaryKey] }}</span></td><td v-for="field in tableFields" :key="field.key" :class="'field-'+field.key"><strong v-if="field.key === 'name'" class="country-name">{{ displayValue(field,row[field.key]) }}</strong><span v-else>{{ displayValue(field,row[field.key]) }}</span></td><td class="row-actions"><button v-if="activeCatalog.slug==='journals'" class="icon-action" title="Ver comprobante" aria-label="Ver asiento" @click="viewJournal(row)"><span>◉</span><b>Ver</b></button><button v-if="activeCatalog.allowEdit !== false" class="icon-action edit" title="Editar" aria-label="Editar registro" @click="openRecordForm(row)"><span>✎</span><b>Editar</b></button><button class="icon-action delete" :title="activeCatalog.slug === 'sessions' ? 'Revocar' : 'Eliminar'" @click="requestDelete(row)"><span>⌫</span><b>{{ activeCatalog.slug === 'sessions' ? 'Revocar' : 'Eliminar' }}</b></button></td></tr><tr v-if="!filteredRows.length"><td :colspan="tableFields.length + 2" class="empty-row">No se encontraron registros.</td></tr></tbody></table></div>
-            <footer class="table-footer"><span>Catálogo de {{ currentModule }}</span><span>Actualizado en tiempo real</span></footer>
+            <div class="table-tools">
+<div class="search-box">
+<span>⌕</span>
+<input v-model="search" placeholder="Buscar en el catálogo" aria-label="Buscar registros">
+</div>
+<span class="record-count">{{ filteredRows.length }} {{ filteredRows.length === 1 ? 'registro' : 'registros' }}</span>
+</div>
+            <p v-if="tableLoading" class="table-message">Cargando registros…</p>
+<p v-else-if="tableError" class="table-message form-error">{{ tableError }}</p>
+            <div v-else class="table-scroll">
+<table :class="{'wide-table':tableFields.length >= 6}" :style="{minWidth: Math.max(700,(tableFields.length + 2) * 125) + 'px'}">
+<thead>
+<tr>
+<th>ID interno</th>
+<th v-for="field in tableFields" :key="field.key" :class="'field-'+field.key">{{ field.label }}</th>
+<th class="actions-heading">Acciones</th>
+</tr>
+</thead>
+<tbody>
+<tr v-for="row in filteredRows" :key="row[activeCatalog.primaryKey]">
+<td>
+<span class="id-cell">#{{ row[activeCatalog.primaryKey] }}</span>
+</td>
+<td v-for="field in tableFields" :key="field.key" :class="'field-'+field.key">
+<strong v-if="field.key === 'name'" class="country-name">{{ displayValue(field,row[field.key]) }}</strong>
+<span v-else>{{ displayValue(field,row[field.key]) }}</span>
+</td>
+<td class="row-actions">
+<button v-if="activeCatalog.slug==='journals'" class="icon-action" title="Ver comprobante" aria-label="Ver asiento" @click="viewJournal(row)">
+<span>◉</span>
+<b>Ver</b>
+</button>
+<button v-if="activeCatalog.slug==='customers'" class="icon-action view" title="Ver cliente" aria-label="Ver cliente" @click="openRecordView(row)">
+<span>◉</span>
+<b>Ver</b>
+</button>
+<button v-if="activeCatalog.allowEdit !== false" class="icon-action edit" title="Editar" aria-label="Editar registro" @click="openRecordForm(row)">
+<span>✎</span>
+<b>Editar</b>
+</button>
+<button class="icon-action delete" :title="activeCatalog.slug === 'sessions' ? 'Revocar' : 'Eliminar'" @click="requestDelete(row)">
+<span>⌫</span>
+<b>{{ activeCatalog.slug === 'sessions' ? 'Revocar' : 'Eliminar' }}</b>
+</button>
+</td>
+</tr>
+<tr v-if="!filteredRows.length">
+<td :colspan="tableFields.length + 2" class="empty-row">No se encontraron registros.</td>
+</tr>
+</tbody>
+</table>
+</div>
+            <footer class="table-footer">
+<span>Catálogo de {{ currentModule }}</span>
+<span>Actualizado en tiempo real</span>
+</footer>
           </div>
         </section>
       </div>
     </section>
 
-    <div v-if="passwordDialog.open" class="modal-backdrop" @click.self="passwordDialog.open=false"><section class="modal" role="dialog" aria-modal="true"><div class="modal-head"><div><span class="modal-icon">⚿</span><div><p>SEGURIDAD</p><h2>Cambiar contraseña</h2></div></div><button class="modal-close" @click="passwordDialog.open=false">×</button></div><form @submit.prevent="submitPasswordChange"><div class="form-grid"><label><span>Contraseña actual *</span><input v-model="passwordDialog.currentPassword" type="password" required autocomplete="current-password"></label><label><span>Nueva contraseña *</span><input v-model="passwordDialog.newPassword" type="password" required minlength="15" maxlength="128" autocomplete="new-password"></label><label><span>Confirmar nueva contraseña *</span><input v-model="passwordDialog.confirmation" type="password" required minlength="15" maxlength="128" autocomplete="new-password"></label></div><small>Use al menos 15 caracteres. No puede reutilizar ninguna de sus últimas 6 contraseñas.</small><p v-if="passwordDialog.error" class="dialog-error">{{ passwordDialog.error }}</p><div class="modal-actions"><button type="button" class="button-secondary" @click="passwordDialog.open=false">Cancelar</button><button class="button-primary" :disabled="passwordDialog.saving">{{ passwordDialog.saving ? 'Actualizando…' : 'Actualizar contraseña' }}</button></div></form></section></div>
+    <div v-if="passwordDialog.open" class="modal-backdrop" @click.self="passwordDialog.open=false">
+<section class="modal" role="dialog" aria-modal="true">
+<div class="modal-head">
+<div>
+<span class="modal-icon">⚿</span>
+<div>
+<p>SEGURIDAD</p>
+<h2>Cambiar contraseña</h2>
+</div>
+</div>
+<button class="modal-close" @click="passwordDialog.open=false">×</button>
+</div>
+<form @submit.prevent="submitPasswordChange">
+<div class="form-grid">
+<label>
+<span>Contraseña actual *</span>
+<input v-model="passwordDialog.currentPassword" type="password" required autocomplete="current-password">
+</label>
+<label>
+<span>Nueva contraseña *</span>
+<input v-model="passwordDialog.newPassword" type="password" required minlength="15" maxlength="128" autocomplete="new-password">
+</label>
+<label>
+<span>Confirmar nueva contraseña *</span>
+<input v-model="passwordDialog.confirmation" type="password" required minlength="15" maxlength="128" autocomplete="new-password">
+</label>
+</div>
+<small>Use al menos 15 caracteres. No puede reutilizar ninguna de sus últimas 6 contraseñas.</small>
+<p v-if="passwordDialog.error" class="dialog-error">{{ passwordDialog.error }}</p>
+<div class="modal-actions">
+<button type="button" class="button-secondary" @click="passwordDialog.open=false">Cancelar</button>
+<button class="button-primary" :disabled="passwordDialog.saving">{{ passwordDialog.saving ? 'Actualizando…' : 'Actualizar contraseña' }}</button>
+</div>
+</form>
+</section>
+</div>
 
     <div v-if="recordDialog.open" class="modal-backdrop" @click.self="closeRecordDialog">
       <section class="modal" :class="{'entity-master-modal':['customers','suppliers'].includes(activeCatalog.slug)}" role="dialog" aria-modal="true" aria-labelledby="country-modal-title">
-        <div class="modal-head"><div><span class="modal-icon">{{ recordDialog.mode === 'delete' ? '!' : (recordDialog.id ? '✎' : '+') }}</span><div><p>{{ recordDialog.mode === 'delete' ? 'CONFIRMAR ACCIÓN' : 'CATÁLOGO DE CORE' }}</p><h2 id="country-modal-title">{{ recordDialog.mode === 'delete' ? `Eliminar ${activeCatalog.singular}` : (recordDialog.id ? `Editar ${activeCatalog.singular}` : `Crear ${activeCatalog.singular}`) }}</h2></div></div><button class="modal-close" @click="closeRecordDialog" aria-label="Cerrar">×</button></div>
-        <form v-if="recordDialog.mode !== 'delete'" @submit.prevent="submitRecord"><div class="form-grid"><label v-for="field in formFields" :key="field.key" :class="{'toggle-field':field.type==='boolean','multi-field':field.type==='multi-reference'}"><span>{{ field.label }}<b v-if="field.required"> *</b></span><select v-if="field.options" v-model="recordDialog.values[field.key]" :required="field.required" @change="handleFieldChange(field)"><option value="" disabled>Selecciona una opción</option><option v-for="option in field.options" :key="option" :value="option">{{ option }}</option></select><div v-else-if="field.type==='multi-reference'" class="multi-select"><button type="button" class="multi-all" @click="toggleAllReferences(field)"><span :class="{checked:allReferenceSelected(field)}">✓</span>Seleccionar todas</button><label v-for="option in filteredReferenceOptions(field)" :key="referenceId(field.reference,option)" class="multi-option"><input v-model="recordDialog.values[field.key]" type="checkbox" :value="referenceId(field.reference,option)"><span>{{ referenceLabel(option) }}</span></label><small v-if="!filteredReferenceOptions(field).length">No hay opciones disponibles.</small></div><select v-else-if="field.reference" v-model="recordDialog.values[field.key]" :required="field.required" @change="handleFieldChange(field)"><option value="">{{ field.required ? 'Selecciona una opción' : 'Sin asignar' }}</option><option v-for="option in filteredReferenceOptions(field)" :key="referenceId(field.reference,option)" :value="referenceId(field.reference,option)">{{ referenceLabel(option) }}</option></select><input v-else-if="field.type !== 'boolean'" v-model="recordDialog.values[field.key]" :type="field.type" :required="field.required" :readonly="field.readOnly" :placeholder="field.readOnly && !recordDialog.id ? 'Se asignará automáticamente' : ''"><input v-else v-model="recordDialog.values[field.key]" type="checkbox"></label></div><p v-if="dialogError" class="dialog-error">{{ dialogError }}</p><div class="modal-actions"><button type="button" class="button-secondary" @click="closeRecordDialog">Cancelar</button><button class="button-primary" :disabled="dialogSaving">{{ dialogSaving ? 'Guardando…' : (recordDialog.id ? 'Guardar cambios' : 'Crear registro') }}</button></div></form>
-        <div v-else class="delete-confirm"><p>¿Deseas eliminar <strong>{{ recordDialog.label }}</strong>? Esta acción no se puede deshacer.</p><p v-if="dialogError" class="dialog-error">{{ dialogError }}</p><div class="modal-actions"><button class="button-secondary" @click="closeRecordDialog">Cancelar</button><button class="button-danger" :disabled="dialogSaving" @click="confirmDelete">{{ dialogSaving ? 'Eliminando…' : 'Sí, eliminar' }}</button></div></div>
+        <div class="modal-head">
+<div>
+<span class="modal-icon">{{ recordDialog.mode === 'delete' ? '!' : (recordDialog.mode === 'view' ? '◉' : (recordDialog.id ? '✎' : '+')) }}</span>
+<div>
+<p>{{ recordDialog.mode === 'delete' ? 'CONFIRMAR ACCIÓN' : 'CATÁLOGO DE CORE' }}</p>
+<h2 id="country-modal-title">{{ recordDialog.mode === 'delete' ? `Eliminar ${activeCatalog.singular}` : (recordDialog.mode === 'view' ? `Ver ${activeCatalog.singular}` : (recordDialog.id ? `Editar ${activeCatalog.singular}` : `Crear ${activeCatalog.singular}`)) }}</h2>
+</div>
+<div v-if="recordDialog.mode==='view'&&activeCatalog.slug==='customers'" class="customer-view-tabs"><button :class="{active:customerViewTab==='details'}" @click="customerViewTab='details'">Ver cliente</button><button :class="{active:customerViewTab==='costCenters'}" @click="customerViewTab='costCenters'">Ver centros de costos</button></div>
+</div>
+<button class="modal-close" @click="closeRecordDialog" aria-label="Cerrar">×</button>
+</div>
+        <form v-if="recordDialog.mode === 'form'" @submit.prevent="submitRecord">
+<div class="form-grid">
+<label v-for="field in formFields" :key="field.key" :class="{'toggle-field':field.type==='boolean','multi-field':field.type==='multi-reference'}">
+<span>{{ field.label }}<b v-if="field.required"> *</b>
+</span>
+<select v-if="field.options" v-model="recordDialog.values[field.key]" :required="field.required" @change="handleFieldChange(field)">
+<option value="" disabled>Selecciona una opción</option>
+<option v-for="option in field.options" :key="option" :value="option">{{ option }}</option>
+</select>
+<div v-else-if="field.type==='multi-reference'" class="multi-select">
+<button type="button" class="multi-all" @click="toggleAllReferences(field)">
+<span :class="{checked:allReferenceSelected(field)}">✓</span>Seleccionar todas</button>
+<label v-for="option in filteredReferenceOptions(field)" :key="referenceId(field.reference,option)" class="multi-option">
+<input v-model="recordDialog.values[field.key]" type="checkbox" :value="referenceId(field.reference,option)">
+<span>{{ referenceLabel(option) }}</span>
+</label>
+<small v-if="!filteredReferenceOptions(field).length">No hay opciones disponibles.</small>
+</div>
+<select v-else-if="field.reference" v-model="recordDialog.values[field.key]" :required="field.required" @change="handleFieldChange(field)">
+<option value="">{{ field.required ? 'Selecciona una opción' : 'Sin asignar' }}</option>
+<option v-for="option in filteredReferenceOptions(field)" :key="referenceId(field.reference,option)" :value="referenceId(field.reference,option)">{{ referenceLabel(option) }}</option>
+</select>
+<input v-else-if="field.type !== 'boolean'" v-model="recordDialog.values[field.key]" :type="field.type" :required="field.required" :readonly="field.readOnly" :placeholder="field.readOnly && !recordDialog.id ? 'Se asignará automáticamente' : ''">
+<input v-else v-model="recordDialog.values[field.key]" type="checkbox">
+</label>
+</div>
+<p v-if="dialogError" class="dialog-error">{{ dialogError }}</p>
+<div class="modal-actions">
+<button type="button" class="button-secondary" @click="closeRecordDialog">Cancelar</button>
+<button class="button-primary" :disabled="dialogSaving">{{ dialogSaving ? 'Guardando…' : (recordDialog.id ? 'Guardar cambios' : 'Crear registro') }}</button>
+</div>
+</form>
+        <div v-else-if="recordDialog.mode === 'view'" class="record-view">
+<div v-if="customerViewTab==='details'" class="record-view-grid"><div v-for="field in formFields" :key="field.key" :class="{'wide':field.wide||field.type==='multi-reference'}"><span>{{ field.label }}</span><strong>{{ displayValue(field,recordDialog.values[field.key]) }}</strong></div></div>
+<section v-else class="customer-cost-centers standalone"><div class="record-section-title"><div><span>RELACIÓN ACTIVA</span><h3>Centros de costos del cliente</h3></div><small>{{ activeCompany?.name }}</small></div><div v-if="customerCostCenters.length" class="cost-center-list"><div v-for="center in customerCostCenters" :key="center.cost_center_id"><strong>{{ center.code }}</strong><span>{{ center.name }}</span></div></div><p v-else>No hay centros de costos vinculados a este cliente en la subsidiaria activa.</p></section>
+<div class="modal-actions"><button class="button-secondary" @click="closeRecordDialog">Cerrar</button><button class="button-primary" @click="openRecordForm(recordDialog.values)">Editar cliente</button></div>
+</div>
+        <div v-else class="delete-confirm">
+<p>¿Deseas eliminar <strong>{{ recordDialog.label }}</strong>? Esta acción no se puede deshacer.</p>
+<p v-if="dialogError" class="dialog-error">{{ dialogError }}</p>
+<div class="modal-actions">
+<button class="button-secondary" @click="closeRecordDialog">Cancelar</button>
+<button class="button-danger" :disabled="dialogSaving" @click="confirmDelete">{{ dialogSaving ? 'Eliminando…' : 'Sí, eliminar' }}</button>
+</div>
+</div>
       </section>
     </div>
   </main>
 </div>
-<script type="module" src="/app.js?v=20260814-argentina-exchange-rate"></script>
+<script type="module" src="/app.js?v=20260814-argentina-exchange-rate">
+</script>
 </body>
 </html>
+

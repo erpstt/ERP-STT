@@ -58,6 +58,7 @@
 <nav class="entry-tabs">
 <button id="linesTab" class="active" type="button">Líneas del asiento</button>
 <button id="impactTab" type="button">Impacto contable</button>
+<button id="supportsTab" type="button">Archivos de respaldo</button>
 </nav>
 <div id="linesPanel">
 <div class="line-scroll">
@@ -115,6 +116,14 @@
 </tfoot>
 </table>
 </div>
+</div>
+<div id="supportsPanel" class="supports-panel" hidden>
+<div class="support-actions">
+<label class="support-upload">Cargar archivo<input id="supportFiles" type="file" multiple></label>
+<div class="support-link"><input id="supportLinkName" placeholder="Nombre del soporte"><input id="supportLinkUrl" type="url" placeholder="https://..."><button id="addSupportLink" type="button">Agregar enlace</button></div>
+</div>
+<small>Puede adjuntar varios archivos de hasta 5 MB cada uno o registrar enlaces externos.</small>
+<div id="supportList" class="support-list"></div>
 </div>
 </section>
 <p id="error">
