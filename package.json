@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "pg": "^8.16.0",
+    "read-excel-file": "^9.3.10",
     "vue": "^3.5.0"
   }
 }

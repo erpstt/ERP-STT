@@ -46,7 +46,7 @@ import { consultarYGuardarTipoDeCambioNI } from './modules/configuration-catalog
 import { iniciarProgramacionTipoCambioNI } from './modules/configuration-catalogs/services/nicaragua-exchange-rate.scheduler.js';
 import { consultarYGuardarTipoDeCambioPE } from './modules/configuration-catalogs/services/peru-exchange-rate.service.js';
 import { iniciarProgramacionTipoCambioPE } from './modules/configuration-catalogs/services/peru-exchange-rate.scheduler.js';
-import { accountingReportOptions, reverseJournalEntry, runAccountingReport } from './modules/reports/accounting-reports.service.js';
+import { accountingReportOptions, bankReconciliationAction, reverseJournalEntry, runAccountingReport } from './modules/reports/accounting-reports.service.js';
 
 const loadEnvFile = (process as typeof process & { loadEnvFile?: (path?: string) => void }).loadEnvFile;
 try { loadEnvFile?.('.env'); } catch { /* Las variables también pueden venir del entorno del proceso. */ }
@@ -108,6 +108,8 @@ const server = createServer(async (request, response) => {
     if(request.method==='POST'&&request.url==='/api/auth/select-role'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const input=await body(request)as{roleId?:number};return json(response,200,await selectUserRole(authorization,Number(input.roleId)));}
     if(request.method==='POST'&&request.url==='/api/auth/change-password'){const authorization=request.headers.authorization!;return json(response,200,await changePassword(authorization,await body(request)as{currentPassword?:string;newPassword?:string;confirmation?:string}));}
     if(request.method==='GET'&&request.url==='/api/reports/accounting/options'){return json(response,200,await accountingReportOptions(request.headers.authorization!));}
+    const bankActionRoute=request.url?.match(/^\/api\/reports\/accounting\/bank-reconciliation\/(import|auto|match|close)$/);
+    if(request.method==='POST'&&bankActionRoute){return json(response,200,{result:await bankReconciliationAction(request.headers.authorization!,bankActionRoute[1],await body(request) as Record<string,unknown>)});}
     const journalReverseRoute=request.url?.match(/^\/api\/reports\/accounting\/journal\/(\d+)\/reverse$/);
     if(request.method==='POST'&&journalReverseRoute){return json(response,201,{journalId:await reverseJournalEntry(request.headers.authorization!,Number(journalReverseRoute[1]))});}
     const accountingReportRoute=request.url?.match(/^\/api\/reports\/accounting\/([a-z-]+)$/);

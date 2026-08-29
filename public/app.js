@@ -214,6 +214,7 @@ subsidiaryCatalog?.fields.unshift({key:'logo_url',label:'Logo de la empresa',typ
 const subsidiaryTaxFieldIndex=subsidiaryCatalog?.fields.findIndex(field=>field.key==='tax_id')??-1;
 if(subsidiaryCatalog&&subsidiaryTaxFieldIndex>=0)subsidiaryCatalog.fields.splice(subsidiaryTaxFieldIndex+1,0,{key:'email',label:'Correo electrónico',type:'email'},{key:'phone',label:'Teléfono',type:'tel'});
 accountingCatalogs.find(c=>c.slug==='chart-accounts').fields.splice(8,0,{key:'cash_flow_activity',label:'Tipo de actividad de flujo',type:'text',required:true,options:['OPERACION','INVERSION','FINANCIACION','EFECTIVO_EQUIVALENTE','NO_APLICA'],defaultValue:'NO_APLICA'});
+entityCatalogs.find(c=>c.slug==='suppliers')?.fields.splice(2,0,{key:'supplier_category',label:'Categoría de proveedor',type:'text'});
 const catalogs = [...coreCatalogs, ...securityCatalogs, ...organizationCatalogs, ...configurationCatalogs, ...accountingCatalogs, ...bankingCatalogs, ...treasuryCatalogs, ...entityCatalogs, ...inventoryCatalogs, ...salesCatalogs, ...transactionEngineCatalogs, ...purchasingCatalogs, ...expenseCatalogs, ...fixedAssetCatalogs, ...workflowCatalogs, ...documentCatalogs, ...auditCatalogs, ...consolidationCatalogs, ...aiCatalogs];
 const alphabeticalCollator = new Intl.Collator('es',{sensitivity:'base',numeric:true});
 for(const catalog of catalogs)for(const field of catalog.fields)if(field.options)field.options=[...field.options].sort(alphabeticalCollator.compare);
