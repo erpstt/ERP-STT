@@ -46,6 +46,7 @@ import { consultarYGuardarTipoDeCambioNI } from './modules/configuration-catalog
 import { iniciarProgramacionTipoCambioNI } from './modules/configuration-catalogs/services/nicaragua-exchange-rate.scheduler.js';
 import { consultarYGuardarTipoDeCambioPE } from './modules/configuration-catalogs/services/peru-exchange-rate.service.js';
 import { iniciarProgramacionTipoCambioPE } from './modules/configuration-catalogs/services/peru-exchange-rate.scheduler.js';
+import { accountingReportOptions, runAccountingReport } from './modules/reports/accounting-reports.service.js';
 
 const loadEnvFile = (process as typeof process & { loadEnvFile?: (path?: string) => void }).loadEnvFile;
 try { loadEnvFile?.('.env'); } catch { /* Las variables también pueden venir del entorno del proceso. */ }
@@ -67,7 +68,7 @@ function clientIp(request: IncomingMessage) {
 }
 
 async function serveFile(pathname: string, response: ServerResponse) {
-  const relative = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
+  const relative = pathname === '/' ? 'index.html' : pathname === '/informes/contabilidad' ? 'accounting-reports.html' : pathname.replace(/^\/+/, '');
   const file = normalize(join(publicDir, relative));
   if (!file.startsWith(publicDir)) return error(response, 403, 'Acceso denegado.');
   try {
@@ -105,6 +106,9 @@ const server = createServer(async (request, response) => {
     if(request.method==='GET'&&request.url==='/api/auth/roles'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');return json(response,200,await listUserRoles(authorization));}
     if(request.method==='POST'&&request.url==='/api/auth/select-role'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const input=await body(request)as{roleId?:number};return json(response,200,await selectUserRole(authorization,Number(input.roleId)));}
     if(request.method==='POST'&&request.url==='/api/auth/change-password'){const authorization=request.headers.authorization!;return json(response,200,await changePassword(authorization,await body(request)as{currentPassword?:string;newPassword?:string;confirmation?:string}));}
+    if(request.method==='GET'&&request.url==='/api/reports/accounting/options'){return json(response,200,await accountingReportOptions(request.headers.authorization!));}
+    const accountingReportRoute=request.url?.match(/^\/api\/reports\/accounting\/([a-z-]+)$/);
+    if(request.method==='POST'&&accountingReportRoute){return json(response,200,await runAccountingReport(request.headers.authorization!,accountingReportRoute[1],await body(request) as Record<string,unknown>));}
     const coreRoute = request.url?.match(/^\/api\/core\/([a-z-]+)(?:\/(\d+))?$/);
     if (coreRoute) {
       const authorization = request.headers.authorization;

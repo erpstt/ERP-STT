@@ -1,0 +1,9 @@
+.statement-section td{background:#e8eef5;font-weight:800;border-top:2px solid #bcc8d6}
+.tree-group td{font-weight:700;background:#f7f9fb}
+.tree-toggle{border:0;background:transparent;padding:0 8px 0 0;font-weight:900;color:#167d5b}
+.account-drill{border:0;background:transparent;padding:0;color:#14785b;text-decoration:underline;font:inherit;font-variant-numeric:tabular-nums}
+.negative{color:#bd3244!important}
+.statement-subtotal td{font-weight:900;background:#f1f5f3;border-top:2px solid #879b91}
+.statement-net td{font-weight:900;font-size:14px;background:#dff1e9;border-top:4px double #167d5b;border-bottom:2px solid #167d5b}
+.reconciled{border-color:#75ba9f;background:#e8f6f0}
+.unreconciled{border-color:#d96b78;background:#fff0f1}.unreconciled b{color:#b62d3d}
