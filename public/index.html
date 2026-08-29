@@ -403,7 +403,7 @@
 <button type="button" class="multi-all" @click="toggleAllReferences(field)">
 <span :class="{checked:allReferenceSelected(field)}">✓</span>Seleccionar todas</button>
 <label v-for="option in filteredReferenceOptions(field)" :key="referenceId(field.reference,option)" class="multi-option">
-<input v-model="recordDialog.values[field.key]" type="checkbox" :value="referenceId(field.reference,option)">
+<input v-model="recordDialog.values[field.key]" type="checkbox" :value="referenceId(field.reference,option)" @change="handleFieldChange(field)">
 <span>{{ referenceLabel(option) }}</span>
 </label>
 <small v-if="!filteredReferenceOptions(field).length">No hay opciones disponibles.</small>
