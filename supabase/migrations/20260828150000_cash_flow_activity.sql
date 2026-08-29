@@ -1,0 +1,5 @@
+alter table public.chart_accounts add column if not exists cash_flow_activity text not null default 'NO_APLICA';
+alter table public.chart_accounts drop constraint if exists chart_accounts_cash_flow_activity_allowed;
+alter table public.chart_accounts add constraint chart_accounts_cash_flow_activity_allowed check(cash_flow_activity in('OPERACION','INVERSION','FINANCIACION','EFECTIVO_EQUIVALENTE','NO_APLICA'));
+update public.chart_accounts set cash_flow_activity=case when lower(account_name) ~ '(caja|banco|efectivo|equivalente)' and coalesce(category,'Activo')='Activo' then 'EFECTIVO_EQUIVALENTE' when lower(account_name) ~ '(propiedad|planta|equipo|activo fijo|intang|inversi[oó]n)' then 'INVERSION' when lower(account_name) ~ '(pr[eé]stamo|obligaci[oó]n bancaria|deuda financiera|capital social|aporte|dividendo|utilidad.*distribu)' then 'FINANCIACION' when coalesce(category,'') in('Activo','Pasivo','Ingreso','Costo','Gasto') then 'OPERACION' else 'NO_APLICA' end where cash_flow_activity='NO_APLICA';
+create index if not exists chart_accounts_cash_flow_activity_idx on public.chart_accounts(cash_flow_activity,account_id);

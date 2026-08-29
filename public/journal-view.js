@@ -11,6 +11,6 @@ $('impacts').innerHTML=data.impacts.filter(x=>String(x.transaction_id)===String(
 $('generated').textContent=new Date().toLocaleString('es-CR');
 $('footerSubsidiary').textContent=name(find(data.subsidiaries,'subsidiary_id',journal.subsidiary_id))||'Subsidiaria no identificada';
 $('edit').onclick=()=>location.href=`/journal-entry.html?id=${id}`;
-$('pdf').onclick=()=>window.print()}catch(error){$('error').textContent=error.message;
+$('pdf').onclick=()=>window.print();if(new URLSearchParams(location.search).get('print')==='1')setTimeout(()=>window.print(),350)}catch(error){$('error').textContent=error.message;
 $('document').hidden=true}
 

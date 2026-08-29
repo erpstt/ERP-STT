@@ -8,7 +8,7 @@ import { createCatalogRow, deleteCatalogRow, getCoreCatalog, listCatalogRows, up
 import { createSecurityRow, deleteSecurityRow, getSecurityCatalog, listSecurityRows, updateSecurityRow } from './modules/security-catalogs/security-catalogs.module.js';
 import { createOrganizationRow, deleteOrganizationRow, getOrganizationCatalog, listOrganizationRows, updateOrganizationRow } from './modules/organization-catalogs/organization-catalogs.module.js';
 import { assertExchangeRateAccess, createConfigurationRow, deleteConfigurationRow, getConfigurationCatalog, listConfigurationRows, updateConfigurationRow } from './modules/configuration-catalogs/configuration-catalogs.module.js';
-import { createAccountingRow, deleteAccountingRow, getAccountingCatalog, listAccountingRows, updateAccountingRow } from './modules/accounting-catalogs/accounting-catalogs.module.js';
+import { accountingCatalogs, createAccountingRow, deleteAccountingRow, getAccountingCatalog, listAccountingRows, updateAccountingRow } from './modules/accounting-catalogs/accounting-catalogs.module.js';
 import { createJournalEntry, updateJournalEntry } from './modules/accounting-catalogs/journal-entry.service.js';
 import { createBankingRow, deleteBankingRow, getBankingCatalog, listBankingRows, updateBankingRow } from './modules/banking-catalogs/banking-catalogs.module.js';
 import { createTreasuryRow, deleteTreasuryRow, getTreasuryCatalog, listTreasuryRows, updateTreasuryRow } from './modules/treasury-catalogs/treasury-catalogs.module.js';
@@ -46,11 +46,12 @@ import { consultarYGuardarTipoDeCambioNI } from './modules/configuration-catalog
 import { iniciarProgramacionTipoCambioNI } from './modules/configuration-catalogs/services/nicaragua-exchange-rate.scheduler.js';
 import { consultarYGuardarTipoDeCambioPE } from './modules/configuration-catalogs/services/peru-exchange-rate.service.js';
 import { iniciarProgramacionTipoCambioPE } from './modules/configuration-catalogs/services/peru-exchange-rate.scheduler.js';
-import { accountingReportOptions, runAccountingReport } from './modules/reports/accounting-reports.service.js';
+import { accountingReportOptions, reverseJournalEntry, runAccountingReport } from './modules/reports/accounting-reports.service.js';
 
 const loadEnvFile = (process as typeof process & { loadEnvFile?: (path?: string) => void }).loadEnvFile;
 try { loadEnvFile?.('.env'); } catch { /* Las variables también pueden venir del entorno del proceso. */ }
 
+accountingCatalogs.find(c=>c.slug==='chart-accounts')?.fields.splice(8,0,{key:'cash_flow_activity',label:'Tipo de actividad de flujo',type:'text',required:true,options:['OPERACION','INVERSION','FINANCIACION','EFECTIVO_EQUIVALENTE','NO_APLICA']});
 const publicDir = join(process.cwd(), 'public');
 const vueBrowserBuild = join(process.cwd(), 'node_modules', 'vue', 'dist', 'vue.esm-browser.prod.js');
 const mime: Record<string, string> = { '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript', '.svg': 'image/svg+xml' };
@@ -107,6 +108,8 @@ const server = createServer(async (request, response) => {
     if(request.method==='POST'&&request.url==='/api/auth/select-role'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const input=await body(request)as{roleId?:number};return json(response,200,await selectUserRole(authorization,Number(input.roleId)));}
     if(request.method==='POST'&&request.url==='/api/auth/change-password'){const authorization=request.headers.authorization!;return json(response,200,await changePassword(authorization,await body(request)as{currentPassword?:string;newPassword?:string;confirmation?:string}));}
     if(request.method==='GET'&&request.url==='/api/reports/accounting/options'){return json(response,200,await accountingReportOptions(request.headers.authorization!));}
+    const journalReverseRoute=request.url?.match(/^\/api\/reports\/accounting\/journal\/(\d+)\/reverse$/);
+    if(request.method==='POST'&&journalReverseRoute){return json(response,201,{journalId:await reverseJournalEntry(request.headers.authorization!,Number(journalReverseRoute[1]))});}
     const accountingReportRoute=request.url?.match(/^\/api\/reports\/accounting\/([a-z-]+)$/);
     if(request.method==='POST'&&accountingReportRoute){return json(response,200,await runAccountingReport(request.headers.authorization!,accountingReportRoute[1],await body(request) as Record<string,unknown>));}
     const coreRoute = request.url?.match(/^\/api\/core\/([a-z-]+)(?:\/(\d+))?$/);
