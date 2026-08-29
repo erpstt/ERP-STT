@@ -1,6 +1,6 @@
 import { getSupabaseConfig } from '../../core/database/supabase.client.js';
 
-const reports=new Set(['balance-sheet','income-statement','cash-flow','equity-changes','trial-balance','general-ledger','journal','receivables-aging','payables-aging','bank-reconciliation']);
+const reports=new Set(['balance-sheet','income-statement','cash-flow','equity-changes','trial-balance','general-ledger','journal','receivables-aging','payables-aging','bank-reconciliation','sales-transactions','purchase-transactions']);
 async function rpc<T>(authorization:string,name:string,input:Record<string,unknown>={}){
   const config=getSupabaseConfig();if(!config)throw new Error('Supabase no está configurado.');
   const response=await fetch(new URL(`/rest/v1/rpc/${name}`,config.url),{method:'POST',headers:{apikey:config.anonKey,Authorization:authorization,'Content-Type':'application/json'},body:JSON.stringify(input)});
@@ -14,6 +14,8 @@ export function runAccountingReport(authorization:string,report:string,filters:R
   if(report==='journal')return rpc<Record<string,unknown>>(authorization,'run_general_journal_report',{p_filters:filters});
   if(report==='receivables-aging'||report==='payables-aging')return rpc<Record<string,unknown>>(authorization,'run_aging_report',{p_kind:report==='receivables-aging'?'AR':'AP',p_filters:filters});
   if(report==='bank-reconciliation')return rpc<Record<string,unknown>>(authorization,'run_bank_reconciliation_report',{p_filters:filters});
+  if(report==='sales-transactions')return rpc<Record<string,unknown>>(authorization,'run_sales_transaction_report',{p_filters:filters});
+  if(report==='purchase-transactions')return rpc<Record<string,unknown>>(authorization,'run_purchase_transaction_report',{p_filters:filters});
   return rpc<Record<string,unknown>>(authorization,'run_accounting_report',{p_report:report,p_filters:filters});
 }
 export function reverseJournalEntry(authorization:string,journalId:number){return rpc<number>(authorization,'reverse_journal_entry',{target_journal_id:journalId});}
