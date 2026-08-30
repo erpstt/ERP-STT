@@ -105,7 +105,7 @@ td{padding:15px 18px;border-top:1px solid #edf0f3;color:#344054;font-size:12px}
 .country-name{font-weight:600}
 .actions-heading{text-align:right}
 .row-actions{text-align:right;white-space:nowrap}
-.icon-action{border:1px solid transparent;border-radius:6px;background:transparent;font:600 11px inherit;padding:6px 9px;display:inline-flex;align-items:center;gap:5px;cursor:pointer;margin-left:4px}
+.icon-action{border:1px solid transparent;border-radius:6px;background:transparent;font:600 11px inherit;padding:6px 9px;display:inline-flex;align-items:center;gap:5px;cursor:pointer;margin-left:4px;text-decoration:none}
 .icon-action span{font-size:14px}
 .icon-action.edit{color:#326a91}
 .icon-action.edit:hover{background:#edf6fc;border-color:#d5e9f5}

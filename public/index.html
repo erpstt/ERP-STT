@@ -274,7 +274,9 @@
 </button>
 </div>
 </details>
-<button v-if="activeCatalog.allowCreate !== false" class="new-record" @click="openRecordForm()">
+<a v-if="activeCatalog.slug==='supplier-credit-notes'" class="new-record" href="/supplier-note-entry.html?kind=CREDIT"><span>＋</span> Crear nota de crédito</a>
+<a v-if="activeCatalog.slug==='supplier-debit-notes'" class="new-record" href="/supplier-note-entry.html?kind=DEBIT"><span>＋</span> Crear nota de débito</a>
+<button v-if="activeCatalog.allowCreate !== false && !['supplier-credit-notes','supplier-debit-notes'].includes(activeCatalog.slug)" class="new-record" @click="openRecordForm()">
 <span>＋</span> Crear {{ activeCatalog.singular }}</button>
 </div>
 </div>
@@ -315,7 +317,15 @@
 <span>◉</span>
 <b>Ver</b>
 </button>
-<button v-if="activeCatalog.allowEdit !== false" class="icon-action edit" title="Editar" aria-label="Editar registro" @click="openRecordForm(row)">
+<a v-if="activeCatalog.slug==='supplier-invoices'" class="icon-action view" title="Ver factura" aria-label="Ver factura de proveedor" href="/supplier-invoice-view.html" onclick="const invoiceId=this.closest('tr').querySelector('.id-cell').textContent.replace('#','').trim();sessionStorage.setItem('nexo_view_supplier_invoice',invoiceId);this.href='/supplier-invoice-view.html?id='+encodeURIComponent(invoiceId)">
+<span>◉</span>
+<b>Ver</b>
+</a>
+<a v-if="activeCatalog.slug==='supplier-credit-notes'" class="icon-action view" :href="'/supplier-note-view.html?kind=CREDIT&id='+row.cn_id"><span>◉</span><b>Ver</b></a>
+<a v-if="activeCatalog.slug==='supplier-debit-notes'" class="icon-action view" :href="'/supplier-note-view.html?kind=DEBIT&id='+row.dn_id"><span>◉</span><b>Ver</b></a>
+<a v-if="activeCatalog.slug==='supplier-credit-notes'" class="icon-action edit" :href="'/supplier-note-entry.html?kind=CREDIT&id='+row.cn_id"><span>✎</span><b>Editar</b></a>
+<a v-if="activeCatalog.slug==='supplier-debit-notes'" class="icon-action edit" :href="'/supplier-note-entry.html?kind=DEBIT&id='+row.dn_id"><span>✎</span><b>Editar</b></a>
+<button v-if="activeCatalog.allowEdit !== false && !['supplier-credit-notes','supplier-debit-notes'].includes(activeCatalog.slug)" class="icon-action edit" title="Editar" aria-label="Editar registro" @click="openRecordForm(row)">
 <span>✎</span>
 <b>Editar</b>
 </button>
@@ -439,7 +449,7 @@
     </div>
   </main>
 </div>
-<script type="module" src="/app.js?v=20260814-argentina-exchange-rate">
+<script type="module" src="/app.js?v=20260830-supplier-notes-2">
 </script>
 </body>
 </html>
