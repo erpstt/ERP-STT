@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Factura de venta</title>
+  <link rel="stylesheet" href="/sales-invoice-view.css?v=1">
+  <link rel="stylesheet" href="/sales-invoice-print.css?v=2">
+</head>
+<body>
+  <nav class="toolbar">
+    <button id="back" type="button">Volver</button>
+    <a id="edit" href="#">Editar</a>
+    <button id="print" class="primary" type="button">Descargar PDF</button>
+  </nav>
+  <main id="invoice" class="invoice" hidden>
+    <header class="document-header">
+      <div class="company-copy">
+        <img id="logo" class="logo" alt="Logo de la subsidiaria" hidden>
+        <div><h1 id="companyName"></h1><p id="companyAddress"></p></div>
+      </div>
+      <div class="document-identity"><small>FACTURA DE VENTA</small><strong id="invoiceNumber"></strong><span id="status">CONTABILIZADA</span></div>
+    </header>
+    <section class="parties">
+      <div class="customer-card"><h2>Facturar a</h2><strong id="customerName"></strong><p id="customerTax"></p><p id="customerAddress"></p><p id="customerContact"></p></div>
+      <dl class="document-data">
+        <div><dt>Fecha de emisión</dt><dd id="issueDate"></dd></div>
+        <div><dt>Fecha de vencimiento</dt><dd id="dueDate"></dd></div>
+        <div><dt>Términos de pago</dt><dd id="paymentTerm"></dd></div>
+        <div><dt>Moneda</dt><dd id="currency"></dd></div>
+      </dl>
+    </section>
+    <section class="lines-section">
+      <table><thead><tr><th>Producto / descripción</th><th class="number">Cantidad</th><th class="number">Precio unitario</th><th class="number">Subtotal</th><th class="number">Impuesto</th><th class="number">Total</th></tr></thead><tbody id="lines"></tbody></table>
+    </section>
+    <section class="closing">
+      <div class="notes"><h2>Nota</h2><p id="memo">—</p></div>
+      <div class="tax-breakdown"><h2>Desglose de impuestos</h2><div id="taxBreakdown"></div></div>
+      <dl class="totals"><div><dt>Subtotal</dt><dd id="subtotal"></dd></div><div><dt>Impuestos</dt><dd id="taxTotal"></dd></div><div class="grand-total"><dt>Total</dt><dd id="total"></dd></div></dl>
+    </section>
+    <footer class="document-footer"><span id="footerCompany"></span><span>Documento generado desde NEXO ERP</span></footer>
+  </main>
+  <p id="error" class="error"></p>
+  <script type="module" src="/sales-invoice-view.js?v=5"></script>
+</body>
+</html>
