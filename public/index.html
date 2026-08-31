@@ -275,9 +275,11 @@
 </div>
 </details>
 <a v-if="activeCatalog.slug==='supplier-credit-notes'" class="new-record" href="/supplier-note-entry.html?kind=CREDIT"><span>＋</span> Crear nota de crédito</a>
+<a v-if="activeCatalog.slug==='credit-notes'" class="new-record" href="/sales-note-entry.html?kind=CREDIT"><span>＋</span> Crear nota de crédito</a>
 <a v-if="activeCatalog.slug==='invoices'&&currentModule==='Ventas'" class="new-record" href="/sales-invoice-entry.html"><span>＋</span> Crear factura</a>
 <a v-if="activeCatalog.slug==='supplier-debit-notes'" class="new-record" href="/supplier-note-entry.html?kind=DEBIT"><span>＋</span> Crear nota de débito</a>
-<button v-if="activeCatalog.allowCreate !== false && !['supplier-credit-notes','supplier-debit-notes','invoices'].includes(activeCatalog.slug)" class="new-record" @click="openRecordForm()">
+<a v-if="activeCatalog.slug==='debit-notes'" class="new-record" href="/sales-note-entry.html?kind=DEBIT"><span>＋</span> Crear nota de débito</a>
+<button v-if="activeCatalog.allowCreate !== false && !['credit-notes','debit-notes','supplier-credit-notes','supplier-debit-notes','invoices'].includes(activeCatalog.slug)" class="new-record" @click="openRecordForm()">
 <span>＋</span> Crear {{ activeCatalog.singular }}</button>
 </div>
 </div>
@@ -328,10 +330,14 @@
 </a>
 <a v-if="activeCatalog.slug==='supplier-credit-notes'" class="icon-action view" :href="'/supplier-note-view.html?kind=CREDIT&id='+row.cn_id"><span>◉</span><b>Ver</b></a>
 <a v-if="activeCatalog.slug==='supplier-debit-notes'" class="icon-action view" :href="'/supplier-note-view.html?kind=DEBIT&id='+row.dn_id"><span>◉</span><b>Ver</b></a>
+<a v-if="activeCatalog.slug==='credit-notes'" class="icon-action view" :href="'/sales-note-view.html?kind=CREDIT&id='+row.cn_id"><span>◉</span><b>Ver</b></a>
+<a v-if="activeCatalog.slug==='debit-notes'" class="icon-action view" :href="'/sales-note-view.html?kind=DEBIT&id='+row.dn_id"><span>◉</span><b>Ver</b></a>
 <a v-if="activeCatalog.slug==='supplier-credit-notes'" class="icon-action edit" :href="'/supplier-note-entry.html?kind=CREDIT&id='+row.cn_id"><span>✎</span><b>Editar</b></a>
 <a v-if="activeCatalog.slug==='supplier-debit-notes'" class="icon-action edit" :href="'/supplier-note-entry.html?kind=DEBIT&id='+row.dn_id"><span>✎</span><b>Editar</b></a>
+<a v-if="activeCatalog.slug==='credit-notes'" class="icon-action edit" :href="'/sales-note-entry.html?kind=CREDIT&id='+row.cn_id"><span>✎</span><b>Editar</b></a>
+<a v-if="activeCatalog.slug==='debit-notes'" class="icon-action edit" :href="'/sales-note-entry.html?kind=DEBIT&id='+row.dn_id"><span>✎</span><b>Editar</b></a>
 <a v-if="activeCatalog.slug==='invoices'" class="icon-action edit" :href="'/sales-invoice-entry.html?id='+row.invoice_id"><span>✎</span><b>Editar</b></a>
-<button v-if="activeCatalog.allowEdit !== false && !['invoices','supplier-credit-notes','supplier-debit-notes'].includes(activeCatalog.slug)" class="icon-action edit" title="Editar" aria-label="Editar registro" @click="openRecordForm(row)">
+<button v-if="activeCatalog.allowEdit !== false && !['invoices','credit-notes','debit-notes','supplier-credit-notes','supplier-debit-notes'].includes(activeCatalog.slug)" class="icon-action edit" title="Editar" aria-label="Editar registro" @click="openRecordForm(row)">
 <span>✎</span>
 <b>Editar</b>
 </button>
