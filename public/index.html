@@ -9,6 +9,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/login-refresh.css">
+  <link rel="stylesheet" href="/login-position.css">
   <link rel="stylesheet" href="/dashboard.css">
   <link rel="stylesheet" href="/modal-scroll.css?v=20260810">
   <link rel="stylesheet" href="/company-selection.css">
@@ -45,11 +47,22 @@
 <span>
 </span>Plataforma activa</span>
 </div>
+      <div class="dashboard-preview" aria-hidden="true">
+        <div class="preview-window-bar"><span><i></i><i></i><i></i></span><small>Resumen ejecutivo</small><b>•••</b></div>
+        <div class="preview-body">
+          <div class="preview-side"><i></i><i></i><i></i><i></i></div>
+          <div class="preview-content">
+            <div class="preview-heading"><span><small>VENTAS DEL MES</small><strong>$128,450</strong></span><em>+12.8%</em></div>
+            <div class="preview-chart"><span v-for="height in [34,52,45,68,57,78,66,92]" :style="{height:height+'%'}"></span></div>
+            <div class="preview-stats"><span><i></i><small>Flujo de caja</small><strong>$84.2K</strong></span><span><i></i><small>Cuentas por cobrar</small><strong>$31.6K</strong></span></div>
+          </div>
+        </div>
+      </div>
       <div class="statement">
 <p class="eyebrow">OPERACIÓN CONECTADA</p>
-<h1>Dirige tu empresa<br>con <em>claridad.</em>
+<h1>La claridad que tu operación<br>necesita para <em>crecer.</em>
 </h1>
-<p class="statement-copy">Una única plataforma para su ERP en Latinoamerica</p>
+<p class="statement-copy">La forma inteligente de gestionar tu empresa en Latinoamérica.</p>
 </div>
       <footer>
 <span>© 2026 Nexo Systems</span>
@@ -70,10 +83,14 @@
 </div>
 <div class="label-row">
 <label for="password">Contraseña</label>
+<a href="#" @click.prevent="requestPasswordHelp">¿Olvidaste tu contraseña?</a>
 </div>
 <div class="input-wrap">
 <input id="password" v-model="password" :type="showPassword ? 'text' : 'password'" required placeholder="Ingresa tu contraseña">
 <button class="toggle-pass" type="button" @click="showPassword=!showPassword">{{ showPassword ? '◌' : '◉' }}</button>
+</div>
+<div class="options">
+<label class="check"><input v-model="rememberMe" type="checkbox"><span></span>Recordarme</label>
 </div>
 <p class="form-error">{{ formError }}</p>
 <button class="submit" :disabled="isSubmitting">
