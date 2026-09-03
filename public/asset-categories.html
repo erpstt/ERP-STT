@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Categorías de activos · NEXO</title>
+  <link rel="stylesheet" href="/purchase-documents.css">
+  <link rel="stylesheet" href="/supplier-payments.css">
+  <link rel="stylesheet" href="/asset-categories.css?v=2">
+</head>
+<body>
+  <header><a href="/" class="brand">▮▮ NEXO</a><a href="/">Volver al ERP</a></header>
+  <main>
+    <div class="title"><div><p class="eyebrow">ACTIVOS FIJOS · CAT_ACT</p><h1>Categorías de activos</h1><p>Políticas contables y parámetros de depreciación por subsidiaria.</p></div><button id="new" class="primary">＋ Nueva categoría</button></div>
+    <form id="filters" class="panel filters">
+      <label>Estado<select id="filterStatus"><option value="ALL">Todas</option><option value="ACTIVE">Activas</option><option value="INACTIVE">Inactivas</option></select></label>
+      <label class="grow">Buscar<input id="search" placeholder="Código, categoría o descripción"></label>
+      <button class="primary">Aplicar filtros</button>
+    </form>
+    <p id="message"></p>
+    <section class="panel">
+      <div class="table-meta"><b>Detalle de categorías</b><span id="count"></span></div>
+      <div class="table-wrap"><table><thead><tr><th>Código</th><th>Categoría</th><th>Vida útil</th><th>Método</th><th>Valor residual</th><th>Cuenta de activo</th><th>Depreciación acumulada</th><th>Gasto por depreciación</th><th>Activos</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="rows"></tbody></table></div>
+    </section>
+  </main>
+  <div id="modal" class="overlay" hidden>
+    <form id="entry" class="dialog asset-category-dialog">
+      <div class="dialog-head"><div><p class="eyebrow">CONFIGURACIÓN CONTABLE</p><h2 id="formTitle">Nueva categoría</h2></div><button id="close" type="button" class="icon" aria-label="Cerrar">×</button></div>
+      <section class="grid header-grid">
+        <label class="system-field">Código<input id="code" value="Se asignará al guardar" readonly></label>
+        <label>Categoría<input id="name" required></label>
+        <label>Método de depreciación<select id="method" required><option>Línea Recta</option><option>Suma de los Dígitos de los Años</option><option>No Depreciable</option></select></label>
+        <label id="lifeField">Vida útil (meses)<input id="life" type="number" min="1" required></label>
+        <label>Valor residual (%)<input id="residual" type="number" min="0" max="100" step="0.01" value="0"></label>
+        <label class="span">Descripción<textarea id="description"></textarea></label>
+        <label>Cuenta de activo<select id="assetAccount" required></select></label>
+        <label>Depreciación acumulada<select id="depreciationAccount" required></select></label>
+        <label>Gasto por depreciación<select id="expenseAccount" required></select></label>
+        <label>Estado<select id="active"><option value="true">Activa</option><option value="false">Inactiva</option></select></label>
+      </section>
+      <div class="impact"><b>Configuración de la depreciación</b><p>Al depreciar: débito a gasto por depreciación y crédito a depreciación acumulada. El costo original permanece en la cuenta de activo.</p></div>
+      <footer><span></span><div><button id="cancel" type="button">Cancelar</button><button id="save" class="primary">Guardar categoría</button></div></footer>
+    </form>
+  </div>
+  <script type="module" src="/asset-categories.js?v=4"></script>
+</body>
+</html>

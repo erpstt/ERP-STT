@@ -1,0 +1,18 @@
+create or replace function sales_workflow_options()returns jsonb language sql stable security definer set search_path=public as $$
+select jsonb_build_object(
+ 'subsidiary',jsonb_build_object('id',s.subsidiary_id,'name',s.name,'currencyId',s.currency_id),
+ 'customers',coalesce((select jsonb_agg(jsonb_build_object('id',c.customer_id,'name',c.company_name,'paymentTermId',c.payment_term_id,'departmentId',c.department_id))from customers c join entity_subsidiaries es using(customer_id)where es.subsidiary_id=s.subsidiary_id),'[]'),
+ 'products',coalesce((select jsonb_agg(jsonb_build_object('id',p.product_id,'code',p.item_code,'name',p.display_name,'price',p.sales_price,'accountId',p.sales_account_id))from products p join product_subsidiaries ps using(product_id)where ps.subsidiary_id=s.subsidiary_id and ps.is_active and p.is_active and p.product_usage in('Venta','Ambas')),'[]'),
+ 'currencies',coalesce((select jsonb_agg(jsonb_build_object('id',c.currency_id,'code',c.currency_code,'name',c.name)order by sc.is_primary desc,c.currency_code)from subsidiary_currencies sc join currencies c using(currency_id)where sc.subsidiary_id=s.subsidiary_id),'[]'),
+ 'rates',coalesce((select jsonb_agg(jsonb_build_object('fromCurrencyId',er.from_currency_id,'toCurrencyId',er.to_currency_id,'date',er.effective_date,'rate',er.spot_rate)order by er.effective_date desc)from exchange_rates er where er.from_currency_id in(select currency_id from subsidiary_currencies where subsidiary_id=s.subsidiary_id)and er.to_currency_id in(select currency_id from subsidiary_currencies where subsidiary_id=s.subsidiary_id)),'[]'),
+ 'periods',coalesce((select jsonb_agg(jsonb_build_object('id',fiscal_period_id,'name',period_name,'start',start_date,'end',end_date))from fiscal_periods where subsidiary_id=s.subsidiary_id and not is_closed and not coalesce(ar_closed,false)),'[]'),
+ 'locations',coalesce((select jsonb_agg(jsonb_build_object('id',l.location_id,'name',l.name))from locations l left join location_subsidiaries ls using(location_id)where l.subsidiary_id=s.subsidiary_id or ls.subsidiary_id=s.subsidiary_id),'[]'),
+ 'terms',(select coalesce(jsonb_agg(jsonb_build_object('id',term_id,'name',term_name)),'[]')from payment_terms),
+ 'taxes',coalesce((select jsonb_agg(distinct jsonb_build_object('id',t.tax_code_id,'name',t.code_name,'rate',t.rate_percentage))from tax_codes t left join tax_code_subsidiaries ts using(tax_code_id)where t.subsidiary_id=s.subsidiary_id or ts.subsidiary_id=s.subsidiary_id),'[]'),
+ 'departments',(select coalesce(jsonb_agg(distinct jsonb_build_object('id',d.department_id,'name',d.name)),'[]')from departments d join customers c on c.department_id=d.department_id join entity_subsidiaries es on es.customer_id=c.customer_id where es.subsidiary_id=s.subsidiary_id),
+ 'costs',(select coalesce(jsonb_agg(jsonb_build_object('id',cc.cost_center_id,'name',cc.name,'departmentId',c.department_id,'classId',cc.class_id)),'[]')from cost_centers cc join customers c on c.customer_id=cc.customer_id where cc.subsidiary_id=s.subsidiary_id and not cc.is_inactive),
+ 'classes',(select coalesce(jsonb_agg(jsonb_build_object('id',cl.class_id,'name',cl.name)),'[]')from classes cl join class_subsidiaries cs using(class_id)where cs.subsidiary_id=s.subsidiary_id and not cl.is_inactive),
+ 'sources',coalesce((select jsonb_agg(jsonb_build_object('id',document_id,'type',document_type,'number',document_number,'customerId',customer_id))from sales_document where subsidiary_id=s.subsidiary_id and status<>'CANCELADO'),'[]'))
+from subsidiaries s where s.subsidiary_id=active_subsidiary_id()$$;
+grant execute on function sales_workflow_options()to authenticated;
+notify pgrst,'reload schema';

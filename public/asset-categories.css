@@ -1,0 +1,186 @@
+:root {
+  --asset-green: #07875f;
+  --asset-green-dark: #066b4d;
+  --asset-ink: #15243b;
+  --asset-muted: #61718a;
+  --asset-line: #d8e2ee;
+  --asset-soft: #f6f9fc;
+}
+
+#modal.overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  overflow: hidden;
+  backdrop-filter: blur(3px);
+}
+
+#modal[hidden] {
+  display: none;
+}
+
+#entry.asset-category-dialog {
+  width: min(1120px, calc(100vw - 56px));
+  max-width: 1120px;
+  min-height: 0;
+  max-height: calc(100vh - 56px);
+  margin: 0;
+  overflow: auto;
+  border: 0;
+  border-radius: 18px;
+  box-shadow: 0 28px 80px rgb(3 20 42 / 28%);
+}
+
+#entry .dialog-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  align-items: center;
+  padding: 22px 26px 18px;
+  background: linear-gradient(180deg, #fff 0%, #fbfdff 100%);
+}
+
+#entry .dialog-head h2 {
+  font-size: 25px;
+  color: var(--asset-ink);
+}
+
+#entry .dialog-head .icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  color: #44546b;
+  background: transparent;
+  transition: .18s ease;
+}
+
+#entry .dialog-head .icon:hover {
+  border-color: #d8e2ee;
+  color: #b42332;
+  background: #f4f7fb;
+}
+
+#entry .header-grid {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 18px 16px;
+  padding: 24px 26px 20px;
+}
+
+#entry .header-grid > label {
+  min-width: 0;
+  color: #283850;
+}
+
+#entry .header-grid > label:has(#code) { grid-column: span 3; }
+#entry .header-grid > label:has(#name) { grid-column: span 6; }
+#entry .header-grid > label:has(#active) { grid-column: span 3; }
+#entry .header-grid > label:has(#method) { grid-column: span 6; }
+#entry .header-grid > label:has(#life),
+#entry .header-grid > label:has(#residual) { grid-column: span 3; }
+#entry .header-grid > label:has(#description) { grid-column: 1 / -1; }
+#entry .header-grid > label:has(#assetAccount),
+#entry .header-grid > label:has(#depreciationAccount),
+#entry .header-grid > label:has(#expenseAccount) { grid-column: span 4; }
+
+#entry input,
+#entry select,
+#entry textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 43px;
+  border-color: #c9d6e6;
+  border-radius: 9px;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+#entry textarea {
+  min-height: 76px;
+  resize: vertical;
+}
+
+#entry input:focus,
+#entry select:focus,
+#entry textarea:focus {
+  outline: none;
+  border-color: var(--asset-green);
+  box-shadow: 0 0 0 3px rgb(7 135 95 / 12%);
+}
+
+#entry .system-field input {
+  color: #52647b;
+  border-color: #dce4ee;
+  background: #eef3f8;
+}
+
+#entry .impact {
+  margin: 2px 26px 24px;
+  padding: 18px 20px;
+  border-color: #b9dfd1;
+  border-left: 4px solid var(--asset-green);
+  background: linear-gradient(90deg, #effaf6 0%, #f8fcfb 100%);
+}
+
+#entry .impact b {
+  color: var(--asset-green-dark);
+}
+
+#entry .impact p {
+  margin: 8px 0 0;
+  color: #52627a;
+  line-height: 1.5;
+}
+
+#entry footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  padding: 16px 26px;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: 0 -8px 22px rgb(18 42 70 / 6%);
+}
+
+#entry footer button {
+  min-height: 43px;
+  padding: 10px 18px;
+  border-radius: 9px;
+  font-weight: 700;
+}
+
+#entry #save {
+  border-color: var(--asset-green);
+  background: var(--asset-green);
+  box-shadow: 0 7px 16px rgb(7 135 95 / 20%);
+}
+
+#entry #save:hover {
+  border-color: var(--asset-green-dark);
+  background: var(--asset-green-dark);
+}
+
+@media (max-width: 850px) {
+  #modal.overlay { padding: 14px; }
+  #entry.asset-category-dialog {
+    width: calc(100vw - 28px);
+    max-height: calc(100vh - 28px);
+  }
+  #entry .header-grid > label { grid-column: span 6 !important; }
+  #entry .header-grid > label:has(#description) { grid-column: 1 / -1 !important; }
+  #entry .header-grid > label:has(#name),
+  #entry .header-grid > label:has(#method),
+  #entry .header-grid > label:has(#assetAccount),
+  #entry .header-grid > label:has(#depreciationAccount),
+  #entry .header-grid > label:has(#expenseAccount) { grid-column: 1 / -1 !important; }
+}
+
+@media (max-width: 560px) {
+  #entry .dialog-head,
+  #entry .header-grid,
+  #entry footer { padding-left: 18px; padding-right: 18px; }
+  #entry .header-grid > label { grid-column: 1 / -1 !important; }
+  #entry .impact { margin-left: 18px; margin-right: 18px; }
+}
