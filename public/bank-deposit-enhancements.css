@@ -1,0 +1,13 @@
+.deposit-page table{min-width:2300px}.deposit-page .impact-table{min-width:1200px}.deposit-page td .account-search{min-width:190px}.deposit-page td [data-account-name]{min-width:230px;background:#f5f7fa}.supports-panel{padding-top:18px}
+#successModal{backdrop-filter:blur(3px);background:rgba(15,23,42,.58)}
+#successModal .success-card{width:min(430px,calc(100vw - 32px));padding:30px 32px 28px;border:1px solid rgba(22,163,74,.18);border-radius:16px;box-shadow:0 24px 70px rgba(15,23,42,.28);text-align:center}
+#successModal .success-icon{display:grid;place-items:center;width:54px;height:54px;margin:0 auto 16px;border-radius:50%;background:linear-gradient(145deg,#dcfce7,#bbf7d0);color:#15803d;font-size:30px;font-weight:800;box-shadow:0 7px 18px rgba(22,163,74,.18)}
+#successModal h2{margin:0 0 8px;color:#172033;font-size:20px;letter-spacing:-.01em}
+#successModal p{margin:0 auto 24px;max-width:350px;color:#526176;line-height:1.55}
+#successModal .success-actions{display:flex;justify-content:center;gap:12px}
+#successModal .success-actions button{min-width:128px;padding:11px 18px;border-radius:8px;font-weight:700;transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
+#successModal #accept{border:1px solid #d7dee8;background:#f5f7fa;color:#344054}
+#successModal #accept:hover{background:#e9edf3}
+#successModal #newDeposit{border:1px solid #15803d;background:linear-gradient(135deg,#16a34a,#15803d);color:white;box-shadow:0 7px 16px rgba(22,163,74,.24)}
+#successModal #newDeposit:hover{background:linear-gradient(135deg,#15803d,#166534);transform:translateY(-1px);box-shadow:0 9px 20px rgba(22,163,74,.3)}
+#successModal #newDeposit:focus-visible,#successModal #accept:focus-visible{outline:3px solid rgba(34,197,94,.28);outline-offset:2px}

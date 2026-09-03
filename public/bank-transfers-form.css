@@ -1,0 +1,22 @@
+fieldset.account-side{border:1px solid #d8e1ee;border-radius:10px;padding:16px;display:grid;gap:13px}
+fieldset.account-side{display:flex;flex-direction:column;gap:16px;align-content:initial}
+fieldset.account-side>label,fieldset.account-side>.balance{margin:0;min-height:68px;width:100%}
+fieldset.account-side>label{justify-content:flex-start}
+fieldset.account-side>label select,fieldset.account-side>label input{width:100%}
+fieldset.account-side .balance{display:flex;flex-direction:column;justify-content:center}
+#transferModal .modal{width:min(1120px,96vw);padding:30px 34px}
+#transferModal .modal-head{min-height:82px;align-items:flex-start;gap:28px}
+#transferModal .modal-head>div:first-child{flex:1}
+#appliedRateLabel.exchange-summary{display:flex;min-width:290px;max-width:360px;padding:11px 14px;border:1px solid #bad0ff;border-radius:9px;background:#f2f6ff;color:#172033}
+#appliedRateLabel.exchange-summary[hidden]{display:none}
+#appliedRateLabel.exchange-summary input{font-size:16px;font-weight:800;background:white}
+#transferModal .money-input,#transferModal .rate-input{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+#transferModal .money-input{font-size:15px;padding-right:14px}
+#transferModal .rate-input{color:#174ea6}
+#appliedRateLabel.exchange-summary small{color:#53647c;font-weight:600}
+#transferModal .form-grid{column-gap:26px;row-gap:18px}
+@media(max-width:800px){#transferModal .modal{padding:22px}#transferModal .modal-head{display:block}#appliedRateLabel.exchange-summary{margin:12px 0;max-width:none}.account-side{grid-column:1/-1}}
+fieldset.account-side legend{padding:0 8px;color:#165dff;font-size:13px;font-weight:800}
+textarea[readonly],input[readonly]{background:#f5f7fa;color:#465267}
+#saveTransfer.processing{min-width:220px;cursor:wait;opacity:.88}.button-spinner{display:inline-block;width:15px;height:15px;margin-right:7px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;vertical-align:-3px;animation:transfer-spin .7s linear infinite}@keyframes transfer-spin{to{transform:rotate(360deg)}}
+.transfer-success .success-card{width:min(430px,calc(100vw - 32px));padding:30px 32px;border:1px solid rgba(22,163,74,.2);border-radius:16px;background:#fff;text-align:center;box-shadow:0 24px 70px rgba(15,23,42,.3)}.success-check{display:grid;place-items:center;width:54px;height:54px;margin:0 auto 16px;border-radius:50%;background:linear-gradient(145deg,#dcfce7,#bbf7d0);color:#15803d;font-size:29px;font-weight:900}.transfer-success h2{margin:0 0 8px;color:#172033}.transfer-success p{margin:0;color:#526176;line-height:1.55}.transfer-success .success-actions{display:flex;justify-content:center;margin-top:22px}.transfer-success .success-actions button{min-width:130px;padding:11px 20px;border:0;border-radius:8px;background:linear-gradient(135deg,#22c55e,#15803d);color:#fff;font-weight:800;box-shadow:0 7px 16px rgba(22,163,74,.24)}

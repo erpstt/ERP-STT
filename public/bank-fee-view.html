@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Comisión bancaria · NEXO</title>
+  <link rel="stylesheet" href="/bank-fee-view.css?v=20260903-2">
+</head>
+<body>
+  <main>
+    <div class="toolbar" role="toolbar" aria-label="Acciones del documento">
+      <button id="printButton" class="print-button" type="button"><span aria-hidden="true">▣</span><span>Imprimir / guardar PDF</span></button>
+      <button id="closeButton" class="close-button" type="button"><span aria-hidden="true">×</span><span>Cerrar</span></button>
+    </div>
+    <header><p>BANCOS · COM_BAN</p><h1>Comisión bancaria</h1><h2 id="number"></h2></header>
+    <section id="details"></section>
+    <h2>Impacto contable</h2>
+    <table><thead><tr><th>Cuenta</th><th>Nombre</th><th>Nota</th><th>Débito</th><th>Crédito</th><th>Débito local</th><th>Crédito local</th></tr></thead><tbody id="impact"></tbody></table>
+  </main>
+  <script type="module" src="/bank-fee-view.js?v=20260903-2"></script>
+</body>
+</html>
