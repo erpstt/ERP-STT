@@ -21,6 +21,10 @@ try{
  if(run.processed!==1)throw Error('No se contabilizó la depreciación.');
  const posted=(await client.query('select ad.depreciation_id,ad.depreciation_amount,j.transaction_id,(select count(*) from gl_impact g where g.transaction_id=j.transaction_id) impacts from asset_depreciation ad join gl_impact gi on gi.gl_impact_id=ad.gl_impact_id join journal j on j.transaction_id=gi.transaction_id where ad.asset_id=$1',[saved.id])).rows[0];
  if(!posted||Number(posted.impacts)!==2)throw Error('El impacto contable de depreciación está incompleto.');
- console.log(JSON.stringify({options:true,localCurrencyOnly:options.currencies[0].code,departmentTypes:[...new Set(options.departments.map(item=>item.type))],automaticNumber:saved.number,report:true,depreciationPreview:true,depreciationPosting:true,glImpacts:Number(posted.impacts),rollback:true}));
+ const detail=(await client.query('select fixed_asset_detail($1) value',[saved.id])).rows[0].value;
+ if(!detail.asset.hasDepreciations||detail.schedule.length!==options.categories[0].life)throw Error('La tabla mensual del activo está incompleta.');
+ let costLocked=false;try{await client.query('update asset set purchase_cost=purchase_cost+1 where asset_id=$1',[saved.id])}catch(error){costLocked=/depreciaciones contabilizadas/.test(error.message)}
+ if(!costLocked)throw Error('El costo del activo depreciado todavía se puede modificar.');
+ console.log(JSON.stringify({options:true,localCurrencyOnly:options.currencies[0].code,automaticNumber:saved.number,depreciationPosting:true,glImpacts:Number(posted.impacts),monthlySchedule:detail.schedule.length,costLocked,rollback:true}));
  await client.query('rollback');
 }catch(error){await client.query('rollback');throw error}finally{await client.end()}
