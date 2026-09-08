@@ -111,11 +111,13 @@ function open(id = null) {
   $('active').value = String(current?.active ?? true);
   updateMethod();
   $('modal').hidden = false;
+  document.body.classList.add('modal-open');
+  requestAnimationFrame(() => $('name').focus());
 }
 
 $('method').onchange = updateMethod;
 $('new').onclick = () => open();
-$('close').onclick = $('cancel').onclick = () => { $('modal').hidden = true; };
+$('close').onclick = $('cancel').onclick = () => { $('modal').hidden = true; document.body.classList.remove('modal-open'); };
 $('filters').onsubmit = (event) => { event.preventDefault(); load(); };
 $('entry').onsubmit = async (event) => {
   event.preventDefault();
@@ -140,6 +142,7 @@ $('entry').onsubmit = async (event) => {
       { method: editing ? 'PUT' : 'POST', body: JSON.stringify(payload) }
     );
     $('modal').hidden = true;
+    document.body.classList.remove('modal-open');
     $('message').textContent = result.message;
     await load();
   } catch (error) {

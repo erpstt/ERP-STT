@@ -1,5 +1,5 @@
 import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { join, normalize } from 'node:path';
 import { authController } from './modules/auth/auth.module.js';
@@ -92,6 +92,12 @@ async function serveFile(pathname: string, response: ServerResponse) {
     await stat(file);
     const extension = file.slice(file.lastIndexOf('.'));
     response.writeHead(200, { 'Content-Type': `${mime[extension] ?? 'application/octet-stream'}; charset=utf-8`, 'Cache-Control': ['.html','.js'].includes(extension) ? 'no-store, max-age=0' : 'no-cache' });
+    if(extension==='.html'&&relative!=='index.html'){
+      const html=await readFile(file,'utf8');
+      const guard=`<style>html.inside-erp-workspace,html.inside-erp-workspace body{width:100%!important;min-width:0!important;min-height:100%!important;margin:0!important;padding:0!important}html.inside-erp-workspace body>main{box-sizing:border-box!important;width:100%!important;max-width:none!important;min-height:100vh!important;margin:0!important;border-radius:0!important;box-shadow:none!important}html.inside-erp-workspace body>.toolbar,html.inside-erp-workspace body>nav{box-sizing:border-box!important;width:100%!important;max-width:none!important;margin:0!important}</style><script>if(window===window.top){location.replace('/?workspace='+encodeURIComponent(location.pathname+location.search+location.hash))}else{document.documentElement.classList.add('inside-erp-workspace')}</script>`;
+      response.end(html.includes('<head>')?html.replace('<head>',`<head>${guard}`):guard+html);
+      return;
+    }
     createReadStream(file).pipe(response);
   } catch { error(response, 404, 'Recurso no encontrado.'); }
 }

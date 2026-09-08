@@ -262,7 +262,15 @@
 <span class="avatar">{{ userInitial }}</span>
 </div>
 </header>
-      <div class="dashboard-content">
+      <section v-if="workspaceUrl" class="embedded-workspace">
+        <div class="embedded-toolbar">
+          <button type="button" @click="closeWorkspace">‹ Volver al módulo</button>
+          <strong>{{ currentSection }}</strong>
+          <button type="button" title="Recargar" @click="reloadWorkspace">↻</button>
+        </div>
+        <iframe ref="workspaceFrame" :src="workspaceUrl" :title="currentSection" @load="workspaceLoaded"></iframe>
+      </section>
+      <div v-else class="dashboard-content">
         <section v-if="!activeCatalog" class="module-empty">
 <div class="module-mark" v-html="activeModuleIcon">
 </div>
@@ -478,7 +486,7 @@
     </div>
   </main>
 </div>
-<script type="module" src="/app.js?v=20260830-supplier-notes-2">
+<script type="module" src="/app.js?v=20260908-embedded-workspace">
 </script>
 </body>
 </html>

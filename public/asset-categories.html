@@ -6,7 +6,7 @@
   <title>Categorías de activos · NEXO</title>
   <link rel="stylesheet" href="/purchase-documents.css">
   <link rel="stylesheet" href="/supplier-payments.css">
-  <link rel="stylesheet" href="/asset-categories.css?v=2">
+  <link rel="stylesheet" href="/asset-categories.css?v=3">
 </head>
 <body>
   <header><a href="/" class="brand">▮▮ NEXO</a><a href="/">Volver al ERP</a></header>
@@ -27,16 +27,18 @@
     <form id="entry" class="dialog asset-category-dialog">
       <div class="dialog-head"><div><p class="eyebrow">CONFIGURACIÓN CONTABLE</p><h2 id="formTitle">Nueva categoría</h2></div><button id="close" type="button" class="icon" aria-label="Cerrar">×</button></div>
       <section class="grid header-grid">
+        <div class="section-heading"><span>01</span><div><b>Información general</b><small>Defina la categoría y sus parámetros de depreciación.</small></div></div>
         <label class="system-field">Código<input id="code" value="Se asignará al guardar" readonly></label>
         <label>Categoría<input id="name" required></label>
+        <label>Estado<select id="active"><option value="true">Activa</option><option value="false">Inactiva</option></select></label>
         <label>Método de depreciación<select id="method" required><option>Línea Recta</option><option>Suma de los Dígitos de los Años</option><option>No Depreciable</option></select></label>
         <label id="lifeField">Vida útil (meses)<input id="life" type="number" min="1" required></label>
         <label>Valor residual (%)<input id="residual" type="number" min="0" max="100" step="0.01" value="0"></label>
         <label class="span">Descripción<textarea id="description"></textarea></label>
+        <div class="section-heading accounting-heading"><span>02</span><div><b>Configuración contable</b><small>Seleccione las cuentas que recibirán el costo y la depreciación.</small></div></div>
         <label>Cuenta de activo<select id="assetAccount" required></select></label>
         <label>Depreciación acumulada<select id="depreciationAccount" required></select></label>
         <label>Gasto por depreciación<select id="expenseAccount" required></select></label>
-        <label>Estado<select id="active"><option value="true">Activa</option><option value="false">Inactiva</option></select></label>
       </section>
       <div class="impact"><b>Configuración de la depreciación</b><p>Al depreciar: débito a gasto por depreciación y crédito a depreciación acumulada. El costo original permanece en la cuenta de activo.</p></div>
       <footer><span></span><div><button id="cancel" type="button">Cancelar</button><button id="save" class="primary">Guardar categoría</button></div></footer>
