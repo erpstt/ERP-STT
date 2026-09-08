@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/login-refresh.css">
   <link rel="stylesheet" href="/login-position.css">
-  <link rel="stylesheet" href="/dashboard.css">
+  <link rel="stylesheet" href="/dashboard.css?v=20260908-approvers">
   <link rel="stylesheet" href="/modal-scroll.css?v=20260810">
   <link rel="stylesheet" href="/company-selection.css">
   <link rel="stylesheet" href="/subsidiary-branding.css?v=20260814">
@@ -299,6 +299,7 @@
 </button>
 </div>
 </details>
+<button v-if="activeCatalog.slug==='journals'" type="button" class="new-record" @click="openWorkspace('/journal-import.html')">Importar CSV</button>
 <a v-if="activeCatalog.slug==='supplier-credit-notes'" class="new-record" href="/supplier-note-entry.html?kind=CREDIT"><span>＋</span> Crear nota de crédito</a>
 <a v-if="activeCatalog.slug==='credit-notes'" class="new-record" href="/sales-note-entry.html?kind=CREDIT"><span>＋</span> Crear nota de crédito</a>
 <a v-if="activeCatalog.slug==='invoices'&&currentModule==='Ventas'" class="new-record" href="/sales-invoice-entry.html"><span>＋</span> Crear factura</a>
@@ -439,7 +440,9 @@
 </div>
         <form v-if="recordDialog.mode === 'form'" @submit.prevent="submitRecord">
 <div class="form-grid">
-<label v-for="field in formFields" :key="field.key" :class="{'toggle-field':field.type==='boolean','multi-field':field.type==='multi-reference'}">
+<template v-for="field in formFields" :key="field.key">
+<div v-if="activeCatalog.slug==='subsidiaries' && field.key==='project_approver'" class="approver-section"><h3>Aprobadores</h3><p>Asigne un empleado o usuario activo del ERP para cada responsabilidad.</p></div>
+<label :class="{'toggle-field':field.type==='boolean','multi-field':field.type==='multi-reference'}">
 <span>{{ field.label }}<b v-if="field.required"> *</b>
 </span>
 <select v-if="field.options" v-model="recordDialog.values[field.key]" :required="field.required" @change="handleFieldChange(field)">
@@ -457,11 +460,12 @@
 </div>
 <select v-else-if="field.reference" v-model="recordDialog.values[field.key]" :required="field.required" @change="handleFieldChange(field)">
 <option value="">{{ field.required ? 'Selecciona una opción' : 'Sin asignar' }}</option>
-<option v-for="option in filteredReferenceOptions(field)" :key="referenceId(field.reference,option)" :value="referenceId(field.reference,option)">{{ referenceLabel(option) }}</option>
+<option v-for="option in filteredReferenceOptions(field)" :key="referenceId(field.reference,option)" :value="referenceId(field.reference,option)" :disabled="field.reference==='organization/approver-options' && !option.is_active">{{ referenceLabel(option) }}{{ field.reference==='organization/approver-options' && !option.is_active ? ' (Inactivo)' : '' }}</option>
 </select>
 <input v-else-if="field.type !== 'boolean'" v-model="recordDialog.values[field.key]" :type="field.type" :required="field.required" :readonly="field.readOnly" :placeholder="field.readOnly && !recordDialog.id ? 'Se asignará automáticamente' : ''">
 <input v-else v-model="recordDialog.values[field.key]" type="checkbox">
 </label>
+</template>
 </div>
 <p v-if="dialogError" class="dialog-error">{{ dialogError }}</p>
 <div class="modal-actions">
@@ -486,7 +490,7 @@
     </div>
   </main>
 </div>
-<script type="module" src="/app.js?v=20260908-embedded-workspace">
+<script type="module" src="/app.js?v=20260908-approvers">
 </script>
 </body>
 </html>

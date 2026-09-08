@@ -1,0 +1,6 @@
+asiento_referencia,tipo_asiento,fecha,moneda,tipo_cambio,nota_asiento,numero_cuenta,debito,credito,nota_linea,mes_servicio,entidad,nombre,departamento,centro_costos,clase,acreedor_financiero,compania_relacionada
+EJEMPLO-001,ASI_DIA,2026-09-08,CRC,1,Compra de suministros,610101,25000.00,0.00,Gasto de suministros,,,,,,,,
+EJEMPLO-001,ASI_DIA,2026-09-08,CRC,1,Compra de suministros,110101,0.00,25000.00,Pago de suministros,,,,,,,,
+EJEMPLO-002,ASI_DIA,2026-09-08,CRC,1,Registro de servicios,610201,40000.00,0.00,Servicio de mantenimiento,,,,,,,,
+EJEMPLO-002,ASI_DIA,2026-09-08,CRC,1,Registro de servicios,610202,10000.00,0.00,Servicio de limpieza,,,,,,,,
+EJEMPLO-002,ASI_DIA,2026-09-08,CRC,1,Registro de servicios,210101,0.00,50000.00,Servicios por pagar,,,,,,,,

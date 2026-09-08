@@ -6,10 +6,11 @@ import { authController } from './modules/auth/auth.module.js';
 import { createCountry, deleteCountry, listCountries, updateCountry } from './modules/countries/countries.module.js';
 import { createCatalogRow, deleteCatalogRow, getCoreCatalog, listCatalogRows, updateCatalogRow } from './modules/core-catalogs/core-catalogs.module.js';
 import { createSecurityRow, deleteSecurityRow, getSecurityCatalog, listSecurityRows, updateSecurityRow } from './modules/security-catalogs/security-catalogs.module.js';
-import { createOrganizationRow, deleteOrganizationRow, getOrganizationCatalog, listOrganizationRows, updateOrganizationRow } from './modules/organization-catalogs/organization-catalogs.module.js';
+import { listSubsidiaryApprovers, createOrganizationRow, deleteOrganizationRow, getOrganizationCatalog, listOrganizationRows, updateOrganizationRow } from './modules/organization-catalogs/organization-catalogs.module.js';
 import { assertExchangeRateAccess, createConfigurationRow, deleteConfigurationRow, getConfigurationCatalog, listConfigurationRows, updateConfigurationRow } from './modules/configuration-catalogs/configuration-catalogs.module.js';
 import { accountingCatalogs, createAccountingRow, deleteAccountingRow, getAccountingCatalog, listAccountingRows, updateAccountingRow } from './modules/accounting-catalogs/accounting-catalogs.module.js';
 import { createJournalEntry, updateJournalEntry } from './modules/accounting-catalogs/journal-entry.service.js';
+import { importJournalCsv } from './modules/accounting-catalogs/journal-import.service.js';
 import { saveSupplierInvoice } from './modules/purchasing-catalogs/supplier-invoice.service.js';
 import { saveSupplierNote } from './modules/purchasing-catalogs/supplier-note.service.js';
 import { saveSalesInvoice } from './modules/sales-catalogs/sales-invoice.service.js';
@@ -70,7 +71,7 @@ try { loadEnvFile?.('.env'); } catch { /* Las variables también pueden venir de
 accountingCatalogs.find(c=>c.slug==='chart-accounts')?.fields.splice(8,0,{key:'cash_flow_activity',label:'Tipo de actividad de flujo',type:'text',required:true,options:['OPERACION','INVERSION','FINANCIACION','EFECTIVO_EQUIVALENTE','NO_APLICA']});
 const publicDir = join(process.cwd(), 'public');
 const vueBrowserBuild = join(process.cwd(), 'node_modules', 'vue', 'dist', 'vue.esm-browser.prod.js');
-const mime: Record<string, string> = { '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript', '.svg': 'image/svg+xml' };
+const mime: Record<string, string> = { '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript', '.svg': 'image/svg+xml', '.csv': 'text/csv' };
 
 async function body(request: IncomingMessage): Promise<unknown> {
   let raw = '';
@@ -94,7 +95,7 @@ async function serveFile(pathname: string, response: ServerResponse) {
     response.writeHead(200, { 'Content-Type': `${mime[extension] ?? 'application/octet-stream'}; charset=utf-8`, 'Cache-Control': ['.html','.js'].includes(extension) ? 'no-store, max-age=0' : 'no-cache' });
     if(extension==='.html'&&relative!=='index.html'){
       const html=await readFile(file,'utf8');
-      const guard=`<style>html.inside-erp-workspace,html.inside-erp-workspace body{width:100%!important;min-width:0!important;min-height:100%!important;margin:0!important;padding:0!important}html.inside-erp-workspace body>main{box-sizing:border-box!important;width:100%!important;max-width:none!important;min-height:100vh!important;margin:0!important;border-radius:0!important;box-shadow:none!important}html.inside-erp-workspace body>.toolbar,html.inside-erp-workspace body>nav{box-sizing:border-box!important;width:100%!important;max-width:none!important;margin:0!important}</style><script>if(window===window.top){location.replace('/?workspace='+encodeURIComponent(location.pathname+location.search+location.hash))}else{document.documentElement.classList.add('inside-erp-workspace')}</script>`;
+      const guard=`<style>html.inside-erp-workspace,html.inside-erp-workspace body{width:100%!important;min-width:0!important;min-height:100%!important;margin:0!important;padding:0!important}html.inside-erp-workspace body>main{box-sizing:border-box!important;width:100%!important;max-width:none!important;min-height:100vh!important;margin:0!important;border-radius:0!important;box-shadow:none!important}html.inside-erp-workspace body>.toolbar,html.inside-erp-workspace body>nav{box-sizing:border-box!important;width:100%!important;max-width:none!important;margin:0!important}</style><script>if(window===window.top){sessionStorage.setItem('nexo_workspace_redirect',JSON.stringify({path:location.pathname+location.search+location.hash,createdAt:Date.now()}));location.replace('/')}else{document.documentElement.classList.add('inside-erp-workspace')}</script>`;
       response.end(html.includes('<head>')?html.replace('<head>',`<head>${guard}`):guard+html);
       return;
     }
@@ -176,6 +177,7 @@ const server = createServer(async (request, response) => {
       if (request.method === 'PATCH' && id !== null) return json(response, 200, await updateSecurityRow(catalog, authorization, id, await body(request) as Record<string, unknown>));
       if (request.method === 'DELETE' && id !== null) { await deleteSecurityRow(catalog, authorization, id); return json(response, 200, { success: true }); }
     }
+    if(request.method==='GET'&&request.url==='/api/organization/approver-options')return json(response,200,await listSubsidiaryApprovers(request.headers.authorization!));
     const organizationRoute = request.url?.match(/^\/api\/organization\/([a-z-]+)(?:\/(\d+))?$/);
     if (organizationRoute) {
       const authorization = request.headers.authorization;
@@ -197,6 +199,7 @@ const server = createServer(async (request, response) => {
     if(request.method==='POST'&&request.url==='/api/configuration/exchange-rates/obtener-pe'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para consultar el tipo de cambio.');await assertExchangeRateAccess(authorization,'PEN');return json(response,200,await consultarYGuardarTipoDeCambioPE(authorization,await body(request) as {monedaOrigen?:string;monedaDestino?:string;fechaEfectiva?:Date|string}));}
     const configurationRoute=request.url?.match(/^\/api\/configuration\/([a-z-]+)(?:\/(\d+))?$/);
     if(configurationRoute){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para administrar Configuración.');const catalog=getConfigurationCatalog(configurationRoute[1]);const id=configurationRoute[2]?Number(configurationRoute[2]):null;if(request.method==='GET'&&id===null)return json(response,200,await listConfigurationRows(catalog,authorization));if(request.method==='POST'&&id===null)return json(response,201,await createConfigurationRow(catalog,authorization,await body(request)as Record<string,unknown>));if(request.method==='PATCH'&&id!==null)return json(response,200,await updateConfigurationRow(catalog,authorization,id,await body(request)as Record<string,unknown>));if(request.method==='DELETE'&&id!==null){await deleteConfigurationRow(catalog,authorization,id);return json(response,200,{success:true});}}
+    if(request.method==='POST'&&request.url==='/api/accounting/journals/import'){return json(response,200,await importJournalCsv(request.headers.authorization!,await body(request)as Record<string,unknown>));}
     if(request.method==='POST'&&request.url==='/api/accounting/journal-entry'){const authorization=request.headers.authorization!;return json(response,201,await createJournalEntry(authorization,await body(request)as Record<string,unknown>));}
     const journalEntryUpdate=request.url?.match(/^\/api\/accounting\/journal-entry\/(\d+)$/);if(request.method==='PUT'&&journalEntryUpdate){const authorization=request.headers.authorization!;return json(response,200,await updateJournalEntry(authorization,Number(journalEntryUpdate[1]),await body(request)as Record<string,unknown>));}
     if(request.method==='POST'&&request.url==='/api/purchasing/supplier-invoice-entry'){const authorization=request.headers.authorization!;return json(response,201,await saveSupplierInvoice(authorization,await body(request)as Record<string,unknown>));}

@@ -218,3 +218,5 @@ td{padding:15px 18px;border-top:1px solid #edf0f3;color:#344054;font-size:12px}
 .multi-select small{display:block;color:#8793a2;padding:12px;text-align:center}
 
 
+
+.approver-section{grid-column:1/-1;margin-top:12px;padding-top:18px;border-top:1px solid #dce7e2}.approver-section h3{margin:0 0 6px;color:#177b60;font-size:15px}.approver-section p{margin:0;color:#6c7f8f;font-size:12px;line-height:1.5}

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Plantilla de asientos contables · NEXO</title><link rel="stylesheet" href="/journal-entry.css"></head>
+<body><main class="journal-page">
+<header><h1>Plantilla CSV de asientos contables</h1><a href="/">Volver al ERP</a></header>
+<p><a href="/plantilla-asientos-contables.csv" download>Descargar plantilla CSV</a></p>
+<p>Ejemplo para preparar varios asientos en un archivo, con una fila por línea contable. La plantilla contiene dos asientos balanceados: uno de 25 000 y otro de 50 000 CRC.</p>
+<p><a href="/journal-import.html">Importar el archivo CSV</a>: seleccione el archivo, pulse Validar archivo, revise la vista previa y pulse Importar asientos. Máximo 2 MB, 2000 líneas y 200 asientos por lote. Si un asiento falla, no se guarda ninguno. Un archivo con el mismo contenido ya importado no se vuelve a registrar, aunque cambie de nombre. Para registrar una operación nueva, use referencias nuevas.</p>
+<section><h2>Cómo completar el archivo</h2><ol>
+<li>Reemplace los ejemplos por sus datos. Las cuentas son ilustrativas: utilice números de cuenta existentes y habilitados para la subsidiaria activa.</li>
+<li>Repita la misma <strong>asiento_referencia</strong> en todas las líneas de un asiento y use otra referencia para el siguiente. Es una referencia de agrupación del archivo; el número definitivo del asiento lo asigna el sistema.</li>
+<li>Repita tipo, fecha, moneda, tipo de cambio y nota del asiento en cada una de sus líneas.</li>
+<li>Incluya al menos dos líneas por asiento. En cada línea complete débito o crédito y deje el otro en cero. La suma de débitos debe coincidir con la suma de créditos de cada asiento.</li>
+<li>Conserve los encabezados y guarde como CSV UTF-8 separado por comas. Use punto decimal sin separadores de miles. Si una nota contiene comas, enciérrela entre comillas dobles. En Excel, trate los números de cuenta como texto para conservar ceros iniciales.</li>
+</ol></section>
+<section><h2>Columnas</h2><div class="line-scroll"><table><thead><tr><th>Columna</th><th>Contenido</th></tr></thead><tbody>
+<tr><td>asiento_referencia</td><td>Referencia única por asiento dentro del archivo, por ejemplo ASIENTO-001.</td></tr>
+<tr><td>tipo_asiento</td><td>ASI_DIA (diario), ASI_PEN (facturas pendientes), ASI_NOM (nómina) o ASI_LIQ (liquidación).</td></tr>
+<tr><td>fecha</td><td>AAAA-MM-DD. Debe corresponder a un período contable activo.</td></tr>
+<tr><td>moneda</td><td>Código de moneda permitido para la subsidiaria, por ejemplo CRC o USD.</td></tr>
+<tr><td>tipo_cambio</td><td>Valor positivo en moneda local por unidad de la moneda del asiento; 1 para moneda local. Debe corresponder al tipo de cambio configurado.</td></tr>
+<tr><td>nota_asiento</td><td>Descripción general del asiento.</td></tr>
+<tr><td>numero_cuenta</td><td>Número de la cuenta contable, no su identificador interno.</td></tr>
+<tr><td>debito / credito</td><td>Importes sin impuestos en la moneda del asiento, por ejemplo 25000.00. Estos ejemplos no incluyen impuestos.</td></tr>
+<tr><td>nota_linea</td><td>Descripción de la línea.</td></tr>
+<tr><td>mes_servicio</td><td>Mes en formato AAAA-MM para facturas pendientes (ASI_PEN). Dejar vacío para los demás tipos.</td></tr>
+<tr><td>entidad</td><td>Opcional: Cliente, Proveedor, Empleado o Ninguna. Corresponde al tipo de entidad de la línea.</td></tr>
+<tr><td>nombre</td><td>Nombre exacto del cliente o proveedor; para empleados, nombre y apellidos. Obligatorio si selecciona una entidad. Si hay nombres repetidos, use ID:123 con el identificador del registro en su catálogo.</td></tr>
+<tr><td>departamento</td><td>Nombre exacto o ID:123 de un departamento activo de la subsidiaria. Para clientes se asigna el departamento del cliente si deja la columna vacía; si lo completa, debe coincidir. Para empleados debe ser de tipo Interno.</td></tr>
+<tr><td>centro_costos</td><td>Nombre exacto o ID:123 del centro de costos de la subsidiaria, correspondiente al departamento y, si seleccionó Cliente, a ese cliente.</td></tr>
+<tr><td>clase</td><td>Nombre exacto o ID:123 de la clase asociada al centro de costos. Si queda vacía se asigna la del centro. Si la completa, debe coincidir. Requiere centro de costos.</td></tr>
+<tr><td>acreedor_financiero</td><td>Nombre exacto o ID:123 de un acreedor financiero activo y habilitado para la subsidiaria.</td></tr>
+<tr><td>compania_relacionada</td><td>Nombre exacto o ID:123 de una compañía relacionada activa y habilitada para la subsidiaria. Use solo el nombre registrado, sin agregar el país mostrado en el selector.</td></tr>
+</tbody></table></div></section>
+<section><h2>Ejemplo de datos adicionales</h2><p>En una línea puede completar entidad = Cliente, nombre = Cliente de ejemplo, departamento = Servicios, centro_costos = Proyecto de ejemplo y clase = Consultoría. Reemplace estos nombres ilustrativos por registros reales y relacionados entre sí. Acreedor financiero y compañía relacionada pueden quedar vacíos si no aplican.</p><p>La plantilla deja las siete columnas adicionales vacías para no asignar entidades ficticias. Los archivos de la plantilla anterior siguen siendo válidos. Mantenga los encabezados sin acentos tal como aparecen en el CSV.</p></section>
+</main></body></html>
