@@ -441,7 +441,7 @@
         <form v-if="recordDialog.mode === 'form'" @submit.prevent="submitRecord">
 <div class="form-grid">
 <template v-for="field in formFields" :key="field.key">
-<div v-if="activeCatalog.slug==='subsidiaries' && field.key==='project_approver'" class="approver-section"><h3>Aprobadores</h3><p>Asigne un empleado o usuario activo del ERP para cada responsabilidad.</p></div>
+<div v-if="activeCatalog.slug==='subsidiaries' && field.key==='project_approver'" class="approver-section"><h3>Aprobadores</h3><p>Asigne un usuario activo del ERP para cada responsabilidad.</p></div>
 <label :class="{'toggle-field':field.type==='boolean','multi-field':field.type==='multi-reference'}">
 <span>{{ field.label }}<b v-if="field.required"> *</b>
 </span>
@@ -490,7 +490,7 @@
     </div>
   </main>
 </div>
-<script type="module" src="/app.js?v=20260908-approvers">
+<script type="module" src="/app.js?v=20260908-approvers-users">
 </script>
 </body>
 </html>

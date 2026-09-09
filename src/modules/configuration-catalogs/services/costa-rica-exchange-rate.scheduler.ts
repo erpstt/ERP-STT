@@ -7,6 +7,7 @@ function zoned(year:number,month:number,day:number,hour:number){const guess=new 
 function next(now=new Date()){const p=parts(now),year=Number(p.year),month=Number(p.month),day=Number(p.day);for(const hour of HOURS){const candidate=zoned(year,month,day,hour);if(candidate>now)return candidate;}return zoned(year,month,day+1,HOURS[0]);}
 function localDate(){const p=parts(new Date());return`${p.year}-${p.month}-${p.day}`;}
 let timer:NodeJS.Timeout|undefined;
+let started=false;
 async function execute(){try{const result=await consultarYGuardarTipoDeCambioCRAutomatico(localDate());console.log(`[TipoCambioCR] ${result.fechaEfectiva} USD/CRC=${result.tipoCambio} guardado desde ${result.fuente}`);}catch(cause){console.error('[TipoCambioCR] Error en ejecución automática:',cause instanceof Error?cause.message:cause);}finally{schedule();}}
 function schedule(){const target=next();timer=setTimeout(()=>void execute(),Math.max(target.getTime()-Date.now(),1000));timer.unref();console.log(`[TipoCambioCR] Próxima consulta: ${target.toISOString()} (${TIME_ZONE})`);}
-export function iniciarProgramacionTipoCambioCR(){if(!timer)schedule();}
+export function iniciarProgramacionTipoCambioCR(){if(started)return;started=true;void execute();}
