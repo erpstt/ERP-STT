@@ -299,6 +299,7 @@
 </button>
 </div>
 </details>
+<button v-if="activeCatalog.slug==='chart-accounts'" type="button" class="new-record" :disabled="tableLoading || catalogExporting" @click="downloadChartAccounts()" title="Descargar todas las cuentas autorizadas y todos sus campos, sin aplicar la búsqueda">{{ catalogExporting ? 'Preparando CSV...' : 'Descargar catálogo CSV' }}</button>
 <button v-if="activeCatalog.slug==='journals'" type="button" class="new-record" @click="openWorkspace('/journal-import.html')">Importar CSV</button>
 <a v-if="activeCatalog.slug==='supplier-credit-notes'" class="new-record" href="/supplier-note-entry.html?kind=CREDIT"><span>＋</span> Crear nota de crédito</a>
 <a v-if="activeCatalog.slug==='credit-notes'" class="new-record" href="/sales-note-entry.html?kind=CREDIT"><span>＋</span> Crear nota de crédito</a>
@@ -463,7 +464,8 @@
 <option v-for="option in filteredReferenceOptions(field)" :key="referenceId(field.reference,option)" :value="referenceId(field.reference,option)" :disabled="field.reference==='organization/approver-options' && !option.is_active">{{ referenceLabel(option) }}{{ field.reference==='organization/approver-options' && !option.is_active ? ' (Inactivo)' : '' }}</option>
 </select>
 <input v-else-if="field.type !== 'boolean'" v-model="recordDialog.values[field.key]" :type="field.type" :required="field.required" :readonly="field.readOnly" :placeholder="field.readOnly && !recordDialog.id ? 'Se asignará automáticamente' : ''">
-<input v-else v-model="recordDialog.values[field.key]" type="checkbox">
+<input v-else v-model="recordDialog.values[field.key]" type="checkbox" :disabled="field.readOnly">
+<small v-if="activeCatalog.slug==='chart-accounts' &amp;&amp; field.key==='pending_fx_revaluation'">Heredado del grupo de cuentas. Modifique esta opción en el grupo.</small>
 </label>
 </template>
 </div>

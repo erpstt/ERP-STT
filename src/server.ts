@@ -1,3 +1,4 @@
+import { paymentRequests } from './modules/treasury-catalogs/payment-requests.service.js';
 import { createReadStream } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
@@ -10,6 +11,7 @@ import { listSubsidiaryApprovers, createOrganizationRow, deleteOrganizationRow, 
 import { assertExchangeRateAccess, createConfigurationRow, deleteConfigurationRow, getConfigurationCatalog, listConfigurationRows, updateConfigurationRow } from './modules/configuration-catalogs/configuration-catalogs.module.js';
 import { accountingCatalogs, createAccountingRow, deleteAccountingRow, getAccountingCatalog, listAccountingRows, updateAccountingRow } from './modules/accounting-catalogs/accounting-catalogs.module.js';
 import { createJournalEntry, updateJournalEntry } from './modules/accounting-catalogs/journal-entry.service.js';
+import { fxRevaluation } from './modules/accounting-catalogs/fx-revaluation.service.js';
 import { importJournalCsv } from './modules/accounting-catalogs/journal-import.service.js';
 import { saveSupplierInvoice } from './modules/purchasing-catalogs/supplier-invoice.service.js';
 import { saveSupplierNote } from './modules/purchasing-catalogs/supplier-note.service.js';
@@ -199,6 +201,10 @@ const server = createServer(async (request, response) => {
     if(request.method==='POST'&&request.url==='/api/configuration/exchange-rates/obtener-pe'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para consultar el tipo de cambio.');await assertExchangeRateAccess(authorization,'PEN');return json(response,200,await consultarYGuardarTipoDeCambioPE(authorization,await body(request) as {monedaOrigen?:string;monedaDestino?:string;fechaEfectiva?:Date|string}));}
     const configurationRoute=request.url?.match(/^\/api\/configuration\/([a-z-]+)(?:\/(\d+))?$/);
     if(configurationRoute){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para administrar Configuración.');const catalog=getConfigurationCatalog(configurationRoute[1]);const id=configurationRoute[2]?Number(configurationRoute[2]):null;if(request.method==='GET'&&id===null)return json(response,200,await listConfigurationRows(catalog,authorization));if(request.method==='POST'&&id===null)return json(response,201,await createConfigurationRow(catalog,authorization,await body(request)as Record<string,unknown>));if(request.method==='PATCH'&&id!==null)return json(response,200,await updateConfigurationRow(catalog,authorization,id,await body(request)as Record<string,unknown>));if(request.method==='DELETE'&&id!==null){await deleteConfigurationRow(catalog,authorization,id);return json(response,200,{success:true});}}
+    const prRoute=request.url?.match(/^\/api\/treasury\/payment-requests\/(options|invoices|report|detail|save|transition|execute)$/);
+    if(prRoute&&((prRoute[1]==='options'&&request.method==='GET')||(prRoute[1]!=='options'&&request.method==='POST')))return json(response,200,await paymentRequests(request.headers.authorization!,prRoute[1],prRoute[1]==='options'?{}:await body(request) as Record<string,unknown>));
+    const fxRoute=request.url?.match(/^\/api\/accounting\/fx-revaluation\/(options|settings|preview|execute|cancel|report)$/);
+    if(fxRoute&&((fxRoute[1]==='options'&&request.method==='GET')||(fxRoute[1]!=='options'&&request.method==='POST')))return json(response,200,await fxRevaluation(request.headers.authorization!,fxRoute[1],fxRoute[1]==='options'?{}:await body(request) as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/accounting/journals/import'){return json(response,200,await importJournalCsv(request.headers.authorization!,await body(request)as Record<string,unknown>));}
     if(request.method==='POST'&&request.url==='/api/accounting/journal-entry'){const authorization=request.headers.authorization!;return json(response,201,await createJournalEntry(authorization,await body(request)as Record<string,unknown>));}
     const journalEntryUpdate=request.url?.match(/^\/api\/accounting\/journal-entry\/(\d+)$/);if(request.method==='PUT'&&journalEntryUpdate){const authorization=request.headers.authorization!;return json(response,200,await updateJournalEntry(authorization,Number(journalEntryUpdate[1]),await body(request)as Record<string,unknown>));}

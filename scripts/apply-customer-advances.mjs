@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+import pg from 'pg';
+process.loadEnvFile('.env');
+const ref=new URL(process.env.SUPABASE_URL).hostname.split('.')[0];
+const client=new pg.Client({host:process.env.SUPABASE_DB_HOST||'aws-0-us-east-1.pooler.supabase.com',port:6543,database:'postgres',user:`postgres.${ref}`,password:process.env.SUPABASE_DB_PASSWORD,ssl:{rejectUnauthorized:false}});
+await client.connect();
+await client.query(fs.readFileSync('supabase/migrations/20260909190000_customer_advances.sql','utf8'));
+const result=await client.query("select to_regclass('public.customer_advance_application') table_name,has_function_privilege('authenticated','customer_available_advances()','execute') can_execute");
+console.log(result.rows);
+const validation=await client.query("select count(*)::int accounts_218001,(select count(*)::int from journal_line l join chart_accounts a using(account_id) where a.account_number='218001' and l.customer_id is not null and l.credit>l.debit) eligible_source_lines from chart_accounts where account_number='218001'");
+console.log(validation.rows);
+await client.end();
