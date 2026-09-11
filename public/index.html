@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="/login-refresh.css">
   <link rel="stylesheet" href="/login-position.css">
   <link rel="stylesheet" href="/dashboard.css?v=20260908-approvers">
-  <link rel="stylesheet" href="/modal-scroll.css?v=20260810">
+  <link rel="stylesheet" href="/modal-scroll.css?v=20260911-entity-fullscreen">
   <link rel="stylesheet" href="/company-selection.css">
   <link rel="stylesheet" href="/subsidiary-branding.css?v=20260814">
   <link rel="stylesheet" href="/exchange-rate.css?v=20260814">
@@ -469,6 +469,28 @@
 </label>
 </template>
 </div>
+<section v-if="['customers','suppliers'].includes(activeCatalog.slug) && recordDialog.values.applies_withholding" class="withholding-rules-editor">
+<div class="withholding-rules-head">
+<div><span>CONFIGURACIÓN TRIBUTARIA</span><h3>Retenciones por subsidiaria</h3><p>Asigne una o varias retenciones según el país y la subsidiaria donde opera la entidad.</p></div>
+<button type="button" class="button-secondary" :disabled="!withholdingSubsidiaries().length" @click="addWithholdingRule">+ Agregar retención</button>
+</div>
+<p v-if="!withholdingSubsidiaries().length" class="withholding-empty">Seleccione primero las subsidiarias de la entidad.</p>
+<p v-else-if="!recordDialog.values.withholding_rules?.length" class="withholding-empty">Agregue al menos una configuración de retención.</p>
+<div v-else class="withholding-rule-list">
+<div v-for="(rule,index) in recordDialog.values.withholding_rules" :key="index" class="withholding-rule-row">
+<div class="withholding-rule-number"><span>{{ index + 1 }}</span></div>
+<label><span>Subsidiaria y país *</span><div class="withholding-select-shell"><select v-model="rule.subsidiary_id" required @change="rule.tax_code_id=''">
+<option value="" disabled>Seleccione una subsidiaria</option>
+<option v-for="subsidiary in withholdingSubsidiaries()" :key="subsidiary.subsidiary_id" :value="String(subsidiary.subsidiary_id)">{{ subsidiaryCountryLabel(subsidiary) }}</option>
+</select></div></label>
+<label><span>Código de retención *</span><div class="withholding-select-shell"><select v-model="rule.tax_code_id" required :disabled="!rule.subsidiary_id">
+<option value="" disabled>{{ rule.subsidiary_id ? 'Seleccione una retención' : 'Seleccione primero la subsidiaria' }}</option>
+<option v-for="tax in withholdingTaxes(rule)" :key="tax.tax_code_id" :value="String(tax.tax_code_id)">{{ referenceLabel(tax) }} · {{ tax.rate_percentage }}%</option>
+</select></div><small v-if="rule.subsidiary_id && !withholdingTaxes(rule).length">No hay retenciones compatibles para esta subsidiaria.</small><div v-if="selectedWithholdingTax(rule)" class="withholding-tax-summary"><span>{{ selectedWithholdingTax(rule).tax_type_applies_to }}</span><span>{{ selectedWithholdingTax(rule).rate_percentage }}%</span><span>{{ selectedWithholdingTax(rule).withholding_application_moment }}</span></div></label>
+<button type="button" class="withholding-remove" aria-label="Eliminar retención" title="Eliminar retención" @click="removeWithholdingRule(index)">×</button>
+</div>
+</div>
+</section>
 <p v-if="dialogError" class="dialog-error">{{ dialogError }}</p>
 <div class="modal-actions">
 <button type="button" class="button-secondary" @click="closeRecordDialog">Cancelar</button>
@@ -492,8 +514,8 @@
     </div>
   </main>
 </div>
-<script type="module" src="/app.js?v=20260908-approvers-users">
+<script type="module" src="/app.js?v=20260911-withholding-ui">
 </script>
-</body>
+<script src="/approval-notifications.js?v=1"></script></body>
 </html>
 

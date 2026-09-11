@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { getSupabaseConfig } from '../../../core/database/supabase.client.js';
+import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
 import { SessionAuthenticationError } from './session.service.js';
 
 const deviceHash = (token: string) => createHash('sha256').update(token).digest('hex');
@@ -11,7 +11,7 @@ function authenticatedEmail(authorization: string) {
 async function rest<T>(path: string, authorization: string, init: RequestInit = {}): Promise<T> {
   const config = getSupabaseConfig();
   if (!config) throw new Error('Supabase no está configurado.');
-  const response = await fetch(new URL(`/rest/v1/${path}`, config.url), { ...init, headers: { apikey: config.anonKey, Authorization: authorization, 'Content-Type': 'application/json', ...(init.headers ?? {}) } });
+  const response = await fetchSupabase(new URL(`/rest/v1/${path}`, config.url), { ...init, headers: { apikey: config.anonKey, Authorization: authorization, 'Content-Type': 'application/json', ...(init.headers ?? {}) } });
   const text = response.status === 204 ? '' : await response.text();
   const payload: unknown = text ? JSON.parse(text) : null;
   if (!response.ok) throw new Error(typeof payload === 'object' && payload && 'message' in payload ? String(payload.message) : 'No fue posible gestionar el dispositivo.');

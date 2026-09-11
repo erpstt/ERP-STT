@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { getSupabaseConfig } from '../../../core/database/supabase.client.js';
+import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
 
 const tokenHash = (token: string) => createHash('sha256').update(token).digest('hex');
 const bearerToken = (authorization: string) => authorization.replace(/^Bearer\s+/i, '').trim();
@@ -16,7 +16,7 @@ function jwtExpiration(token: string) {
 async function rest<T>(path: string, authorization: string, init: RequestInit = {}): Promise<T> {
   const config = getSupabaseConfig();
   if (!config) throw new Error('Supabase no está configurado.');
-  const response = await fetch(new URL(`/rest/v1/${path}`, config.url), { ...init, headers: { apikey: config.anonKey, Authorization: authorization, 'Content-Type': 'application/json', ...(init.headers ?? {}) } });
+  const response = await fetchSupabase(new URL(`/rest/v1/${path}`, config.url), { ...init, headers: { apikey: config.anonKey, Authorization: authorization, 'Content-Type': 'application/json', ...(init.headers ?? {}) } });
   const text = response.status === 204 ? '' : await response.text();
   const payload: unknown = text ? JSON.parse(text) : null;
   if (!response.ok) throw new Error(typeof payload === 'object' && payload && 'message' in payload ? String(payload.message) : 'No fue posible gestionar la sesión.');
@@ -41,5 +41,5 @@ export async function revokeCurrentSession(authorization: string) {
   if (!token) return;
   await rest(`sessions?session_token=eq.${tokenHash(token)}`, authorization, { method: 'DELETE' });
   const config = getSupabaseConfig();
-  if (config) await fetch(new URL('/auth/v1/logout', config.url), { method: 'POST', headers: { apikey: config.anonKey, Authorization: authorization } }).catch(() => undefined);
+  if (config) await fetchSupabase(new URL('/auth/v1/logout', config.url), { method: 'POST', headers: { apikey: config.anonKey, Authorization: authorization } }).catch(() => undefined);
 }

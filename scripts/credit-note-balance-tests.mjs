@@ -1,0 +1,12 @@
+import fs from 'node:fs';import pg from 'pg';
+process.loadEnvFile('.env');const ref=new URL(process.env.SUPABASE_URL).hostname.split('.')[0];
+const client=new pg.Client({host:process.env.SUPABASE_DB_HOST||'aws-0-us-east-1.pooler.supabase.com',port:6543,database:'postgres',user:`postgres.${ref}`,password:process.env.SUPABASE_DB_PASSWORD,ssl:{rejectUnauthorized:false}});
+await client.connect();await client.query(fs.readFileSync('supabase/migrations/20260909200000_credit_note_pending_balance.sql','utf8'));
+const checks=[];
+const customer=await client.query(`select i.invoice_id,i.customer_id,greatest(i.total_amount+coalesce((select sum(amount)from debit_note where invoice_id=i.invoice_id),0)-coalesce((select sum(amount)from credit_note where invoice_id=i.invoice_id),0)-coalesce((select sum(amount)from customer_payment_application where invoice_id=i.invoice_id),0),0) balance from invoice i order by i.invoice_id limit 1`);
+if(customer.rows[0]){const x=customer.rows[0];await client.query('begin');try{await client.query('insert into credit_note(cn_number,customer_id,invoice_id,amount)values($1,$2,$3,$4)',['TEST-LIMIT-'+Date.now(),x.customer_id,x.invoice_id,Number(x.balance)+1]);checks.push({customer:'FAILED_NO_BLOCK'});}catch(error){checks.push({customer:String(error.message)});}finally{await client.query('rollback');}}
+const supplier=await client.query(`select i.invoice_id,i.supplier_id,greatest(i.total_amount+coalesce((select sum(amount)from supplier_debit_note where invoice_id=i.invoice_id),0)-coalesce((select sum(amount)from supplier_credit_note where invoice_id=i.invoice_id),0)-coalesce((select sum(amount)from supplier_payment_application where invoice_id=i.invoice_id),0),0) balance from supplier_invoice i order by i.invoice_id limit 1`);
+if(supplier.rows[0]){const x=supplier.rows[0];await client.query('begin');try{await client.query('insert into supplier_credit_note(cn_number,supplier_id,invoice_id,amount)values($1,$2,$3,$4)',['TEST-LIMIT-'+Date.now(),x.supplier_id,x.invoice_id,Number(x.balance)+1]);checks.push({supplier:'FAILED_NO_BLOCK'});}catch(error){checks.push({supplier:String(error.message)});}finally{await client.query('rollback');}}
+const triggers=await client.query(`select tgname from pg_trigger where tgname in('validate_customer_credit_note_balance_trigger','validate_supplier_credit_note_balance_trigger') and not tgisinternal order by tgname`);
+console.log(JSON.stringify({checks,triggers:triggers.rows},null,2));await client.end();
+
