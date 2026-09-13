@@ -1,4 +1,4 @@
-import { getSupabaseConfig } from '../../core/database/supabase.client.js';
+import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 
 export interface TreasuryField { key:string; label:string; type:'text'|'number'|'date'; required?:boolean; reference?:string; }
 export interface TreasuryCatalog { slug:string; table:string; title:string; description:string; primaryKey:string; fields:TreasuryField[]; }
@@ -26,7 +26,7 @@ function sanitize(catalog:TreasuryCatalog,input:Record<string,unknown>) {
 
 async function request<T>(catalog:TreasuryCatalog,token:string,query='',init:RequestInit={}):Promise<T>{
   const config=getSupabaseConfig(); if(!config) throw new Error('Supabase no está configurado.');
-  const response=await fetch(new URL(`/rest/v1/${catalog.table}${query}`,config.url),{...init,headers:{apikey:config.anonKey,Authorization:token,'Content-Type':'application/json',...(init.headers??{})}});
+  const response=await fetchSupabase(new URL(`/rest/v1/${catalog.table}${query}`,config.url),{...init,headers:{apikey:config.anonKey,Authorization:token,'Content-Type':'application/json',...(init.headers??{})}});
   const text=response.status===204?'':await response.text(); const payload:unknown=text?JSON.parse(text):null;
   if(!response.ok){const message=typeof payload==='object'&&payload!==null&&'message' in payload?String(payload.message):'No fue posible completar la operación.';throw new Error(message);}
   return payload as T;

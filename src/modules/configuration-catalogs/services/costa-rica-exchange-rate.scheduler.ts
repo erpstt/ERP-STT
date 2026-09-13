@@ -1,3 +1,4 @@
+import { withAuditExecution } from '../../../core/database/audit-context.js';
 import { consultarYGuardarTipoDeCambioCRAutomatico } from './costa-rica-exchange-rate.service.js';
 
 const TIME_ZONE='America/Costa_Rica';const HOURS=[3,7,10];
@@ -9,5 +10,5 @@ function localDate(){const p=parts(new Date());return`${p.year}-${p.month}-${p.d
 let timer:NodeJS.Timeout|undefined;
 let started=false;
 async function execute(){try{const result=await consultarYGuardarTipoDeCambioCRAutomatico(localDate());console.log(`[TipoCambioCR] ${result.fechaEfectiva} USD/CRC=${result.tipoCambio} guardado desde ${result.fuente}`);}catch(cause){console.error('[TipoCambioCR] Error en ejecución automática:',cause instanceof Error?cause.message:cause);}finally{schedule();}}
-function schedule(){const target=next();timer=setTimeout(()=>void execute(),Math.max(target.getTime()-Date.now(),1000));timer.unref();console.log(`[TipoCambioCR] Próxima consulta: ${target.toISOString()} (${TIME_ZONE})`);}
-export function iniciarProgramacionTipoCambioCR(){if(started)return;started=true;void execute();}
+function schedule(){const target=next();timer=setTimeout(()=>void withAuditExecution(execute),Math.max(target.getTime()-Date.now(),1000));timer.unref();console.log(`[TipoCambioCR] Próxima consulta: ${target.toISOString()} (${TIME_ZONE})`);}
+export function iniciarProgramacionTipoCambioCR(){if(started)return;started=true;void withAuditExecution(execute);}

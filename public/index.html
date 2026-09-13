@@ -1,6 +1,7 @@
 ﻿<!doctype html>
 <html lang="es">
 <head>
+<script src="/record-audit.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nexo — ERP inteligente</title>
@@ -47,16 +48,11 @@
 <span>
 </span>Plataforma activa</span>
 </div>
-      <div class="dashboard-preview" aria-hidden="true">
-        <div class="preview-window-bar"><span><i></i><i></i><i></i></span><small>Resumen ejecutivo</small><b>•••</b></div>
-        <div class="preview-body">
-          <div class="preview-side"><i></i><i></i><i></i><i></i></div>
-          <div class="preview-content">
-            <div class="preview-heading"><span><small>VENTAS DEL MES</small><strong>$128,450</strong></span><em>+12.8%</em></div>
-            <div class="preview-chart"><span v-for="height in [34,52,45,68,57,78,66,92]" :style="{height:height+'%'}"></span></div>
-            <div class="preview-stats"><span><i></i><small>Flujo de caja</small><strong>$84.2K</strong></span><span><i></i><small>Cuentas por cobrar</small><strong>$31.6K</strong></span></div>
-          </div>
-        </div>
+      <div class="login-video" aria-hidden="true">
+        <video v-if="loginVideoEnabled" autoplay muted loop playsinline preload="metadata" poster="/nexo-login-poster.webp">
+          <source src="/nexo-login.mp4" type="video/mp4">
+        </video>
+        <img v-else src="/nexo-login-poster.webp" alt="">
       </div>
       <div class="statement">
 <p class="eyebrow">OPERACIÓN CONECTADA</p>
@@ -368,6 +364,7 @@
 <span>✎</span>
 <b>Editar</b>
 </button>
+<button class="icon-action view" title="Ver quién creó o modificó este registro" @click="openRecordAudit(row)"><b>Autoría</b></button>
 <button class="icon-action delete" :title="activeCatalog.slug === 'sessions' ? 'Revocar' : 'Eliminar'" @click="requestDelete(row)">
 <span>⌫</span>
 <b>{{ activeCatalog.slug === 'sessions' ? 'Revocar' : 'Eliminar' }}</b>
@@ -430,15 +427,16 @@
       <section class="modal" :class="{'entity-master-modal':['customers','suppliers'].includes(activeCatalog.slug)}" role="dialog" aria-modal="true" aria-labelledby="country-modal-title">
         <div class="modal-head">
 <div>
-<span class="modal-icon">{{ recordDialog.mode === 'delete' ? '!' : (recordDialog.mode === 'view' ? '◉' : (recordDialog.id ? '✎' : '+')) }}</span>
+<span class="modal-icon">{{ recordDialog.mode === 'audit' ? '◉' : recordDialog.mode === 'delete' ? '!' : (recordDialog.mode === 'view' ? '◉' : (recordDialog.id ? '✎' : '+')) }}</span>
 <div>
-<p>{{ recordDialog.mode === 'delete' ? 'CONFIRMAR ACCIÓN' : 'CATÁLOGO DE CORE' }}</p>
-<h2 id="country-modal-title">{{ recordDialog.mode === 'delete' ? `Eliminar ${activeCatalog.singular}` : (recordDialog.mode === 'view' ? `Ver ${activeCatalog.singular}` : (recordDialog.id ? `Editar ${activeCatalog.singular}` : `Crear ${activeCatalog.singular}`)) }}</h2>
+<p>{{ recordDialog.mode === 'audit' ? 'CONTROL DEL REGISTRO' : recordDialog.mode === 'delete' ? 'CONFIRMAR ACCIÓN' : 'CATÁLOGO DE CORE' }}</p>
+<h2 id="country-modal-title">{{ recordDialog.mode === 'audit' ? `Autoría: ${recordDialog.label}` : recordDialog.mode === 'delete' ? `Eliminar ${activeCatalog.singular}` : (recordDialog.mode === 'view' ? `Ver ${activeCatalog.singular}` : (recordDialog.id ? `Editar ${activeCatalog.singular}` : `Crear ${activeCatalog.singular}`)) }}</h2>
 </div>
 <div v-if="recordDialog.mode==='view'&&activeCatalog.slug==='customers'" class="customer-view-tabs"><button :class="{active:customerViewTab==='details'}" @click="customerViewTab='details'">Ver cliente</button><button :class="{active:customerViewTab==='costCenters'}" @click="customerViewTab='costCenters'">Ver centros de costos</button></div>
 </div>
 <button class="modal-close" @click="closeRecordDialog" aria-label="Cerrar">×</button>
 </div>
+        <record-audit v-if="recordDialog.mode !== 'delete'" :table="activeCatalog.table" :record-id="recordDialog.id"></record-audit>
         <form v-if="recordDialog.mode === 'form'" @submit.prevent="submitRecord">
 <div class="form-grid">
 <template v-for="field in formFields" :key="field.key">
@@ -497,6 +495,7 @@
 <button class="button-primary" :disabled="dialogSaving">{{ dialogSaving ? 'Guardando…' : (recordDialog.id ? 'Guardar cambios' : 'Crear registro') }}</button>
 </div>
 </form>
+        <div v-else-if="recordDialog.mode === 'audit'" class="modal-actions" style="padding:16px 24px"><button type="button" class="button-secondary" @click="closeRecordDialog">Cerrar</button></div>
         <div v-else-if="recordDialog.mode === 'view'" class="record-view">
 <div v-if="customerViewTab==='details'" class="record-view-grid"><div v-for="field in formFields" :key="field.key" :class="{'wide':field.wide||field.type==='multi-reference'}"><span>{{ field.label }}</span><strong>{{ displayValue(field,recordDialog.values[field.key]) }}</strong></div></div>
 <section v-else class="customer-cost-centers standalone"><div class="record-section-title"><div><span>RELACIÓN ACTIVA</span><h3>Centros de costos del cliente</h3></div><small>{{ activeCompany?.name }}</small></div><div v-if="customerCostCenters.length" class="cost-center-list"><div v-for="center in customerCostCenters" :key="center.cost_center_id"><strong>{{ center.code }}</strong><span>{{ center.name }}</span></div></div><p v-else>No hay centros de costos vinculados a este cliente en la subsidiaria activa.</p></section>

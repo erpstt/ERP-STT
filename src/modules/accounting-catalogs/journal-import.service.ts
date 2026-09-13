@@ -1,4 +1,4 @@
-import { getSupabaseConfig } from '../../core/database/supabase.client.js';
+import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 
 export const journalCsvOptionalHeaders = ['entidad','nombre','departamento','centro_costos','clase','acreedor_financiero','compania_relacionada'];
 export const journalCsvHeaders = ['asiento_referencia','tipo_asiento','fecha','moneda','tipo_cambio','nota_asiento','numero_cuenta','debito','credito','nota_linea','mes_servicio', ...journalCsvOptionalHeaders];
@@ -39,7 +39,7 @@ export async function importJournalCsv(authorization: string, input: Record<stri
   const rows = parseJournalCsv(input.csv);
   const config = getSupabaseConfig();
   if (!config) throw Error('Supabase no está configurado.');
-  const response = await fetch(new URL('/rest/v1/rpc/import_journal_csv', config.url), {
+  const response = await fetchSupabase(new URL('/rest/v1/rpc/import_journal_csv', config.url), {
     method: 'POST', headers: { apikey: config.anonKey, Authorization: authorization, 'Content-Type': 'application/json' },
     body: JSON.stringify({ p_rows: rows, p_preview: input.preview, p_subsidiary_id: input.subsidiaryId })
   });

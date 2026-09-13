@@ -94,7 +94,7 @@ function updateMethod() {
   if (disabled) $('life').value = 1;
 }
 
-function open(id = null) {
+function open(id = null) {window.NexoRecordAudit.show('asset_category',id,'#entry');
   editing = id;
   const current = rows.find((row) => String(row.id) === String(id));
   $('entry').reset();

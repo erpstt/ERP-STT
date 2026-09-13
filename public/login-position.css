@@ -1,3 +1,8 @@
 .dashboard-preview{margin:auto auto 28px 4%}
 .statement{margin:0 0 34px}
 @media(max-height:780px) and (min-width:801px){.dashboard-preview{margin:auto auto 18px 4%}.statement{margin:0 0 22px}}
+
+.login-video{position:relative;z-index:2;width:min(600px,94%);aspect-ratio:16/9;margin:auto auto 28px 2%;overflow:hidden;border:1px solid #ffffff26;border-radius:16px;background:#0b1c2e;box-shadow:0 24px 65px #06122280;transform:perspective(900px) rotateY(-3deg) rotateX(1deg)}
+.login-video video,.login-video img{display:block;width:100%;height:100%;object-fit:cover}
+@media(max-height:780px) and (min-width:801px){.login-video{width:min(500px,90%);margin:auto auto 18px 2%}}
+@media(max-width:800px){.login-video{width:100%;margin:24px 0;transform:none;border-radius:12px}}

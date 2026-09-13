@@ -1,6 +1,6 @@
-import {getSupabaseConfig} from '../../core/database/supabase.client.js';
+import { fetchSupabase,getSupabaseConfig} from '../../core/database/supabase.client.js';
 const actions:Record<string,string>={options:'pr_options',invoices:'pr_invoices',report:'pr_report',detail:'pr_detail',save:'pr_save',transition:'pr_transition',execute:'pr_execute'};
-async function rpc(auth:string,name:string,parameters:Record<string,unknown>={}){const c=getSupabaseConfig();if(!c)throw Error('Supabase no está configurado.');const r=await fetch(new URL(`/rest/v1/rpc/${name}`,c.url),{method:'POST',headers:{apikey:c.anonKey,Authorization:auth,'Content-Type':'application/json'},body:JSON.stringify(parameters)}),raw=await r.text(),result=raw?JSON.parse(raw):null;if(!r.ok)throw Error(result?.message||'No fue posible procesar la solicitud.');return result}
+async function rpc(auth:string,name:string,parameters:Record<string,unknown>={}){const c=getSupabaseConfig();if(!c)throw Error('Supabase no está configurado.');const r=await fetchSupabase(new URL(`/rest/v1/rpc/${name}`,c.url),{method:'POST',headers:{apikey:c.anonKey,Authorization:auth,'Content-Type':'application/json'},body:JSON.stringify(parameters)}),raw=await r.text(),result=raw?JSON.parse(raw):null;if(!r.ok)throw Error(result?.message||'No fue posible procesar la solicitud.');return result}
 export async function paymentRequests(auth:string,action:string,payload:Record<string,unknown>={}){
  const name=actions[action];if(!name)throw Error('Solicitud no válida.');
  if(action==='transition'){

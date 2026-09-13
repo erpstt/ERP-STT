@@ -1,3 +1,5 @@
+import { recordActorAudit } from './modules/audit-catalogs/record-actor-audit.service.js';
+import { withAuditExecution } from './core/database/audit-context.js';
 import { paymentRequests } from './modules/treasury-catalogs/payment-requests.service.js';
 import { createReadStream } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
@@ -76,7 +78,7 @@ try { loadEnvFile?.('.env'); } catch { /* Las variables también pueden venir de
 accountingCatalogs.find(c=>c.slug==='chart-accounts')?.fields.splice(8,0,{key:'cash_flow_activity',label:'Tipo de actividad de flujo',type:'text',required:true,options:['OPERACION','INVERSION','FINANCIACION','EFECTIVO_EQUIVALENTE','NO_APLICA']});
 const publicDir = join(process.cwd(), 'public');
 const vueBrowserBuild = join(process.cwd(), 'node_modules', 'vue', 'dist', 'vue.esm-browser.prod.js');
-const mime: Record<string, string> = { '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript', '.svg': 'image/svg+xml', '.csv': 'text/csv' };
+const mime: Record<string, string> = { '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.mp4': 'video/mp4', '.csv': 'text/csv' };
 
 async function body(request: IncomingMessage): Promise<unknown> {
   let raw = '';
@@ -97,10 +99,10 @@ async function serveFile(pathname: string, response: ServerResponse) {
   try {
     await stat(file);
     const extension = file.slice(file.lastIndexOf('.'));
-    response.writeHead(200, { 'Content-Type': `${mime[extension] ?? 'application/octet-stream'}; charset=utf-8`, 'Cache-Control': ['.html','.js'].includes(extension) ? 'no-store, max-age=0' : 'no-cache' });
+    response.writeHead(200, { 'Content-Type': `${mime[extension] ?? 'application/octet-stream'}${['.html','.css','.js','.csv'].includes(extension) ? '; charset=utf-8' : ''}`, 'Cache-Control': ['.html','.js'].includes(extension) ? 'no-store, max-age=0' : ['.mp4','.webp'].includes(extension) ? 'public, max-age=604800, immutable' : 'no-cache' });
     if(extension==='.html'&&relative!=='index.html'){
       const html=await readFile(file,'utf8');
-      const guard=`<style>html.inside-erp-workspace,html.inside-erp-workspace body{width:100%!important;min-width:0!important;min-height:100%!important;margin:0!important;padding:0!important}html.inside-erp-workspace body>main{box-sizing:border-box!important;width:100%!important;max-width:none!important;min-height:100vh!important;margin:0!important;border-radius:0!important;box-shadow:none!important}html.inside-erp-workspace body>.toolbar,html.inside-erp-workspace body>nav{box-sizing:border-box!important;width:100%!important;max-width:none!important;margin:0!important}</style><script>if(window===window.top){sessionStorage.setItem('nexo_workspace_redirect',JSON.stringify({path:location.pathname+location.search+location.hash,createdAt:Date.now()}));location.replace('/')}else{document.documentElement.classList.add('inside-erp-workspace')}</script>`;
+      const guard=`<script src="/record-audit.js"></script><style>html.inside-erp-workspace,html.inside-erp-workspace body{width:100%!important;min-width:0!important;min-height:100%!important;margin:0!important;padding:0!important}html.inside-erp-workspace body>main{box-sizing:border-box!important;width:100%!important;max-width:none!important;min-height:100vh!important;margin:0!important;border-radius:0!important;box-shadow:none!important}html.inside-erp-workspace body>.toolbar,html.inside-erp-workspace body>nav{box-sizing:border-box!important;width:100%!important;max-width:none!important;margin:0!important}</style><script>if(window===window.top){sessionStorage.setItem('nexo_workspace_redirect',JSON.stringify({path:location.pathname+location.search+location.hash,createdAt:Date.now()}));location.replace('/')}else{document.documentElement.classList.add('inside-erp-workspace')}</script>`;
       response.end(html.includes('<head>')?html.replace('<head>',`<head>${guard}`):guard+html);
       return;
     }
@@ -108,7 +110,7 @@ async function serveFile(pathname: string, response: ServerResponse) {
   } catch { error(response, 404, 'Recurso no encontrado.'); }
 }
 
-const server = createServer(async (request, response) => {
+const server = createServer((request, response) => withAuditExecution(async () => {
   try {
     if (request.method === 'GET' && request.url?.split('?')[0] === '/assets/vue.js') {
       response.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=86400' });
@@ -129,6 +131,10 @@ const server = createServer(async (request, response) => {
       if (!authorization?.startsWith('Bearer ')) return error(response, 401, 'Debe iniciar sesión.');
       await assertActiveSession(authorization);
       await assertRegisteredDevice(authorization, Array.isArray(request.headers['x-device-token']) ? request.headers['x-device-token'][0] : request.headers['x-device-token']);
+    }
+    if (request.method === 'GET' && request.url?.split('?')[0] === '/api/audit/record-actor') {
+      const query = new URL(request.url, 'http://localhost').searchParams;
+      return json(response, 200, await recordActorAudit(request.headers.authorization!, query.get('table') ?? '', query.get('id') ?? ''));
     }
     if(request.method==='GET'&&request.url==='/api/auth/companies'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');return json(response,200,await listUserCompanies(authorization));}
     if(request.method==='POST'&&request.url==='/api/auth/select-company'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const input=await body(request)as{subsidiaryId?:number};return json(response,200,await selectUserCompany(authorization,Number(input.subsidiaryId)));}
@@ -295,6 +301,6 @@ const server = createServer(async (request, response) => {
   } catch (cause) {
     error(response, cause instanceof SessionAuthenticationError ? 401 : 400, cause instanceof Error ? cause.message : 'No fue posible procesar la solicitud.');
   }
-});
+}));
 
 server.listen(Number(process.env.PORT ?? 3000), '0.0.0.0', () => {console.log(`Nexo ERP disponible en el puerto ${process.env.PORT ?? 3000}`);iniciarProgramacionTipoCambioRD();iniciarProgramacionTipoCambioCR();iniciarProgramacionTipoCambioGT();iniciarProgramacionTipoCambioJM();iniciarProgramacionTipoCambioCO();iniciarProgramacionTipoCambioAR();iniciarProgramacionTipoCambioNI();iniciarProgramacionTipoCambioPE();});

@@ -1,8 +1,8 @@
-import { getSupabaseConfig } from '../../core/database/supabase.client.js';
+import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 
 async function rpc(authorization:string,name:string,parameters:Record<string,unknown>){
   const config=getSupabaseConfig();if(!config)throw Error('Supabase no está configurado.');
-  const response=await fetch(new URL(`/rest/v1/rpc/${name}`,config.url),{method:'POST',headers:{apikey:config.anonKey,Authorization:authorization,'Content-Type':'application/json'},body:JSON.stringify(parameters)});
+  const response=await fetchSupabase(new URL(`/rest/v1/rpc/${name}`,config.url),{method:'POST',headers:{apikey:config.anonKey,Authorization:authorization,'Content-Type':'application/json'},body:JSON.stringify(parameters)});
   const raw=await response.text(),result=raw?JSON.parse(raw):null;
   if(!response.ok)throw Error(result?.message||'No fue posible guardar la nota de proveedor.');
   return result;

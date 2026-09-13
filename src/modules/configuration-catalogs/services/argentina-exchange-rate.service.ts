@@ -1,4 +1,4 @@
-import { getSupabaseConfig } from '../../../core/database/supabase.client.js';
+import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
 
 const BNA_HISTORY_URL = 'https://www.bna.com.ar/Cotizador/HistoricoPrincipales';
 type CurrencyRow = { currency_id: number; currency_code: string };
@@ -64,7 +64,7 @@ function claims(auth: string) {
 async function rest<T>(path: string, auth: string, init: RequestInit = {}): Promise<T> {
   const config = getSupabaseConfig();
   if (!config) throw new Error('Supabase no está configurado.');
-  const response = await fetch(new URL(`/rest/v1/${path}`, config.url), { ...init, headers: { apikey: config.anonKey, Authorization: auth, 'Content-Type': 'application/json', ...(init.headers ?? {}) } });
+  const response = await fetchSupabase(new URL(`/rest/v1/${path}`, config.url), { ...init, headers: { apikey: config.anonKey, Authorization: auth, 'Content-Type': 'application/json', ...(init.headers ?? {}) } });
   const raw = await response.text(), payload: unknown = raw ? JSON.parse(raw) : null;
   if (!response.ok) throw new Error(typeof payload === 'object' && payload && 'message' in payload ? String(payload.message) : 'No fue posible guardar el tipo de cambio.');
   return payload as T;

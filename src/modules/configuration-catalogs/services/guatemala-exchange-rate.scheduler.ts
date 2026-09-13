@@ -1,3 +1,4 @@
+import { withAuditExecution } from '../../../core/database/audit-context.js';
 import { consultarYGuardarTipoDeCambioGTAutomatico } from './guatemala-exchange-rate.service.js';
 const ZONE='America/Guatemala',HOURS=[3,7,10];
 function parts(date:Date){return Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:ZONE,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(date).map(part=>[part.type,part.value]));}
@@ -6,4 +7,4 @@ function zoned(y:number,m:number,d:number,h:number){const guess=new Date(Date.UT
 function next(now=new Date()){const p=parts(now),y=Number(p.year),m=Number(p.month),d=Number(p.day);for(const h of HOURS){const candidate=zoned(y,m,d,h);if(candidate>now)return candidate;}return zoned(y,m,d+1,HOURS[0]);}
 function localDate(){const p=parts(new Date());return`${p.year}-${p.month}-${p.day}`;}
 let timer:NodeJS.Timeout|undefined;async function execute(){try{const result=await consultarYGuardarTipoDeCambioGTAutomatico(localDate());console.log(`[TipoCambioGT] ${result.fechaEfectiva} USD/GTQ=${result.tipoCambio} guardado desde ${result.fuente}`);}catch(cause){console.error('[TipoCambioGT] Error en ejecución automática:',cause instanceof Error?cause.message:cause);}finally{schedule();}}
-function schedule(){const target=next();timer=setTimeout(()=>void execute(),Math.max(target.getTime()-Date.now(),1000));timer.unref();console.log(`[TipoCambioGT] Próxima consulta: ${target.toISOString()} (${ZONE})`);}export function iniciarProgramacionTipoCambioGT(){if(!timer)schedule();}
+function schedule(){const target=next();timer=setTimeout(()=>void withAuditExecution(execute),Math.max(target.getTime()-Date.now(),1000));timer.unref();console.log(`[TipoCambioGT] Próxima consulta: ${target.toISOString()} (${ZONE})`);}export function iniciarProgramacionTipoCambioGT(){if(!timer)schedule();}

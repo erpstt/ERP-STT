@@ -1,3 +1,4 @@
+import { withAuditExecution } from '../../../core/database/audit-context.js';
 import { consultarYGuardarTipoDeCambioRDAutomatico } from './dominican-republic-exchange-rate.service.js';
 
 const TIME_ZONE='America/Santo_Domingo';
@@ -12,7 +13,7 @@ function effectiveDateRD(date=new Date()){const p=zonedParts(date);return`${p.ye
 
 let timer:NodeJS.Timeout|undefined;
 async function execute(){try{const result=await consultarYGuardarTipoDeCambioRDAutomatico(effectiveDateRD());console.log(`[TipoCambioRD] ${result.fechaEfectiva} USD/DOP=${result.tipoCambio} guardado desde ${result.fuente}`);}catch(cause){console.error('[TipoCambioRD] Error en ejecución automática:',cause instanceof Error?cause.message:cause);}finally{schedule();}}
-function schedule(){const next=nextExecution();const delay=Math.min(next.getTime()-Date.now(),MAX_TIMER_DELAY);timer=setTimeout(()=>{if(Date.now()+1000<next.getTime())schedule();else void execute();},Math.max(delay,1000));timer.unref();console.log(`[TipoCambioRD] Próxima consulta: ${next.toISOString()} (${TIME_ZONE})`);}
+function schedule(){const next=nextExecution();const delay=Math.min(next.getTime()-Date.now(),MAX_TIMER_DELAY);timer=setTimeout(()=>{if(Date.now()+1000<next.getTime())schedule();else void withAuditExecution(execute);},Math.max(delay,1000));timer.unref();console.log(`[TipoCambioRD] Próxima consulta: ${next.toISOString()} (${TIME_ZONE})`);}
 
 export function iniciarProgramacionTipoCambioRD(){if(timer)return;schedule();}
 export const configuracionProgramacionTipoCambioRD={zonaHoraria:TIME_ZONE,horas:[...EXECUTION_HOURS]};

@@ -1,4 +1,4 @@
-import { getSupabaseConfig } from '../../../core/database/supabase.client.js';
+import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
 import { hashPassword, validateNewPassword, verifyPassword } from '../../../shared/services/password.service.js';
 
 type ChangePasswordInput = { currentPassword?: string; newPassword?: string; confirmation?: string };
@@ -11,7 +11,7 @@ function emailFromToken(authorization: string) {
 async function rest<T>(path: string, authorization: string, init: RequestInit = {}): Promise<T> {
   const config = getSupabaseConfig();
   if (!config) throw new Error('Supabase no está configurado.');
-  const response = await fetch(new URL(`/rest/v1/${path}`, config.url), { ...init, headers: { apikey: config.anonKey, Authorization: authorization, 'Content-Type': 'application/json', ...(init.headers ?? {}) } });
+  const response = await fetchSupabase(new URL(`/rest/v1/${path}`, config.url), { ...init, headers: { apikey: config.anonKey, Authorization: authorization, 'Content-Type': 'application/json', ...(init.headers ?? {}) } });
   const text = response.status === 204 ? '' : await response.text();
   const payload: unknown = text ? JSON.parse(text) : null;
   if (!response.ok) throw new Error(typeof payload === 'object' && payload && 'message' in payload ? String(payload.message) : 'No fue posible actualizar la contraseña.');

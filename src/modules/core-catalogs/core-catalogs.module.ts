@@ -1,4 +1,4 @@
-import { getSupabaseConfig } from '../../core/database/supabase.client.js';
+import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 
 type FieldType = 'text' | 'number' | 'boolean';
 export interface CatalogField { key: string; label: string; type: FieldType; required?: boolean; readOnly?: boolean; reference?: string; options?: string[]; }
@@ -35,7 +35,7 @@ function sanitize(catalog: CatalogDefinition, input: Record<string, unknown>) {
 async function request<T>(catalog: CatalogDefinition, accessToken: string, query = '', init: RequestInit = {}): Promise<T> {
   const config = getSupabaseConfig();
   if (!config) throw new Error('La conexión con Supabase no está configurada.');
-  const response = await fetch(new URL(`/rest/v1/${catalog.table}${query}`, config.url), { ...init, headers: { apikey: config.anonKey, Authorization: accessToken, 'Content-Type': 'application/json', ...(init.headers ?? {}) } });
+  const response = await fetchSupabase(new URL(`/rest/v1/${catalog.table}${query}`, config.url), { ...init, headers: { apikey: config.anonKey, Authorization: accessToken, 'Content-Type': 'application/json', ...(init.headers ?? {}) } });
   const payload: unknown = response.status === 204 ? null : await response.json();
   if (!response.ok) { const message = typeof payload === 'object' && payload !== null && 'message' in payload ? String(payload.message) : 'No fue posible completar la operación.'; throw new Error(message); }
   return payload as T;

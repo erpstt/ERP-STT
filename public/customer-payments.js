@@ -54,7 +54,7 @@ function advances(existing=[]){
   total();
 }
 function refreshDocuments(applications=[],advanceApplications=[]){invoices(applications);advances(advanceApplications);}
-async function open(id=null){
+async function open(id=null){window.NexoRecordAudit.show('customer_payment',id,'#entry');
   editing=id;$('entry').reset();$('subsidiary').value=data.subsidiary.name;$('location').value=data.location?.id||'';$('locationName').value=data.location?.name||'';$('date').value=new Date().toLocaleDateString('en-CA');period();existingAdvances=[];
   if(id){const detail=await api(`/api/sales/customer-payments/${id}`),header=detail.header;existingAdvances=detail.advances||[];$('customer').value=header.customer_id;$('currency').value=header.currency_id;refreshAccounts(header.bank_account_id);$('date').value=header.payment_date;period();$('rate').value=header.exchange_rate;$('reference').value=header.bank_reference;$('memo').value=header.memo;refreshDocuments(detail.applications,existingAdvances);}
   else{$('currency').value=String(data.subsidiary.currencyId);if(!$('currency').value&&currencies().length)$('currency').value=String(currencies()[0].id);refreshAccounts();$('rate').value=1;$('invoiceRows').innerHTML='';$('advanceRows').innerHTML='';$('advanceAvailable').textContent='';total();}
