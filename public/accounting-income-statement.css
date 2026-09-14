@@ -3,6 +3,7 @@
 .tree-toggle{border:0;background:transparent;padding:0 8px 0 0;font-weight:900;color:#167d5b}
 .account-drill{border:0;background:transparent;padding:0;color:#14785b;text-decoration:underline;font:inherit;font-variant-numeric:tabular-nums}
 .negative{color:#bd3244!important}
+.income-matrix .matrix-code{position:sticky;left:0;z-index:2;min-width:105px;background:#fff}.income-matrix .matrix-account{position:sticky;left:105px;z-index:2;min-width:290px;background:#fff;box-shadow:2px 0 3px #14203412}.income-matrix .matrix-total{position:sticky;right:0;z-index:2;background:#fff;font-weight:800;box-shadow:-2px 0 3px #14203412}.income-matrix th{min-width:145px;white-space:normal}.income-matrix .statement-section .matrix-code,.income-matrix .statement-section .matrix-account,.income-matrix .statement-section .matrix-total{background:#e8eef5}.income-matrix .tree-group .matrix-code,.income-matrix .tree-group .matrix-account,.income-matrix .tree-group .matrix-total{background:#f7f9fb}.income-matrix .statement-subtotal .matrix-code,.income-matrix .statement-subtotal .matrix-account,.income-matrix .statement-subtotal .matrix-total{background:#f1f5f3}.income-matrix .statement-net .matrix-code,.income-matrix .statement-net .matrix-account,.income-matrix .statement-net .matrix-total{background:#dff1e9}
 .statement-subtotal td{font-weight:900;background:#f1f5f3;border-top:2px solid #879b91}
 .statement-net td{font-weight:900;font-size:14px;background:#dff1e9;border-top:4px double #167d5b;border-bottom:2px solid #167d5b}
 .reconciled{border-color:#75ba9f;background:#e8f6f0}

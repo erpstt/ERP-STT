@@ -127,5 +127,6 @@
   let id = query.get('id');
   if (!id && page === 'journal-entry.html') id = sessionStorage.getItem('nexo_edit_journal');
   if (!id && (page === 'supplier-invoice-view.html' || (page === 'supplier-invoice-entry.html' && query.get('view') === '1'))) id = sessionStorage.getItem('nexo_view_supplier_invoice');
-  if (pages[page]) document.addEventListener('DOMContentLoaded', () => window.NexoRecordAudit.show(pages[page], id, document.querySelector('main') || document.body), { once: true });
+  const auditLivesInListAction = page === 'journal-entry.html';
+  if (pages[page] && !auditLivesInListAction) document.addEventListener('DOMContentLoaded', () => window.NexoRecordAudit.show(pages[page], id, document.querySelector('main') || document.body), { once: true });
 })();

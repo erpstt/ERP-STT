@@ -8,9 +8,10 @@ async function rpc<T>(authorization:string,name:string,input:Record<string,unkno
   if(!response.ok)throw new Error(typeof payload==='object'&&payload&&'message'in payload?String(payload.message):'No fue posible generar el informe.');
   return payload as T;
 }
-export async function accountingReportOptions(authorization:string){const [base,journalOptions,agingOptions,bankOptions]=await Promise.all([rpc<Record<string,unknown>>(authorization,'accounting_report_options'),rpc<Record<string,unknown>>(authorization,'general_journal_options'),rpc<Record<string,unknown>>(authorization,'aging_report_options'),rpc<Record<string,unknown>>(authorization,'bank_reconciliation_options')]);return{...base,journalOptions,agingOptions,bankOptions};}
+export async function accountingReportOptions(authorization:string){const [base,dimensionLinks,journalOptions,agingOptions,bankOptions]=await Promise.all([rpc<Record<string,unknown>>(authorization,'accounting_report_options'),rpc<Record<string,unknown>>(authorization,'income_statement_dimension_links'),rpc<Record<string,unknown>>(authorization,'general_journal_options'),rpc<Record<string,unknown>>(authorization,'aging_report_options'),rpc<Record<string,unknown>>(authorization,'bank_reconciliation_options')]);return{...base,...dimensionLinks,journalOptions,agingOptions,bankOptions};}
 export function runAccountingReport(authorization:string,report:string,filters:Record<string,unknown>){
   if(!reports.has(report))throw new Error('El reporte solicitado no existe.');
+  if(report==='income-statement'&&filters.columnView&&filters.columnView!=='TOTAL')return rpc<Record<string,unknown>>(authorization,'run_income_statement_matrix',{p_filters:filters});
   if(report==='journal')return rpc<Record<string,unknown>>(authorization,'run_general_journal_report',{p_filters:filters});
   if(report==='receivables-aging'||report==='payables-aging')return rpc<Record<string,unknown>>(authorization,'run_aging_report',{p_kind:report==='receivables-aging'?'AR':'AP',p_filters:filters});
   if(report==='bank-reconciliation')return rpc<Record<string,unknown>>(authorization,'run_bank_reconciliation_report',{p_filters:filters});

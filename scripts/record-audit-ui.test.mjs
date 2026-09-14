@@ -27,7 +27,7 @@ try {
   await page.evaluate(()=>{localStorage.setItem('nexo_token','ui-fixture');localStorage.setItem('nexo_device_token','ui-fixture-device');});
   const staticPages={
     'supplier-invoice-view.html':'supplier_invoice','supplier-invoice-entry.html':'supplier_invoice',
-    'sales-invoice-view.html':'invoice','sales-invoice-entry.html':'invoice','journal-view.html':'journal','journal-entry.html':'journal',
+    'sales-invoice-view.html':'invoice','sales-invoice-entry.html':'invoice','journal-view.html':'journal',
     'purchase-document-view.html':'purchase_document','sales-document-view.html':'sales_document',
     'supplier-payment-view.html':'supplier_payment','customer-payment-view.html':'customer_payment',
     'bank-check-view.html':'bank_check','bank-check-entry.html':'bank_check','bank-deposit-view.html':'bank_deposit',
@@ -55,6 +55,12 @@ try {
   assert.equal(await child.locator('record-audit img').count(),0);
   await child.evaluate(()=>document.querySelector('record-audit').setAttribute('record-id',''));
   await child.getByText('El creador se registrará automáticamente al guardar.',{exact:true}).waitFor();
+  await page.evaluate(()=>{document.querySelector('#test-frame')?.remove();const frame=document.createElement('iframe');frame.id='test-frame';frame.src='/journal-entry.html';document.body.append(frame);});
+  const journalEntry=page.frameLocator('#test-frame');
+  await journalEntry.locator('#journalType').waitFor({state:'attached'});
+  assert.equal(await journalEntry.locator('record-audit').count(),0);
+  assert.equal(await journalEntry.getByText('Descargar plantilla CSV de asientos',{exact:true}).count(),0);
+  assert.equal(await journalEntry.getByText('Importar CSV',{exact:true}).count(),0);
   const dynamicPages={
     'purchase-documents.html':['purchase_document','#entry'],'sales-documents.html':['sales_document','#entry'],
     'fixed-assets.html':['asset','#entry'],'asset-categories.html':['asset_category','#entry'],
