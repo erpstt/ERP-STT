@@ -457,7 +457,7 @@
 </label>
 <small v-if="!filteredReferenceOptions(field).length">No hay opciones disponibles.</small>
 </div>
-<select v-else-if="field.reference" v-model="recordDialog.values[field.key]" :required="field.required" @change="handleFieldChange(field)">
+<select v-else-if="field.reference" v-model="recordDialog.values[field.key]" :required="field.required" :disabled="field.readOnly" @change="handleFieldChange(field)">
 <option value="">{{ field.required ? 'Selecciona una opción' : 'Sin asignar' }}</option>
 <option v-for="option in filteredReferenceOptions(field)" :key="referenceId(field.reference,option)" :value="referenceId(field.reference,option)" :disabled="field.reference==='organization/approver-options' && !option.is_active">{{ referenceLabel(option) }}{{ field.reference==='organization/approver-options' && !option.is_active ? ' (Inactivo)' : '' }}</option>
 </select>
@@ -492,7 +492,7 @@
 <p v-if="dialogError" class="dialog-error">{{ dialogError }}</p>
 <div class="modal-actions">
 <button type="button" class="button-secondary" @click="closeRecordDialog">Cancelar</button>
-<button class="button-primary" :disabled="dialogSaving">{{ dialogSaving ? 'Guardando…' : (recordDialog.id ? 'Guardar cambios' : 'Crear registro') }}</button>
+<button v-if="activeCatalog.slug==='consolidated-exchange-rates'" type="button" class="button-secondary" :disabled="dialogSaving" @click="calculateConsolidatedRates">Calcular desde tasas diarias</button><button class="button-primary" :disabled="dialogSaving">{{ dialogSaving ? 'Guardando…' : (recordDialog.id ? 'Guardar cambios' : 'Crear registro') }}</button>
 </div>
 </form>
         <div v-else-if="recordDialog.mode === 'audit'" class="modal-actions" style="padding:16px 24px"><button type="button" class="button-secondary" @click="closeRecordDialog">Cerrar</button></div>

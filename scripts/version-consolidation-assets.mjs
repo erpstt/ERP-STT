@@ -1,0 +1,1 @@
+import{readFile,writeFile}from'node:fs/promises';const file='public/consolidation.html',source=await readFile(file,'utf8');await writeFile(file,source.replace('/consolidation.js"','/consolidation.js?v=20260915-device-session"'),'utf8');

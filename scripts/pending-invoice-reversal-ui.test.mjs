@@ -11,6 +11,11 @@ await page.goto('http://localhost:3000/');await page.setContent('<iframe id="app
 await app.getByText('Control de Pendientes de Facturar',{exact:true}).click();await app.locator('#tbody tr').first().waitFor();
 if(await app.locator('#pendingCustomer option').count()!==2)throw Error('No se cargÃ³ el filtro de clientes.');
 if(!(await app.getByText('REVERSADO PARCIAL',{exact:true}).count()))throw Error('No se mostrÃ³ el estado del pendiente.');
+await app.locator('[data-toggle="pending-7"]').click();
+const alignedReversal=app.locator('tr.pending-reversal-row[data-parent="pending-7"]');await alignedReversal.waitFor();
+if(await alignedReversal.locator('td').count()!==8)throw Error('La reversiÃ³n no quedÃ³ alineada con las columnas del asiento inicial.');
+if(!(await alignedReversal.textContent()).includes('ASI_PEN-00000001'))throw Error('La reversiÃ³n no identifica claramente su asiento inicial.');
+if(!(await alignedReversal.textContent()).includes('Cliente Uno'))throw Error('La reversiÃ³n no conserva el cliente o tercero del asiento inicial.');
 await app.getByRole('button',{name:'Reversar Pendiente'}).click();await app.locator('#pendingReversalModal[open]').waitFor();
 await app.locator('#pendingReversalType').selectOption('ERROR_CORRECCION');if(await app.locator('#pendingErrorLabel').isHidden())throw Error('No apareciÃ³ el campo de justificaciÃ³n.');
 await app.locator('#pendingReversalAmount').fill('200');await app.locator('#pendingErrorDescription').fill('CorrecciÃ³n de estimaciÃ³n duplicada');const invalid=await app.locator('#pendingReversalForm').evaluate(form=>[...form.elements].filter(element=>element.willValidate&&!element.checkValidity()).map(element=>({id:element.id,message:element.validationMessage,value:element.value})));if(invalid.length)throw Error(`Formulario invÃ¡lido: ${JSON.stringify(invalid)}`);await app.locator('#pendingReversalForm button[type=submit]').click();
