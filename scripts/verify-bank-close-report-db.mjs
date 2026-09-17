@@ -1,0 +1,10 @@
+import pg from'pg';
+process.loadEnvFile('.env');
+const ref=new URL(process.env.SUPABASE_URL).hostname.split('.')[0],client=new pg.Client({host:process.env.SUPABASE_DB_HOST||'aws-0-us-east-1.pooler.supabase.com',port:6543,database:'postgres',user:`postgres.${ref}`,password:process.env.SUPABASE_DB_PASSWORD,ssl:{rejectUnauthorized:false}});
+await client.connect();
+const candidate=await client.query("select r.bank_account_id,r.reconciliation_date,u.email from bank_reconciliation r join bank_account ba using(bank_account_id)join user_subsidiaries us using(subsidiary_id)join users u using(user_id)where r.status='CERRADA'order by r.closed_at desc nulls last limit 1");
+if(!candidate.rows.length)throw Error('No existe una conciliación cerrada para validar.');
+const item=candidate.rows[0];await client.query("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({email:item.email})]);
+const response=await client.query('select bank_reconciliation_close_report($1,$2) report',[item.bank_account_id,item.reconciliation_date]);const report=response.rows[0].report;
+if(!report?.header?.code||!Array.isArray(report.pendingBankMovements)||!Array.isArray(report.pendingBookMovements)||!Array.isArray(report.movements))throw Error('La función no devolvió la estructura completa.');
+console.log(JSON.stringify({database:true,folio:report.header.code,summary:Boolean(report.summary),movements:report.movements.length,pendingBank:report.pendingBankMovements.length,pendingBooks:report.pendingBookMovements.length}));await client.end();

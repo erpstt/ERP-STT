@@ -9,7 +9,8 @@ export function renderIncomeStatementMatrix(context) {
   const usedIds = new Set(rows.flatMap(row => Object.entries(row.dimensions || {}).filter(([id, value]) => id !== 'unassigned' && Math.abs(Number(value || 0)) >= 0.000001).map(([id]) => id)));
   const catalog = new Map((data.columns || []).map(column => [String(column.id), column]));
   const orderedIds = [...(data.columns || []).map(column => String(column.id)).filter(id => usedIds.has(id)), ...[...usedIds].filter(id => !catalog.has(id)).sort((a, b) => a.localeCompare(b, 'es', { numeric: true }))];
-  const columns = [...orderedIds.map(id => catalog.get(id) || { id, name: `Dimensión ${id}` }), { id: 'unassigned', name: 'Sin Asignar / General' }];
+  const periodColumns = data.summary?.columnView === 'ACCOUNTING_PERIOD';
+  const columns = [...orderedIds.map(id => catalog.get(id) || { id, name: `Dimensión ${id}` }), ...(periodColumns ? [] : [{ id: 'unassigned', name: 'Sin Asignar / General' }])];
   const zero = () => columns.map(() => 0);
   const sections = { revenue: [], cost: [], expense: [], nonop: [], tax: [] };
   rows.forEach(row => sections[incomeSection(row)].push(row));
