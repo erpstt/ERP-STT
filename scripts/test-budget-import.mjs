@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {budgetAction,parseBudgetCsv} from '../dist/modules/budget/budget.service.js';
+process.env.SUPABASE_URL='https://budget-test.invalid';process.env.SUPABASE_ANON_KEY='test';
+let sent;
+globalThis.fetch=async(url,init)=>{sent=JSON.parse(init.body);return Response.json({id:1});};
+assert.deepEqual(parseBudgetCsv('a,b\r\n"uno,dos","tres""cuatro"'),[['a','b'],['uno,dos','tres"cuatro']]);
+assert.throws(()=>parseBudgetCsv('"sin cerrar'),/comillas/);
+const input={id:1,revision:2,fileName:'presupuesto.csv',base64:Buffer.from('\uFEFFcuenta,mes,monto\r\n5101,2026-01,100.25').toString('base64')};
+await budgetAction('Bearer test','import-excel',input);
+assert.deepEqual(sent.p,{id:1,revision:2,lines:[{account:'5101',centerId:'',month:'2026-01',amount:'100.25'}]});
+await assert.rejects(budgetAction('Bearer test','import-excel',{...input,base64:Buffer.from('cuenta,mes,monto\n5101,2026-13,1').toString('base64')}),/Fila 2/);
+await assert.rejects(budgetAction('Bearer test','import-excel',{...input,base64:Buffer.from('cuenta,centro_id,mes,monto\n5101,20,2026-01,1').toString('base64')}),/general por sociedad/);
+globalThis.fetch=async()=>Response.json({code:'PT422',message:'Insuficiente'},{status:400});
+await assert.rejects(budgetAction('Bearer test','headers',{}),e=>e.status===422);
+console.log(JSON.stringify({csv:true,invalidMonth:true,unclosedQuote:true,http422Mapping:true}));

@@ -1,3 +1,5 @@
+import {scheduledReportsAction,startScheduledReports} from './modules/reports/scheduled-reports.service.js';
+import { budgetAction } from './modules/budget/budget.service.js';
 import { statementSettings, customerStatement, startStatementNotifications } from './modules/notifications/customer-statement.js';
 import { notificationSettings, paymentNotifications, startEmailNotifications } from './modules/notifications/email-notification.service.js';
 import { recordActorAudit } from './modules/audit-catalogs/record-actor-audit.service.js';
@@ -228,6 +230,11 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(request.method==='GET'&&request.url==='/api/purchasing/workflow/options')return json(response,200,await purchaseWorkflowOptions(request.headers.authorization!));
     if(request.method==='POST'&&request.url==='/api/purchasing/workflow/report')return json(response,200,await purchaseDocuments(request.headers.authorization!,await body(request)as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/purchasing/workflow')return json(response,201,await savePurchaseDocument(request.headers.authorization!,await body(request)as Record<string,unknown>));
+    const scheduledRoute=request.url?.match(/^\/api\/reports\/schedules\/(list|save|toggle|delete|preview)$/);
+    if(scheduledRoute&&request.method==='POST')return json(response,200,await scheduledReportsAction(request.headers.authorization!,scheduledRoute[1],await body(request)as Record<string,unknown>));
+    const budgetRoute=request.url?.split('?')[0].match(/^\/api\/v1\/budget\/(options|headers|lines|action|transfers|override|check-availability|execution-report|import-excel)$/);
+    if(budgetRoute){const readOnly=['options','execution-report'].includes(budgetRoute[1]);if(request.method!=='POST'&&!(readOnly&&request.method==='GET'))return json(response,405,{error:'Método no permitido.'});const input=request.method==='GET'?Object.fromEntries(new URL(request.url!,'http://localhost').searchParams):await body(request)as Record<string,unknown>;return json(response,200,await budgetAction(request.headers.authorization!,budgetRoute[1],input));}
+    if(request.url?.split('?')[0]==='/apps/budget/builder'||request.url?.split('?')[0]==='/apps/budget/dashboard')return await serveFile('/budget.html',response);
     const notificationRoute=request.url?.match(/^\/api\/configuration\/notification-templates\/(get|save|preview)$/);
     if(notificationRoute&&request.method==='POST'){const input=await body(request)as Record<string,unknown>;return json(response,200,await (input.kind==='ESTADO_CUENTA'?statementSettings:notificationSettings)(request.headers.authorization!,notificationRoute[1],input));}
     const statementRoute=request.url?.match(/^\/api\/entities\/customers\/(\d+)\/statement\/(get|send|pdf)$/);
@@ -315,8 +322,8 @@ const server = createServer((request, response) => withAuditExecution(async () =
     }
     await serveFile(request.url?.split('?')[0] ?? '/', response);
   } catch (cause) {
-    error(response, cause instanceof SessionAuthenticationError ? 401 : 400, cause instanceof Error ? cause.message : 'No fue posible procesar la solicitud.');
+    error(response, cause instanceof SessionAuthenticationError ? 401 : (cause as {status?:number})?.status || (cause instanceof Error&&/^Saldo presupuestario/.test(cause.message)?422:400), cause instanceof Error ? cause.message : 'No fue posible procesar la solicitud.');
   }
 }));
 
-server.listen(Number(process.env.PORT ?? 3000), '0.0.0.0', () => {startEmailNotifications();startStatementNotifications();console.log(`Nexo ERP disponible en el puerto ${process.env.PORT ?? 3000}`);iniciarProgramacionTipoCambioRD();iniciarProgramacionTipoCambioCR();iniciarProgramacionTipoCambioGT();iniciarProgramacionTipoCambioJM();iniciarProgramacionTipoCambioCO();iniciarProgramacionTipoCambioAR();iniciarProgramacionTipoCambioNI();iniciarProgramacionTipoCambioPE();});
+server.listen(Number(process.env.PORT ?? 3000), '0.0.0.0', () => {startEmailNotifications();startStatementNotifications();startScheduledReports();console.log(`Nexo ERP disponible en el puerto ${process.env.PORT ?? 3000}`);iniciarProgramacionTipoCambioRD();iniciarProgramacionTipoCambioCR();iniciarProgramacionTipoCambioGT();iniciarProgramacionTipoCambioJM();iniciarProgramacionTipoCambioCO();iniciarProgramacionTipoCambioAR();iniciarProgramacionTipoCambioNI();iniciarProgramacionTipoCambioPE();});

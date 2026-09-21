@@ -1,0 +1,82 @@
+import pg from 'pg';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+process.loadEnvFile?.('.env');
+const ref=new URL(process.env.SUPABASE_URL).hostname.split('.')[0];
+const db=new pg.Client({host:process.env.SUPABASE_DB_HOST||'aws-0-us-east-1.pooler.supabase.com',port:Number(process.env.SUPABASE_DB_PORT||6543),database:'postgres',user:process.env.SUPABASE_DB_USER||`postgres.${ref}`,password:process.env.SUPABASE_DB_PASSWORD,ssl:{rejectUnauthorized:false},connectionTimeoutMillis:15000});
+await db.connect();
+const value=async(sql,args=[]) => (await db.query(sql,args)).rows[0]?.value;
+try{
+ await db.query('begin');await db.query("set local lock_timeout='5s';set local statement_timeout='90s'");
+ if(!await value("select to_regclass('public.presupuestos_encabezado')value"))await db.query(await readFile(new URL('../supabase/migrations/20260921120000_budget_control.sql',import.meta.url),'utf8'));
+ const context=(await db.query('select u.email,ucs.session_id,au.id sub from user_company_sessions ucs join users u using(user_id)join auth.users au on lower(au.email)=lower(u.email)order by selected_at desc limit 1')).rows[0];
+ await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify(context)]);
+ const options=await value('select budget_options()value');assert.ok(options.permissions.manage);
+ const header=await value('select budget_save_header($1)value',[JSON.stringify({year:2026,name:'TEST-BUDGET',control:'WARNING'})]);
+ const poOptions=await value('select purchase_workflow_options()value');
+ const product=poOptions.products.find(p=>options.accounts.some(a=>String(a.id)===String(p.accountId)));
+ assert.ok(product,'A purchasable product with an expense account is required');
+ const account=product.accountId;
+ const saved=await value('select budget_save_lines($1)value',[JSON.stringify({id:header.id,revision:header.revision,lines:[{accountId:account,month:'2026-09',amount:'10000'}]})]);
+ const report=await value('select budget_report($1)value',[JSON.stringify({id:header.id})]);assert.ok(report.rows.some(r=>r.initial===10000));
+ await value('select budget_header_action($1)value',[JSON.stringify({id:header.id,action:'approve'})]);
+ assert.equal((await value('select budget_check_availability($1)value',[JSON.stringify({id_subsidiaria:options.subsidiary.id,periodo:'2026-09',id_cuenta_contable:account,monto:1})])).controlActivo,true);
+
+ // Allocate existing history generously; constrain one account/month to 100 additional local units.
+ await db.query("update presupuestos_encabezado set estado='BORRADOR',tipo_control='HARD_LOCK'where id=$1",[header.id]);
+ const period=poOptions.periods.find(p=>String(p.start).startsWith('2026'));
+ assert.ok(period,'An open 2026 period is required');
+ const month=String(period.start).slice(0,7),date=String(period.start).slice(0,10);
+ const allLines=options.accounts.filter(a=>a.category!=='Ingreso').flatMap(a=>Array.from({length:12},(_,i)=>({accountId:a.id,month:'2026-'+String(i+1).padStart(2,'0'),amount:'1000000000'})));
+ let version=await value('select budget_save_lines($1)value',[JSON.stringify({id:header.id,revision:Number(saved.revision)+1,lines:allLines})]);
+ let baseline=(await value('select budget_report($1)value',[JSON.stringify({id:header.id})])).rows.find(r=>String(r.account_id)===String(account)&&r.month.startsWith(month));
+ const cap=Number(baseline.committed)+Number(baseline.executed)+100;
+ allLines.find(l=>String(l.accountId)===String(account)&&l.month===month).amount=String(cap);
+ version=await value('select budget_save_lines($1)value',[JSON.stringify({id:header.id,revision:version.revision,lines:allLines})]);
+ await value('select budget_header_action($1)value',[JSON.stringify({id:header.id,action:'approve'})]);
+ const supplier=poOptions.suppliers[0];assert.ok(supplier);
+ const poPayload={type:'ORDER',date,currency_id:poOptions.subsidiary.currencyId,rate:1,period_id:period.id,location_id:poOptions.locations[0]?.id,payment_term_id:supplier.paymentTermId||poOptions.terms[0]?.id,supplier_id:supplier.id,status:'BORRADOR',lines:[{product_id:product.id,account_id:account,description:'Budget rollback test',quantity:1,unit_cost:60,tax_rate:0}]};
+ const po=await value('select save_purchase_document($1,null)value',[JSON.stringify(poPayload)]);assert.ok(po.id);
+ const remaining=async()=>{const r=await value('select budget_report($1)value',[JSON.stringify({id:header.id})]);return r.rows.find(x=>String(x.account_id)===String(account)&&x.month.startsWith(month)).available};
+ assert.equal(Number(await remaining()),40);
+ await db.query('savepoint hard');await assert.rejects(value('select save_purchase_document($1,null)value',[JSON.stringify({...poPayload,lines:[{...poPayload.lines[0],unit_cost:50}]})]),e=>e.code==='PT422');await db.query('rollback to savepoint hard');assert.equal(Number(await remaining()),40);
+ await value('select save_purchase_document($1,$2)value',[JSON.stringify({...poPayload,lines:[{...poPayload.lines[0],unit_cost:20}]}),po.id]);assert.equal(Number(await remaining()),80);
+ await db.query("update presupuestos_encabezado set tipo_control='SOFT_LOCK'where id=$1",[header.id]);
+ const overPayload={...poPayload,lines:[{...poPayload.lines[0],unit_cost:100}]};
+ const pending=await value('select save_purchase_document($1,null)value',[JSON.stringify(overPayload)]);assert.equal(pending.budgetPending,true);assert.equal(Number(await remaining()),80);
+ await db.query('savepoint self_approval');await assert.rejects(value('select budget_override_action($1)value',[JSON.stringify({id:pending.budgetRequestId,action:'approve',reason:'Financial review test'})]),/otra persona/);await db.query('rollback to savepoint self_approval');
+ // Authorize this fixture directly; permissions and separation are tested above.
+ await db.query("update budget_overrides set status='APROBADO'where id=$1",[pending.budgetRequestId]);
+ const allowed=await value('select save_purchase_document($1,null)value',[JSON.stringify(overPayload)]);assert.ok(allowed.id);assert.equal(Number(await remaining()),-20);
+ await db.query("update presupuestos_encabezado set tipo_control='WARNING'where id=$1",[header.id]);
+ const warned=await value('select save_purchase_document($1,null)value',[JSON.stringify({...poPayload,lines:[{...poPayload.lines[0],unit_cost:1}]})]);assert.ok(warned.budgetWarnings.length);
+ const current=await value('select budget_report($1)value',[JSON.stringify({id:header.id})]);
+ const destination=current.rows.find(r=>String(r.account_id)===String(account)&&r.month.startsWith(month));
+ const source=current.rows.find(r=>r.line_id&&r.available>100&&r.month<=destination.month);
+ assert.ok(source);
+ const transfer=await value('select budget_transfer_request($1)value',[JSON.stringify({type:'TRASLADO',sourceId:source.line_id,destinationId:destination.line_id,amount:30,reason:'Transfer validation with transaction rollback'})]);
+ assert.ok(transfer.id);
+ const workflow=await value("select to_jsonb(w)value from wf_instances w where entity_type='BUDGET_TRANSFER'and entity_id=$1",[transfer.id]);
+ assert.ok(workflow.id);assert.equal(Number(await remaining()),-21,'Pending transfers must not affect availability');
+ await value("select wf_act($1,'APROBAR','Approval validation with rollback')value",[workflow.id]);
+ assert.equal(Number(await remaining()),9,'Approved transfer must increase destination availability');
+ const afterTransfer=await value('select budget_report($1)value',[JSON.stringify({id:header.id})]);
+ const sourceAfter=afterTransfer.rows.find(r=>r.line_id===source.line_id);
+ assert.equal(Number(sourceAfter.available),Number(source.available)-30);
+ assert.equal(Number(sourceAfter.initial),Number(source.initial),'Approval must preserve the original budget');
+ await value("select wf_start_entity('PURCHASE_ORDER',$1)value",[po.id]);
+ for(let step=0;step<20;step++){
+  const instance=await value("select to_jsonb(w)value from wf_instances w where entity_type='PURCHASE_ORDER'and entity_id=$1",[po.id]);
+  if(instance.status==='APROBADO')break;
+  await value("select wf_act($1,'APROBAR','Purchase approval test rollback')value",[instance.id]);
+ }
+ const receipt=await value('select save_purchase_document($1,null)value',[JSON.stringify({...poPayload,type:'RECEIPT',source_id:po.id,lines:[{...poPayload.lines[0],unit_cost:10}]})]);
+ const invoice=await value('select save_supplier_invoice($1,null)value',[JSON.stringify({invoice_number:'TEST-BUDGET-'+Date.now(),invoice_type:'Factura estándar',supplier_id:supplier.id,payment_term_id:poPayload.payment_term_id,invoice_date:date,fiscal_period_id:period.id,currency_id:poPayload.currency_id,exchange_rate:1,purchase_receipt_document_id:receipt.id,memo:'Factura derivada de '+receipt.number,lines:[{account_id:account,quantity:1,unit_price:10,amount:10,tax_rate:0,tax_amount:0,gross_amount:10,note:'Budget invoice test'}]})]);
+ assert.ok(invoice.invoiceId);
+ assert.equal(Number(await remaining()),9,'Invoice must replace the reservation without double counting');
+ const afterInvoice=await value('select budget_report($1)value',[JSON.stringify({id:header.id})]);
+ const invoicedRow=afterInvoice.rows.find(r=>r.line_id===destination.line_id);
+ assert.equal(Number(invoicedRow.executed),Number(destination.executed)+10);
+ assert.equal(Number(invoicedRow.committed),Number(destination.committed)-10);
+ await db.query('rollback');console.log(JSON.stringify({schema:true,options:true,header:true,lines:true,report:true,approval:true,check:true,hardLock:true,editReleasesReservation:true,softPending:true,override:true,selfApprovalBlocked:true,warning:true,transferWorkflow:true,transferApproval:true,invoiceReleasesReservation:true,rollback:true}));
+}catch(e){await db.query('rollback').catch(()=>{});throw e}finally{await db.end()}

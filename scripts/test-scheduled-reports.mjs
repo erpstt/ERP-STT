@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {deliverScheduledReport,scheduledReportCsv,scheduledReportHtml,scheduledReportFiles} from '../dist/modules/reports/scheduled-reports.service.js';
+const report={kind:'AR',cutoff:'2026-09-20',company:'Empresa <prueba>',currency:'USD',rows:[{entity_name:'=HYPERLINK("bad")',document_number:'FAC-001',issue_date:'2026-09-01',due_date:'2026-09-15',overdue_days:5,original_amount:150,applied_amount:50,pending:100}],summary:{subledger:100,advances:10,netBalance:90}};
+assert.ok(scheduledReportCsv(report).includes("'=HYPERLINK"));assert.ok(scheduledReportHtml(report).includes('Empresa &lt;prueba&gt;'));
+const job={id:'test',lease:'lease',subsidiary_id:3,cutoff:report.cutoff,recipient:'finance@example.invalid',configuration:{report_kind:'AR',format:'PDF',name:'CxC semanal'}};
+const files=async()=>[{fileName:'cxc.pdf',mimeType:'application/pdf',base64:Buffer.from('%PDF-test').toString('base64')}];
+let statuses=[],sends=0;
+const finish=async(status)=>statuses.push(status),prepare=async()=>report,begin=async()=>true;
+await deliverScheduledReport(job,prepare,async mail=>{sends++;assert.equal(mail.to,job.recipient);assert.equal(mail.attachments.length,1);return{accepted:[job.recipient],messageId:'mock'};},begin,finish,files);
+assert.deepEqual(statuses,['ENVIADO']);
+statuses=[];await deliverScheduledReport(job,prepare,async()=>{throw{code:'ETIMEDOUT'};},begin,finish,files);assert.deepEqual(statuses,['INCIERTO']);
+statuses=[];await deliverScheduledReport(job,prepare,async()=>{throw{responseCode:550};},begin,finish,files);assert.deepEqual(statuses,['ERROR']);
+statuses=[];await deliverScheduledReport(job,prepare,async()=>{sends++;},async()=>false,finish,files);assert.deepEqual(statuses,[]);assert.equal(sends,1);
+statuses=[];await deliverScheduledReport(job,async()=>{throw Error('Generation failed');},async()=>{sends++;},begin,finish,files);assert.deepEqual(statuses,['ERROR']);assert.equal(sends,1);
+await assert.rejects(deliverScheduledReport(job,prepare,async()=>({accepted:[job.recipient]}),begin,async()=>{throw Error('Persist failed');},files),/Persist failed/);
+const attachments=await scheduledReportFiles(report,'BOTH');assert.equal(attachments.length,2);assert.equal(Buffer.from(attachments[0].base64,'base64').subarray(0,4).toString(),'%PDF');assert.equal(attachments[1].mimeType,'text/csv');
+console.log(JSON.stringify({pdf:true,csv:true,escapedContent:true,oneRecipientPerMessage:true,smtpAccepted:true,rejection:true,unknownNotRetried:true,cancelBeforeSend:true,preparationFailure:true,noRealEmails:true}));

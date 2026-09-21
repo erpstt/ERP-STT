@@ -1,0 +1,43 @@
+import pg from 'pg';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+process.loadEnvFile?.('.env');
+const ref=new URL(process.env.SUPABASE_URL).hostname.split('.')[0];
+const db=new pg.Client({host:process.env.SUPABASE_DB_HOST||'aws-0-us-east-1.pooler.supabase.com',port:Number(process.env.SUPABASE_DB_PORT||6543),database:'postgres',user:process.env.SUPABASE_DB_USER||`postgres.${ref}`,password:process.env.SUPABASE_DB_PASSWORD,ssl:{rejectUnauthorized:false},connectionTimeoutMillis:15000});
+await db.connect();
+const value=async(sql,args=[]) => (await db.query(sql,args)).rows[0]?.value;
+try{
+ await db.query('begin');await db.query("set local lock_timeout='5s';set local statement_timeout='90s'");
+ const context=(await db.query('select u.email,ucs.session_id,au.id sub from user_company_sessions ucs join users u using(user_id)join auth.users au on lower(au.email)=lower(u.email)order by selected_at desc limit 1')).rows[0];
+ const claims=async(v)=>db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify(v)]);
+ await claims(context);
+ await db.query(await readFile(new URL('../supabase/migrations/20260921190000_scheduled_reports.sql',import.meta.url),'utf8'));
+ await db.query('savepoint fixtures');
+ assert.equal(String(await value("select scheduled_report_occurrence('MONTHLY',1,31,'08:00','2026-02-01 14:00Z',true)::text value")),'2026-02-28 14:00:00+00');
+ assert.equal(String(await value("select scheduled_report_occurrence('WEEKLY',1,1,'08:00','2026-09-21 14:00Z',true)::text value")),'2026-09-28 14:00:00+00');
+ assert.equal(await value("select scheduled_report_cutoff('PREVIOUS_MONTH_END','2026-03-01 14:00Z')::text value"),'2026-02-28');
+ const list=await value("select scheduled_report_manage('list')value");assert.ok(list.company.id);
+ const payload={name:'TEST-SCHEDULE',report:'AR',frequency:'WEEKLY',weekday:1,monthDay:31,time:'08:00',cutoff:'PREVIOUS_DAY',format:'BOTH',active:true,recipients:['test@example.invalid','SECOND@example.invalid','test@example.invalid']};
+ let saved=await value("select scheduled_report_manage('save',$1)value",[JSON.stringify(payload)]);assert.equal(saved.recipients.length,2);assert.ok(new Date(saved.next_run_at)>new Date());
+ await db.query('savepoint bad_email');await assert.rejects(value("select scheduled_report_manage('save',$1)value",[JSON.stringify({...payload,recipients:['not-an-email']})]),/correos/);await db.query('rollback to savepoint bad_email');
+ await db.query('savepoint wrong_worker');await assert.rejects(value('select scheduled_report_claim()value'),/exclusiva/);await db.query('rollback to savepoint wrong_worker');
+ assert.equal(await value("select has_function_privilege('authenticated','scheduled_report_claim()','EXECUTE')value"),false);
+ await db.query("update scheduled_reports set next_run_at=now()-interval '1 minute'where id=$1",[saved.id]);
+ await claims({role:'service_role'});assert.equal(await value('select scheduled_report_schedule()value'),1);assert.equal(await value('select scheduled_report_schedule()value'),0);
+ assert.equal(await value('select count(*)::int value from scheduled_report_jobs where schedule_id=$1',[saved.id]),2);
+ for(const kind of ['AR','AP']){const snap=await value('select scheduled_report_snapshot($1,$2,current_date)value',[saved.subsidiary_id,kind]);assert.ok(Array.isArray(snap.rows));assert.equal(snap.kind,kind);assert.ok(snap.currency);}
+ const job=await value('select scheduled_report_claim()value');assert.ok(job.lease);assert.equal(await value("select scheduled_report_begin_send($1,gen_random_uuid())value",[job.id]),false);
+ assert.equal(await value('select scheduled_report_begin_send($1,$2)value',[job.id,job.lease]),true);
+ assert.equal(await value("select scheduled_report_finish($1,$2,'ENVIADO','mock-message',null)value",[job.id,job.lease]),true);
+ const second=await value('select scheduled_report_claim()value');assert.ok(second.id!==job.id);
+ await claims(context);saved=await value("select scheduled_report_manage('toggle',$1)value",[JSON.stringify({id:saved.id,revision:saved.revision,active:false})]);
+ await claims({role:'service_role'});assert.equal(await value('select scheduled_report_begin_send($1,$2)value',[second.id,second.lease]),false);assert.equal(await value('select scheduled_report_claim()value'),null);
+ await claims(context);await value("select scheduled_report_manage('delete',$1)value",[JSON.stringify({id:saved.id,revision:saved.revision})]);const final=await value("select scheduled_report_manage('list')value");assert.ok(!final.schedules.some(s=>s.id===saved.id));assert.equal(final.history.filter(j=>j.schedule_id===saved.id).length,2);
+ await db.query('savepoint pagination');await claims({role:'service_role'});
+ await db.query(`create or replace function run_aging_report(p_kind text,p_filters jsonb default '{}')returns jsonb language sql stable security definer set search_path=public as $$select jsonb_build_object('total',251,'rows',(select jsonb_agg(jsonb_build_object('document_number','TEST-'||i,'pending',1))from generate_series(((p_filters->>'page')::int-1)*250+1,least((p_filters->>'page')::int*250,251))i),'summary',jsonb_build_object('subledger',251,'advances',0,'netBalance',251))$$`);
+ const paged=await value("select scheduled_report_snapshot($1,'AR',current_date)value",[saved.subsidiary_id]);assert.equal(paged.rows.length,251);assert.equal(paged.rows[250].document_number,'TEST-251');await db.query('rollback to savepoint pagination');
+ assert.equal(await value("select has_table_privilege('authenticated','scheduled_reports','INSERT')value"),false);
+ await db.query('rollback to savepoint fixtures');
+ const apply=process.argv.includes('--apply');await db.query(apply?'commit':'rollback');
+ console.log(JSON.stringify({applied:apply,weeklyAndMonthEnd:true,cutoff:true,recipientValidation:true,workerPermission:true,deduplication:true,arAndApSnapshot:true,allPagesIncluded:true,leaseValidation:true,pauseCancelsQueuedJobs:true,archiveKeepsHistory:true,noEmailsSent:true,fixturesRolledBack:true}));
+}catch(e){await db.query('rollback').catch(()=>{});throw e;}finally{await db.end();}

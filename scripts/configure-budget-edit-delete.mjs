@@ -1,0 +1,34 @@
+import pg from 'pg';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+process.loadEnvFile?.('.env');
+const ref=new URL(process.env.SUPABASE_URL).hostname.split('.')[0];
+const db=new pg.Client({host:process.env.SUPABASE_DB_HOST||'aws-0-us-east-1.pooler.supabase.com',port:Number(process.env.SUPABASE_DB_PORT||6543),database:'postgres',user:process.env.SUPABASE_DB_USER||`postgres.${ref}`,password:process.env.SUPABASE_DB_PASSWORD,ssl:{rejectUnauthorized:false},connectionTimeoutMillis:15000});
+await db.connect();
+const value=async(sql,args=[]) => (await db.query(sql,args)).rows[0]?.value;
+try{
+ await db.query('begin');await db.query("set local lock_timeout='5s';set local statement_timeout='90s'");
+ const context=(await db.query('select u.email,ucs.session_id,au.id sub from user_company_sessions ucs join users u using(user_id)join auth.users au on lower(au.email)=lower(u.email)order by selected_at desc limit 1')).rows[0];
+ await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify(context)]);
+ await db.query(await readFile(new URL('../supabase/migrations/20260921180000_budget_delete_draft.sql',import.meta.url),'utf8'));
+ await db.query('savepoint fixtures');
+ const opts=await value('select budget_options()value');const account=opts.accounts.find(a=>a.category==='Gasto').id;
+ let h=await value('select budget_save_header($1)value',[JSON.stringify({name:'TEST-EDIT-'+Date.now(),year:2026,control:'WARNING'})]);
+ h=await value('select budget_save_lines($1)value',[JSON.stringify({id:h.id,revision:h.revision,lines:[{accountId:account,month:'2026-09',amount:100}]})]);
+ const before=h;
+ h=await value('select budget_save_header($1)value',[JSON.stringify({id:h.id,revision:h.revision,name:'TEST-RENAMED-'+Date.now(),year:2026,control:'SOFT_LOCK'})]);
+ assert.ok(h.nombre_version.startsWith('TEST-RENAMED'));assert.equal(h.tipo_control,'SOFT_LOCK');assert.deepEqual(h.categorias,before.categorias);
+ assert.equal(Number(await value('select monto_presupuestado value from presupuestos_lineas where id_presupuesto_encabezado=$1',[h.id])),100);
+ await db.query('savepoint stale');await assert.rejects(value('select budget_header_action($1)value',[JSON.stringify({id:h.id,revision:before.revision,action:'delete'})]),/cambi/);await db.query('rollback to savepoint stale');
+ await value('select budget_header_action($1)value',[JSON.stringify({id:h.id,revision:h.revision,action:'delete'})]);
+ assert.equal(await value('select count(*)::int value from presupuestos_encabezado where id=$1',[h.id]),0);
+ assert.equal(await value('select count(*)::int value from presupuestos_lineas where id_presupuesto_encabezado=$1',[h.id]),0);
+ assert.equal(await value("select count(*)::int value from budget_events where source_id=$1 and event='ELIMINAR_BORRADOR'",[h.id]),1);
+ let approved=await value('select budget_save_header($1)value',[JSON.stringify({name:'TEST-APPROVED-'+Date.now(),year:2026,control:'WARNING'})]);
+ approved=await value('select budget_save_lines($1)value',[JSON.stringify({id:approved.id,revision:approved.revision,lines:[{accountId:account,month:'2026-09',amount:100}]})]);
+ approved=await value('select budget_header_action($1)value',[JSON.stringify({id:approved.id,action:'approve'})]);
+ await db.query('savepoint protected');await assert.rejects(value('select budget_header_action($1)value',[JSON.stringify({id:approved.id,revision:approved.revision,action:'delete'})]),/borrador/);await db.query('rollback to savepoint protected');
+ await db.query('rollback to savepoint fixtures');
+ const apply=process.argv.includes('--apply');await db.query(apply?'commit':'rollback');
+ console.log(JSON.stringify({applied:apply,editPreservesAmounts:true,staleDeleteRejected:true,draftDelete:true,cascadeLines:true,auditPreserved:true,approvedDeleteRejected:true,fixturesRolledBack:true}));
+}catch(e){await db.query('rollback').catch(()=>{});throw e;}finally{await db.end();}
