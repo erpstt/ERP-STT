@@ -23,7 +23,7 @@ if(receiptId&&!params.get('id')){
    $('addLine').click();const row=$('lines').lastElementChild;if(!row)throw Error('No se pudo crear la línea de factura.');
    const account=accounts.find(value=>String(value.account_id)===String(item.account_id)),search=row.querySelector('.account-search');
    if(account&&search){search.value=`${account.account_number} - ${account.account_name}`;search.dispatchEvent(new Event('input'));search.dispatchEvent(new Event('change'))}
-   const amount=row.querySelector('[data-key=amount]');amount.value=String(Number(item.quantity)*Number(item.unit_cost));amount.dispatchEvent(new Event('input'));amount.dispatchEvent(new Event('blur'));
+   row.querySelector('[data-key=quantity]').value=item.quantity??1;row.querySelector('[data-key=unit_price]').value=item.unit_cost??0;row.querySelector('[data-key=unit_price]').dispatchEvent(new Event('input'));
    const tax=row.querySelector('[data-key=tax_code_id]');tax.value=item.tax_code_id??'';tax.dispatchEvent(new Event('change'));
    const note=row.querySelector('[data-key=note]');note.value=item.description||header.memo||'';note.dispatchEvent(new Event('input'));
    const department=row.querySelector('[data-key=department_id]');department.value=item.department_id??'';department.dispatchEvent(new Event('change'));

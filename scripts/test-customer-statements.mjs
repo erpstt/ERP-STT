@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {writeFile,mkdir}from'node:fs/promises';
+import{renderStatementEmail,statementSubject,statementBody,statementPdf,deliverStatement}from'../dist/modules/notifications/customer-statement.js';
+const rows=Array.from({length:270},(_,i)=>({document_number:`FAC-${i+1}`,issue_date:'2026-08-01',due_date:'2026-08-15',overdue_days:16,original_amount:100,applied_amount:20,pending:80,bucket:'1_30'}));
+const statement={empresa_nombre:'Empresa de prueba',cliente_nombre:'Cliente & prueba',customerCode:'CLI-001',email:'cliente@example.invalid',fecha_corte:'2026-08-31',saldo_total:21500,moneda:'USD',note:'Nota <script>alert(1)</script>',rows,summary:{subledger:21600,advances:100,netBalance:21500}};
+const mail=renderStatementEmail(statementSubject,statementBody,statement);assert.ok(mail.html.includes('Cliente &amp; prueba'));assert.ok(!mail.html.includes('<script>'));assert.ok(mail.subject.includes('31/08/2026'));assert.throws(()=>renderStatementEmail('{{proveedor_nombre}}','<p>Hola</p>',statement));
+const pdf=await statementPdf(statement);const bytes=Buffer.from(pdf.base64,'base64');assert.equal(bytes.subarray(0,4).toString(),'%PDF');assert.ok(bytes.length>20000);assert.ok(pdf.fileName.endsWith('.pdf'));await mkdir('.tmp/customer-statements',{recursive:true});await writeFile('.tmp/customer-statements/sample.pdf',bytes);
+let statuses=[],calls=0;const job={destinatario:'cliente@example.invalid',payload:statement,asunto_template:statementSubject,cuerpo_template:statementBody};
+await deliverStatement(job,async message=>{calls++;assert.equal(message.attachments[0].content.subarray(0,4).toString(),'%PDF');assert.equal(message.attachments[0].contentType,'application/pdf');return{accepted:[message.to],messageId:'mock'}},async(...s)=>statuses.push(s),async()=>pdf);assert.equal(calls,1);assert.equal(statuses[0][0],'ENVIADO');
+statuses=[];await deliverStatement(job,async()=>{throw{command:'DATA',code:'ETIMEDOUT'}},async(...s)=>statuses.push(s),async()=>pdf);assert.equal(statuses[0][0],'INCIERTO');
+statuses=[];await deliverStatement(job,async()=>{throw Error('Should not send')},async(...s)=>statuses.push(s),async()=>{throw Error('PDF failure')});assert.equal(statuses[0][0],'ERROR');
+console.log(JSON.stringify({template:true,sanitization:true,pdf:true,documents:rows.length,pdfBytes:bytes.length,attachment:true,pdfFailureAudited:true,uncertainSmtp:true,emailsSent:0}));

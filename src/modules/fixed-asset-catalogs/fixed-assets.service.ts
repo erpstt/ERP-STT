@@ -11,6 +11,8 @@ async function rpc(authorization:string,name:string,parameters:Record<string,unk
 }
 
 export const fixedAssetOptions=(authorization:string)=>rpc(authorization,'fixed_asset_options');
+export const fixedAssetProposalReport=(authorization:string,filters:Record<string,unknown>)=>rpc(authorization,'fixed_asset_proposal_report',{p_filters:filters});
+export const processFixedAssetProposals=(authorization:string,payload:Record<string,unknown>)=>rpc(authorization,'process_fixed_asset_proposals',{p_payload:payload});
 export const fixedAssetReport=(authorization:string,filters:Record<string,unknown>)=>rpc(authorization,'fixed_asset_report',{p_filters:filters});
 export const saveFixedAsset=(authorization:string,payload:Record<string,unknown>,id?:number)=>rpc(authorization,'save_fixed_asset',{p_payload:payload,p_asset_id:id||null});
 export async function depreciationPreview(authorization:string,date:string) {
@@ -34,7 +36,10 @@ export async function depreciationPreview(authorization:string,date:string) {
   return result;
 }
 export const runDepreciation=(authorization:string,payload:Record<string,unknown>)=>rpc(authorization,'run_fixed_asset_depreciation',{p_date:payload.date,p_asset_ids:payload.assetIds});
-export const fixedAssetDetail=(authorization:string,id:number)=>rpc(authorization,'fixed_asset_detail',{p_asset_id:id});
+export async function fixedAssetDetail(authorization:string,id:number){
+  const [detail,origins]=await Promise.all([rpc(authorization,'fixed_asset_detail',{p_asset_id:id}),rpc(authorization,'fixed_asset_proposal_origins',{p_asset_id:id})]);
+  return {...detail,origins};
+}
 export const fixedAssetAnalytics=(authorization:string,filters:Record<string,unknown>)=>rpc(authorization,'fixed_asset_analytics',{p_filters:filters});
 export const fixedAssetOperationOptions=(authorization:string)=>rpc(authorization,'fixed_asset_operation_options');
 export const fixedAssetOperationReport=(authorization:string,filters:Record<string,unknown>)=>rpc(authorization,'fixed_asset_operation_report',{p_filters:filters});

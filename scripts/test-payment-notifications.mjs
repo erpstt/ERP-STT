@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {renderPaymentEmail,validateTemplate,defaultBody,defaultSubject} from '../dist/modules/notifications/payment-email.js';
+import {deliverPaymentJob,smtpStatus} from '../dist/modules/notifications/email-notification.service.js';
+const payment={empresa_nombre:'Empresa <script>x</script>',proveedor_nombre:'Proveedor & Cía',fecha_pago:'2026-09-20',referencia_pago:'TRF-123',moneda:'USD',total_pagado:680,aplicado:1000,retenciones:20,anticipos:300,invoices:[{number:'FAC-001',date:'2026-09-15',total:1500,applied:1000,withholding:20,withholdingDetail:'Renta 2%'}]};
+const rendered=renderPaymentEmail(defaultSubject,defaultBody,payment);
+assert.ok(rendered.html.includes('680,00'));assert.ok(rendered.html.includes('980,00'));assert.ok(rendered.html.includes('300,00'));assert.match(rendered.html,/1[.\s]?500,00/u);assert.ok(!rendered.html.includes('<script>'));assert.ok(rendered.html.includes('Proveedor &amp; Cía'));
+assert.throws(()=>validateTemplate('x\nBcc: evil','<p>ok</p>'));
+assert.throws(()=>validateTemplate('{{unknown}}','<p>ok</p>'));
+assert.throws(()=>validateTemplate('Asunto','<script>alert(1)</script>'));
+const clean=validateTemplate('ok','<p onclick="evil()">Bien <a href="javascript:alert(1)">enlace</a><img src=x onerror=evil()></p>');assert.ok(!/onclick|javascript:|<img/.test(clean.body));
+const job={id:'job',lease:'lease',destinatario:'test@example.invalid',payload:payment,asunto_template:defaultSubject,cuerpo_template:defaultBody};
+let sent=0,states=[];
+await deliverPaymentJob(job,async m=>{sent++;assert.equal(m.to,'test@example.invalid');return {accepted:[m.to],messageId:'mock'}},async(...s)=>states.push(s));assert.equal(sent,1);assert.equal(states[0][0],'ENVIADO');
+states=[];await deliverPaymentJob(job,async()=>{throw {command:'DATA',code:'ETIMEDOUT'}},async(...s)=>states.push(s));assert.equal(states[0][0],'INCIERTO');
+states=[];await deliverPaymentJob(job,async()=>{throw {command:'RCPT TO',responseCode:550}},async(...s)=>states.push(s));assert.equal(states[0][0],'ERROR');
+states=[];await assert.rejects(deliverPaymentJob(job,async()=>({accepted:['test@example.invalid']}),async()=>{throw Error('DB unavailable')}));assert.equal(states.length,0);
+delete process.env.EMAIL_NOTIFICATIONS_ENABLED;assert.equal(smtpStatus().enabled,false);
+console.log(JSON.stringify({render:true,partialPayments:true,withholdingAndAdvances:true,sanitization:true,smtpMock:true,uncertainDelivery:true,disabledByDefault:true,emailsSent:0}));

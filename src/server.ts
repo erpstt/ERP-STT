@@ -1,3 +1,5 @@
+import { statementSettings, customerStatement, startStatementNotifications } from './modules/notifications/customer-statement.js';
+import { notificationSettings, paymentNotifications, startEmailNotifications } from './modules/notifications/email-notification.service.js';
 import { recordActorAudit } from './modules/audit-catalogs/record-actor-audit.service.js';
 import { withAuditExecution } from './core/database/audit-context.js';
 import { paymentRequests } from './modules/treasury-catalogs/payment-requests.service.js';
@@ -33,7 +35,7 @@ import { createPurchasingRow, deletePurchasingRow, getPurchasingCatalog, listPur
 import { createExpenseRow, deleteExpenseRow, getExpenseCatalog, listExpenseRows, updateExpenseRow } from './modules/expense-catalogs/expense-catalogs.module.js';
 import { createFixedAssetRow, deleteFixedAssetRow, getFixedAssetCatalog, listFixedAssetRows, updateFixedAssetRow } from './modules/fixed-asset-catalogs/fixed-asset-catalogs.module.js';
 import { assetCategoryOptions, assetCategoryReport, saveAssetCategory, deleteAssetCategory } from './modules/fixed-asset-catalogs/asset-category.service.js';
-import { fixedAssetOptions, fixedAssetReport, saveFixedAsset, depreciationPreview, runDepreciation, fixedAssetDetail, fixedAssetAnalytics, fixedAssetOperationOptions, fixedAssetOperationReport, saveFixedAssetOperation, deleteFixedAssetOperation } from './modules/fixed-asset-catalogs/fixed-assets.service.js';
+import { fixedAssetProposalReport, processFixedAssetProposals, fixedAssetOptions, fixedAssetReport, saveFixedAsset, depreciationPreview, runDepreciation, fixedAssetDetail, fixedAssetAnalytics, fixedAssetOperationOptions, fixedAssetOperationReport, saveFixedAssetOperation, deleteFixedAssetOperation } from './modules/fixed-asset-catalogs/fixed-assets.service.js';
 import { createWorkflowRow, deleteWorkflowRow, getWorkflowCatalog, listWorkflowRows, updateWorkflowRow } from './modules/workflow-catalogs/workflow-catalogs.module.js';
 import { approvalEngine } from './modules/workflow-catalogs/approval-engine.service.js';
 import { createDocumentRow, deleteDocumentRow, getDocumentCatalog, listDocumentRows, updateDocumentRow } from './modules/document-catalogs/document-catalogs.module.js';
@@ -161,7 +163,7 @@ const server = createServer((request, response) => withAuditExecution(async () =
     const depositRoute=request.url?.match(/^\/api\/banking\/deposits\/(\d+)$/);if(depositRoute){const id=Number(depositRoute[1]);if(request.method==='GET')return json(response,200,await bankDepositDetail(request.headers.authorization!,id));if(request.method==='PUT')return json(response,200,await updateBankDeposit(request.headers.authorization!,id,await body(request) as Record<string,unknown>));if(request.method==='DELETE')return json(response,200,await deleteBankDeposit(request.headers.authorization!,id));}
     if(request.method==='POST'&&request.url==='/api/banking/transfers/report'){return json(response,200,await runBankTransferReport(request.headers.authorization!,await body(request) as Record<string,unknown>));}
     const transferJournalRoute=request.url?.match(/^\/api\/banking\/transfers\/(\d+)\/journal$/);if(request.method==='GET'&&transferJournalRoute){return json(response,200,await bankTransferJournal(request.headers.authorization!,Number(transferJournalRoute[1])));}
-    if(request.method==='POST'&&request.url==='/api/reports/accounting/bank-reconciliation/pdf'){return json(response,200,await renderBankReconciliationPdf(await body(request) as Record<string,unknown>));}
+    if(request.method==='POST'&&['/api/reports/accounting/bank-reconciliation/pdf','/api/reports/accounting/pending-invoice-control/pdf'].includes(request.url??'')){return json(response,200,await renderBankReconciliationPdf(await body(request) as Record<string,unknown>));}
     const bankActionRoute=request.url?.match(/^\/api\/reports\/accounting\/bank-reconciliation\/(import|auto|match|close|close-report)$/);
     if(request.method==='POST'&&bankActionRoute){return json(response,200,{result:await bankReconciliationAction(request.headers.authorization!,bankActionRoute[1],await body(request) as Record<string,unknown>)});}
      const journalReverseRoute=request.url?.match(/^\/api\/reports\/accounting\/journal\/(\d+)\/reverse$/);
@@ -226,6 +228,12 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(request.method==='GET'&&request.url==='/api/purchasing/workflow/options')return json(response,200,await purchaseWorkflowOptions(request.headers.authorization!));
     if(request.method==='POST'&&request.url==='/api/purchasing/workflow/report')return json(response,200,await purchaseDocuments(request.headers.authorization!,await body(request)as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/purchasing/workflow')return json(response,201,await savePurchaseDocument(request.headers.authorization!,await body(request)as Record<string,unknown>));
+    const notificationRoute=request.url?.match(/^\/api\/configuration\/notification-templates\/(get|save|preview)$/);
+    if(notificationRoute&&request.method==='POST'){const input=await body(request)as Record<string,unknown>;return json(response,200,await (input.kind==='ESTADO_CUENTA'?statementSettings:notificationSettings)(request.headers.authorization!,notificationRoute[1],input));}
+    const statementRoute=request.url?.match(/^\/api\/entities\/customers\/(\d+)\/statement\/(get|send|pdf)$/);
+    if(statementRoute&&request.method==='POST')return json(response,200,await customerStatement(request.headers.authorization!,Number(statementRoute[1]),statementRoute[2],await body(request)as Record<string,unknown>));
+    const paymentNotificationRoute=request.url?.match(/^\/api\/purchasing\/supplier-payments\/(\d+)\/notifications\/(history|resend)$/);
+    if(paymentNotificationRoute&&request.method==='POST')return json(response,200,await paymentNotifications(request.headers.authorization!,Number(paymentNotificationRoute[1]),paymentNotificationRoute[2],await body(request)as Record<string,unknown>));
     if(request.method==='GET'&&request.url==='/api/purchasing/supplier-payments/options')return json(response,200,await supplierPaymentOptions(request.headers.authorization!));
     if(request.method==='POST'&&request.url==='/api/purchasing/supplier-payments/report')return json(response,200,await supplierPaymentReport(request.headers.authorization!,await body(request)as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/purchasing/supplier-payments/save')return json(response,201,await saveSupplierPayment(request.headers.authorization!,await body(request)as Record<string,unknown>));
@@ -233,6 +241,8 @@ const server = createServer((request, response) => withAuditExecution(async () =
     const purchaseWorkflowRoute=request.url?.match(/^\/api\/purchasing\/workflow\/(\d+)$/);if(purchaseWorkflowRoute){const id=Number(purchaseWorkflowRoute[1]);if(request.method==='GET')return json(response,200,await purchaseDocumentDetail(request.headers.authorization!,id));if(request.method==='PUT')return json(response,200,await savePurchaseDocument(request.headers.authorization!,await body(request)as Record<string,unknown>,id));if(request.method==='DELETE')return json(response,200,await deletePurchaseDocument(request.headers.authorization!,id));}
     if(request.method==='POST'&&request.url==='/api/sales/invoice-entry'){const authorization=request.headers.authorization!;return json(response,201,await saveSalesInvoice(authorization,await body(request)as Record<string,unknown>));}
     if(request.method==='GET'&&request.url==='/api/fixed-assets/asset-category-options')return json(response,200,await assetCategoryOptions(request.headers.authorization!));
+    if(request.method==='POST'&&request.url==='/api/fixed-assets/proposals/report')return json(response,200,await fixedAssetProposalReport(request.headers.authorization!,await body(request) as Record<string,unknown>));
+    if(request.method==='POST'&&request.url==='/api/fixed-assets/proposals/process')return json(response,200,await processFixedAssetProposals(request.headers.authorization!,await body(request) as Record<string,unknown>));
     if(request.method==='GET'&&request.url==='/api/fixed-assets/workflow-options')return json(response,200,await fixedAssetOptions(request.headers.authorization!));
     if(request.method==='POST'&&request.url==='/api/fixed-assets/workflow-report')return json(response,200,await fixedAssetReport(request.headers.authorization!,await body(request)as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/fixed-assets/workflow-save')return json(response,201,await saveFixedAsset(request.headers.authorization!,await body(request)as Record<string,unknown>));
@@ -309,4 +319,4 @@ const server = createServer((request, response) => withAuditExecution(async () =
   }
 }));
 
-server.listen(Number(process.env.PORT ?? 3000), '0.0.0.0', () => {console.log(`Nexo ERP disponible en el puerto ${process.env.PORT ?? 3000}`);iniciarProgramacionTipoCambioRD();iniciarProgramacionTipoCambioCR();iniciarProgramacionTipoCambioGT();iniciarProgramacionTipoCambioJM();iniciarProgramacionTipoCambioCO();iniciarProgramacionTipoCambioAR();iniciarProgramacionTipoCambioNI();iniciarProgramacionTipoCambioPE();});
+server.listen(Number(process.env.PORT ?? 3000), '0.0.0.0', () => {startEmailNotifications();startStatementNotifications();console.log(`Nexo ERP disponible en el puerto ${process.env.PORT ?? 3000}`);iniciarProgramacionTipoCambioRD();iniciarProgramacionTipoCambioCR();iniciarProgramacionTipoCambioGT();iniciarProgramacionTipoCambioJM();iniciarProgramacionTipoCambioCO();iniciarProgramacionTipoCambioAR();iniciarProgramacionTipoCambioNI();iniciarProgramacionTipoCambioPE();});

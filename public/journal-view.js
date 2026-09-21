@@ -8,6 +8,10 @@ $('lines').innerHTML=lines.map(line=>{const a=account(line),e=entity(line);retur
 $('debit').textContent=money(journal.total_debit);
 $('credit').textContent=money(journal.total_credit);
 $('impacts').innerHTML=data.impacts.filter(x=>String(x.transaction_id)===String(journal.transaction_id)).map(impact=>{const a=find(data.accounts,'account_id',impact.account_id);return `<tr><td>${a?.account_number||''}</td><td>${a?.account_name||''}</td><td class="numeric">${money(impact.debit_amount)}</td><td class="numeric">${money(impact.credit_amount)}</td><td>${impact.posting_date}</td></tr>`}).join('')||'<tr><td colspan="5">No existe impacto contabilizado porque la subsidiaria no tiene un libro contable activo.</td></tr>';
+if(journal.reversed_from_journal_id&&journal.journal_type==='Reversión de Pendiente de Facturar'){
+ const supports=(await api('/api/accounting/journal-supports')).filter(item=>String(item.journal_id)===String(id));
+ if(supports.length){const section=document.createElement('section'),heading=document.createElement('h2');heading.textContent='Archivos de respaldo';section.append(heading);for(const item of supports){const isLink=item.support_type==='Enlace';if(isLink?!/^https?:\/\//i.test(item.support_url||''):item.support_type!=='Archivo'||!String(item.file_data||'').startsWith('data:'))continue;const row=document.createElement('p'),link=document.createElement('a');link.textContent=item.display_name||item.file_name;if(isLink){link.href=item.support_url;link.target='_blank';link.rel='noopener noreferrer'}else{link.href=item.file_data;link.download=item.file_name||'respaldo'}row.append(link);section.append(row)}$('document').append(section)}
+}
 $('generated').textContent=new Date().toLocaleString('es-CR');
 $('footerSubsidiary').textContent=name(find(data.subsidiaries,'subsidiary_id',journal.subsidiary_id))||'Subsidiaria no identificada';
 $('edit').onclick=()=>location.href=`/journal-entry.html?id=${id}`;
