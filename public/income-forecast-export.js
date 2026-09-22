@@ -9,15 +9,17 @@ function adjustments(report,overrides,dimensionName){return Object.entries(overr
 export function forecastCsv(report,{filters=[],scenario='',dimensionName=id=>id,overrides={}}={}){
  const headers=['Sociedades','Escenario','Moneda','Corte real','Metodología','Tipo de fila','Categoría','Cuenta','Descripción','Dimensión',...report.months.map((m,i)=>`${m} · ${i<report.k?'Real':'Proyectado'}`),'Real YTD','Proyección restante','Total anual','Período del ajuste','Importe ajustado','Motivo / filtro'];
  const base=[report.companies.map(c=>c.name).join(' / '),scenario||'Sin guardar',report.currency,report.cutoff,methods[report.method]||report.method],rows=[];
- const line=(type,category,account,name,dimension,values=[],tail=[])=>rows.push([...base,type,category,account,name,dimension,...report.months.map((_,i)=>values[i]===undefined?'':Number(values[i]).toFixed(2)),...(values.length?[sum(values.slice(0,report.k)).toFixed(2),sum(values.slice(report.k)).toFixed(2),sum(values).toFixed(2)]:['','','']),...tail,...Array(3-tail.length).fill('')]);
+ const decimal=value=>Number(value).toFixed(2).replace('.',',');
+ const line=(type,category,account,name,dimension,values=[],tail=[])=>rows.push([...base,type,category,account,name,dimension,...report.months.map((_,i)=>values[i]===undefined?'':decimal(values[i])),...(values.length?[decimal(sum(values.slice(0,report.k))),decimal(sum(values.slice(report.k))),decimal(sum(values))]:['','','']),...tail,...Array(3-tail.length).fill('')]);
  for(const s of sections(report))for(const r of s.rows)line('Detalle',s.name,String(r.number),r.name,dimensionName(r.dimension),r.values);
  for(const [label,values]of summaries(report))line('Resumen','', '',label,'Todas las dimensiones',values);
- for(const a of adjustments(report,overrides,dimensionName))line('Ajuste manual','',a.account,a.name,a.dimension,[],[a.period,Number(a.amount).toFixed(2),a.reason]);
+ for(const a of adjustments(report,overrides,dimensionName))line('Ajuste manual','',a.account,a.name,a.dimension,[],[a.period,decimal(a.amount),a.reason]);
  for(const [label,value]of filters)line('Filtro','','',label,'',[],['','',value]);
  for(const note of report.notes||[])line('Nota','','','Criterio de cálculo','',[],['','',note]);
  for(const rate of report.rates||[])line('Tipo de cambio','','',rate.company,'',[],[rate.month,'',`${rate.rate} · ${rate.source}`]);
- const cell=v=>{let s=String(v??'');if(/^[=+@\t\r]/.test(s)||(/^[-]/.test(s)&&!/^[-]\d+(\.\d+)?$/.test(s)))s="'"+s;return '"'+s.replaceAll('"','""')+'"';};
- return '\uFEFF'+[headers,...rows].map(r=>r.map(cell).join(',')).join('\r\n');
+ const cell=v=>{let s=String(v??'');if(/^[=+@\t\r]/.test(s)||(/^[-]/.test(s)&&!/^[-]\d+(?:[.,]\d+)?$/.test(s)))s="'"+s;return '"'+s.replaceAll('"','""')+'"';};
+ // Excel in es-CR expects semicolon-separated fields and comma decimals.
+ return '\uFEFFsep=;\r\n'+[headers,...rows].map(r=>r.map(cell).join(';')).join('\r\n');
 }
 export function forecastPdfHtml(report,{filters=[],scenario='',dimensionName=id=>id,overrides={},issuedAt=new Date()}={}){
  const totals=summaries(report),net=totals.at(-1)[1],groups=sections(report),adjusted=adjustments(report,overrides,dimensionName),title='Estado de Resultados Proyectado';

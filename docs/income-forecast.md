@@ -1,8 +1,14 @@
 # Estado de Resultados Proyectado
 
+## Ámbitos de acceso
+
+La vista disponible en **Informes** siempre usa la empresa activa y no permite seleccionar otras sociedades, presentación de grupo ni holding. Los escenarios creados allí también quedan limitados a esa sociedad.
+
+La proyección consolidada se abre desde **Consolidación financiera del grupo > Estado de Resultados Proyectado Consolidado**. El acceso requiere `ACC_CONSOLIDATION_RUN`; muestra el perímetro autorizado, fija la holding configurada y usa USD. El servidor y las funciones de base de datos validan el ámbito, por lo que cambiar parámetros en el navegador no permite ampliar el acceso.
+
 Acceso: **Informes > Reportes de Contabilidad > Estado de Resultados Proyectado**. El Estado de Resultados Integral incluye **Proyectar resultados**, que transfiere sus filtros analíticos. Un corte intermedio se lleva al último mes completo anterior; la pantalla muestra el corte aplicado.
 
-Seleccione ejercicio fiscal (12 meses completos), mes de corte, sociedades, libro, moneda, columna, tipo de departamento, departamento, ubicación, clase, centro de costo/proyecto y nivel de detalle. Proyecto comparte catálogo y dimensión con Centro de Costo, según la configuración vigente; seleccionar identificadores diferentes se rechaza.
+Seleccione ejercicio fiscal (12 meses completos), mes de corte, sociedades, libro, moneda, columna, tipo de departamento, departamento, ubicación, clase, centro de costo y nivel de detalle.
 
 Los reales proceden de `gl_impact` del libro principal de cada sociedad o del libro elegido. Las dimensiones se atribuyen según los débitos y créditos de las líneas contabilizadas del mismo documento y cuenta; los movimientos sin dimensión se conservan como sin asignar. El total sin filtros concilia con el Mayor. Se excluyen cierres `ASI_CIE`, tipos equivalentes y diarios marcados `is_year_end_closing` cuando está seleccionado Excluir cierres.
 
@@ -20,6 +26,6 @@ Moneda: se usa el promedio consolidado disponible para el mes y holding cuando l
 
 **Agregado** suma sociedades autorizadas en una moneda común, sin eliminaciones. **Consolidado** utiliza USD, el Mayor vigente y las eliminaciones publicadas de la holding; exige consolidaciones publicadas de los meses reales y de los meses anteriores necesarios para la metodología Año anterior. Se debe seleccionar todo el perímetro de las hojas publicadas correspondientes. Las eliminaciones sin dimensión aparecen en Sin asignar (o Eliminaciones para columna Subsidiaria); un filtro dimensional las excluye y muestra esa advertencia. Este informe no publica ni modifica consolidaciones. Con presupuesto, los meses futuros siguen los presupuestos generales y pueden ajustarse manualmente.
 
-CSV presenta columnas uniformes, importes con dos decimales, filas de resumen, filtros y motivos legibles. PDF incluye resumen ejecutivo anual, detalle mensual por semestres en A4 horizontal, filtros y ajustes, con colores para reales, futuros y ajustes. Ambas descargas incluyen todas las dimensiones del informe generado, incluso cuando la pantalla muestra solo una columna seleccionada. Al desglosar columnas puede elegirse una dimensión para ver y editar su detalle mensual.
+CSV presenta columnas uniformes, importes con dos decimales, filas de resumen, filtros y motivos legibles. Utiliza UTF-8, punto y coma como separador y coma decimal, además de la directiva `sep=;`, para abrirse correctamente en Excel con configuración regional de Costa Rica. PDF incluye resumen ejecutivo anual, detalle mensual por semestres en A4 horizontal, filtros y ajustes, con colores para reales, futuros y ajustes. Ambas descargas incluyen todas las dimensiones del informe generado, incluso cuando la pantalla muestra solo una columna seleccionada. Al desglosar columnas puede elegirse una dimensión para ver y editar su detalle mensual.
 
 Activación: `20260922020000_income_forecast.sql`, compilación y reinicio del servicio. `configure-income-forecast.mjs` prueba usando `SET LOCAL ROLE authenticated`, valida filtros, sociedad, conciliación contra Mayor, exclusión de cierre y revisión de escenario, revirtiendo todos los datos de prueba. `--apply` conserva solo la migración. `--snapshot` genera temporalmente `.tmp/income-forecast-source.json` para `test-income-forecast-ui.mjs`; elimínelo después de las pruebas. `test-income-forecast.mjs` valida metodologías, redondeo, inflación, meses vacíos, moneda, consolidado y protección de ajustes. La prueba de navegador verifica escenarios, CSV y PDF real con API simulada.

@@ -9,10 +9,12 @@ try{
  await db.query("begin;set local lock_timeout='5s';set local statement_timeout='90s'");
  const installed=await value("select to_regclass('public.income_forecast_scenarios') is not null value");
  if(!installed)await db.query(await readFile('supabase/migrations/20260922020000_income_forecast.sql','utf8'));
- const context=(await db.query('select u.email,ucs.session_id,au.id sub from user_company_sessions ucs join users u using(user_id)join auth.users au on lower(au.email)=lower(u.email)order by selected_at desc limit 1')).rows[0];
+ const scoped=await value("select to_regprocedure('public.income_forecast_options(boolean)') is not null value");
+ if(!scoped)await db.query(await readFile('supabase/migrations/20260922030000_scope_income_forecast.sql','utf8'));
+ const context=(await db.query('select u.user_id,u.email,ucs.session_id,au.id sub from user_company_sessions ucs join users u using(user_id)join auth.users au on lower(au.email)=lower(u.email)order by selected_at desc limit 1')).rows[0];
  await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({...context,role:'authenticated'})]);
  await db.query('savepoint fixtures');await db.query('set local role authenticated');
- const opts=await value('select income_forecast_options()value'),year=opts.years.find(y=>y.start<='2026-09-01'&&y.end>='2026-09-30');assert.ok(year);
+ const opts=await value('select income_forecast_options(false)value'),year=opts.years.find(y=>y.start<='2026-09-01'&&y.end>='2026-09-30');assert.ok(year);assert.equal(opts.mode,'SUBSIDIARY');assert.deepEqual(opts.subsidiaries.map(s=>Number(s.id)),[Number(opts.activeSubsidiaryId)]);
  const p={subsidiaryIds:[opts.activeSubsidiaryId],fiscalYearId:year.id,cutoff:'2026-08-31',method:'RUN_RATE',columnView:'ACCOUNTING_PERIOD',excludeClosing:true};
  const source=await value('select income_forecast_source($1)value',[p]);assert.ok(Array.isArray(source.facts));
  for(const [field,key]of [['departmentId','department_id'],['locationId','location_id'],['classId','class_id'],['costCenterId','cost_center_id'],['projectId','cost_center_id']]){
@@ -29,12 +31,14 @@ try{
  const journal=await value(`select j.journal_id value from journal j join gl_impact g using(transaction_id)join chart_accounts ca on ca.account_id=g.account_id where ca.category in('Ingreso','Costo','Gasto')and g.subsidiary_id=$1 and g.posting_date between $2::date and $3::date and not j.is_year_end_closing limit 1`,[opts.activeSubsidiaryId,year.start,p.cutoff]);
  if(journal){await db.query('update journal set is_year_end_closing=true where journal_id=$1',[journal]);await db.query('set local role authenticated');const excluded=await value('select income_forecast_source($1)value',[p]);const included=await value('select income_forecast_source($1)value',[{...p,excludeClosing:false}]);assert.deepEqual(included.facts,inclusive.facts);assert.notDeepEqual(excluded.facts,included.facts);}
  await db.query('rollback to savepoint closing');
- await db.query('savepoint forbidden');await assert.rejects(value('select income_forecast_source($1)value',[{...p,subsidiaryIds:[-1]}]),/acceso/);await db.query('rollback to savepoint forbidden');
+ await db.query('savepoint forbidden');await assert.rejects(value('select income_forecast_source($1)value',[{...p,subsidiaryIds:[-1]}]),/empresa activa/);await db.query('rollback to savepoint forbidden');
+ await db.query('savepoint multiple');await assert.rejects(value('select income_forecast_source($1)value',[{...p,subsidiaryIds:[opts.activeSubsidiaryId,-1]}]),/empresa activa/);await db.query('rollback to savepoint multiple');
+ if(opts.canConsolidate){const consolidated=await value('select income_forecast_options(true)value');assert.equal(consolidated.mode,'CONSOLIDATED');assert.ok(consolidated.subsidiaries.length>=opts.subsidiaries.length);assert.ok(consolidated.holding?.id);}
  const saved=await value('select income_forecast_save($1)value',[{name:'TEST-FORECAST',configuration:p}]);assert.ok(saved.id);
  const changed=await value('select income_forecast_save($1)value',[{id:saved.id,revision:saved.revision,name:'TEST-FORECAST-UPDATED',configuration:p}]);assert.equal(changed.revision,saved.revision+1);
  await db.query('savepoint stale');await assert.rejects(value('select income_forecast_save($1)value',[{id:saved.id,revision:saved.revision,name:'TEST-STALE',configuration:p}]),/cambió/);await db.query('rollback to savepoint stale');
  await db.query('rollback to savepoint fixtures');
  const apply=process.argv.includes('--apply');await db.query(apply?'commit':'rollback');
- console.log(JSON.stringify({applied:apply&&!installed,actualRole:true,options:true,source:true,unauthorizedCompanyRejected:true,scenarioSave:true,fixturesRolledBack:true,facts:source.facts.length}));
+ console.log(JSON.stringify({applied:apply&&(!installed||!scoped),actualRole:true,activeSubsidiaryOnly:true,consolidationPermission:true,options:true,source:true,unauthorizedCompanyRejected:true,scenarioSave:true,fixturesRolledBack:true,facts:source.facts.length}));
  if(process.argv.includes('--snapshot'))await writeFile('.tmp/income-forecast-source.json',JSON.stringify({source,p,opts}));
 }catch(e){await db.query('rollback').catch(()=>{});throw e;}finally{await db.end();}

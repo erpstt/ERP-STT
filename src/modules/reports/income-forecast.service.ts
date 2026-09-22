@@ -65,7 +65,7 @@ export function calculateIncomeForecast(source:Item,p:Item){
 }
 async function rpc(auth:string,name:string,p:Item={}){const config=getSupabaseConfig();if(!config)throw Error('Base de datos no configurada.');const res=await fetchSupabase(new URL(`/rest/v1/rpc/${name}`,config.url),{method:'POST',headers:{apikey:config.anonKey,Authorization:auth,'Content-Type':'application/json'},body:JSON.stringify(p)});const result=await res.json()as Item;if(!res.ok)throw Error(result.message||'No fue posible procesar la proyección.');return result;}
 export async function incomeForecastAction(auth:string,action:string,p:Item){
- if(action==='options')return rpc(auth,'income_forecast_options');
+ if(action==='options')return rpc(auth,'income_forecast_options',{p_consolidated:!!p.consolidated});
  if(action==='generate')return calculateIncomeForecast(await rpc(auth,'income_forecast_source',{p}),p);
  if(action==='save'){calculateIncomeForecast(await rpc(auth,'income_forecast_source',{p:p.configuration}),p.configuration);return rpc(auth,'income_forecast_save',{p});}
  throw Error('Acción de proyección inválida.');
