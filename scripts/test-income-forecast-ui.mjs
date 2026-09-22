@@ -1,0 +1,34 @@
+import {chromium} from '../.tmp/record-audit-validation/node_modules/playwright-core/index.mjs';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {calculateIncomeForecast} from '../dist/modules/reports/income-forecast.service.js';
+import {renderBankReconciliationPdf} from '../dist/modules/reports/accounting-reports.service.js';
+const fixture=JSON.parse(await readFile('.tmp/income-forecast-source.json','utf8'));
+const options={...fixture.opts,scenarios:[]};
+const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
+try{
+ const page=await browser.newPage({viewport:{width:1440,height:1000},acceptDownloads:true}),errors=[],calls=[];
+ page.on('pageerror',e=>errors.push(e.message));
+ await page.route('**/test-forecast-container',route=>route.fulfill({contentType:'text/html',body:'<iframe src="/income-forecast.html" style="border:0;width:100%;height:970px"></iframe>'}));
+ await page.route('**/api/reports/accounting/pending-invoice-control/pdf',async route=>{const p=route.request().postDataJSON();assert.ok(p.html.includes('Departamento'));assert.ok(p.html.includes('Ajuste comercial previsto'));const file=await renderBankReconciliationPdf(p);assert.equal(Buffer.from(file.base64,'base64').subarray(0,4).toString(),'%PDF');await route.fulfill({json:file});});
+ await page.route('**/api/reports/income-forecast/**',async route=>{const action=new URL(route.request().url()).pathname.split('/').pop(),p=route.request().postDataJSON();calls.push({action,p});let data;
+  try{if(action==='options')data=options;if(action==='generate')data=calculateIncomeForecast({...fixture.source,cutoff:p.cutoff},p);if(action==='save'){data={id:1,revision:1,name:p.name,configuration:p.configuration};options.scenarios=[data];}await route.fulfill({json:data});}catch(e){await route.fulfill({status:400,json:{error:{message:e.message}}});}
+ });
+ await page.goto('http://localhost:3000/test-forecast-container');const f=page.frameLocator('iframe');
+ await f.locator('#year option').first().waitFor({state:'attached'});await f.locator('#year').selectOption(String(fixture.p.fiscalYearId));await f.locator('#cutoff').selectOption(fixture.p.cutoff);await f.locator('#generate').click();await f.locator('#matrix button[data-key]').first().waitFor();
+ assert.equal(await f.locator('#matrix td.real button').count(),0);assert.equal(await f.locator('#matrix th').count(),16);
+ await f.locator('#matrix button[data-key]').first().click();await f.locator('#editAmount').fill('1234.56');await f.locator('#editReason').fill('Ajuste comercial previsto');await f.locator('#editForm button.primary').click();await f.locator('#editDialog').waitFor({state:'hidden'});assert.equal(await f.locator('#matrix td.override').count(),1);
+ await f.locator('#scenarioName').fill('Escenario de prueba');await f.locator('#save').click();await f.locator('#message').filter({hasText:'Escenario guardado'}).waitFor();assert.equal(Object.keys(options.scenarios[0].configuration.overrides).length,1);
+ await f.locator('#method').selectOption('PRIOR_YEAR');await f.locator('#generate').click();await f.locator('#message').filter({hasText:'restablece los ajustes'}).waitFor();
+ await f.locator('#load').click();await f.locator('#message').filter({hasText:'Proyección calculada'}).waitFor();assert.equal(await f.locator('#method').inputValue(),'RUN_RATE');assert.equal(await f.locator('#matrix td.override').count(),1);
+ const download=page.waitForEvent('download');await f.locator('#csv').click();assert.match((await download).suggestedFilename(),/resultados-proyectados/);
+ const pdf=page.waitForEvent('download');await f.locator('#pdf').click();assert.match((await pdf).suggestedFilename(),/resultados-proyectados.*\.pdf/);
+ await f.locator('#reset').click();await f.locator('#message').filter({hasText:'restableció'}).waitFor();assert.equal(await f.locator('#matrix td.override').count(),0);
+ await f.locator('#columnView').selectOption('DEPARTMENT');assert.equal(await f.locator('#method option[value="BUDGET"]').evaluate(el=>el.disabled),true);await f.locator('#generate').click();await f.locator('#dimensionLabel').waitFor({state:'visible'});assert.ok(await f.locator('#matrix button[data-dimension]').count()>0);await f.locator('#matrix button[data-dimension]').first().click();assert.ok(await f.locator('#matrix button[data-key]').count()>0);
+ await f.locator('#hierarchy').selectOption('1');await f.locator('#generate').click();await f.locator('#message').filter({hasText:'Proyección calculada'}).waitFor();assert.equal(await f.locator('#matrix button[data-key]').count(),0);
+ await page.setViewportSize({width:390,height:844});assert.equal(await f.locator('html').evaluate(el=>el.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
+ const department=(options.reportDepartments||options.departments||[]).find(d=>Number(d.subsidiaryId)===Number(options.activeSubsidiaryId));
+ await f.locator('body').evaluate((element,seed)=>{sessionStorage.setItem('nexo_income_forecast_filters',JSON.stringify(seed));location.reload();},{subsidiaryIds:[options.activeSubsidiaryId],dateTo:'2026-09-17',columnView:'DEPARTMENT',departmentId:department?.id||null,departmentType:department?.type||null,hierarchy:4,excludeZero:true});
+ await f.locator('#message').filter({hasText:'Filtros del Estado de Resultados Integral conservados'}).waitFor();assert.equal(await f.locator('#cutoff').inputValue(),'2026-08-31');assert.equal(await f.locator('#columnView').inputValue(),'DEPARTMENT');if(department)assert.equal(await f.locator('#department').inputValue(),String(department.id));assert.deepEqual(errors,[]);
+ console.log(JSON.stringify({monthlyMatrix:true,realReadOnly:true,manualOverride:true,scenarioSaveLoad:true,staleFiltersProtected:true,csvDownload:true,reset:true,dimensionColumns:true,budgetGuard:true,detailLevel:true,mobile:true}));
+}finally{await browser.close();}

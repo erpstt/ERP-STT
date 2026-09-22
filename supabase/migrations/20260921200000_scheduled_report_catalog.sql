@@ -1,3 +1,10 @@
+-- The audit columns on journal already include created_by_name; avoid a duplicate CTE column.
+do $$declare definition text;begin
+ definition:=pg_get_functiondef('run_general_journal_report(jsonb)'::regprocedure);
+ definition:=replace(definition,'''Sistema'') created_by_name','''Sistema'') journal_creator_name');
+ definition:=replace(definition,'p.created_by_name','p.journal_creator_name');
+ execute definition;
+end$$;
 create table scheduled_report_catalog(code text primary key,name text not null,category text not null,requires_bank boolean not null default false);
 insert into scheduled_report_catalog(code,name,category,requires_bank)values
  ('AR','Cuentas por Cobrar','Operativos',false),('AP','Cuentas por Pagar','Operativos',false),
@@ -16,7 +23,9 @@ alter table scheduled_reports add column period_mode text not null default 'YEAR
 -- A scoped, trusted worker context allows the existing report functions to run without a browser session.
 -- Ordinary authenticated sessions still use the original subsidiary selection without any change.
 alter function active_subsidiary_id()rename to active_subsidiary_id_without_report_context;
-revoke all on function active_subsidiary_id_without_report_context()from public,anon,authenticated;
+-- Existing RLS policies retain the renamed function OID and still execute it.
+revoke all on function active_subsidiary_id_without_report_context()from public,anon;
+grant execute on function active_subsidiary_id_without_report_context()to authenticated;
 create function active_subsidiary_id()returns bigint language plpgsql stable security definer set search_path=public,pg_temp as $$
 declare sid bigint;begin
  if coalesce(auth.role(),'')='service_role'and nullif(auth.jwt()->>'scheduled_report_sid','')is not null then
@@ -75,6 +84,7 @@ begin
  if p_kind='bank-balances'then
  select fiscal_period_id into period_key from fiscal_periods where subsidiary_id=p_sid and start_date<=p_cutoff and end_date>=p_cutoff order by end_date-start_date,fiscal_period_id limit 1;
  if period_key is null then raise exception 'No existe período contable para la fecha de corte.';end if;
+ select start_date,end_date into date_from,p_cutoff from fiscal_periods where fiscal_period_id=period_key;
  filters:=filters||jsonb_build_object('periodId',period_key);
  end if;
  loop
@@ -95,10 +105,15 @@ begin
  count_rows:=jsonb_array_length(coalesce(report->'rows','[]'));
  rows:=rows||coalesce(report->'rows','[]');
  if jsonb_array_length(rows)>20000 or coalesce((report->>'total')::int,0)>20000 then raise exception 'El reporte supera 20.000 filas. No se enviará un archivo incompleto.';end if;
- exit when p_kind not in('general-ledger','journal','sales-transactions','purchase-transactions','bank-reconciliation')or count_rows=0 or page*250>=coalesce((report->>'total')::int,count_rows);
+ exit when not(report ? 'rows') or jsonb_array_length(rows)>=coalesce((report->>'total')::int,count_rows);
+ if count_rows=0 or page>=2000 then raise exception 'No fue posible recuperar todas las páginas del reporte.';end if;
  page:=page+1;
  end loop;
  if report ? 'rows'then report:=report||jsonb_build_object('rows',rows);end if;
+ if p_kind='bank-reconciliation'then
+ report:=jsonb_build_object('rows',rows,'summary',report->'summary','bankAccount',(select jsonb_build_object('account',b.account_number,'bank',bk.bank_name,'currency',c.currency_code)from bank_account b join banks bk using(bank_id)join currencies c using(currency_id)where b.bank_account_id=(p_options->>'bankAccountId')::bigint));
+ end if;
+ if p_kind in('asset-reconciliation','asset-projection')then report:=report||jsonb_build_object('scopeNote','El auxiliar utiliza las fichas actuales de activos. La proyección incluye las depreciaciones registradas a la fecha de generación.');end if;
  result:=jsonb_build_object('kind',p_kind,'cutoff',p_cutoff,'dateFrom',date_from,'company',(select name from subsidiaries where subsidiary_id=p_sid),'currency',(select c.currency_code from subsidiaries s join currencies c using(currency_id)where s.subsidiary_id=p_sid),'rows','[]'::jsonb,'summary','{}'::jsonb,'data',report);
  end if;
  result:=result||jsonb_build_object('title',(select name from scheduled_report_catalog where code=p_kind));

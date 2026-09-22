@@ -69,6 +69,7 @@ import { iniciarProgramacionTipoCambioNI } from './modules/configuration-catalog
 import { consultarYGuardarTipoDeCambioPE } from './modules/configuration-catalogs/services/peru-exchange-rate.service.js';
 import { iniciarProgramacionTipoCambioPE } from './modules/configuration-catalogs/services/peru-exchange-rate.scheduler.js';
 import { accountingReportOptions, bankReconciliationAction, pendingInvoiceReversalOptions, renderBankReconciliationPdf, reverseJournalEntry, reversePendingInvoiceJournal, runAccountingReport } from './modules/reports/accounting-reports.service.js';
+import {incomeForecastAction} from './modules/reports/income-forecast.service.js';
 import { bankTransferJournal, bankTransferOptions, createBankTransfer, runBankTransferReport } from './modules/banking-catalogs/bank-transfer.service.js';
 import { bankDepositOptions, saveBankDeposit, listBankDeposits, bankDepositDetail, updateBankDeposit, deleteBankDeposit } from './modules/banking-catalogs/bank-deposit.service.js';
 import { bankCheckOptions, saveBankCheck, bankCheckReport, bankCheckDetail, deleteBankCheck } from './modules/banking-catalogs/bank-check.service.js';
@@ -147,6 +148,8 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(request.method==='POST'&&request.url==='/api/auth/select-role'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const input=await body(request)as{roleId?:number};return json(response,200,await selectUserRole(authorization,Number(input.roleId)));}
     if(request.method==='POST'&&request.url==='/api/auth/change-password'){const authorization=request.headers.authorization!;return json(response,200,await changePassword(authorization,await body(request)as{currentPassword?:string;newPassword?:string;confirmation?:string}));}
     if(request.method==='GET'&&request.url==='/api/reports/accounting/options'){return json(response,200,await accountingReportOptions(request.headers.authorization!));}
+    const forecastRoute=request.url?.match(/^\/api\/reports\/income-forecast\/(options|generate|save)$/);
+    if(request.method==='POST'&&forecastRoute){const auth=request.headers.authorization;if(!auth?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');return json(response,200,await incomeForecastAction(auth,forecastRoute[1],await body(request)as Record<string,unknown>));}
     if(request.method==='GET'&&request.url==='/api/banking/transfers/options'){return json(response,200,await bankTransferOptions(request.headers.authorization!));}
     if(request.method==='POST'&&request.url==='/api/banking/transfers'){return json(response,201,await createBankTransfer(request.headers.authorization!,await body(request) as Record<string,unknown>));}
     if(request.method==='POST'&&request.url==='/api/banking/deposit-entry'){return json(response,201,await saveBankDeposit(request.headers.authorization!,await body(request) as Record<string,unknown>));}
