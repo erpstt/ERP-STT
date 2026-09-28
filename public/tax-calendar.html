@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calendario tributario · NEXO</title>
+  <link rel="stylesheet" href="/tax-calendar.css?v=20260927">
+</head>
+<body>
+  <main id="taxCalendarApp" class="page-shell" aria-busy="true">
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">FISCAL · CUMPLIMIENTO</p>
+        <h1>Calendario tributario</h1>
+        <p class="page-copy">Controle vencimientos, responsables, respaldos y alertas de las subsidiarias autorizadas.</p>
+      </div>
+      <div class="header-actions">
+        <button id="openNotifications" class="button secondary notification-button" type="button" aria-haspopup="dialog">
+          <span aria-hidden="true">◉</span> Notificaciones
+          <b id="notificationBadge" class="notification-badge" hidden>0</b>
+        </button>
+        <button id="newEvent" class="button primary" type="button">＋ Nueva obligación</button>
+      </div>
+    </header>
+
+    <p id="message" class="message" role="status" aria-live="polite"></p>
+
+    <section id="accessDenied" class="state-card access-denied" hidden>
+      <span class="state-icon" aria-hidden="true">×</span>
+      <h2>Acceso restringido</h2>
+      <p>No tiene el permiso <code>tax_calendar.view</code> para consultar este módulo.</p>
+    </section>
+
+    <section id="workspace" hidden>
+      <section id="metrics" class="metrics" aria-label="Resumen de obligaciones">
+        <article class="metric pending"><span>Pendientes</span><strong id="metricPending">0</strong><small>Por preparar</small></article>
+        <article class="metric review"><span>En revisión</span><strong id="metricReview">0</strong><small>En validación</small></article>
+        <article class="metric upcoming"><span>Próximas 7 días</span><strong id="metricUpcoming">0</strong><small>Requieren atención</small></article>
+        <article class="metric overdue"><span>Vencidas</span><strong id="metricOverdue">0</strong><small>Prioridad alta</small></article>
+        <article class="metric filed"><span>Presentadas</span><strong id="metricFiled">0</strong><small>Con respaldo</small></article>
+      </section>
+
+      <form id="filters" class="card filters" aria-label="Filtros del calendario tributario">
+        <label>Subsidiaria
+          <select id="filterSubsidiary"><option value="">Todas las autorizadas</option></select>
+        </label>
+        <label>Estado
+          <select id="filterStatus">
+            <option value="">Todos</option>
+            <option value="pending">Pendiente</option>
+            <option value="in_review">En revisión</option>
+            <option value="filed">Presentada</option>
+            <option value="overdue">Vencida</option>
+            <option value="exempt">Exenta</option>
+          </select>
+        </label>
+        <label>Desde
+          <input id="filterFrom" type="date">
+        </label>
+        <label>Hasta
+          <input id="filterTo" type="date">
+        </label>
+        <label>Tipo de impuesto
+          <select id="filterTaxType"><option value="">Todos</option></select>
+        </label>
+        <div class="filter-actions">
+          <button id="resetFilters" class="button ghost" type="button">Restablecer</button>
+          <button class="button secondary" type="submit">Aplicar filtros</button>
+        </div>
+      </form>
+
+      <section class="card calendar-shell">
+        <div class="view-toolbar">
+          <nav class="view-tabs" role="tablist" aria-label="Vista del calendario">
+            <button id="monthTab" type="button" role="tab" aria-selected="true" aria-controls="monthView" data-view="month" class="active">Mes</button>
+            <button id="weekTab" type="button" role="tab" aria-selected="false" aria-controls="weekView" data-view="week">Semana</button>
+            <button id="tableTab" type="button" role="tab" aria-selected="false" aria-controls="tableView" data-view="table">Tabla</button>
+          </nav>
+          <div id="dateNavigator" class="date-navigator" aria-label="Navegación por fechas">
+            <button id="previousPeriod" class="icon-button" type="button" aria-label="Período anterior">‹</button>
+            <button id="today" class="button ghost" type="button">Hoy</button>
+            <strong id="periodLabel"></strong>
+            <button id="nextPeriod" class="icon-button" type="button" aria-label="Período siguiente">›</button>
+          </div>
+          <span id="resultCount" class="result-count">0 obligaciones</span>
+        </div>
+
+        <div id="loading" class="loading-state" role="status">
+          <span class="spinner" aria-hidden="true"></span>
+          <p>Cargando obligaciones tributarias…</p>
+        </div>
+
+        <section id="monthView" class="calendar-panel" role="tabpanel" aria-labelledby="monthTab" tabindex="0" hidden>
+          <div class="calendar-scroll">
+            <div class="month-weekdays" aria-hidden="true">
+              <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+            </div>
+            <div id="monthGrid" class="month-grid" role="grid" aria-label="Obligaciones por mes"></div>
+          </div>
+        </section>
+
+        <section id="weekView" class="calendar-panel" role="tabpanel" aria-labelledby="weekTab" tabindex="0" hidden>
+          <div id="weekGrid" class="week-grid" role="grid" aria-label="Obligaciones por semana"></div>
+        </section>
+
+        <section id="tableView" class="calendar-panel" role="tabpanel" aria-labelledby="tableTab" tabindex="0" hidden>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Vencimiento</th>
+                  <th>Subsidiaria</th>
+                  <th>Obligación</th>
+                  <th>Período</th>
+                  <th>Responsable</th>
+                  <th>Estado</th>
+                  <th>Respaldo</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="eventRows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <div id="emptyState" class="empty-state" hidden>
+          <span aria-hidden="true">□</span>
+          <h2>No hay obligaciones en este período</h2>
+          <p>Ajuste los filtros o registre una nueva obligación tributaria.</p>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="editorDialog" class="editor-dialog" aria-labelledby="editorTitle">
+    <form id="eventForm">
+      <header class="dialog-header">
+        <div>
+          <p class="eyebrow">OBLIGACIÓN TRIBUTARIA</p>
+          <h2 id="editorTitle">Nueva obligación</h2>
+          <p id="editorSubtitle" class="dialog-subtitle">Complete los datos de la declaración y su seguimiento.</p>
+        </div>
+        <button id="closeEditor" class="dialog-close" type="button" aria-label="Cerrar">×</button>
+      </header>
+
+      <div class="dialog-body">
+        <p id="editorError" class="form-error" role="alert"></p>
+
+        <section class="form-section">
+          <div class="section-title">
+            <span class="section-number">1</span>
+            <div><h3>Datos de la obligación</h3><p>Subsidiaria, impuesto, período y vencimiento.</p></div>
+          </div>
+          <div class="form-grid">
+            <label>Subsidiaria *
+              <select id="eventSubsidiary" class="manage-field" required></select>
+            </label>
+            <label>Tipo de impuesto *
+              <select id="eventTaxType" class="manage-field" required></select>
+            </label>
+            <label>Período *
+              <input id="eventPeriod" class="manage-field" required maxlength="24" placeholder="2026-08, 2026-Q3 o 2026-FY">
+            </label>
+            <label>Fecha de vencimiento *
+              <input id="eventDueDate" class="manage-field" type="date" required>
+            </label>
+            <label>Contador responsable
+              <select id="eventAssignee" class="manage-field"><option value="">Sin asignar</option></select>
+            </label>
+            <label>Estado *
+              <select id="eventStatus" required></select>
+            </label>
+            <label class="wide">Notas
+              <textarea id="eventNotes" class="manage-field" rows="3" maxlength="4000" placeholder="Observaciones internas, instrucciones o contexto"></textarea>
+            </label>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <div class="section-title with-action">
+            <div class="section-title-copy"><span class="section-number">2</span><div><h3>Seguimiento y recordatorios</h3><p>Usuarios que recibirán copia de las alertas.</p></div></div>
+            <button id="addFollower" class="button ghost manage-field" type="button">＋ Agregar seguidor</button>
+          </div>
+          <div id="followers" class="followers-list"></div>
+          <div class="reminder-box">
+            <strong>Alertas antes del vencimiento</strong>
+            <p>Seleccione los días en que debe enviarse un recordatorio.</p>
+            <div id="reminderOptions" class="reminder-options">
+              <label><input class="manage-field" type="checkbox" value="7" checked><span>7 días antes</span></label>
+              <label><input class="manage-field" type="checkbox" value="3" checked><span>3 días antes</span></label>
+              <label><input class="manage-field" type="checkbox" value="1" checked><span>1 día antes</span></label>
+              <label><input class="manage-field" type="checkbox" value="0" checked><span>El día del vencimiento</span></label>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <div class="section-title">
+            <span class="section-number">3</span>
+            <div><h3>Respaldo y presentación</h3><p>Adjunte el comprobante o registre el enlace oficial.</p></div>
+          </div>
+          <div id="existingDocument" class="existing-document" hidden></div>
+          <div class="form-grid">
+            <label>Tipo de respaldo
+              <select id="documentType" class="file-field">
+                <option value="none">Sin respaldo</option>
+                <option value="file_upload">Archivo PDF, JPG o PNG</option>
+                <option value="external_url">Enlace externo</option>
+              </select>
+            </label>
+            <label id="fileField">Archivo
+              <input id="documentFile" class="file-field" type="file" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png">
+              <small>Máximo 5 MB. El archivo se guardará en almacenamiento seguro.</small>
+            </label>
+            <label id="externalLinkField" class="wide" hidden>Enlace externo seguro *
+              <input id="externalLink" class="file-field" type="url" inputmode="url" placeholder="https://portal-tributario.example/...">
+            </label>
+          </div>
+          <p id="selectedFile" class="selected-file" hidden></p>
+          <div id="filingFields" class="filing-box" hidden>
+            <div>
+              <strong>Confirmación de presentación</strong>
+              <p>La fecha real es obligatoria cuando el estado es Presentada.</p>
+            </div>
+            <label>Fecha real de presentación *
+              <input id="filingDate" class="file-field" type="datetime-local">
+            </label>
+            <label>Número de radicado / recibo
+              <input id="filingReference" class="file-field" maxlength="120" placeholder="Opcional">
+            </label>
+          </div>
+        </section>
+      </div>
+
+      <footer class="dialog-footer">
+        <button id="requestDelete" class="button danger" type="button" hidden>Eliminar obligación</button>
+        <span class="footer-spacer"></span>
+        <button id="cancelEditor" class="button secondary" type="button">Cancelar</button>
+        <button id="saveEvent" class="button primary" type="submit">Guardar obligación</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="deleteDialog" class="confirm-dialog" aria-labelledby="deleteTitle">
+    <div class="confirm-icon" aria-hidden="true">!</div>
+    <h2 id="deleteTitle">Eliminar obligación</h2>
+    <p id="deleteText"></p>
+    <p>Se eliminarán también sus seguidores y recordatorios. Esta acción no se puede deshacer.</p>
+    <p id="deleteError" class="form-error" role="alert"></p>
+    <div class="dialog-actions">
+      <button id="cancelDelete" class="button secondary" type="button">Volver</button>
+      <button id="confirmDelete" class="button danger" type="button">Eliminar definitivamente</button>
+    </div>
+  </dialog>
+
+  <dialog id="notificationsDialog" class="notifications-dialog" aria-labelledby="notificationsTitle">
+    <header class="dialog-header compact">
+      <div>
+        <p class="eyebrow">CENTRO DE ALERTAS</p>
+        <h2 id="notificationsTitle">Notificaciones tributarias</h2>
+      </div>
+      <button id="closeNotifications" class="dialog-close" type="button" aria-label="Cerrar">×</button>
+    </header>
+    <div class="notifications-toolbar">
+      <p id="notificationsSummary">No hay alertas pendientes.</p>
+      <button id="markAllRead" class="button ghost" type="button">Marcar todas como leídas</button>
+    </div>
+    <div id="notificationList" class="notification-list"></div>
+  </dialog>
+
+  <script type="module" src="/tax-calendar.js?v=20260927-2"></script>
+</body>
+</html>

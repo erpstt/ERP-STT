@@ -2,6 +2,7 @@ import {scheduledReportsAction,startScheduledReports} from './modules/reports/sc
 import { budgetAction } from './modules/budget/budget.service.js';
 import { statementSettings, customerStatement, startStatementNotifications } from './modules/notifications/customer-statement.js';
 import { notificationSettings, paymentNotifications, startEmailNotifications } from './modules/notifications/email-notification.service.js';
+import { startTaxCalendarNotifications, taxCalendarAction, taxCalendarDocument } from './modules/tax-calendar/tax-calendar.service.js';
 import { recordActorAudit } from './modules/audit-catalogs/record-actor-audit.service.js';
 import { withAuditExecution } from './core/database/audit-context.js';
 import { paymentRequests } from './modules/treasury-catalogs/payment-requests.service.js';
@@ -88,7 +89,14 @@ const mime: Record<string, string> = { '.html': 'text/html', '.css': 'text/css',
 
 async function body(request: IncomingMessage): Promise<unknown> {
   let raw = '';
-  for await (const chunk of request) raw += chunk;
+  for await (const chunk of request) {
+    raw += chunk;
+    if (Buffer.byteLength(raw, 'utf8') > 8 * 1024 * 1024) {
+      const failure = new Error('La solicitud supera el límite permitido de 8 MB.') as Error & { status?: number };
+      failure.status = 413;
+      throw failure;
+    }
+  }
   return JSON.parse(raw || '{}');
 }
 
@@ -233,6 +241,20 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(request.method==='GET'&&request.url==='/api/purchasing/workflow/options')return json(response,200,await purchaseWorkflowOptions(request.headers.authorization!));
     if(request.method==='POST'&&request.url==='/api/purchasing/workflow/report')return json(response,200,await purchaseDocuments(request.headers.authorization!,await body(request)as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/purchasing/workflow')return json(response,201,await savePurchaseDocument(request.headers.authorization!,await body(request)as Record<string,unknown>));
+    const taxCalendarActionRoute=request.url?.split('?')[0].match(/^\/api\/tax-calendar\/(options|list|get|save|delete|mark-read)$/);
+    if(taxCalendarActionRoute&&request.method==='POST')return json(response,200,await taxCalendarAction(request.headers.authorization!,taxCalendarActionRoute[1],await body(request)as Record<string,unknown>));
+    const taxCalendarDocumentRoute=request.url?.split('?')[0].match(/^\/api\/tax-calendar\/events\/([0-9a-f-]{36})\/document$/i);
+    if(taxCalendarDocumentRoute&&request.method==='GET'){
+      const file=await taxCalendarDocument(request.headers.authorization!,taxCalendarDocumentRoute[1]);
+      response.writeHead(200,{
+        'Content-Type':file.mimeType,
+        'Content-Length':file.bytes.length,
+        'Content-Disposition':`attachment; filename*=UTF-8''${encodeURIComponent(file.fileName)}`,
+        'Cache-Control':'private, no-store',
+        'X-Content-Type-Options':'nosniff'
+      });
+      response.end(file.bytes);return;
+    }
     const scheduledRoute=request.url?.match(/^\/api\/reports\/schedules\/(list|save|toggle|delete|preview)$/);
     if(scheduledRoute&&request.method==='POST')return json(response,200,await scheduledReportsAction(request.headers.authorization!,scheduledRoute[1],await body(request)as Record<string,unknown>));
     const budgetRoute=request.url?.split('?')[0].match(/^\/api\/v1\/budget\/(options|headers|lines|action|transfers|override|check-availability|execution-report|import-excel)$/);
@@ -329,4 +351,4 @@ const server = createServer((request, response) => withAuditExecution(async () =
   }
 }));
 
-server.listen(Number(process.env.PORT ?? 3000), '0.0.0.0', () => {startEmailNotifications();startStatementNotifications();startScheduledReports();console.log(`Nexo ERP disponible en el puerto ${process.env.PORT ?? 3000}`);iniciarProgramacionTipoCambioRD();iniciarProgramacionTipoCambioCR();iniciarProgramacionTipoCambioGT();iniciarProgramacionTipoCambioJM();iniciarProgramacionTipoCambioCO();iniciarProgramacionTipoCambioAR();iniciarProgramacionTipoCambioNI();iniciarProgramacionTipoCambioPE();});
+server.listen(Number(process.env.PORT ?? 3000), '0.0.0.0', () => {startEmailNotifications();startStatementNotifications();startScheduledReports();startTaxCalendarNotifications();console.log(`Nexo ERP disponible en el puerto ${process.env.PORT ?? 3000}`);iniciarProgramacionTipoCambioRD();iniciarProgramacionTipoCambioCR();iniciarProgramacionTipoCambioGT();iniciarProgramacionTipoCambioJM();iniciarProgramacionTipoCambioCO();iniciarProgramacionTipoCambioAR();iniciarProgramacionTipoCambioNI();iniciarProgramacionTipoCambioPE();});
