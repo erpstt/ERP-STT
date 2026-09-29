@@ -1,24 +1,73 @@
 const $=id=>document.getElementById(id);
-const kind=new URLSearchParams(location.search).get('kind')==='ESTADO_CUENTA'?'ESTADO_CUENTA':'PAGO_PROVEEDOR';
-$('notificationType').value=kind;$('notificationType').onchange=()=>location.assign('/notification-templates.html?kind='+$('notificationType').value);
-if(kind==='ESTADO_CUENTA'){$('scheduleFields').hidden=false;$('sendDay').required=true;$('sendTime').required=true;$('typeTitle').textContent='Envío de Estado de Cuenta';$('automaticHelp').textContent='El resumen del saldo y el PDF completo se agregan automáticamente.';$('previewHelp').textContent='Ejemplo de estado de cuenta mensual. Esta vista no envía correos.';$('schedule').textContent='Envío mensual: según el día y la hora configurados (Costa Rica), con corte al cierre del mes anterior. Solo clientes habilitados con saldo neto positivo. El PDF se adjunta automáticamente.';}
+const kinds={
+ PAGO_PROVEEDOR:{
+  title:'Notificación Pago a Proveedores',
+  tags:['empresa_nombre','proveedor_nombre','fecha_pago','referencia_pago','total_pagado','moneda'],
+  active:'Habilitar notificaciones para esta subsidiaria',
+  activeHelp:'También requiere que el envío SMTP esté activado en el servidor. Los pagos anteriores no se envían automáticamente.',
+  automatic:'El logo, las facturas, las retenciones y el total transferido se agregan automáticamente.',
+  preview:'Ejemplo de un abono parcial. Esta vista no envía correos.',
+  transport:'SMTP activado. Los nuevos pagos con plantilla habilitada se enviarán en segundo plano.'
+ },
+ ESTADO_CUENTA:{
+  title:'Envío de Estado de Cuenta',
+  tags:['empresa_nombre','cliente_nombre','fecha_corte','saldo_total','moneda'],
+  active:'Habilitar estados de cuenta automáticos para esta subsidiaria',
+  activeHelp:'También requiere que el envío SMTP esté activado en el servidor y que el cliente tenga habilitado el envío automático.',
+  automatic:'El resumen del saldo y el PDF completo se agregan automáticamente.',
+  preview:'Ejemplo de estado de cuenta mensual. Esta vista no envía correos.',
+  schedule:'Envío mensual: según el día y la hora configurados (Costa Rica), con corte al cierre del mes anterior. Solo clientes habilitados con saldo neto positivo. El PDF se adjunta automáticamente.',
+  transport:'SMTP activado. Se aplicará la programación mensual a los clientes habilitados.'
+ },
+ FACTURA_VENTA:{
+  title:'Envío de Facturas de Venta',
+  tags:['empresa_nombre','cliente_nombre','numero_factura','fecha_factura','fecha_vencimiento','total_factura','moneda'],
+  active:'Habilitar envío de facturas para esta subsidiaria',
+  activeHelp:'La factura se envía manualmente desde su vista de detalle al correo registrado en el cliente.',
+  automatic:'El PDF de la factura y todos los archivos de respaldo cargados se adjuntan automáticamente. Los respaldos registrados como enlaces se incluyen como enlaces seguros en el mensaje.',
+  preview:'Ejemplo de una factura de venta. Esta vista no envía correos.',
+  schedule:'Envío manual: el usuario revisa el destinatario y confirma el envío desde la factura de venta.',
+  transport:'SMTP activado. Las facturas podrán enviarse desde su vista de detalle.'
+ }
+};
+const requested=new URLSearchParams(location.search).get('kind');
+const kind=Object.hasOwn(kinds,requested)?requested:'PAGO_PROVEEDOR',settings=kinds[kind];
+$('notificationType').value=kind;
+$('notificationType').onchange=()=>location.assign('/notification-templates.html?kind='+encodeURIComponent($('notificationType').value));
+$('typeTitle').textContent=settings.title;
+$('activeLabel').textContent=settings.active;
+$('activeHelp').textContent=settings.activeHelp;
+$('automaticHelp').textContent=settings.automatic;
+$('previewHelp').textContent=settings.preview;
+$('schedule').textContent=settings.schedule||'';
+if(kind==='ESTADO_CUENTA'){$('scheduleFields').hidden=false;$('sendDay').required=true;$('sendTime').required=true;}
 const token=localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo_token');
 const headers={Authorization:`Bearer ${token}`,'X-Device-Token':localStorage.getItem('nexo_device_token')||sessionStorage.getItem('nexo_device_token')||'','Content-Type':'application/json'};
-async function api(action,payload={}){const r=await fetch(`/api/configuration/notification-templates/${action}`,{method:'POST',headers,body:JSON.stringify({...payload,kind})});const d=await r.json();if(!r.ok)throw Error(d?.error?.message||'No fue posible cargar la configuración.');return d;}
+async function api(action,payload={}){const response=await fetch(`/api/configuration/notification-templates/${action}`,{method:'POST',headers,body:JSON.stringify({...payload,kind})});const data=await response.json();if(!response.ok)throw Error(data?.error?.message||'No fue posible cargar la configuración.');return data;}
 function report(text,error=false){$('message').textContent=text;$('message').dataset.error=String(error);}
 const payload=()=>({subject:$('subject').value,body:$('editor').innerHTML,active:$('active').checked,...(kind==='ESTADO_CUENTA'?{day:Number($('sendDay').value),time:$('sendTime').value}:{})});
 let target=$('editor'),range;
 $('subject').addEventListener('focus',()=>target=$('subject'));
 $('editor').addEventListener('focus',()=>target=$('editor'));
 document.addEventListener('selectionchange',()=>{const selection=getSelection();if(selection.rangeCount&&$('editor').contains(selection.anchorNode))range=selection.getRangeAt(0).cloneRange();});
-function restore(){ $('editor').focus();if(range){const s=getSelection();s.removeAllRanges();s.addRange(range);} }
-document.querySelectorAll('[data-command]').forEach(b=>b.addEventListener('click',()=>{restore();document.execCommand(b.dataset.command,false);}));
+function restore(){$('editor').focus();if(range){const selection=getSelection();selection.removeAllRanges();selection.addRange(range);}}
+document.querySelectorAll('[data-command]').forEach(button=>button.addEventListener('click',()=>{restore();document.execCommand(button.dataset.command,false);}));
 $('addLink').addEventListener('click',()=>{const url=prompt('Dirección del enlace (https://…)');if(!url)return;if(!/^https?:\/\//i.test(url)){report('Ingrese un enlace http o https.',true);return;}restore();document.execCommand('createLink',false,url);});
-$('editor').addEventListener('paste',e=>{e.preventDefault();document.execCommand('insertText',false,e.clipboardData.getData('text/plain'));});
-for(const tag of (kind==='ESTADO_CUENTA'?['empresa_nombre','cliente_nombre','fecha_corte','saldo_total','moneda']:['empresa_nombre','proveedor_nombre','fecha_pago','referencia_pago','total_pagado','moneda'])){const b=document.createElement('button');b.type='button';b.textContent=`{{${tag}}}`;b.addEventListener('click',()=>{if(target===$('subject')){$('subject').setRangeText(b.textContent,$('subject').selectionStart,$('subject').selectionEnd,'end');$('subject').focus();}else{restore();document.execCommand('insertText',false,b.textContent);}});$('variables').append(b);}
-async function preview(){const d=await api('preview',payload());$('previewSubject').textContent=d.subject;$('preview').srcdoc=d.html;}
-$('previewButton').addEventListener('click',async()=>{try{await preview();report('Vista previa actualizada.');}catch(e){report(e.message,true);}});
-$('form').addEventListener('submit',async e=>{e.preventDefault();$('save').disabled=true;try{const d=await api('save',payload());$('editor').innerHTML=d.template.cuerpo_template;$('audit').textContent=`Última edición: ${d.template.updated_by_email} · ${new Date(d.template.updated_at).toLocaleString('es-CR')}`;await preview();report('Plantilla guardada.');}catch(e){report(e.message,true);}finally{$('save').disabled=false;}});
-try{const d=await api('get');$('company').textContent=d.subsidiary?.name||'';$('sendDay').value=d.template?.envio_dia??1;$('sendTime').value=(d.template?.envio_hora||'08:00').slice(0,5);$('subject').value=d.template?.asunto_template||d.defaults.subject;
-// HTML returned by the server is sanitized before insertion.
-$('editor').innerHTML=d.template?.cuerpo_template||d.defaults.body;$('active').checked=!!d.template?.activo;$('transport').textContent=d.transport.enabled?(kind==='ESTADO_CUENTA'?'SMTP activado. Se aplicará la programación mensual a los clientes habilitados.':'SMTP activado. Los nuevos pagos con plantilla habilitada se enviarán en segundo plano.'):'Envío desactivado. Puede preparar y guardar la plantilla; faltan la configuración SMTP y su activación en el servidor.';$('save').disabled=false;await preview();}catch(e){report(e.message,true);$('transport').textContent='No fue posible consultar la configuración.';}
+$('editor').addEventListener('paste',event=>{event.preventDefault();document.execCommand('insertText',false,event.clipboardData.getData('text/plain'));});
+for(const tag of settings.tags){const button=document.createElement('button');button.type='button';button.textContent=`{{${tag}}}`;button.addEventListener('click',()=>{if(target===$('subject')){$('subject').setRangeText(button.textContent,$('subject').selectionStart,$('subject').selectionEnd,'end');$('subject').focus();}else{restore();document.execCommand('insertText',false,button.textContent);}});$('variables').append(button);}
+async function preview(){const data=await api('preview',payload());$('previewSubject').textContent=data.subject;$('preview').srcdoc=data.html;}
+$('previewButton').addEventListener('click',async()=>{try{await preview();report('Vista previa actualizada.');}catch(error){report(error.message,true);}});
+$('form').addEventListener('submit',async event=>{event.preventDefault();$('save').disabled=true;try{const data=await api('save',payload());$('editor').innerHTML=data.template.cuerpo_template;$('audit').textContent=`Última edición: ${data.template.updated_by_email||'sistema'} · ${new Date(data.template.updated_at).toLocaleString('es-CR')}`;await preview();report('Plantilla guardada.');}catch(error){report(error.message,true);}finally{$('save').disabled=false;}});
+try{
+ const data=await api('get');
+ $('company').textContent=data.subsidiary?.name||'';
+ $('sendDay').value=data.template?.envio_dia??1;
+ $('sendTime').value=(data.template?.envio_hora||'08:00').slice(0,5);
+ $('subject').value=data.template?.asunto_template||data.defaults.subject;
+ // HTML returned by the server is sanitized before insertion.
+ $('editor').innerHTML=data.template?.cuerpo_template||data.defaults.body;
+ $('active').checked=!!data.template?.activo;
+ $('transport').textContent=data.transport.enabled?settings.transport:'Envío desactivado. Puede preparar y guardar la plantilla; faltan la configuración SMTP y su activación en el servidor.';
+ $('save').disabled=false;
+ await preview();
+}catch(error){report(error.message,true);$('transport').textContent='No fue posible consultar la configuración.';}

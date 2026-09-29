@@ -4,12 +4,13 @@
   if(!token)return;
   const device=localStorage.getItem('nexo_device_token')||sessionStorage.getItem('nexo_device_token')||'';
   const headers={Authorization:`Bearer ${token}`,'X-Device-Token':device};
+  const openWorkspace=(url,module,section)=>window.dispatchEvent(new CustomEvent('nexo:open-workspace',{detail:{url,module,section}}));
   const approvals=document.createElement('button');
   approvals.className='nexo-alert-button nexo-approval-bell';approvals.type='button';approvals.title='Mis aprobaciones';approvals.setAttribute('aria-label','Abrir mis aprobaciones');approvals.innerHTML='<span aria-hidden="true">🔔</span> <b>0</b>';
-  approvals.onclick=()=>location.assign('/approval-inbox.html');
+  approvals.onclick=()=>openWorkspace('/approval-inbox.html','Workflow','Mis aprobaciones');
   const taxes=document.createElement('button');
   taxes.className='nexo-alert-button nexo-tax-bell';taxes.type='button';taxes.title='Alertas del calendario tributario';taxes.setAttribute('aria-label','Abrir alertas del calendario tributario');taxes.innerHTML='<span aria-hidden="true">▣</span> <b>0</b>';taxes.hidden=true;
-  taxes.onclick=()=>location.assign('/tax-calendar.html');
+  taxes.onclick=()=>openWorkspace('/tax-calendar.html?notifications=1','Fiscal','Calendario tributario');
   document.body.append(approvals,taxes);
   const style=document.createElement('style');
   style.textContent='.nexo-alert-button{position:fixed;bottom:18px;z-index:9000;border:0;border-radius:999px;background:#087e61;color:#fff;padding:11px 14px;box-shadow:0 5px 18px #1235;font-weight:700}.nexo-alert-button b{background:#fff;color:#087e61;border-radius:99px;padding:2px 6px}.nexo-approval-bell{right:18px}.nexo-tax-bell{right:88px;background:#17324d}.nexo-tax-bell b{color:#17324d}.nexo-alert-button:focus-visible{outline:3px solid #7dd3fc;outline-offset:2px}';

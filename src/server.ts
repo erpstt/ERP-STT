@@ -2,7 +2,10 @@ import {scheduledReportsAction,startScheduledReports} from './modules/reports/sc
 import { budgetAction } from './modules/budget/budget.service.js';
 import { statementSettings, customerStatement, startStatementNotifications } from './modules/notifications/customer-statement.js';
 import { notificationSettings, paymentNotifications, startEmailNotifications } from './modules/notifications/email-notification.service.js';
+import { salesInvoiceTemplateSettings } from './modules/notifications/sales-invoice-email.js';
+import { downloadSalesInvoicePdf, sendSalesInvoiceEmail } from './modules/notifications/sales-invoice-delivery.service.js';
 import { startTaxCalendarNotifications, taxCalendarAction, taxCalendarDocument } from './modules/tax-calendar/tax-calendar.service.js';
+import { taxObligationCatalogAction } from './modules/tax-calendar/tax-obligation-catalog.service.js';
 import { recordActorAudit } from './modules/audit-catalogs/record-actor-audit.service.js';
 import { withAuditExecution } from './core/database/audit-context.js';
 import { paymentRequests } from './modules/treasury-catalogs/payment-requests.service.js';
@@ -243,6 +246,8 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(request.method==='POST'&&request.url==='/api/purchasing/workflow')return json(response,201,await savePurchaseDocument(request.headers.authorization!,await body(request)as Record<string,unknown>));
     const taxCalendarActionRoute=request.url?.split('?')[0].match(/^\/api\/tax-calendar\/(options|list|get|save|delete|mark-read)$/);
     if(taxCalendarActionRoute&&request.method==='POST')return json(response,200,await taxCalendarAction(request.headers.authorization!,taxCalendarActionRoute[1],await body(request)as Record<string,unknown>));
+    const taxObligationCatalogRoute=request.url?.split('?')[0].match(/^\/api\/tax-obligations\/(options|list|save|delete|save-template)$/);
+    if(taxObligationCatalogRoute&&request.method==='POST')return json(response,200,await taxObligationCatalogAction(request.headers.authorization!,taxObligationCatalogRoute[1],await body(request)as Record<string,unknown>));
     const taxCalendarDocumentRoute=request.url?.split('?')[0].match(/^\/api\/tax-calendar\/events\/([0-9a-f-]{36})\/document$/i);
     if(taxCalendarDocumentRoute&&request.method==='GET'){
       const file=await taxCalendarDocument(request.headers.authorization!,taxCalendarDocumentRoute[1]);
@@ -261,11 +266,24 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(budgetRoute){const readOnly=['options','execution-report'].includes(budgetRoute[1]);if(request.method!=='POST'&&!(readOnly&&request.method==='GET'))return json(response,405,{error:'Método no permitido.'});const input=request.method==='GET'?Object.fromEntries(new URL(request.url!,'http://localhost').searchParams):await body(request)as Record<string,unknown>;return json(response,200,await budgetAction(request.headers.authorization!,budgetRoute[1],input));}
     if(request.url?.split('?')[0]==='/apps/budget/builder'||request.url?.split('?')[0]==='/apps/budget/dashboard')return await serveFile('/budget.html',response);
     const notificationRoute=request.url?.match(/^\/api\/configuration\/notification-templates\/(get|save|preview)$/);
-    if(notificationRoute&&request.method==='POST'){const input=await body(request)as Record<string,unknown>;return json(response,200,await (input.kind==='ESTADO_CUENTA'?statementSettings:notificationSettings)(request.headers.authorization!,notificationRoute[1],input));}
+    if(notificationRoute&&request.method==='POST'){const input=await body(request)as Record<string,unknown>;const settings=input.kind==='ESTADO_CUENTA'?statementSettings:input.kind==='FACTURA_VENTA'?salesInvoiceTemplateSettings:notificationSettings;return json(response,200,await settings(request.headers.authorization!,notificationRoute[1],input));}
     const statementRoute=request.url?.match(/^\/api\/entities\/customers\/(\d+)\/statement\/(get|send|pdf)$/);
     if(statementRoute&&request.method==='POST')return json(response,200,await customerStatement(request.headers.authorization!,Number(statementRoute[1]),statementRoute[2],await body(request)as Record<string,unknown>));
     const paymentNotificationRoute=request.url?.match(/^\/api\/purchasing\/supplier-payments\/(\d+)\/notifications\/(history|resend)$/);
     if(paymentNotificationRoute&&request.method==='POST')return json(response,200,await paymentNotifications(request.headers.authorization!,Number(paymentNotificationRoute[1]),paymentNotificationRoute[2],await body(request)as Record<string,unknown>));
+    const salesInvoiceDeliveryRoute=request.url?.split('?')[0].match(/^\/api\/sales\/invoices\/(\d+)\/(pdf|email)$/);
+    if(salesInvoiceDeliveryRoute){
+      const invoiceId=Number(salesInvoiceDeliveryRoute[1]),action=salesInvoiceDeliveryRoute[2];
+      if(action==='email'&&request.method==='POST')return json(response,200,await sendSalesInvoiceEmail(request.headers.authorization!,invoiceId));
+      if(action==='pdf'&&(request.method==='GET'||request.method==='POST')){
+        const file=await downloadSalesInvoicePdf(request.headers.authorization!,invoiceId);
+        if(request.method==='POST')return json(response,200,file);
+        const bytes=Buffer.from(file.base64,'base64');
+        response.writeHead(200,{'Content-Type':'application/pdf','Content-Length':bytes.length,'Content-Disposition':`attachment; filename*=UTF-8''${encodeURIComponent(file.fileName)}`,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'});
+        response.end(bytes);return;
+      }
+      return error(response,405,'Método no permitido.');
+    }
     if(request.method==='GET'&&request.url==='/api/purchasing/supplier-payments/options')return json(response,200,await supplierPaymentOptions(request.headers.authorization!));
     if(request.method==='POST'&&request.url==='/api/purchasing/supplier-payments/report')return json(response,200,await supplierPaymentReport(request.headers.authorization!,await body(request)as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/purchasing/supplier-payments/save')return json(response,201,await saveSupplierPayment(request.headers.authorization!,await body(request)as Record<string,unknown>));

@@ -1,0 +1,86 @@
+.back-link { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+
+.country-toolbar {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(280px, 420px);
+  align-items: center;
+  gap: 28px;
+  margin-bottom: 14px;
+  padding: 18px 20px;
+}
+.country-toolbar h2, .panel-heading h2 { margin: 0; color: var(--navy); font-size: 17px; }
+.country-toolbar p, .panel-heading p { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+.country-toolbar label { margin: 0; }
+
+.config-tabs { display: flex; gap: 4px; margin: 0 0 10px; border-bottom: 1px solid var(--line); padding: 0 5px; }
+.config-tabs button {
+  min-height: 44px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: #617487;
+  padding: 10px 16px;
+  font-weight: 750;
+}
+.config-tabs button:hover { color: var(--green-dark); }
+.config-tabs button.active { border-bottom-color: var(--green); color: var(--green-dark); }
+
+.config-panel { overflow: hidden; }
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 74px;
+  border-bottom: 1px solid var(--line);
+  padding: 16px 20px;
+}
+.loading-state.compact { min-height: 260px; }
+.empty-state.compact { padding: 54px 20px 62px; }
+.description-cell { max-width: 420px; overflow: hidden; color: #52667a; text-overflow: ellipsis; white-space: nowrap; }
+.status-chip { display: inline-flex; min-height: 27px; align-items: center; border-radius: 15px; padding: 5px 10px; font-size: 10px; font-weight: 800; }
+.status-chip.active { background: var(--green-soft); color: #17654f; }
+.status-chip.inactive { background: var(--gray-soft); color: #64748b; }
+
+.template-layout { display: grid; grid-template-columns: minmax(440px, .9fr) minmax(440px, 1.1fr); gap: 16px; }
+.template-editor, .template-preview { overflow: hidden; }
+.template-heading { align-items: flex-start; }
+.toggle-control { display: inline-flex; align-items: center; gap: 8px; margin: 0; white-space: nowrap; }
+.toggle-control input, .active-field input { width: 17px; min-height: 17px; height: 17px; margin: 0; accent-color: var(--green); }
+.template-fields { display: grid; gap: 18px; padding: 20px; }
+.field-label { display: block; color: #334a62; font-size: 12px; font-weight: 700; }
+.field-help { display: block; margin: 5px 0 0; color: var(--muted); font-size: 11px; font-weight: 400; }
+.template-textarea { min-height: 245px; line-height: 1.6; resize: vertical; }
+.placeholder-list { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.placeholder-list button { min-height: 31px; border: 1px solid #cfe1db; border-radius: 16px; background: #f3faf7; color: var(--green-dark); padding: 5px 10px; font: 11px/1.2 Consolas, monospace; }
+.placeholder-list button:hover { border-color: var(--green); background: var(--green-soft); }
+.placeholder-empty { color: var(--muted); font-size: 12px; }
+.template-actions { display: flex; align-items: center; justify-content: space-between; gap: 15px; border-top: 1px solid var(--line); background: #f8fafb; padding: 14px 20px; }
+.template-preview { align-self: start; }
+.preview-subject { display: grid; gap: 5px; border-bottom: 1px solid var(--line); background: #fbfcfd; padding: 13px 20px; }
+.preview-subject span { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.preview-subject strong { color: var(--navy); font-size: 13px; overflow-wrap: anywhere; }
+#templatePreview { display: block; width: 100%; min-height: 535px; border: 0; background: #f3f6f8; }
+
+.obligation-dialog { width: min(760px, 96vw); }
+.active-field { display: flex; align-items: center; align-self: end; gap: 9px; min-height: 40px; margin-bottom: 1px; border: 1px solid #d6e4de; border-radius: 7px; background: #f6faf8; padding: 10px 12px; }
+
+@media (max-width: 1000px) {
+  .template-layout { grid-template-columns: 1fr; }
+  #templatePreview { min-height: 430px; }
+}
+
+@media (max-width: 700px) {
+  .country-toolbar { grid-template-columns: 1fr; gap: 14px; }
+  .config-tabs button { flex: 1; padding-inline: 8px; }
+  .panel-heading { align-items: flex-start; flex-direction: column; }
+  .template-heading .toggle-control { margin-top: 2px; }
+  .template-actions { align-items: stretch; flex-direction: column; }
+  .template-actions .button { width: 100%; }
+}
+
+@media (max-width: 480px) {
+  .config-tabs { flex-direction: column; border-bottom: 0; padding: 0; }
+  .config-tabs button { border: 1px solid var(--line); border-radius: 7px; }
+  .config-tabs button.active { border-color: var(--green); background: var(--green-soft); }
+}

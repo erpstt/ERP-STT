@@ -1,5 +1,13 @@
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
 import {chromium} from '../.tmp/record-audit-validation/node_modules/playwright-core/index.mjs';
+
+const [shellSource,alertsSource]=await Promise.all([
+  readFile(new URL('../public/app.js',import.meta.url),'utf8'),
+  readFile(new URL('../public/approval-notifications.js',import.meta.url),'utf8')
+]);
+assert.match(shellSource,/addEventListener\('nexo:open-workspace'/);
+assert.doesNotMatch(alertsSource,/location\.assign\('\/tax-calendar\.html/);
 
 const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});
 try{
@@ -72,12 +80,19 @@ try{
   await app.locator('#markAllRead').click();
   await app.locator('#notificationBadge').waitFor({state:'hidden'});
   assert.equal(notificationRead,true);
+  await page.setContent('<iframe id="tax-alerts" src="http://localhost:3000/tax-calendar.html?notifications=1" style="width:1480px;height:1030px"></iframe>');
+  const alerts=page.frameLocator('#tax-alerts');
+  await alerts.locator('#notificationsDialog[open]').waitFor();
   notificationRead=false;
   await page.route('**/api/approval-engine/inbox',route=>route.fulfill({json:[]}));
   await page.setContent('<!doctype html><html><head></head><body></body></html>');
   await page.evaluate(()=>{localStorage.setItem('nexo_token','tax-calendar-ui-test');localStorage.setItem('nexo_device_token','tax-calendar-device-test');});
-  await page.addScriptTag({url:'http://localhost:3000/approval-notifications.js?v=2'});
+  await page.addScriptTag({url:'http://localhost:3000/approval-notifications.js?v=3'});
   await page.locator('.nexo-tax-bell').waitFor({state:'visible'});
   assert.equal(await page.locator('.nexo-tax-bell b').textContent(),'1');
-  console.log(JSON.stringify({monthView:true,weekAndTableTabs:true,filters:true,metrics:true,newEventDialog:true,manageDialog:true,followers:true,reminders:true,fileUpload:true,filedValidation:true,inAppNotifications:true,globalTaxAlert:true,responsivePage:true}));
+  await page.evaluate(()=>{window.__taxNavigation=null;window.addEventListener('nexo:open-workspace',event=>window.__taxNavigation=event.detail,{once:true});});
+  await page.locator('.nexo-tax-bell').click();
+  assert.deepEqual(await page.evaluate(()=>window.__taxNavigation),{url:'/tax-calendar.html?notifications=1',module:'Fiscal',section:'Calendario tributario'});
+  assert.equal(new URL(page.url()).pathname,'/');
+  console.log(JSON.stringify({monthView:true,weekAndTableTabs:true,filters:true,metrics:true,newEventDialog:true,manageDialog:true,followers:true,reminders:true,fileUpload:true,filedValidation:true,inAppNotifications:true,globalTaxAlert:true,alertWorkspaceNavigation:true,alertDialog:true,responsivePage:true}));
 }finally{await browser.close();}

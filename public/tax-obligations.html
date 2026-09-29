@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Obligaciones tributarias · NEXO</title>
+  <link rel="stylesheet" href="/tax-calendar.css?v=20260928">
+  <link rel="stylesheet" href="/tax-obligations.css?v=20260928">
+</head>
+<body>
+  <main id="taxObligationsApp" class="page-shell" aria-busy="true">
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">FISCAL · CONFIGURACIÓN</p>
+        <h1>Obligaciones tributarias</h1>
+        <p class="page-copy">Defina el catálogo disponible para cada país y personalice los correos de recordatorio y vencimiento.</p>
+      </div>
+      <div class="header-actions">
+        <a class="button secondary back-link" href="/tax-calendar.html">← Calendario tributario</a>
+        <button id="newObligation" class="button primary" type="button">＋ Nueva obligación</button>
+      </div>
+    </header>
+
+    <p id="message" class="message" role="status" aria-live="polite"></p>
+
+    <section id="accessDenied" class="state-card access-denied" hidden>
+      <span class="state-icon" aria-hidden="true">×</span>
+      <h2>Acceso restringido</h2>
+      <p>No tiene permiso para consultar la configuración tributaria.</p>
+    </section>
+
+    <section id="workspace" hidden>
+      <section class="card country-toolbar" aria-labelledby="countryTitle">
+        <div>
+          <h2 id="countryTitle">País de aplicación</h2>
+          <p>Las subsidiarias utilizarán únicamente las obligaciones configuradas para su país.</p>
+        </div>
+        <label>País
+          <select id="countryFilter" aria-describedby="countryHelp"></select>
+          <small id="countryHelp">Cambiar el país actualiza el catálogo y sus plantillas.</small>
+        </label>
+      </section>
+
+      <nav class="config-tabs" role="tablist" aria-label="Configuración de obligaciones tributarias">
+        <button id="catalogTab" class="active" type="button" role="tab" aria-selected="true" aria-controls="catalogPanel" data-panel="catalogPanel">Catálogo de obligaciones</button>
+        <button id="templatesTab" type="button" role="tab" aria-selected="false" aria-controls="templatesPanel" data-panel="templatesPanel">Plantillas de correo</button>
+      </nav>
+
+      <section id="catalogPanel" class="card config-panel" role="tabpanel" aria-labelledby="catalogTab">
+        <header class="panel-heading">
+          <div>
+            <h2>Obligaciones disponibles</h2>
+            <p>Esta lista alimenta el campo Tipo de impuesto al registrar una obligación en el calendario.</p>
+          </div>
+          <span id="obligationCount" class="result-count">0 obligaciones</span>
+        </header>
+        <div id="catalogLoading" class="loading-state compact" role="status">
+          <span class="spinner" aria-hidden="true"></span>
+          <p>Cargando configuración…</p>
+        </div>
+        <div id="catalogTable" class="table-scroll" hidden>
+          <table>
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Obligación</th>
+                <th>Periodicidad</th>
+                <th>Descripción</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="obligationRows"></tbody>
+          </table>
+        </div>
+        <div id="catalogEmpty" class="empty-state compact" hidden>
+          <span aria-hidden="true">□</span>
+          <h2>Aún no hay obligaciones para este país</h2>
+          <p>Registre la primera para habilitarla en el calendario tributario.</p>
+        </div>
+      </section>
+
+      <section id="templatesPanel" class="config-panel" role="tabpanel" aria-labelledby="templatesTab" hidden>
+        <div class="template-layout">
+          <form id="templateForm" class="card template-editor">
+            <header class="panel-heading template-heading">
+              <div>
+                <h2>Plantilla del correo</h2>
+                <p>Se guardará para el país seleccionado y se aplicará a sus subsidiarias.</p>
+              </div>
+              <label class="toggle-control"><input id="templateActive" type="checkbox"> <span>Plantilla activa</span></label>
+            </header>
+
+            <div class="template-fields">
+              <label>Notificación
+                <select id="templateKind">
+                  <option value="reminder">Recordatorio previo al vencimiento</option>
+                  <option value="overdue">Obligación vencida</option>
+                </select>
+              </label>
+              <label>Asunto *
+                <input id="templateSubject" minlength="3" maxlength="200" required autocomplete="off">
+              </label>
+              <label id="templateBodyLabel">Mensaje *
+                <textarea id="templateBody" class="template-textarea" rows="12" minlength="10" maxlength="4000" required placeholder="Escriba el contenido del correo. Puede usar las variables disponibles."></textarea>
+                <small>Los saltos de línea se conservan en el correo.</small>
+              </label>
+              <div>
+                <span class="field-label">Variables disponibles</span>
+                <p class="field-help">Seleccione una variable para insertarla en el asunto o en el mensaje.</p>
+                <div id="placeholderList" class="placeholder-list"></div>
+              </div>
+            </div>
+            <footer class="template-actions">
+              <span id="templateStatus" class="field-help"></span>
+              <button id="saveTemplate" class="button primary" type="submit">Guardar plantilla</button>
+            </footer>
+          </form>
+
+          <section class="card template-preview" aria-labelledby="previewTitle">
+            <header class="panel-heading">
+              <div>
+                <p class="eyebrow">VISTA PREVIA</p>
+                <h2 id="previewTitle">Correo de ejemplo</h2>
+                <p>Las variables se muestran con datos ilustrativos.</p>
+              </div>
+            </header>
+            <div class="preview-subject"><span>Asunto</span><strong id="previewSubject">—</strong></div>
+            <iframe id="templatePreview" title="Vista previa de la plantilla tributaria" sandbox=""></iframe>
+          </section>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="obligationDialog" class="editor-dialog obligation-dialog" aria-labelledby="obligationDialogTitle">
+    <form id="obligationForm">
+      <header class="dialog-header">
+        <div>
+          <p class="eyebrow">CATÁLOGO TRIBUTARIO</p>
+          <h2 id="obligationDialogTitle">Nueva obligación</h2>
+          <p class="dialog-subtitle">La obligación estará disponible para las subsidiarias del país indicado.</p>
+        </div>
+        <button id="closeObligation" class="dialog-close" type="button" aria-label="Cerrar">×</button>
+      </header>
+      <div class="dialog-body">
+        <p id="obligationError" class="form-error" role="alert"></p>
+        <section class="form-section">
+          <div class="form-grid">
+            <label>País *
+              <select id="obligationCountry" required></select>
+            </label>
+            <label>Código *
+              <input id="obligationCode" required maxlength="80" pattern="[A-Z0-9][A-Z0-9._%/\-]{0,79}" autocomplete="off" placeholder="Ej. IVA_MENSUAL">
+              <small>Identificador breve y único dentro del país.</small>
+            </label>
+            <label class="wide">Nombre de la obligación *
+              <input id="obligationName" required maxlength="160" autocomplete="off" placeholder="Ej. Declaración mensual de IVA">
+            </label>
+            <label>Periodicidad *
+              <select id="obligationFrequency" required>
+                <option value="monthly">Mensual</option>
+                <option value="quarterly">Trimestral</option>
+                <option value="annual">Anual</option>
+                <option value="other">Otra</option>
+              </select>
+            </label>
+            <label class="active-field"><input id="obligationActive" type="checkbox" checked> <span>Disponible para nuevas obligaciones</span></label>
+            <label class="wide">Descripción
+              <textarea id="obligationDescription" rows="4" maxlength="1000" placeholder="Detalle, alcance o instrucciones internas"></textarea>
+            </label>
+          </div>
+        </section>
+      </div>
+      <footer class="dialog-footer">
+        <button id="requestObligationDelete" class="button danger" type="button" hidden>Eliminar obligación</button>
+        <span class="footer-spacer"></span>
+        <button id="cancelObligation" class="button secondary" type="button">Cancelar</button>
+        <button class="button primary" type="submit">Guardar obligación</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="deleteObligationDialog" class="confirm-dialog" aria-labelledby="deleteObligationTitle">
+    <div class="confirm-icon" aria-hidden="true">!</div>
+    <h2 id="deleteObligationTitle">Eliminar obligación</h2>
+    <p id="deleteObligationText"></p>
+    <p>La obligación dejará de estar disponible para nuevos registros.</p>
+    <p id="deleteObligationError" class="form-error" role="alert"></p>
+    <div class="dialog-actions">
+      <button id="cancelObligationDelete" class="button secondary" type="button">Volver</button>
+      <button id="confirmObligationDelete" class="button danger" type="button">Eliminar definitivamente</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="/tax-obligations.js?v=20260928"></script>
+</body>
+</html>

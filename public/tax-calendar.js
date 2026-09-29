@@ -109,7 +109,7 @@ function fillOptions() {
 function fillTaxTypes(keepValue) {
   const subsidiaryId=$('eventSubsidiary').value;
   const options=selectedTaxTypes(subsidiaryId);
-  $('eventTaxType').innerHTML='<option value="">Seleccione un tipo de impuesto</option>'+optionMarkup(options,'code','name');
+  $('eventTaxType').innerHTML=`<option value="">${options.length?'Seleccione un tipo de impuesto':'No hay obligaciones configuradas para este país'}</option>`+optionMarkup(options,'code','name');
   if(keepValue&&!options.some(item=>String(item.code)===String(keepValue))){
     $('eventTaxType').insertAdjacentHTML('beforeend',`<option value="${escapeHtml(keepValue)}">${escapeHtml(keepValue)}</option>`);
   }
@@ -379,7 +379,9 @@ async function initialize() {
     state.anchor=new Date();updateDateRangeForView();
     $('workspace').hidden=false;$('accessDenied').hidden=true;
     await loadEvents();
-    const requested=new URLSearchParams(location.search).get('event');if(requested)await openEditor(requested);
+    const requestedParams=new URLSearchParams(location.search),requested=requestedParams.get('event');
+    if(requested)await openEditor(requested);
+    else if(requestedParams.get('notifications')==='1')$('notificationsDialog').showModal();
   }catch(cause){
     $('workspace').hidden=true;$('accessDenied').hidden=false;
     $('accessDenied').querySelector('p').textContent=cause instanceof Error?cause.message:'No fue posible abrir el calendario tributario.';

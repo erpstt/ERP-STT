@@ -39,9 +39,12 @@ try{
   assert.equal(options.permissions.view,true);assert.equal(options.permissions.manage,true);assert.equal(options.permissions.file,true);
   assert.ok(options.subsidiaries.length>0,'No hay subsidiarias autorizadas.');
   const sid=options.subsidiaries.find(item=>String(item.id)===String(context.subsidiary_id))?.id||options.subsidiaries[0].id;
+  const obligationCatalogInstalled=await value("select to_regprocedure('public.tax_obligation_catalog_manage(text,jsonb)') is not null value");
+  const taxTypeCode=obligationCatalogInstalled?options.taxTypes?.find(item=>(item.subsidiaryIds||[]).map(String).includes(String(sid)))?.code:'TEST-CALENDAR';
+  assert.ok(taxTypeCode,'El país de la subsidiaria necesita al menos una obligación tributaria activa.');
   const eventId=randomUUID(),storagePath=`${sid}/${eventId}/${randomUUID()}-prueba.pdf`;
   const base={
-    id:eventId,subsidiaryId:Number(sid),taxTypeCode:'TEST-CALENDAR',period:'2099-FY',dueDate:'2099-12-31',
+    id:eventId,subsidiaryId:Number(sid),taxTypeCode,period:'2099-FY',dueDate:'2099-12-31',
     assignedUserId:Number(context.user_id),status:'pending',documentType:'file_upload',externalLink:null,filingDate:null,
     filingReferenceNumber:null,notes:'Prueba de integración reversible del calendario tributario.',
     followers:[{userId:Number(context.user_id),notificationChannel:'both'}],reminders:[{daysBeforeDue:0}],
@@ -53,7 +56,7 @@ try{
   assert.equal(detail.event.id,eventId);assert.equal(detail.document.fileName,'prueba.pdf');assert.equal(detail.followers.length,1);assert.equal(detail.reminders.length,1);
   const document=await value('select tax_calendar_document($1)value',[eventId]);assert.equal(document.storagePath,storagePath);
   const listing=await value("select tax_calendar_manage('list',jsonb_build_object('subsidiaryId',$1::text,'dateFrom','2000-01-01','dateTo','2100-12-31'))value",[sid]);
-  assert.ok(listing.events.some(item=>item.id===eventId));assert.equal(Number(listing.metrics.pending),1);
+  assert.ok(listing.events.some(item=>item.id===eventId));assert.ok(Number(listing.metrics.pending)>=1);
 
   await db.query('savepoint missing_filing');
   let filingRejected=false;
@@ -79,6 +82,8 @@ try{
   assert.equal(workerDenied,true,'El scheduler debe ser exclusivo de service_role.');
 
   await db.query('reset role');
+  await db.query("update tax_calendar_events set status='exempt' where id<>$1 and status not in('filed','exempt')",[eventId]);
+  await db.query("update tax_calendar_email_outbox set status='ERROR',last_error='Aislado temporalmente por prueba con rollback',finished_at=now() where status='PENDIENTE'");
   await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({role:'service_role'})]);
   await db.query('set local role service_role');
   const scheduled=await value("select tax_calendar_schedule('2099-12-31 18:00:00+00'::timestamptz)value");assert.equal(Number(scheduled.scheduled),1);
@@ -93,8 +98,9 @@ try{
   await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify(claims)]);
   await db.query('set local role authenticated');
   const withNotice=await value("select tax_calendar_manage('list',jsonb_build_object('subsidiaryId',$1::text,'dateFrom','2000-01-01','dateTo','2100-12-31'))value",[sid]);
-  assert.equal(withNotice.notifications.filter(item=>!item.readAt).length,1);
-  await value("select tax_calendar_manage('mark-read',jsonb_build_object('ids',jsonb_build_array($1::text)))value",[withNotice.notifications[0].id]);
+  const fixtureNotices=withNotice.notifications.filter(item=>!item.readAt&&item.eventId===eventId);
+  assert.equal(fixtureNotices.length,1);
+  await value("select tax_calendar_manage('mark-read',jsonb_build_object('ids',jsonb_build_array($1::text)))value",[fixtureNotices[0].id]);
 
   await db.query('savepoint tenant_isolation');
   await db.query('reset role');

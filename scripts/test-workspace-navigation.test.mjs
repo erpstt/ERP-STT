@@ -32,11 +32,12 @@ test('external and malformed handoffs are rejected',()=>{
 
 test('shell links keep working after Vue replaces the session-loading root',async()=>{
   const appSource=(await readFile(new URL('../public/app.js',import.meta.url),'utf8')).replace(/^import .*;\r?\n/gm,'');
-  let component,listener,restores=0;
+  let component,listener,workspaceListener,restores=0;
   const container={addEventListener:(name,callback)=>{assert.equal(name,'click');listener=callback;}};
-  const context=vm.createContext({URL,location:new URL('https://erp.test/'),document:{createElement:()=>({}),head:{append(){}},getElementById:id=>{assert.equal(id,'app');return container;}},createApp:options=>{component=options;return {mount(){}};}});
+  const window={addEventListener:(name,callback)=>{assert.equal(name,'nexo:open-workspace');workspaceListener=callback;},open(){}};
+  const context=vm.createContext({URL,location:new URL('https://erp.test/'),window,document:{createElement:()=>({}),head:{append(){}},getElementById:id=>{assert.equal(id,'app');return container;}},createApp:options=>{component=options;return {config:{compilerOptions:{}},mount(){}};}});
   vm.runInContext(appSource,context);
-  const app={...component.methods,workspaceUrl:'',sidebarOpen:true,deviceToken(){},restoreSession(){restores++;},$el:{addEventListener(){throw Error('Do not attach navigation to the temporary loading root');}}};
+  const app={...component.methods,workspaceUrl:'',sidebarOpen:true,currentModule:'CORE',currentSection:'CORE',expandedModules:[],modules:[{name:'Fiscal',children:['Calendario tributario']}],deviceToken(){},restoreSession(){restores++;},$el:{addEventListener(){throw Error('Do not attach navigation to the temporary loading root');}}};
   component.mounted.call(app);
   app.$el={}; // The authenticated view replaces the original root.
   let prevented=false;
@@ -46,4 +47,10 @@ test('shell links keep working after Vue replaces the session-loading root',asyn
   assert.equal(app.workspaceUrl,'/journal-import.html');
   assert.equal(app.sidebarOpen,false);
   assert.equal(restores,1); // Opening the page must not start another session restore.
+  workspaceListener({detail:{url:'/tax-calendar.html?notifications=1',module:'Fiscal',section:'Calendario tributario'}});
+  assert.equal(app.workspaceUrl,'/tax-calendar.html?notifications=1');
+  assert.equal(app.currentModule,'Fiscal');
+  assert.equal(app.currentSection,'Calendario tributario');
+  assert.deepEqual(app.expandedModules,['Fiscal']);
+  assert.equal(restores,1); // La campana tampoco restaura ni recarga la sesión.
 });

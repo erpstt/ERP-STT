@@ -16,6 +16,8 @@ type JsonObject = Record<string, unknown>;
 type TaxCalendarEmailPayload = JsonObject & {
   taxTypeCode?: string;
   tax_type_code?: string;
+  taxTypeName?: string;
+  tax_type_name?: string;
   period?: string;
   dueDate?: string;
   due_date?: string;
@@ -28,6 +30,12 @@ type TaxCalendarEmailPayload = JsonObject & {
   assigned_user_name?: string;
   deepLink?: string;
   deep_link?: string;
+  templateSubject?: string;
+  template_subject?: string;
+  templateBody?: string;
+  template_body?: string;
+  notificationKind?: string;
+  notification_kind?: string;
 };
 type TaxCalendarEmailJob = JsonObject & {
   id: string;
@@ -159,6 +167,11 @@ export async function taxCalendarAction(authorization: string, action: string, p
   if (!actions.has(action)) throw Error('Acción de calendario tributario inválida.');
   if (action !== 'save') {
     const result = await rpc('tax_calendar_manage', { p_action: action, p_payload: payload }, authorization);
+    if (action === 'options') {
+      const base = object(result) ?? {};
+      const catalog = object(await rpc('tax_obligation_catalog_manage', { p_action: 'calendar-options', p_payload: {} }, authorization));
+      return { ...base, taxTypes: Array.isArray(catalog?.taxTypes) ? catalog.taxTypes : [] };
+    }
     const obsolete = String(object(result)?.obsoleteStoragePath ?? object(result)?.obsolete_storage_path ?? '');
     if (obsolete) {
       try { await removeDocument(obsolete); }
@@ -241,11 +254,16 @@ function safeLink(payload: TaxCalendarEmailPayload) {
   return /^https?:\/\/[^\s]+$/i.test(base) ? base + raw : '';
 }
 
+function applyEmailTemplate(template: string, values: Record<string, string>) {
+  return template.replace(/\{\{([a-z_]+)\}\}/gi, (_match, token: string) => values[token.toLowerCase()] ?? '');
+}
+
 export function renderTaxCalendarEmail(job: TaxCalendarEmailJob) {
   const payload = object(job.payload) as TaxCalendarEmailPayload | null;
   if (!payload) throw Error('La notificación no contiene datos de la obligación.');
   const company = stringValue(payload, 'subsidiaryName', 'subsidiary_name') || 'NEXO ERP';
   const taxType = stringValue(payload, 'taxTypeCode', 'tax_type_code');
+  const taxTypeName = stringValue(payload, 'taxTypeName', 'tax_type_name') || taxType;
   const period = String(payload.period ?? '');
   const dueDate = stringValue(payload, 'dueDate', 'due_date');
   const status = String(payload.status ?? '').toLowerCase();
@@ -261,11 +279,29 @@ export function renderTaxCalendarEmail(job: TaxCalendarEmailJob) {
         ? 'Vence hoy'
         : `Vence en ${days} ${days === 1 ? 'día' : 'días'}`;
   const heading = high ? 'Obligación tributaria vencida' : 'Recordatorio de obligación tributaria';
-  const subject = `${high ? 'URGENTE · ' : ''}${taxType || 'Obligación tributaria'} · ${company} · ${timing}`.replace(/[\r\n]/g, ' ').slice(0, 200);
   const link = safeLink(payload);
+  const statusLabel = ({ pending: 'Pendiente', in_review: 'En revisión', filed: 'Presentada', overdue: 'Vencida', exempt: 'Exenta' } as Record<string, string>)[status] ?? status;
+  const values = {
+    empresa: company,
+    obligacion: taxTypeName || taxType || 'Obligación tributaria',
+    codigo: taxType,
+    periodo: period,
+    fecha_vencimiento: date(dueDate),
+    responsable: responsible || 'Sin asignar',
+    estado: statusLabel,
+    mensaje_vencimiento: timing,
+    enlace: link
+  };
+  const defaultSubject = `${high ? 'URGENTE · ' : ''}${values.obligacion} · ${company} · ${timing}`;
+  const configuredSubject = stringValue(payload, 'templateSubject', 'template_subject');
+  const subject = applyEmailTemplate(configuredSubject || defaultSubject, values).replace(/[\r\n]+/g, ' ').trim().slice(0, 200) || defaultSubject.slice(0, 200);
+  const defaultBody = `${company} tiene una obligación fiscal que requiere seguimiento.\n\n${values.obligacion} corresponde al período ${period} y ${timing.toLowerCase()}.`;
+  const configuredBody = stringValue(payload, 'templateBody', 'template_body');
+  const bodyText = applyEmailTemplate(configuredBody || defaultBody, values).trim().slice(0, 8000) || defaultBody;
+  const bodyHtml = escapeHtml(bodyText).replace(/\r?\n/g, '<br>');
   const row = (label: string, value: string) => `<tr><td style="padding:8px 0;color:#64748b;width:42%">${escapeHtml(label)}</td><td style="padding:8px 0;font-weight:700;color:#172033">${escapeHtml(value || '—')}</td></tr>`;
-  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:#f1f5f9;font-family:Arial,sans-serif;color:#334155"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center" style="padding:24px 10px"><table role="presentation" width="640" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden"><tr><td style="padding:24px;background:${high ? '#991b1b' : '#0f766e'};color:#fff"><div style="font-size:12px;letter-spacing:1px;font-weight:700">${high ? 'PRIORIDAD ALTA' : 'CALENDARIO TRIBUTARIO'}</div><h1 style="font-size:24px;line-height:1.25;margin:9px 0 0">${escapeHtml(heading)}</h1></td></tr><tr><td style="padding:26px"><p style="margin:0 0 20px;line-height:1.6">${escapeHtml(company)} tiene una obligación fiscal que requiere seguimiento.</p><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0">${row('Tipo de impuesto', taxType)}${row('Período', period)}${row('Fecha límite', date(dueDate))}${row('Estado', status ? status.replaceAll('_', ' ') : '')}${responsible ? row('Responsable', responsible) : ''}</table><p style="margin:22px 0 0;padding:14px 16px;border-radius:8px;background:${high ? '#fef2f2' : '#ecfdf5'};color:${high ? '#991b1b' : '#065f46'};font-weight:700">${escapeHtml(timing)}</p>${link ? `<p style="margin:24px 0 0;text-align:center"><a href="${escapeHtml(link)}" style="display:inline-block;background:#172033;color:#fff;text-decoration:none;padding:12px 18px;border-radius:7px;font-weight:700">Abrir obligación en NEXO</a></p>` : ''}</td></tr><tr><td style="padding:16px 26px;background:#f8fafc;color:#64748b;font-size:12px;text-align:center">Mensaje automático de NEXO ERP</td></tr></table></td></tr></table></body></html>`;
-  const text = `${heading}\n${company}\nTipo de impuesto: ${taxType}\nPeríodo: ${period}\nFecha límite: ${date(dueDate)}\nEstado: ${status}\n${timing}${link ? `\n${link}` : ''}`;
+  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:#f1f5f9;font-family:Arial,sans-serif;color:#334155"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center" style="padding:24px 10px"><table role="presentation" width="640" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden"><tr><td style="padding:24px;background:${high ? '#991b1b' : '#0f766e'};color:#fff"><div style="font-size:12px;letter-spacing:1px;font-weight:700">${high ? 'PRIORIDAD ALTA' : 'CALENDARIO TRIBUTARIO'}</div><h1 style="font-size:24px;line-height:1.25;margin:9px 0 0">${escapeHtml(heading)}</h1></td></tr><tr><td style="padding:26px"><div style="margin:0 0 20px;line-height:1.65">${bodyHtml}</div><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0">${row('Obligación', taxTypeName)}${row('Código', taxType)}${row('Período', period)}${row('Fecha límite', date(dueDate))}${row('Estado', statusLabel)}${responsible ? row('Responsable', responsible) : ''}</table><p style="margin:22px 0 0;padding:14px 16px;border-radius:8px;background:${high ? '#fef2f2' : '#ecfdf5'};color:${high ? '#991b1b' : '#065f46'};font-weight:700">${escapeHtml(timing)}</p>${link ? `<p style="margin:24px 0 0;text-align:center"><a href="${escapeHtml(link)}" style="display:inline-block;background:#172033;color:#fff;text-decoration:none;padding:12px 18px;border-radius:7px;font-weight:700">Abrir obligación en NEXO</a></p>` : ''}</td></tr><tr><td style="padding:16px 26px;background:#f8fafc;color:#64748b;font-size:12px;text-align:center">Mensaje automático de NEXO ERP</td></tr></table></td></tr></table></body></html>`;
+  const text = `${heading}\n\n${bodyText}\n\nObligación: ${taxTypeName}\nCódigo: ${taxType}\nPeríodo: ${period}\nFecha límite: ${date(dueDate)}\nEstado: ${statusLabel}\n${timing}${link ? `\n${link}` : ''}`;
   return { subject, html, text };
 }
 

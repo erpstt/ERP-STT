@@ -4,13 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Factura de venta</title>
-  <link rel="stylesheet" href="/sales-invoice-view.css?v=1">
-  <link rel="stylesheet" href="/sales-invoice-print.css?v=2">
+  <link rel="stylesheet" href="/sales-invoice-view.css?v=20260928-sales-email">
+  <link rel="stylesheet" href="/sales-invoice-print.css?v=20260928-sales-email">
 </head>
 <body>
   <nav class="toolbar">
     <button id="back" type="button">Volver</button>
     <a id="edit" href="#">Editar</a>
+    <button id="sendEmail" type="button">Enviar por correo</button>
     <button id="print" class="primary" type="button">Descargar PDF</button>
   </nav>
   <main id="invoice" class="invoice" hidden>
@@ -31,7 +32,7 @@
       </dl>
     </section>
     <section class="lines-section">
-      <table><thead><tr><th>Producto / descripción</th><th class="number">Cantidad</th><th class="number">Precio unitario</th><th class="number">Subtotal</th><th class="number">Impuesto</th><th class="number">Total</th></tr></thead><tbody id="lines"></tbody></table>
+      <table><thead><tr><th>Producto / descripción</th><th>País de servicio</th><th class="number">Cantidad</th><th class="number">Precio unitario</th><th class="number">Subtotal</th><th class="number">Impuesto</th><th class="number">Total</th></tr></thead><tbody id="lines"></tbody></table>
     </section>
     <section class="closing">
       <div class="notes"><h2>Nota</h2><p id="memo">—</p></div>
@@ -40,7 +41,26 @@
     </section>
     <footer class="document-footer"><span id="footerCompany"></span><span>Documento generado desde NEXO ERP</span></footer>
   </main>
+  <section id="invoiceSupportsCard" class="invoice-supports-card" hidden>
+    <header><div><small>DOCUMENTOS RELACIONADOS</small><h2>Archivos de respaldo</h2><p>Los archivos se adjuntan al correo; los enlaces se incluyen dentro del mensaje.</p></div><span id="viewSupportCount">0</span></header>
+    <div id="viewSupports" class="invoice-support-list"></div>
+  </section>
+  <dialog id="emailDialog" class="email-dialog">
+    <form method="dialog">
+      <button id="closeEmailDialog" class="dialog-close" value="cancel" aria-label="Cerrar">×</button>
+      <div class="email-dialog-icon" aria-hidden="true">✉</div>
+      <small>ENVÍO DE FACTURA</small>
+      <h2>Enviar factura al cliente</h2>
+      <p>Se enviará al correo registrado de <strong id="emailCustomer"></strong>.</p>
+      <div class="email-recipient"><span>Destinatario</span><strong id="emailRecipient"></strong></div>
+      <div class="email-attachments"><b>Documentos incluidos</b><span id="emailAttachmentSummary"></span></div>
+      <p class="email-template-note">El asunto y el contenido usan la plantilla editable de Factura de venta configurada en NEXO.</p>
+      <p id="emailDialogError" class="dialog-error" role="alert"></p>
+      <footer><button value="cancel" type="submit">Cancelar</button><button id="confirmEmail" class="primary" value="send" type="button">Enviar correo</button></footer>
+    </form>
+  </dialog>
+  <div id="actionMessage" class="action-message" hidden role="status"></div>
   <p id="error" class="error"></p>
-  <script type="module" src="/sales-invoice-view.js?v=20260913-withholdings"></script>
+  <script type="module" src="/sales-invoice-view.js?v=20260928-sales-email"></script>
 </body>
 </html>
