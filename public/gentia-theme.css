@@ -1,0 +1,449 @@
+/*
+ * GENTIA visual system
+ * Official palette from the GENTIA / ITOS identity manual.
+ * Loaded last so legacy modules inherit the brand without changing their
+ * business or semantic status colours.
+ */
+:root {
+  color-scheme: light;
+  --gentia-blue: #042E72;
+  --gentia-blue-hover: #03255c;
+  --gentia-blue-soft: #e8eef8;
+  --gentia-orange: #F26938;
+  --gentia-orange-soft: #fff0ea;
+  --gentia-gray: #F4F6FA;
+  --gentia-white: #FFFFFF;
+  --gentia-ink: #17233b;
+  --gentia-muted: #6B7280;
+  --gentia-border: #DDE3EE;
+
+  /* Aliases used by the existing modules. */
+  --ink: var(--gentia-ink);
+  --text: var(--gentia-ink);
+  --muted: var(--gentia-muted);
+  --line: var(--gentia-border);
+  --navy: var(--gentia-blue);
+  --blue: var(--gentia-blue);
+  --blue-soft: var(--gentia-blue-soft);
+  --primary: var(--gentia-blue);
+  --primary-dark: var(--gentia-blue-hover);
+  --accent: var(--gentia-orange);
+  --green: var(--gentia-blue);
+  --green-dark: var(--gentia-blue-hover);
+  --green-soft: var(--gentia-blue-soft);
+  --g: var(--gentia-blue);
+  --l: var(--gentia-border);
+  --asset-green: var(--gentia-blue);
+  --asset-green-dark: var(--gentia-blue-hover);
+  --asset-line: var(--gentia-border);
+  --asset-soft: var(--gentia-gray);
+}
+
+@media screen {
+  /* The identity manual uses flat colour. Preserve only the dynamic
+     subsidiary logo, which is supplied as an image by each company. */
+  body :not(.company-badge):not([data-preserve-background-image]) {
+    background-image: none !important;
+  }
+
+  html,
+  body {
+    background-color: var(--gentia-gray);
+    color: var(--gentia-ink);
+  }
+
+  body {
+    accent-color: var(--gentia-blue);
+  }
+
+  a {
+    color: var(--gentia-blue);
+  }
+
+  :where(button, a, input, select, textarea):focus-visible {
+    outline: 3px solid rgba(4, 46, 114, .24) !important;
+    outline-offset: 2px;
+  }
+
+  :where(input, select, textarea):focus {
+    border-color: var(--gentia-blue) !important;
+    box-shadow: 0 0 0 3px rgba(4, 46, 114, .11) !important;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--gentia-blue) !important;
+  }
+
+  /* Application shell and authentication. */
+  .workspace,
+  .embedded-workspace,
+  .dashboard {
+    background-color: var(--gentia-gray);
+  }
+
+  .sidebar,
+  body > header:not(.page-header):not(.document-header),
+  .topbar {
+    background: var(--gentia-blue) !important;
+    background-image: none !important;
+  }
+
+  .sidebar {
+    color: rgba(255, 255, 255, .82);
+    border-right: 1px solid rgba(255, 255, 255, .12);
+  }
+
+  .sidebar nav p,
+  .tenant-card small {
+    color: rgba(255, 255, 255, .55) !important;
+  }
+
+  .nav-link,
+  .sidebar-bottom button,
+  .nav-children a {
+    color: rgba(255, 255, 255, .77) !important;
+  }
+
+  .nav-link:hover,
+  .sidebar-bottom button:hover,
+  .nav-children a:hover {
+    background: rgba(255, 255, 255, .09) !important;
+    color: var(--gentia-white) !important;
+  }
+
+  .nav-link.active,
+  .nav-children a.active {
+    background: rgba(255, 255, 255, .13) !important;
+    color: var(--gentia-white) !important;
+    box-shadow: inset 3px 0 0 var(--gentia-orange);
+  }
+
+  .nav-link.active :where(.nav-icon, span),
+  .nav-children a.active > span {
+    color: var(--gentia-orange) !important;
+    border-color: var(--gentia-orange) !important;
+  }
+
+  .nav-link.active .nav-label,
+  .nav-link.active .nav-chevron {
+    color: var(--gentia-white) !important;
+  }
+
+  .nav-children a.active > span {
+    background: var(--gentia-orange) !important;
+  }
+
+  .tenant-card {
+    border-color: rgba(255, 255, 255, .18) !important;
+    background: rgba(255, 255, 255, .08) !important;
+  }
+
+  .tenant-logo,
+  .avatar {
+    background: var(--gentia-orange-soft) !important;
+    color: var(--gentia-blue) !important;
+  }
+
+  .dashboard-header,
+  .embedded-toolbar {
+    border-color: var(--gentia-border) !important;
+    background: var(--gentia-white) !important;
+  }
+
+  .brand-panel {
+    background: var(--gentia-blue) !important;
+    background-image: none !important;
+  }
+
+  .brand-panel::before,
+  .brand-panel::after {
+    border-color: rgba(255, 255, 255, .12) !important;
+  }
+
+  .brand-panel .eyebrow,
+  .brand-panel .statement em,
+  .brand-panel a {
+    color: var(--gentia-white) !important;
+  }
+
+  .brand-panel .badge span {
+    background: var(--gentia-orange) !important;
+    box-shadow: 0 0 0 3px rgba(242, 105, 56, .22) !important;
+  }
+
+  .bars i {
+    background: var(--gentia-orange) !important;
+    background-image: none !important;
+  }
+
+  .auth-panel {
+    background: var(--gentia-white);
+  }
+
+  .company-selection {
+    background-color: var(--gentia-gray) !important;
+  }
+
+  :where(.company-selector summary, .company-switch-single, .role-selector summary, .role-switch) {
+    background-color: var(--gentia-white) !important;
+    border-color: var(--gentia-border) !important;
+  }
+
+  :where(.company-picker-icon, .company-badge, .company-option-icon, .role-badge) {
+    background-color: var(--gentia-blue-soft);
+    color: var(--gentia-blue);
+  }
+
+  .dashboard-preview {
+    background-color: rgba(255, 255, 255, .08) !important;
+  }
+
+  .preview-chart span,
+  .preview-stats i {
+    background-color: var(--gentia-orange) !important;
+  }
+
+  .mobile-brand {
+    color: var(--gentia-blue) !important;
+  }
+
+  .session-loading {
+    color: var(--gentia-blue);
+    background: var(--gentia-gray);
+  }
+
+  /* Shared typography and page framing. */
+  .eyebrow,
+  .record-section-title > span,
+  .modal-head p,
+  header small {
+    color: var(--gentia-blue) !important;
+  }
+
+  main:not(.invoice):not(.journal-page),
+  .catalog {
+    color: var(--gentia-ink);
+  }
+
+  :where(.panel, .card, .table-card, .activity, .stat-grid article, .metric, .kpis article, .filters, .calendar-shell) {
+    border-color: var(--gentia-border) !important;
+  }
+
+  :where(.table-wrap, .table-card, .panel, .card, .metric, .kpis article, dialog, .modal, .dialog) {
+    background-color: var(--gentia-white);
+  }
+
+  :where(th, .table-head) {
+    background-color: var(--gentia-gray) !important;
+    color: #506079;
+  }
+
+  :where(td, th, .table-wrap, .table-card, .modal-head, .dialog-head, .tabs, .pager) {
+    border-color: var(--gentia-border) !important;
+  }
+
+  /* Primary actions use ITOS blue. Orange remains a graphic accent. */
+  :where(
+    button.primary,
+    .button.primary,
+    .button-primary,
+    .primary-button,
+    .new-record,
+    .submit,
+    button.green,
+    .toolbar .print,
+    .toolbar .print-button,
+    .new-deposit,
+    .new-check,
+    #newDeposit,
+    .transfer-success .success-actions button,
+    #print,
+    #validate,
+    #post,
+    #confirmSend
+  ) {
+    background: var(--gentia-blue) !important;
+    background-image: none !important;
+    border-color: var(--gentia-blue) !important;
+    color: var(--gentia-white) !important;
+    box-shadow: 0 6px 14px rgba(4, 46, 114, .16) !important;
+  }
+
+  :where(
+    button.primary,
+    .button.primary,
+    .button-primary,
+    .primary-button,
+    .new-record,
+    .submit,
+    button.green,
+    .toolbar .print,
+    .toolbar .print-button,
+    .new-deposit,
+    .new-check,
+    #newDeposit,
+    .transfer-success .success-actions button,
+    #print,
+    #validate,
+    #post,
+    #confirmSend
+  ):hover:not(:disabled) {
+    background: var(--gentia-blue-hover) !important;
+    border-color: var(--gentia-blue-hover) !important;
+    color: var(--gentia-white) !important;
+  }
+
+  :where(.button.secondary, .button-secondary, button.secondary, .embedded-toolbar button):hover:not(:disabled) {
+    border-color: var(--gentia-blue) !important;
+    color: var(--gentia-blue) !important;
+    background: var(--gentia-blue-soft) !important;
+  }
+
+  /* Tabs and selections keep high contrast; orange is an underline/accent. */
+  :where(.tabs button.active, .view-tabs button.active, .config-tabs button.active, [role="tab"][aria-selected="true"]) {
+    color: var(--gentia-blue) !important;
+    border-bottom-color: var(--gentia-orange) !important;
+    background: var(--gentia-blue-soft) !important;
+  }
+
+  :where(.tabs [aria-pressed="true"], .customer-view-tabs button.active) {
+    background: var(--gentia-blue) !important;
+    border-color: var(--gentia-blue) !important;
+    color: var(--gentia-white) !important;
+  }
+
+  :where(.drill, td a, summary, .link, .icon-action.view, .icon-action.edit) {
+    color: var(--gentia-blue) !important;
+  }
+
+  .module-mark,
+  .modal-icon,
+  .section-number,
+  .company-picker-icon {
+    color: var(--gentia-blue) !important;
+    background: var(--gentia-blue-soft) !important;
+  }
+
+  .spinner {
+    border-top-color: var(--gentia-blue) !important;
+  }
+
+  .today .day-number {
+    background: var(--gentia-blue) !important;
+  }
+
+  .dialog-header,
+  #entry .dialog-head {
+    background-color: var(--gentia-white) !important;
+  }
+
+  #entry .impact {
+    background-color: var(--gentia-blue-soft) !important;
+    border-color: rgba(4, 46, 114, .24) !important;
+  }
+
+  /* Keep accounting/workflow state colours semantic. */
+  :where(.message.success, .status-pill.status-filed, .event-card.status-filed, .good) {
+    color: #087451 !important;
+  }
+
+  :where(.status-pill.status-filed, .event-card.status-filed, .good, .success-icon, .success-check) {
+    background-color: #e9f7f0 !important;
+  }
+
+  .metric.filed::before {
+    background: #087451 !important;
+  }
+
+  /* Remove legacy decorative gradients from branded interface surfaces. */
+  :where(.brand-panel, .autorent-editor, .welcome-card, .hero, .hero-panel) {
+    background-image: none !important;
+  }
+
+  /* Reusable logo sizing; the SVG always retains its approved proportions. */
+  .gentia-brand {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .gentia-brand img,
+  img.gentia-logo {
+    display: block;
+    width: auto;
+    height: 30px;
+    max-width: 100%;
+    object-fit: contain;
+  }
+
+  .sidebar .gentia-brand img {
+    height: 34px;
+  }
+
+  .gentia-brand-hero img {
+    height: 76px;
+  }
+
+  .gentia-brand-loading img {
+    height: 82px;
+  }
+
+  .gentia-brand-picker img {
+    height: 34px;
+  }
+
+  .gentia-brand-mobile img {
+    height: 38px;
+  }
+
+  .gentia-brand-mobile {
+    display: none;
+  }
+
+  .gentia-brand-sidebar img {
+    height: 34px;
+    max-width: 178px;
+  }
+
+  .login-video::after {
+    position: absolute;
+    inset: 0;
+    content: "";
+    pointer-events: none;
+    background: rgba(4, 46, 114, .2);
+    mix-blend-mode: color;
+  }
+}
+
+@media screen and (max-width: 800px) {
+  .gentia-brand-mobile {
+    display: inline-flex;
+  }
+
+  .gentia-brand-mobile img {
+    height: 36px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@media print {
+  :root {
+    --green: var(--gentia-blue);
+    --green-dark: var(--gentia-blue-hover);
+    --blue: var(--gentia-blue);
+    --primary: var(--gentia-blue);
+  }
+}

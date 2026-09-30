@@ -17,11 +17,11 @@ export async function obtenerTipoDeCambioRD(monedaOrigen='USD',monedaDestino='DO
  const from=monedaOrigen.trim().toUpperCase();const to=monedaDestino.trim().toUpperCase();
  if(from===to)return{monedaOrigen:from,monedaDestino:to,fechaEfectiva:effectiveDate(fechaEfectiva),tipoCambio:1,fuente:'Banco Central de la República Dominicana'};
  if(!((from==='USD'&&to==='DOP')||(from==='DOP'&&to==='USD')))throw new Error('Por ahora la consulta de República Dominicana admite únicamente USD y DOP.');
- const date=effectiveDate(fechaEfectiva);const page=await fetch(BCRD_PAGE,{headers:{'User-Agent':'Nexo ERP/1.0'}});
+ const date=effectiveDate(fechaEfectiva);const page=await fetch(BCRD_PAGE,{headers:{'User-Agent':'Gentia ERP/1.0'}});
  if(!page.ok)throw new Error('No fue posible iniciar la consulta con el Banco Central de la República Dominicana.');
  const cookieMap=new Map<string,string>();for(const item of page.headers.getSetCookie?.()??[]){const pair=item.split(';')[0];const separator=pair.indexOf('=');if(separator>0&&pair.slice(separator+1))cookieMap.set(pair.slice(0,separator),pair.slice(separator+1));}const cookie=[...cookieMap].map(([name,value])=>`${name}=${value}`).join('; ');
  const form=new URLSearchParams({fromDate:`${date}T00:00:00.000Z`});
- const response=await fetch(BCRD_RATE,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'XMLHttpRequest',Referer:BCRD_PAGE,Cookie:cookie,'User-Agent':'Nexo ERP/1.0'},body:form});
+ const response=await fetch(BCRD_RATE,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'XMLHttpRequest',Referer:BCRD_PAGE,Cookie:cookie,'User-Agent':'Gentia ERP/1.0'},body:form});
  const raw=await response.text();if(!response.ok||!raw)throw new Error('El Banco Central no devolvió una tasa para la fecha solicitada.');
  const payload=JSON.parse(raw) as BcrdResponse;const buy=Number(payload.result?.buyingValue),sell=Number(payload.result?.sellingValue);
  if(!payload.success||!Number.isFinite(sell)||sell<=0)throw new Error(payload.error?.message||'No existe una tasa de venta válida para la fecha solicitada.');

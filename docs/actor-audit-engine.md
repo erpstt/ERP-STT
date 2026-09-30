@@ -18,9 +18,9 @@ PostgreSQL consulta `auth.users` usando el UUID autenticado. El correo procede d
 }
 ```
 
-Los valores admitidos son `HUMAN`, `AI_AGENT`, `SYSTEM_JOB` y `EXTERNAL_API`. Usuarios sin configuración especial se identifican como `HUMAN`, con origen registrado `Nexo Web App`. Cada agente o integración necesita una cuenta propia, con correo, permisos, sesión y dispositivo válidos según los controles existentes. Nunca debe compartir el token de un humano. El origen es el canal registrado de la cuenta, no una prueba independiente del dispositivo o proveedor utilizado. No se concede acceso nuevo ni se crean agentes automáticamente.
+Los valores admitidos son `HUMAN`, `AI_AGENT`, `SYSTEM_JOB` y `EXTERNAL_API`. Usuarios sin configuración especial se identifican como `HUMAN`, con origen registrado `Gentia Web App`. Cada agente o integración necesita una cuenta propia, con correo, permisos, sesión y dispositivo válidos según los controles existentes. Nunca debe compartir el token de un humano. El origen es el canal registrado de la cuenta, no una prueba independiente del dispositivo o proveedor utilizado. No se concede acceso nuevo ni se crean agentes automáticamente.
 
-Los trabajos existentes con `service_role` se identifican como `SYSTEM_JOB`, `system@nexo.local`, «Proceso de sistema Nexo». Las conexiones SQL administrativas sin JWT se identifican como `database@nexo.local`, «Proceso de base de datos», con el rol SQL en el origen. Estos son identificadores técnicos, no buzones de correo. Para distinguir servicios individuales se deben usar cuentas dedicadas. La clave de servicio compartida no identifica un agente específico.
+Los trabajos existentes con `service_role` se identifican como `SYSTEM_JOB`, `system@gentia.local`, «Proceso de sistema Gentia». Las conexiones SQL administrativas sin JWT se identifican como `database@gentia.local`, «Proceso de base de datos», con el rol SQL en el origen. Estos son identificadores técnicos, no buzones de correo. Para distinguir servicios individuales se deben usar cuentas dedicadas. La clave de servicio compartida no identifica un agente específico.
 
 No se confía en `user_metadata` ni en cabeceras de identidad. Supabase permite al usuario editar `user_metadata`; `app_metadata` es administrada. Referencia: [Usuarios de Supabase Auth](https://supabase.com/docs/guides/auth/users).
 

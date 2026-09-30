@@ -120,7 +120,11 @@ async function serveFile(pathname: string, response: ServerResponse) {
     if(extension==='.html'&&relative!=='index.html'){
       const html=await readFile(file,'utf8');
       const guard=`<script src="/record-audit.js"></script><style>html.inside-erp-workspace,html.inside-erp-workspace body{width:100%!important;min-width:0!important;min-height:100%!important;margin:0!important;padding:0!important}html.inside-erp-workspace body>main{box-sizing:border-box!important;width:100%!important;max-width:none!important;min-height:100vh!important;margin:0!important;border-radius:0!important;box-shadow:none!important}html.inside-erp-workspace body>.toolbar,html.inside-erp-workspace body>nav{box-sizing:border-box!important;width:100%!important;max-width:none!important;margin:0!important}</style><script>if(window===window.top){sessionStorage.setItem('nexo_workspace_redirect',JSON.stringify({path:location.pathname+location.search+location.hash,createdAt:Date.now()}));location.replace('/')}else{document.documentElement.classList.add('inside-erp-workspace')}</script>`;
-      response.end(html.includes('<head>')?html.replace('<head>',`<head>${guard}`):guard+html);
+      const gentiaAssets='<link rel="stylesheet" href="/gentia-theme.css?v=20260929"><script defer src="/gentia-brand.js?v=20260929"></script>';
+      const branded=html.includes('</head>')
+        ? html.replace('</head>',`${gentiaAssets}</head>`)
+        : `${gentiaAssets}${html}`;
+      response.end(branded.includes('<head>')?branded.replace('<head>',`<head>${guard}`):guard+branded);
       return;
     }
     createReadStream(file).pipe(response);
@@ -369,4 +373,4 @@ const server = createServer((request, response) => withAuditExecution(async () =
   }
 }));
 
-server.listen(Number(process.env.PORT ?? 3000), '0.0.0.0', () => {startEmailNotifications();startStatementNotifications();startScheduledReports();startTaxCalendarNotifications();console.log(`Nexo ERP disponible en el puerto ${process.env.PORT ?? 3000}`);iniciarProgramacionTipoCambioRD();iniciarProgramacionTipoCambioCR();iniciarProgramacionTipoCambioGT();iniciarProgramacionTipoCambioJM();iniciarProgramacionTipoCambioCO();iniciarProgramacionTipoCambioAR();iniciarProgramacionTipoCambioNI();iniciarProgramacionTipoCambioPE();});
+server.listen(Number(process.env.PORT ?? 3000), '0.0.0.0', () => {startEmailNotifications();startStatementNotifications();startScheduledReports();startTaxCalendarNotifications();console.log(`GENTIA ERP disponible en el puerto ${process.env.PORT ?? 3000}`);iniciarProgramacionTipoCambioRD();iniciarProgramacionTipoCambioCR();iniciarProgramacionTipoCambioGT();iniciarProgramacionTipoCambioJM();iniciarProgramacionTipoCambioCO();iniciarProgramacionTipoCambioAR();iniciarProgramacionTipoCambioNI();iniciarProgramacionTipoCambioPE();});

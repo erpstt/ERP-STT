@@ -43,7 +43,7 @@ export async function obtenerTipoDeCambioAR(monedaOrigen = 'USD', monedaDestino 
     url.searchParams.set('id', 'billetes');
     url.searchParams.set('fecha', toBnaDate(sourceDate));
     url.searchParams.set('idMoneda', '22');
-    const response = await fetch(url, { headers: { Accept: 'text/html', 'User-Agent': 'Nexo ERP/1.0' } });
+    const response = await fetch(url, { headers: { Accept: 'text/html', 'User-Agent': 'Gentia ERP/1.0' } });
     const html = await response.text();
     if (!response.ok) throw new Error(`El BNA respondió con estado ${response.status}.`);
     const row = parseDollarRows(html).find((item) => item.fecha === sourceDate);

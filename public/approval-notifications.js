@@ -13,7 +13,7 @@
   taxes.onclick=()=>openWorkspace('/tax-calendar.html?notifications=1','Fiscal','Calendario tributario');
   document.body.append(approvals,taxes);
   const style=document.createElement('style');
-  style.textContent='.nexo-alert-button{position:fixed;bottom:18px;z-index:9000;border:0;border-radius:999px;background:#087e61;color:#fff;padding:11px 14px;box-shadow:0 5px 18px #1235;font-weight:700}.nexo-alert-button b{background:#fff;color:#087e61;border-radius:99px;padding:2px 6px}.nexo-approval-bell{right:18px}.nexo-tax-bell{right:88px;background:#17324d}.nexo-tax-bell b{color:#17324d}.nexo-alert-button:focus-visible{outline:3px solid #7dd3fc;outline-offset:2px}';
+  style.textContent='.nexo-alert-button{position:fixed;bottom:18px;z-index:9000;border:0;border-radius:999px;background:#042e72;color:#fff;padding:11px 14px;box-shadow:0 5px 18px #042e7238;font-weight:700}.nexo-alert-button b{background:#fff;color:#042e72;border-radius:99px;padding:2px 6px}.nexo-approval-bell{right:18px}.nexo-tax-bell{right:88px;background:#f26938}.nexo-tax-bell b{color:#c94b1f}.nexo-alert-button:focus-visible{outline:3px solid #f2693855;outline-offset:2px}';
   document.head.append(style);
   async function poll(){
     const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Costa_Rica',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());

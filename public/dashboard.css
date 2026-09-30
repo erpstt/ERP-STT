@@ -220,3 +220,35 @@ td{padding:15px 18px;border-top:1px solid #edf0f3;color:#344054;font-size:12px}
 
 
 .approver-section{grid-column:1/-1;margin-top:12px;padding-top:18px;border-top:1px solid #dce7e2}.approver-section h3{margin:0 0 6px;color:#177b60;font-size:15px}.approver-section p{margin:0;color:#6c7f8f;font-size:12px;line-height:1.5}
+
+.modal.subsidiary-master-modal:has(.form-grid){width:min(920px,100%)}
+.autorent-editor{margin-top:22px;padding:20px;border:1px solid #bee2d4;border-radius:11px;background:linear-gradient(145deg,#f7fcfa 0%,#fff 72%)}
+.autorent-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding-bottom:16px;border-bottom:1px solid #d9ebe4}
+.autorent-heading>div>span{display:block;color:#18835f;font-size:9px;font-weight:800;letter-spacing:1.2px}
+.autorent-heading h3{margin:5px 0 6px;color:#123149;font:700 17px Manrope,sans-serif}
+.autorent-heading p{max-width:670px;margin:0;color:#607384;font-size:12px;line-height:1.55}
+.autorent-country-badge{display:grid!important;place-items:center;width:38px;height:30px;flex:0 0 38px;margin:0!important;border:1px solid #9ed3c0;border-radius:7px;background:#e2f5ed;color:#14775a!important;font:800 11px Manrope,sans-serif;letter-spacing:.8px!important}
+.autorent-toggle{display:grid!important;grid-template-columns:auto auto 1fr;align-items:center;gap:12px;margin:17px 0 0!important;padding:13px 14px;border:1px solid #d5e4de;border-radius:9px;background:#fff;cursor:pointer}
+.autorent-toggle.disabled{cursor:not-allowed;opacity:.72}
+.autorent-toggle>input{position:absolute;opacity:0;pointer-events:none}
+.autorent-switch{position:relative;width:38px;height:22px;margin:0!important;border-radius:999px;background:#cbd5dc;box-shadow:inset 0 0 0 1px #bac5cd;transition:.18s ease}
+.autorent-switch::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 4px #263b4b38;transition:.18s ease}
+.autorent-toggle>input:checked+.autorent-switch{background:#18835f;box-shadow:inset 0 0 0 1px #18835f}
+.autorent-toggle>input:checked+.autorent-switch::after{transform:translateX(16px)}
+.autorent-toggle>input:focus-visible+.autorent-switch{outline:3px solid #18835f2e;outline-offset:2px}
+.autorent-toggle>span:last-child{display:flex;flex-direction:column;gap:3px;margin:0!important}
+.autorent-toggle strong{color:#22394c;font-size:12px}
+.autorent-toggle small,.autorent-new-help{color:#718191;font-size:11px;font-weight:400;line-height:1.45}
+.autorent-new-help{margin:9px 0 0;padding:9px 11px;border-left:3px solid #d5a62d;border-radius:4px;background:#fff9e9}
+.autorent-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin-top:16px}
+.autorent-grid>label{display:flex;flex-direction:column;gap:7px;margin:0!important;padding:14px;border:1px solid #e0e8e4;border-radius:9px;background:#fff}
+.autorent-grid>label>span:first-child{margin:0;color:#263c4e;font-size:12px}.autorent-grid>label>span:first-child b{color:#c64050}
+.autorent-grid label>small{min-height:16px;color:#718191;font-size:10px;font-weight:400;line-height:1.4}
+.autorent-grid input[type="search"],.autorent-grid input[type="number"],.autorent-grid .percentage-control input,.autorent-grid select{width:100%;height:40px;border:1px solid #d4dde2;border-radius:7px;background:#fff;padding:0 10px;color:#273b4d;font:12px inherit;outline:none}
+.autorent-grid input:focus,.autorent-grid select:focus{border-color:#51aa88;box-shadow:0 0 0 3px #51aa8818}
+.autorent-grid .autorent-empty{min-height:auto;color:#a33c48}
+.autorent-percentage{align-self:start}
+.percentage-control{position:relative;display:block!important;margin:0!important}.percentage-control input{padding-right:38px!important;font-variant-numeric:tabular-nums}.percentage-control strong{position:absolute;right:1px;top:1px;bottom:1px;display:grid;place-items:center;width:35px;border-left:1px solid #dde4e8;border-radius:0 6px 6px 0;background:#f4f7f6;color:#18835f;font-size:12px}
+.autorent-grid aside{display:flex;flex-direction:column;gap:6px;padding:15px;border:1px solid #c9ded6;border-radius:9px;background:#eef8f4;color:#38574a;font-size:11px}
+.autorent-grid aside strong{color:#176b50;font-size:12px}.autorent-grid aside span::before{content:"✓";margin-right:7px;color:#18835f;font-weight:800}.autorent-grid aside small{margin-top:4px;color:#63796f;line-height:1.45}
+@media(max-width:680px){.autorent-editor{padding:15px}.autorent-grid{grid-template-columns:1fr}.autorent-heading p{font-size:11px}}

@@ -1,4 +1,4 @@
-# Nexo ERP
+# GENTIA ERP
 
 Base inicial para un ERP multiempresa. La API se organiza por módulos y capas; el cliente de Supabase se conecta mediante el adaptador de `core/database`.
 

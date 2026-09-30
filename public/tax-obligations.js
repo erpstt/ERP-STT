@@ -92,7 +92,7 @@ async function saveObligation(){
 function currentTemplate(){const countryId=selectedCountryId(),kind=$('templateKind').value;return state.templates.find(template=>String(template.countryId)===String(countryId)&&template.kind===kind)||null;}
 function renderPlaceholders(){
   const placeholders=state.options.placeholders||[];
-  $('placeholderList').innerHTML=placeholders.length?placeholders.map(item=>`<button type="button" data-placeholder="${escapeHtml(placeholderToken(item.token))}" title="${escapeHtml(item.label||item.token)}">${escapeHtml(placeholderToken(item.token))}</button>`).join(''):'<span class="placeholder-empty">No hay variables configuradas.</span>';
+  $('placeholderList').innerHTML=placeholders.length?placeholders.map(item=>`<button type="button" data-placeholder="${escapeHtml(placeholderToken(item.token))}" title="${escapeHtml(String(item.label||item.token).replace(/\bNEXO\b/gi,'GENTIA'))}">${escapeHtml(placeholderToken(item.token))}</button>`).join(''):'<span class="placeholder-empty">No hay variables configuradas.</span>';
 }
 function renderTemplate(){
   const template=currentTemplate(),kind=$('templateKind').value;
@@ -111,7 +111,7 @@ function updatePreview(){
   $('previewSubject').textContent=withSamples($('templateSubject').value)||'Sin asunto';
   const body=withSamples($('templateBody').value);
   const content=body?escapeHtml(body).replace(/\r?\n/g,'<br>'):'<span style="color:#64748b">Escriba el mensaje para ver una muestra.</span>';
-  $('templatePreview').srcdoc=`<!doctype html><html lang="es"><head><meta charset="utf-8"><style>body{margin:0;background:#f3f6f8;color:#243b53;font:14px/1.65 Arial,sans-serif;padding:28px}.mail{max-width:680px;margin:auto;border:1px solid #dce4ea;border-radius:10px;background:#fff;padding:28px;box-shadow:0 8px 24px #17324d0d}.brand{margin:0 0 18px;color:#078464;font-size:11px;font-weight:700;letter-spacing:.13em}a{color:#06745b}img{max-width:100%}</style></head><body><div class="mail"><p class="brand">NEXO · FISCAL</p>${content}</div></body></html>`;
+  $('templatePreview').srcdoc=`<!doctype html><html lang="es"><head><meta charset="utf-8"><style>body{margin:0;background:#f3f6f8;color:#243b53;font:14px/1.65 Arial,sans-serif;padding:28px}.mail{max-width:680px;margin:auto;border:1px solid #dce4ea;border-radius:10px;background:#fff;padding:28px;box-shadow:0 8px 24px #17324d0d}.brand{margin:0 0 18px;color:#042e72;font-size:11px;font-weight:700;letter-spacing:.13em}a{color:#042e72}img{max-width:100%}</style></head><body><div class="mail"><p class="brand">GENTIA · FISCAL</p>${content}</div></body></html>`;
 }
 function insertPlaceholder(value){
   const input=state.placeholderTarget===$('templateSubject')?$('templateSubject'):$('templateBody');

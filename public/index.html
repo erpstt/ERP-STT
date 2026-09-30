@@ -4,7 +4,7 @@
 <script src="/record-audit.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nexo — ERP inteligente</title>
+  <title>GENTIA — ERP inteligente</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,38 +12,27 @@
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/login-refresh.css">
   <link rel="stylesheet" href="/login-position.css">
-  <link rel="stylesheet" href="/dashboard.css?v=20260908-approvers">
+  <link rel="stylesheet" href="/dashboard.css?v=20260929-autorent">
   <link rel="stylesheet" href="/modal-scroll.css?v=20260911-entity-fullscreen">
   <link rel="stylesheet" href="/company-selection.css">
   <link rel="stylesheet" href="/subsidiary-branding.css?v=20260814">
   <link rel="stylesheet" href="/exchange-rate.css?v=20260814">
+  <link rel="stylesheet" href="/gentia-theme.css?v=20260929">
 </head>
 <body>
 <div id="app">
   <div v-if="!sessionReady" class="session-loading">
-<span class="brand">
-<span class="brand-mark">
-<i>
-</i>
-<i>
-</i>
-<i>
-</i>
-</span>NEXO</span>
+<span class="brand gentia-brand gentia-brand-loading">
+<img src="/gentia-logo.svg" alt="GENTIA. Tu gente. Tus agentes. Un solo sistema.">
+</span>
 <p>Restaurando tu sesión…</p>
 </div>
   <main v-else-if="!authenticated" class="page-shell">
     <section class="brand-panel">
       <div class="brand-top">
-<span class="brand">
-<span class="brand-mark">
-<i>
-</i>
-<i>
-</i>
-<i>
-</i>
-</span>NEXO</span>
+<span class="brand gentia-brand gentia-brand-hero">
+<img src="/gentia-logo-reversed.svg" alt="GENTIA. Tu gente. Tus agentes. Un solo sistema.">
+</span>
 <span class="badge">
 <span>
 </span>Plataforma activa</span>
@@ -58,14 +47,17 @@
 <p class="eyebrow">OPERACIÓN CONECTADA</p>
 <h1>La claridad que tu operación<br>necesita para <em>crecer.</em>
 </h1>
-<p class="statement-copy">La forma inteligente de gestionar tu empresa en Latinoamérica.</p>
+<p class="statement-copy">Tu gente. Tus agentes. Un solo sistema.</p>
 </div>
       <footer>
-<span>© 2026 Nexo Systems</span>
+<span>© 2026 GENTIA</span>
 </footer>
     </section>
     <section class="auth-panel">
 <div class="auth-wrap">
+<span class="mobile-brand gentia-brand gentia-brand-mobile">
+<img src="/gentia-wordmark.svg" alt="GENTIA">
+</span>
 <div class="heading">
 <p class="eyebrow">BIENVENIDO DE NUEVO</p>
 <h2>Ingresa a tu espacio.</h2>
@@ -90,7 +82,7 @@
 </div>
 <p class="form-error">{{ formError }}</p>
 <button class="submit" :disabled="isSubmitting">
-<span>{{ isSubmitting ? 'Verificando acceso…' : 'Ingresar a Nexo' }}</span>
+<span>{{ isSubmitting ? 'Verificando acceso…' : 'Ingresar a GENTIA' }}</span>
 <b>→</b>
 </button>
 </form>
@@ -101,15 +93,9 @@
   <main v-else-if="selectingCompany" class="company-selection">
     <section class="company-picker" aria-labelledby="company-picker-title">
       <header class="company-picker-brand">
-<span class="brand">
-<span class="brand-mark">
-<i>
-</i>
-<i>
-</i>
-<i>
-</i>
-</span>NEXO</span>
+<span class="brand gentia-brand gentia-brand-picker">
+<img src="/gentia-wordmark.svg" alt="GENTIA">
+</span>
 <span class="company-access-badge">
 <i>
 </i>Acceso seguro</span>
@@ -147,15 +133,9 @@
 
   <main v-else class="workspace">
     <aside class="sidebar" :class="{open: sidebarOpen}">
-      <span class="brand">
-<span class="brand-mark">
-<i>
-</i>
-<i>
-</i>
-<i>
-</i>
-</span>NEXO</span>
+      <span class="brand gentia-brand gentia-brand-sidebar">
+<img src="/gentia-wordmark-reversed.svg" alt="GENTIA">
+</span>
       <nav>
         <p>MÓDULOS</p>
         <template v-for="module in modules" :key="module.name">
@@ -424,7 +404,7 @@
 </div>
 
     <div v-if="recordDialog.open" class="modal-backdrop" @click.self="closeRecordDialog">
-      <section class="modal" :class="{'entity-master-modal':['customers','suppliers'].includes(activeCatalog.slug)}" role="dialog" aria-modal="true" aria-labelledby="country-modal-title">
+      <section class="modal" :class="{'entity-master-modal':['customers','suppliers'].includes(activeCatalog.slug),'subsidiary-master-modal':activeCatalog.slug==='subsidiaries'}" role="dialog" aria-modal="true" aria-labelledby="country-modal-title">
         <div class="modal-head">
 <div>
 <span class="modal-icon">{{ recordDialog.mode === 'audit' ? '◉' : recordDialog.mode === 'delete' ? '!' : (recordDialog.mode === 'view' ? '◉' : (recordDialog.id ? '✎' : '+')) }}</span>
@@ -467,6 +447,24 @@
 </label>
 </template>
 </div>
+<section v-if="activeCatalog.slug==='subsidiaries' && isColombiaSelected()" class="autorent-editor" aria-labelledby="autorent-title">
+<div class="autorent-heading">
+<div><span>CONFIGURACIÓN TRIBUTARIA · COLOMBIA</span><h3 id="autorent-title">Autorretención a título de renta</h3><p>Registre las cuentas de balance y la tarifa que se aplicará internamente. Esta configuración no modifica el saldo por cobrar al cliente.</p></div>
+<span class="autorent-country-badge">CO</span>
+</div>
+<label class="autorent-toggle" :class="{disabled:!recordDialog.id}">
+<input v-model="recordDialog.values.applies_income_autorent" type="checkbox" :disabled="!recordDialog.id" @change="handleAutorentToggle">
+<span class="autorent-switch" aria-hidden="true"></span>
+<span><strong>¿Practica Autorretención de Renta?</strong><small>Activa el cálculo automático en facturas y notas de venta.</small></span>
+</label>
+<p v-if="!recordDialog.id" class="autorent-new-help">Guarde primero la subsidiaria. Luego podrá editarla y seleccionar cuentas asignadas a su plan contable.</p>
+<div v-if="recordDialog.values.applies_income_autorent" class="autorent-grid">
+<label><span>Cuenta de activo (Anticipo Autorretención) <b>*</b></span><small>Solo cuentas de Activo, naturaleza deudora y con movimientos.</small><input v-model.trim="autorentAccountSearch.active" type="search" placeholder="Buscar por código o nombre" aria-label="Buscar cuenta de activo"><select v-model="recordDialog.values.autorent_active_account_id" required><option value="" disabled>Seleccione la cuenta de activo</option><option v-for="account in autorentAccounts('Activo','active')" :key="account.account_id" :value="account.account_id">{{ autorentAccountLabel(account) }}</option></select><small v-if="!autorentAccounts('Activo','active').length" class="autorent-empty">No hay cuentas de activo compatibles asignadas a esta subsidiaria.</small></label>
+<label><span>Cuenta de pasivo (Autorretención por Pagar) <b>*</b></span><small>Solo cuentas de Pasivo, naturaleza acreedora y con movimientos.</small><input v-model.trim="autorentAccountSearch.passive" type="search" placeholder="Buscar por código o nombre" aria-label="Buscar cuenta de pasivo"><select v-model="recordDialog.values.autorent_passive_account_id" required><option value="" disabled>Seleccione la cuenta de pasivo</option><option v-for="account in autorentAccounts('Pasivo','passive')" :key="account.account_id" :value="account.account_id">{{ autorentAccountLabel(account) }}</option></select><small v-if="!autorentAccounts('Pasivo','passive').length" class="autorent-empty">No hay cuentas de pasivo compatibles asignadas a esta subsidiaria.</small></label>
+<label class="autorent-percentage"><span>Porcentaje de Autorretención <b>*</b></span><small>Ingrese la tarifa como porcentaje; por ejemplo, 1,10.</small><span class="percentage-control"><input v-model.trim="autorentPercentInput" type="text" inputmode="decimal" pattern="[0-9]+([,.][0-9]{1,2})?" placeholder="1,10" required><strong>%</strong></span><small>El sistema conservará 1,10 % como factor contable 0,0110.</small></label>
+<aside><strong>Movimiento interno de balance</strong><span>Débito al anticipo de impuestos</span><span>Crédito a autorretenciones por pagar</span><small>El total de la factura y la cuenta por cobrar permanecen intactos.</small></aside>
+</div>
+</section>
 <section v-if="['customers','suppliers'].includes(activeCatalog.slug) && recordDialog.values.applies_withholding" class="withholding-rules-editor">
 <div class="withholding-rules-head">
 <div><span>CONFIGURACIÓN TRIBUTARIA</span><h3>Retenciones por subsidiaria</h3><p>Asigne una o varias retenciones según el país y la subsidiaria donde opera la entidad.</p></div>
@@ -513,7 +511,8 @@
     </div>
   </main>
 </div>
-<script type="module" src="/app.js?v=20260928-alert-workspace">
+<script defer src="/gentia-brand.js?v=20260929"></script>
+<script type="module" src="/app.js?v=20260929-autorent">
 </script>
 <script src="/approval-notifications.js?v=3"></script></body>
 </html>

@@ -7,7 +7,7 @@ export interface TenantContext {
 
 export const defaultTenant: TenantContext = {
   id: 'demo-tenant',
-  name: 'Nexo Demo',
+  name: 'Gentia Demo',
   country: 'Costa Rica',
   currency: 'CRC'
 };
