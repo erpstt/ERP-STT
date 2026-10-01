@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Facturas de proveedor liquidadas · GENTIA</title>
+  <link rel="stylesheet" href="/settled-sales-invoices.css?v=20260930c">
+  <link rel="stylesheet" href="/settled-sales-invoices-reconciliation.css?v=20260930c">
+  <link rel="stylesheet" href="/settled-supplier-invoices.css?v=20260930a">
+</head>
+<body>
+<main class="settled-page supplier-settled-page">
+  <a class="back-link" href="/informes/contabilidad">← Todos los informes</a>
+  <header class="report-heading">
+    <div>
+      <p class="eyebrow">CUENTAS POR PAGAR · ANÁLISIS</p>
+      <h1>Facturas de proveedor liquidadas</h1>
+      <p class="lead">Facturas cuyo saldo llegó a cero en el mes, con trazabilidad de pagos, anticipos, retenciones y notas del proveedor.</p>
+    </div>
+    <div class="export-actions" aria-label="Descargar reporte">
+      <button id="downloadPdf" class="button secondary" type="button"><span aria-hidden="true">↓</span> Descargar PDF</button>
+      <button id="downloadExcel" class="button secondary" type="button"><span aria-hidden="true">↓</span> Descargar Excel</button>
+    </div>
+  </header>
+
+  <form id="filters" class="panel filters">
+    <div class="panel-title">
+      <div><span class="step">1</span><div><b>Parámetros del reporte</b><small>La empresa corresponde a la subsidiaria activa.</small></div></div>
+    </div>
+    <div class="filter-grid supplier-filter-grid">
+      <label>Empresa activa<input id="subsidiary" readonly aria-readonly="true" value="Cargando…"></label>
+      <label>Mes de liquidación<input id="periodMonth" type="month" required></label>
+      <label class="supplier-field">Proveedor
+        <details id="supplierPicker" class="multi-select">
+          <summary><span id="supplierSummary">Todos los proveedores</span><span class="chevron" aria-hidden="true">⌄</span></summary>
+          <div class="multi-menu">
+            <div class="multi-menu-head"><b>Proveedores de la empresa</b><button id="clearSuppliers" type="button">Usar todos</button></div>
+            <div id="supplierOptions" class="seller-options"></div>
+          </div>
+        </details>
+      </label>
+      <label>Tipo de liquidación<select id="settlementType">
+        <option value="ALL">Todas las liquidaciones</option>
+        <option value="CASH_PAYMENTS_ONLY">Con pagos a proveedor (incluye mixtas)</option>
+        <option value="CREDIT_NOTES_ONLY">Solo Notas de Crédito</option>
+      </select></label>
+      <label class="switch-field"><span>Agrupar por tipo</span><span class="gentia-switch"><input id="groupBySettlementType" type="checkbox" role="switch" checked><span aria-hidden="true"></span></span></label>
+      <button id="generate" class="button primary" type="submit">Generar reporte</button>
+    </div>
+    <p class="filter-note">La fecha de liquidación corresponde al último movimiento que dejó la cuenta por pagar en cero. El resumen se presenta en moneda local y el detalle conserva la moneda original de cada factura.</p>
+  </form>
+
+  <div id="message" class="message" role="status" aria-live="polite"></div>
+  <section id="summary" class="summary-board" aria-label="Resumen y conciliación del reporte"></section>
+  <aside id="overappliedWarning" class="warning" hidden></aside>
+
+  <section class="panel results-panel">
+    <div class="results-heading">
+      <div><span class="step">2</span><div><b>Detalle de facturas de proveedor liquidadas</b><small id="periodCaption">Seleccione el mes a consultar.</small></div></div>
+      <span id="resultCount" class="record-count">0 registros</span>
+    </div>
+    <div id="reportGroups" class="report-groups">
+      <div class="initial-state"><span aria-hidden="true">▤</span><b>Genere el reporte para consultar las liquidaciones</b><small>Podrá abrir cada factura para revisar sus pagos y notas.</small></div>
+    </div>
+    <footer class="pager">
+      <label>Filas por página<select id="pageSize"><option>25</option><option selected>50</option><option>100</option><option>250</option></select></label>
+      <button id="previousPage" type="button">Anterior</button><span id="pageCaption">Página 1 de 1</span><button id="nextPage" type="button">Siguiente</button>
+    </footer>
+  </section>
+</main>
+<script type="module" src="/settled-supplier-invoices.js?v=20260930a"></script>
+</body>
+</html>

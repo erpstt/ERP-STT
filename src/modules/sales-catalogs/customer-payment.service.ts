@@ -8,8 +8,12 @@ async function rpc(authorization:string,name:string,parameters:Record<string,unk
   if(!response.ok)throw Error(data?.message||'No fue posible procesar el cobro.');
   return data;
 }
-export async function customerPaymentOptions(authorization:string){
-  const [options,advances]=await Promise.all([rpc(authorization,'customer_payment_options'),rpc(authorization,'customer_available_advances')]);
+export async function customerPaymentOptions(authorization:string,paymentId?:number){
+  if(paymentId!==undefined&&(!Number.isSafeInteger(paymentId)||paymentId<=0))throw Error('El cobro indicado no es válido.');
+  const optionsRequest=paymentId===undefined
+    ?rpc(authorization,'customer_payment_options')
+    :rpc(authorization,'customer_payment_edit_options',{p_payment_id:paymentId});
+  const [options,advances]=await Promise.all([optionsRequest,rpc(authorization,'customer_available_advances')]);
   return {...options,advances};
 }
 export async function customerPaymentReport(authorization:string,filters:Record<string,unknown>){

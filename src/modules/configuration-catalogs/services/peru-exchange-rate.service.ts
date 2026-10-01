@@ -1,7 +1,7 @@
 import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
 const SBS_SERIES_API='https://estadisticas.bcrp.gob.pe/estadisticas/series/api/PD04639PD-PD04640PD/json';
 type CurrencyRow={currency_id:number;currency_code:string};type SeriesResponse={periods?:Array<{name:string;values:string[]}>};
-const MONTHS:Record<string,string>={Ene:'01',Feb:'02',Mar:'03',Abr:'04',May:'05',Jun:'06',Jul:'07',Ago:'08',Sep:'09',Oct:'10',Nov:'11',Dic:'12'};
+const MONTHS:Record<string,string>={Ene:'01',Feb:'02',Mar:'03',Abr:'04',May:'05',Jun:'06',Jul:'07',Ago:'08',Set:'09',Sep:'09',Oct:'10',Nov:'11',Dic:'12'};
 function effectiveDate(value?:Date|string){const date=value instanceof Date?value:new Date(value??Date.now());if(Number.isNaN(date.getTime()))throw new Error('La fecha efectiva no es válida.');return date.toISOString().slice(0,10);}
 function previous(iso:string,days:number){const date=new Date(`${iso}T12:00:00Z`);date.setUTCDate(date.getUTCDate()-days);return date.toISOString().slice(0,10);}
 function periodDate(name:string){const[day,month,year]=name.split('.');return month&&MONTHS[month]?`20${year}-${MONTHS[month]}-${day.padStart(2,'0')}`:'';}

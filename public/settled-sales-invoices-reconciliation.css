@@ -1,0 +1,211 @@
+.summary-board {
+  display: grid;
+  grid-template-columns: minmax(230px, .52fr) minmax(620px, 1.48fr);
+  gap: 14px;
+  margin: 5px 0 17px;
+}
+
+.summary-overview {
+  display: grid;
+  grid-column: 1;
+  grid-row: 1 / 3;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.summary-board .metric {
+  min-height: 78px;
+  border-top-width: 1px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.summary-board .metric:first-child { border-left: 4px solid var(--blue); }
+.summary-board .metric:nth-child(2) { border-left: 4px solid #0b8a68; }
+.summary-board .metric.base { border-left: 4px solid #1681b7; }
+.summary-board .metric.dso { border-left: 4px solid var(--orange); }
+.summary-board .metric small { min-height: auto; }
+.summary-board .metric > span { display:block;margin-top:4px;color:#74849a;font-size:9.5px;line-height:1.3; }
+
+.reconciliation-card,
+.funding-card {
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.reconciliation-card { grid-column: 2; grid-row: 1; }
+.funding-card { grid-column: 2; grid-row: 2; }
+
+.reconciliation-card > header,
+.funding-card > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid #e6ebf1;
+  padding: 13px 15px;
+  background: #f9fbfd;
+}
+
+.reconciliation-card header b,
+.funding-card header b {
+  display: block;
+  color: #233952;
+  font-size: 13px;
+}
+
+.reconciliation-card header small,
+.funding-card header small {
+  display: block;
+  margin-top: 3px;
+  color: #728197;
+  font-size: 11px;
+}
+
+.formula-label {
+  border-radius: 99px;
+  background: #eaf0f8;
+  color: var(--blue);
+  padding: 5px 9px;
+  font-size: 10px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.equation {
+  display: grid;
+  grid-template-columns: minmax(125px, 1fr) 24px minmax(125px, 1fr) 24px minmax(125px, 1fr) 28px minmax(145px, 1.1fr);
+  align-items: stretch;
+  padding: 14px;
+}
+
+.equation-value {
+  min-width: 0;
+  border: 1px solid #dce4ed;
+  border-radius: 9px;
+  background: #fff;
+  padding: 11px 12px;
+}
+
+.equation-value.payment { border-color: #a9ddcf; background: #f3fbf8; }
+.equation-value.credit { border-color: #d9cdf4; background: #faf8ff; }
+.equation-value.debit { border-color: #f1c8b6; background: #fff8f5; }
+.equation-value.net { border-color: #8aa6cc; background: #eff4fb; }
+.equation-value small,
+.equation-value b,
+.equation-value > span { display: block; }
+.equation-value small { color: #66768b; font-size: 10.5px; }
+.equation-value b {
+  margin-top: 5px;
+  color: #17304f;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.equation-value > span { margin-top:4px;color:#62748b;font-size:9.5px;line-height:1.3; }
+
+.operator {
+  display: grid;
+  place-items: center;
+  color: #718198;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.operator.equals { color: var(--blue); }
+.funding-total { text-align: right; }
+.funding-total small,
+.funding-total b { display: block; }
+.funding-total small { color: #718198; font-size: 10px; }
+.funding-total b {
+  margin-top: 2px;
+  color: var(--green);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.funding-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(145px, 1fr));
+}
+
+.funding-item {
+  display: flex;
+  gap: 9px;
+  min-width: 0;
+  padding: 14px 13px;
+}
+
+.funding-item + .funding-item { border-left: 1px solid #e6ebf1; }
+.funding-dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  margin-top: 3px;
+  border-radius: 50%;
+  background: #0b8a68;
+}
+.funding-item.advance .funding-dot { background: #1681b7; }
+.funding-item.withholding .funding-dot { background: #7255b6; }
+.funding-item.other .funding-dot { background: #d68a16; }
+.funding-item small,
+.funding-item b,
+.funding-item div > span { display: block; }
+.funding-item small { color: #52647a; font-size: 10.5px; font-weight: 800; }
+.funding-item b { margin-top: 4px; color: #17304f; font-size: 15px; font-variant-numeric: tabular-nums; }
+.funding-item div > span { margin-top: 5px; color: #7b899b; font-size: 9.5px; line-height: 1.35; }
+
+.warning b { color: #8b5308; }
+.invoice-record.has-overapplication td { background: #fffdf8; }
+.row-alert {
+  display: table;
+  margin-top: 5px;
+  border-radius: 99px;
+  background: #fff0d3;
+  color: #8b5205;
+  padding: 3px 6px;
+  font-size: 9px;
+  font-weight: 850;
+}
+.net-cell { min-width: 260px; }
+.net-cell > b { font-size: 12.5px; color: #17304f; }
+.reconciliation-note,
+.funding-note { line-height: 1.35; white-space: normal; }
+.funding-note { color: #3f6875; }
+.over-note { color: #a45b05; font-weight: 800; }
+.application-panel header > div b,
+.application-panel header > div small { display: block; }
+.application-panel header > div small { margin-top: 3px; color: #7a899b; font-size: 10px; font-weight: 500; }
+.application-panel table { min-width: 1450px; }
+.application-panel .funding-column { background: #fbfcfe; }
+.application-panel .cash-column { box-shadow: inset 2px 0 #b6e0d5; }
+.application-panel .advance-column { box-shadow: inset 2px 0 #bad8e8; }
+.application-panel .withholding-column { box-shadow: inset 2px 0 #ddd3f2; }
+.application-panel .other-column { box-shadow: inset 2px 0 #f1dbb8; }
+.movement-amount.negative { color: #a24626; font-weight: 750; }
+
+@media (max-width: 1250px) {
+  .summary-board { grid-template-columns: 1fr; }
+  .summary-overview { grid-column: 1; grid-row: auto; grid-template-columns: repeat(3, 1fr); }
+  .reconciliation-card,
+  .funding-card { grid-column: 1; grid-row: auto; }
+  .funding-grid { grid-template-columns: repeat(2, 1fr); }
+  .funding-item:nth-child(3) { border-left: 0; border-top: 1px solid #e6ebf1; }
+  .funding-item:nth-child(4) { border-top: 1px solid #e6ebf1; }
+}
+
+@media (max-width: 760px) {
+  .summary-overview { grid-template-columns: 1fr; }
+  .equation { grid-template-columns: 1fr 22px 1fr; gap: 0; }
+  .equation-value.net { grid-column: 2 / 4; }
+  .equation .equals { grid-column: 1; }
+  .formula-label { display: none; }
+  .funding-grid { grid-template-columns: 1fr; }
+  .funding-item + .funding-item { border-left: 0; border-top: 1px solid #e6ebf1; }
+  .reconciliation-card > header,
+  .funding-card > header { align-items: flex-start; flex-direction: column; }
+  .funding-total { text-align: left; }
+}

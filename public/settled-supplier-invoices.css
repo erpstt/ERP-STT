@@ -1,0 +1,15 @@
+.supplier-filter-grid{grid-template-columns:minmax(185px,1fr) minmax(160px,.8fr) minmax(260px,1.35fr) minmax(260px,1.35fr) minmax(145px,.7fr) auto}
+.supplier-settled-page .eyebrow{color:#08785f}
+.supplier-settled-page .step{background:#e5f4ef;color:#08785f}
+.supplier-settled-page .button.primary{border-color:#08785f;background:#08785f;box-shadow:0 7px 16px rgba(8,120,95,.16)}
+.supplier-settled-page .button.primary:hover:not(:disabled){border-color:#06634f;background:#06634f}
+.supplier-settled-page .summary-board .metric:first-child{border-left-color:#08785f}
+.supplier-settled-page .equation-value.payment{border-color:#a9ddcf;background:#f3fbf8}
+.supplier-settled-page .invoice-number{color:#075f9c}
+.supplier-settled-page .supplier-name{display:block;font-weight:750}
+.supplier-settled-page .metric.dpo{border-left:4px solid var(--orange)}
+.supplier-settled-page .movement-type.PAYMENT{color:#08705a}
+.supplier-settled-page .movement-type.CREDIT_NOTE{color:#533c91}
+.supplier-settled-page .movement-type.DEBIT_NOTE{color:#9a451f}
+@media(max-width:1250px){.supplier-filter-grid{grid-template-columns:repeat(3,minmax(180px,1fr))}}
+@media(max-width:760px){.supplier-filter-grid{grid-template-columns:1fr}}

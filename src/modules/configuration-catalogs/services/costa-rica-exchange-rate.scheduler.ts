@@ -1,5 +1,6 @@
 import { withAuditExecution } from '../../../core/database/audit-context.js';
 import { consultarYGuardarTipoDeCambioCRAutomatico } from './costa-rica-exchange-rate.service.js';
+import { reportExchangeRateFailure,resolveExchangeRateFailure } from './exchange-rate-alert.service.js';
 
 const TIME_ZONE='America/Costa_Rica';const HOURS=[3,7,10];
 function parts(date:Date){return Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:TIME_ZONE,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(date).map(part=>[part.type,part.value]));}
@@ -9,6 +10,6 @@ function next(now=new Date()){const p=parts(now),year=Number(p.year),month=Numbe
 function localDate(){const p=parts(new Date());return`${p.year}-${p.month}-${p.day}`;}
 let timer:NodeJS.Timeout|undefined;
 let started=false;
-async function execute(){try{const result=await consultarYGuardarTipoDeCambioCRAutomatico(localDate());console.log(`[TipoCambioCR] ${result.fechaEfectiva} USD/CRC=${result.tipoCambio} guardado desde ${result.fuente}`);}catch(cause){console.error('[TipoCambioCR] Error en ejecución automática:',cause instanceof Error?cause.message:cause);}finally{schedule();}}
+async function execute(){const date=localDate();try{const result=await consultarYGuardarTipoDeCambioCRAutomatico(date);await resolveExchangeRateFailure('CR','USD/CRC',date);console.log(`[TipoCambioCR] ${result.fechaEfectiva} USD/CRC=${result.tipoCambio} guardado desde ${result.fuente}`);}catch(cause){console.error('[TipoCambioCR] Error en ejecución automática:',cause instanceof Error?cause.message:cause);try{await reportExchangeRateFailure({countryCode:'CR',countryName:'Costa Rica',currencyPair:'USD/CRC',effectiveDate:date,cause});}catch(alertCause){console.error('[TipoCambioCR] No fue posible procesar la alerta:',alertCause instanceof Error?alertCause.message:alertCause);}}finally{schedule();}}
 function schedule(){const target=next();timer=setTimeout(()=>void withAuditExecution(execute),Math.max(target.getTime()-Date.now(),1000));timer.unref();console.log(`[TipoCambioCR] Próxima consulta: ${target.toISOString()} (${TIME_ZONE})`);}
 export function iniciarProgramacionTipoCambioCR(){if(started)return;started=true;void withAuditExecution(execute);}

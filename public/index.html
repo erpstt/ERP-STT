@@ -12,12 +12,12 @@
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/login-refresh.css">
   <link rel="stylesheet" href="/login-position.css">
-  <link rel="stylesheet" href="/dashboard.css?v=20260929-autorent">
+  <link rel="stylesheet" href="/dashboard.css?v=20260930-subsidiary-tabs">
   <link rel="stylesheet" href="/modal-scroll.css?v=20260911-entity-fullscreen">
   <link rel="stylesheet" href="/company-selection.css">
   <link rel="stylesheet" href="/subsidiary-branding.css?v=20260814">
   <link rel="stylesheet" href="/exchange-rate.css?v=20260814">
-  <link rel="stylesheet" href="/gentia-theme.css?v=20260929">
+  <link rel="stylesheet" href="/gentia-theme.css?v=20260930-switches">
 </head>
 <body>
 <div id="app">
@@ -42,6 +42,10 @@
           <source src="/nexo-login.mp4" type="video/mp4">
         </video>
         <img v-else src="/nexo-login-poster.webp" alt="">
+        <div class="login-video-branding">
+          <span class="login-video-label">Inteligencia operativa</span>
+          <span class="login-video-live"><i></i>Datos en tiempo real</span>
+        </div>
       </div>
       <div class="statement">
 <p class="eyebrow">OPERACIÓN CONECTADA</p>
@@ -409,7 +413,7 @@
 <div>
 <span class="modal-icon">{{ recordDialog.mode === 'audit' ? '◉' : recordDialog.mode === 'delete' ? '!' : (recordDialog.mode === 'view' ? '◉' : (recordDialog.id ? '✎' : '+')) }}</span>
 <div>
-<p>{{ recordDialog.mode === 'audit' ? 'CONTROL DEL REGISTRO' : recordDialog.mode === 'delete' ? 'CONFIRMAR ACCIÓN' : 'CATÁLOGO DE CORE' }}</p>
+<p>{{ recordDialog.mode === 'audit' ? 'CONTROL DEL REGISTRO' : recordDialog.mode === 'delete' ? 'CONFIRMAR ACCIÓN' : (activeCatalog.slug==='subsidiaries' ? 'CONFIGURACIÓN ORGANIZACIONAL' : 'CATÁLOGO DE CORE') }}</p>
 <h2 id="country-modal-title">{{ recordDialog.mode === 'audit' ? `Autoría: ${recordDialog.label}` : recordDialog.mode === 'delete' ? `Eliminar ${activeCatalog.singular}` : (recordDialog.mode === 'view' ? `Ver ${activeCatalog.singular}` : (recordDialog.id ? `Editar ${activeCatalog.singular}` : `Crear ${activeCatalog.singular}`)) }}</h2>
 </div>
 <div v-if="recordDialog.mode==='view'&&activeCatalog.slug==='customers'" class="customer-view-tabs"><button :class="{active:customerViewTab==='details'}" @click="customerViewTab='details'">Ver cliente</button><button :class="{active:customerViewTab==='costCenters'}" @click="customerViewTab='costCenters'">Ver centros de costos</button><button :class="{active:customerViewTab==='communications'}" @click="customerViewTab='communications'">Historial de Comunicaciones</button><button @click="openCustomerStatement(recordDialog.id)">Enviar Estado de Cuenta</button></div>
@@ -417,14 +421,21 @@
 <button class="modal-close" @click="closeRecordDialog" aria-label="Cerrar">×</button>
 </div>
         <record-audit v-if="recordDialog.mode !== 'delete'" :table="activeCatalog.table" :record-id="recordDialog.id"></record-audit>
-        <form v-if="recordDialog.mode === 'form'" @submit.prevent="submitRecord">
-<div class="form-grid">
+        <form v-if="recordDialog.mode === 'form'" :novalidate="activeCatalog.slug==='subsidiaries'" @submit.prevent="submitRecord">
+<nav v-if="activeCatalog.slug==='subsidiaries'" class="subsidiary-form-tabs" role="tablist" aria-label="Apartados de la subsidiaria">
+<button v-for="tab in subsidiaryTabs()" :id="`subsidiary-tab-${tab.id}`" :key="tab.id" type="button" role="tab" :aria-selected="subsidiaryFormTab===tab.id" :aria-controls="`subsidiary-panel-${tab.id}`" :class="{active:subsidiaryFormTab===tab.id}" @click="selectSubsidiaryTab(tab.id)">
+<span class="subsidiary-tab-step">{{ tab.step }}</span><span><strong>{{ tab.label }}</strong><small>{{ tab.caption }}</small></span>
+</button>
+</nav>
+<section v-if="activeCatalog.slug==='subsidiaries'" :id="`subsidiary-panel-${subsidiaryFormTab}`" class="subsidiary-tab-heading" role="tabpanel" :aria-labelledby="`subsidiary-tab-${subsidiaryFormTab}`">
+<span>{{ subsidiaryActiveTab().eyebrow }}</span><h3>{{ subsidiaryActiveTab().title }}</h3><p>{{ subsidiaryActiveTab().description }}</p>
+</section>
+<div v-show="activeCatalog.slug!=='subsidiaries' || subsidiaryFormTab!=='tax'" class="form-grid" :class="{'subsidiary-tab-grid':activeCatalog.slug==='subsidiaries'}">
 <template v-for="field in formFields" :key="field.key"><div v-if="activeCatalog.slug==='customers' &amp;&amp; field.key==='envio_estado_cuenta_auto'" class="approver-section"><h3>Crédito y Cobro</h3></div>
-<div v-if="activeCatalog.slug==='subsidiaries' && field.key==='project_approver'" class="approver-section"><h3>Aprobadores</h3><p>Asigne un usuario activo del ERP para cada responsabilidad.</p></div>
-<label :class="{'toggle-field':field.type==='boolean','multi-field':field.type==='multi-reference'}">
+<label v-show="activeCatalog.slug!=='subsidiaries' || subsidiaryFieldTab(field.key)===subsidiaryFormTab" :data-field-key="field.key" :class="{'toggle-field':field.type==='boolean','multi-field':field.type==='multi-reference','subsidiary-field-wide':activeCatalog.slug==='subsidiaries' && ['logo_url','address','secondary_currency_ids'].includes(field.key)}">
 <span>{{ field.label }}<b v-if="field.required"> *</b>
 </span>
-<select v-if="field.options" v-model="recordDialog.values[field.key]" :required="field.required || (activeCatalog.slug==='customers' && field.key==='email' && recordDialog.values.envio_estado_cuenta_auto)" @change="handleFieldChange(field)">
+<select v-if="field.options" v-model="recordDialog.values[field.key]" :required="fieldRequired(field)" @change="handleFieldChange(field)">
 <option value="" disabled>Selecciona una opción</option>
 <option v-for="option in field.options" :key="option" :value="option">{{ option }}</option>
 </select>
@@ -437,17 +448,20 @@
 </label>
 <small v-if="!filteredReferenceOptions(field).length">No hay opciones disponibles.</small>
 </div>
-<select v-else-if="field.reference" v-model="recordDialog.values[field.key]" :required="field.required || (activeCatalog.slug==='customers' && field.key==='email' && recordDialog.values.envio_estado_cuenta_auto)" :disabled="field.readOnly" @change="handleFieldChange(field)">
+<select v-else-if="field.reference" v-model="recordDialog.values[field.key]" :required="fieldRequired(field)" :disabled="field.readOnly" @change="handleFieldChange(field)">
 <option value="">{{ field.required ? 'Selecciona una opción' : 'Sin asignar' }}</option>
 <option v-for="option in filteredReferenceOptions(field)" :key="referenceId(field.reference,option)" :value="referenceId(field.reference,option)" :disabled="field.reference==='organization/approver-options' && !option.is_active">{{ referenceLabel(option) }}{{ field.reference==='organization/approver-options' && !option.is_active ? ' (Inactivo)' : '' }}</option>
 </select>
-<input v-else-if="field.type !== 'boolean'" v-model="recordDialog.values[field.key]" :type="field.type" :required="field.required || (activeCatalog.slug==='customers' && field.key==='email' && recordDialog.values.envio_estado_cuenta_auto)" :readonly="field.readOnly" :placeholder="field.readOnly && !recordDialog.id ? 'Se asignará automáticamente' : ''">
-<input v-else v-model="recordDialog.values[field.key]" type="checkbox" :disabled="field.readOnly">
+<input v-else-if="field.type !== 'boolean'" v-model="recordDialog.values[field.key]" :type="field.type" :required="fieldRequired(field)" :readonly="field.readOnly" :placeholder="field.readOnly && !recordDialog.id ? 'Se asignará automáticamente' : ''">
+<span v-else class="gentia-switch-control">
+<input v-model="recordDialog.values[field.key]" class="gentia-switch-input" type="checkbox" role="switch" :disabled="field.readOnly">
+<span class="gentia-switch-track" aria-hidden="true"></span>
+</span>
 <small v-if="activeCatalog.slug==='chart-accounts' &amp;&amp; field.key==='pending_fx_revaluation'">Heredado del grupo de cuentas. Modifique esta opción en el grupo.</small>
 </label>
 </template>
 </div>
-<section v-if="activeCatalog.slug==='subsidiaries' && isColombiaSelected()" class="autorent-editor" aria-labelledby="autorent-title">
+<section v-if="activeCatalog.slug==='subsidiaries' && subsidiaryFormTab==='tax' && isColombiaSelected()" class="autorent-editor" aria-labelledby="autorent-title">
 <div class="autorent-heading">
 <div><span>CONFIGURACIÓN TRIBUTARIA · COLOMBIA</span><h3 id="autorent-title">Autorretención a título de renta</h3><p>Registre las cuentas de balance y la tarifa que se aplicará internamente. Esta configuración no modifica el saldo por cobrar al cliente.</p></div>
 <span class="autorent-country-badge">CO</span>
@@ -459,8 +473,8 @@
 </label>
 <p v-if="!recordDialog.id" class="autorent-new-help">Guarde primero la subsidiaria. Luego podrá editarla y seleccionar cuentas asignadas a su plan contable.</p>
 <div v-if="recordDialog.values.applies_income_autorent" class="autorent-grid">
-<label><span>Cuenta de activo (Anticipo Autorretención) <b>*</b></span><small>Solo cuentas de Activo, naturaleza deudora y con movimientos.</small><input v-model.trim="autorentAccountSearch.active" type="search" placeholder="Buscar por código o nombre" aria-label="Buscar cuenta de activo"><select v-model="recordDialog.values.autorent_active_account_id" required><option value="" disabled>Seleccione la cuenta de activo</option><option v-for="account in autorentAccounts('Activo','active')" :key="account.account_id" :value="account.account_id">{{ autorentAccountLabel(account) }}</option></select><small v-if="!autorentAccounts('Activo','active').length" class="autorent-empty">No hay cuentas de activo compatibles asignadas a esta subsidiaria.</small></label>
-<label><span>Cuenta de pasivo (Autorretención por Pagar) <b>*</b></span><small>Solo cuentas de Pasivo, naturaleza acreedora y con movimientos.</small><input v-model.trim="autorentAccountSearch.passive" type="search" placeholder="Buscar por código o nombre" aria-label="Buscar cuenta de pasivo"><select v-model="recordDialog.values.autorent_passive_account_id" required><option value="" disabled>Seleccione la cuenta de pasivo</option><option v-for="account in autorentAccounts('Pasivo','passive')" :key="account.account_id" :value="account.account_id">{{ autorentAccountLabel(account) }}</option></select><small v-if="!autorentAccounts('Pasivo','passive').length" class="autorent-empty">No hay cuentas de pasivo compatibles asignadas a esta subsidiaria.</small></label>
+<label><span>Cuenta de activo (Anticipo Autorretención) <b>*</b></span><small>Solo cuentas de Activo, naturaleza deudora y con movimientos.</small><input v-model.trim="autorentAccountSearch.active" type="search" placeholder="Buscar por código o nombre" aria-label="Buscar cuenta de activo"><select v-model="recordDialog.values.autorent_active_account_id" required><option value="" disabled>Seleccione la cuenta de activo</option><option v-for="account in autorentAccounts('Activo','active')" :key="account.account_id" :value="account.account_id">{{ autorentAccountLabel(account) }}</option></select><small v-if="!autorentAccounts('Activo','active').length" class="autorent-empty">No existen cuentas de activo compatibles en el plan contable.</small><small v-else class="autorent-assignment-note">Las cuentas del plan están disponibles para todas las subsidiarias.</small></label>
+<label><span>Cuenta de pasivo (Autorretención por Pagar) <b>*</b></span><small>Solo cuentas de Pasivo, naturaleza acreedora y con movimientos.</small><input v-model.trim="autorentAccountSearch.passive" type="search" placeholder="Buscar por código o nombre" aria-label="Buscar cuenta de pasivo"><select v-model="recordDialog.values.autorent_passive_account_id" required><option value="" disabled>Seleccione la cuenta de pasivo</option><option v-for="account in autorentAccounts('Pasivo','passive')" :key="account.account_id" :value="account.account_id">{{ autorentAccountLabel(account) }}</option></select><small v-if="!autorentAccounts('Pasivo','passive').length" class="autorent-empty">No existen cuentas de pasivo compatibles en el plan contable.</small><small v-else class="autorent-assignment-note">Las cuentas del plan están disponibles para todas las subsidiarias.</small></label>
 <label class="autorent-percentage"><span>Porcentaje de Autorretención <b>*</b></span><small>Ingrese la tarifa como porcentaje; por ejemplo, 1,10.</small><span class="percentage-control"><input v-model.trim="autorentPercentInput" type="text" inputmode="decimal" pattern="[0-9]+([,.][0-9]{1,2})?" placeholder="1,10" required><strong>%</strong></span><small>El sistema conservará 1,10 % como factor contable 0,0110.</small></label>
 <aside><strong>Movimiento interno de balance</strong><span>Débito al anticipo de impuestos</span><span>Crédito a autorretenciones por pagar</span><small>El total de la factura y la cuenta por cobrar permanecen intactos.</small></aside>
 </div>
@@ -512,7 +526,7 @@
   </main>
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
-<script type="module" src="/app.js?v=20260929-autorent">
+<script type="module" src="/app.js?v=20260930-catalog-performance">
 </script>
 <script src="/approval-notifications.js?v=3"></script></body>
 </html>

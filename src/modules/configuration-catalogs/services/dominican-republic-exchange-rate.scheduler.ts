@@ -1,5 +1,6 @@
 import { withAuditExecution } from '../../../core/database/audit-context.js';
 import { consultarYGuardarTipoDeCambioRDAutomatico } from './dominican-republic-exchange-rate.service.js';
+import { reportExchangeRateFailure,resolveExchangeRateFailure } from './exchange-rate-alert.service.js';
 
 const TIME_ZONE='America/Santo_Domingo';
 const EXECUTION_HOURS=[3,7,10];
@@ -12,7 +13,7 @@ function nextExecution(now=new Date()){const p=zonedParts(now);const year=Number
 function effectiveDateRD(date=new Date()){const p=zonedParts(date);return`${p.year}-${p.month}-${p.day}`;}
 
 let timer:NodeJS.Timeout|undefined;
-async function execute(){try{const result=await consultarYGuardarTipoDeCambioRDAutomatico(effectiveDateRD());console.log(`[TipoCambioRD] ${result.fechaEfectiva} USD/DOP=${result.tipoCambio} guardado desde ${result.fuente}`);}catch(cause){console.error('[TipoCambioRD] Error en ejecución automática:',cause instanceof Error?cause.message:cause);}finally{schedule();}}
+async function execute(){const date=effectiveDateRD();try{const result=await consultarYGuardarTipoDeCambioRDAutomatico(date);await resolveExchangeRateFailure('RD','USD/DOP',date);console.log(`[TipoCambioRD] ${result.fechaEfectiva} USD/DOP=${result.tipoCambio} guardado desde ${result.fuente}`);}catch(cause){console.error('[TipoCambioRD] Error en ejecución automática:',cause instanceof Error?cause.message:cause);try{await reportExchangeRateFailure({countryCode:'RD',countryName:'República Dominicana',currencyPair:'USD/DOP',effectiveDate:date,cause});}catch(alertCause){console.error('[TipoCambioRD] No fue posible procesar la alerta:',alertCause instanceof Error?alertCause.message:alertCause);}}finally{schedule();}}
 function schedule(){const next=nextExecution();const delay=Math.min(next.getTime()-Date.now(),MAX_TIMER_DELAY);timer=setTimeout(()=>{if(Date.now()+1000<next.getTime())schedule();else void withAuditExecution(execute);},Math.max(delay,1000));timer.unref();console.log(`[TipoCambioRD] Próxima consulta: ${next.toISOString()} (${TIME_ZONE})`);}
 
 export function iniciarProgramacionTipoCambioRD(){if(timer)return;schedule();}

@@ -73,6 +73,8 @@ import { iniciarProgramacionTipoCambioNI } from './modules/configuration-catalog
 import { consultarYGuardarTipoDeCambioPE } from './modules/configuration-catalogs/services/peru-exchange-rate.service.js';
 import { iniciarProgramacionTipoCambioPE } from './modules/configuration-catalogs/services/peru-exchange-rate.scheduler.js';
 import { accountingReportOptions, bankReconciliationAction, pendingInvoiceReversalOptions, renderBankReconciliationPdf, reverseJournalEntry, reversePendingInvoiceJournal, runAccountingReport } from './modules/reports/accounting-reports.service.js';
+import { exportSettledInvoiceExcel, exportSettledInvoicePdf, runSettledInvoiceReport, settledInvoiceReportOptions } from './modules/reports/settled-invoices-report.service.js';
+import { exportSettledSupplierInvoiceExcel, exportSettledSupplierInvoicePdf, runSettledSupplierInvoiceReport, settledSupplierInvoiceReportOptions } from './modules/reports/settled-supplier-invoices-report.service.js';
 import {incomeForecastAction} from './modules/reports/income-forecast.service.js';
 import { bankTransferJournal, bankTransferOptions, createBankTransfer, runBankTransferReport } from './modules/banking-catalogs/bank-transfer.service.js';
 import { bankDepositOptions, saveBankDeposit, listBankDeposits, bankDepositDetail, updateBankDeposit, deleteBankDeposit } from './modules/banking-catalogs/bank-deposit.service.js';
@@ -103,6 +105,17 @@ async function body(request: IncomingMessage): Promise<unknown> {
   return JSON.parse(raw || '{}');
 }
 
+function download(response: ServerResponse, file: { fileName: string; mimeType: string; buffer: Buffer }) {
+  response.writeHead(200, {
+    'Content-Type': file.mimeType,
+    'Content-Length': file.buffer.byteLength,
+    'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(file.fileName)}`,
+    'Cache-Control': 'private, no-store',
+    'X-Content-Type-Options': 'nosniff'
+  });
+  response.end(file.buffer);
+}
+
 function clientIp(request: IncomingMessage) {
   const forwarded = request.headers['x-forwarded-for'];
   const value = Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(',')[0];
@@ -120,7 +133,7 @@ async function serveFile(pathname: string, response: ServerResponse) {
     if(extension==='.html'&&relative!=='index.html'){
       const html=await readFile(file,'utf8');
       const guard=`<script src="/record-audit.js"></script><style>html.inside-erp-workspace,html.inside-erp-workspace body{width:100%!important;min-width:0!important;min-height:100%!important;margin:0!important;padding:0!important}html.inside-erp-workspace body>main{box-sizing:border-box!important;width:100%!important;max-width:none!important;min-height:100vh!important;margin:0!important;border-radius:0!important;box-shadow:none!important}html.inside-erp-workspace body>.toolbar,html.inside-erp-workspace body>nav{box-sizing:border-box!important;width:100%!important;max-width:none!important;margin:0!important}</style><script>if(window===window.top){sessionStorage.setItem('nexo_workspace_redirect',JSON.stringify({path:location.pathname+location.search+location.hash,createdAt:Date.now()}));location.replace('/')}else{document.documentElement.classList.add('inside-erp-workspace')}</script>`;
-      const gentiaAssets='<link rel="stylesheet" href="/gentia-theme.css?v=20260929"><script defer src="/gentia-brand.js?v=20260929"></script>';
+      const gentiaAssets='<link rel="stylesheet" href="/gentia-theme.css?v=20260930-switches"><script defer src="/gentia-brand.js?v=20260929"></script>';
       const branded=html.includes('</head>')
         ? html.replace('</head>',`${gentiaAssets}</head>`)
         : `${gentiaAssets}${html}`;
@@ -163,6 +176,14 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(request.method==='POST'&&request.url==='/api/auth/select-role'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const input=await body(request)as{roleId?:number};return json(response,200,await selectUserRole(authorization,Number(input.roleId)));}
     if(request.method==='POST'&&request.url==='/api/auth/change-password'){const authorization=request.headers.authorization!;return json(response,200,await changePassword(authorization,await body(request)as{currentPassword?:string;newPassword?:string;confirmation?:string}));}
     if(request.method==='GET'&&request.url==='/api/reports/accounting/options'){return json(response,200,await accountingReportOptions(request.headers.authorization!));}
+    if(request.method==='GET'&&request.url==='/api/v1/reports/sales/settled-invoices/options'){return json(response,200,await settledInvoiceReportOptions(request.headers.authorization!));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/sales/settled-invoices'){return json(response,200,await runSettledInvoiceReport(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/sales/settled-invoices/pdf'){return download(response,await exportSettledInvoicePdf(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/sales/settled-invoices/excel'){return download(response,await exportSettledInvoiceExcel(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='GET'&&request.url==='/api/v1/reports/purchases/settled-invoices/options'){return json(response,200,await settledSupplierInvoiceReportOptions(request.headers.authorization!));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/purchases/settled-invoices'){return json(response,200,await runSettledSupplierInvoiceReport(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/purchases/settled-invoices/pdf'){return download(response,await exportSettledSupplierInvoicePdf(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/purchases/settled-invoices/excel'){return download(response,await exportSettledSupplierInvoiceExcel(request.headers.authorization!,await body(request)as Record<string,unknown>));}
     const forecastRoute=request.url?.match(/^\/api\/reports\/income-forecast\/(options|generate|save)$/);
     if(request.method==='POST'&&forecastRoute){const auth=request.headers.authorization;if(!auth?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');return json(response,200,await incomeForecastAction(auth,forecastRoute[1],await body(request)as Record<string,unknown>));}
     if(request.method==='GET'&&request.url==='/api/banking/transfers/options'){return json(response,200,await bankTransferOptions(request.headers.authorization!));}
@@ -318,7 +339,13 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(request.method==='GET'&&request.url==='/api/sales/workflow/options')return json(response,200,await salesWorkflowOptions(request.headers.authorization!));
     if(request.method==='POST'&&request.url==='/api/sales/workflow/report')return json(response,200,await salesDocuments(request.headers.authorization!,await body(request)as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/sales/workflow')return json(response,201,await saveSalesDocument(request.headers.authorization!,await body(request)as Record<string,unknown>));
-    if(request.method==='GET'&&request.url==='/api/sales/customer-payments/options')return json(response,200,await customerPaymentOptions(request.headers.authorization!));
+    const customerPaymentOptionsUrl=new URL(request.url??'/','http://localhost');
+    if(request.method==='GET'&&customerPaymentOptionsUrl.pathname==='/api/sales/customer-payments/options'){
+      const rawPaymentId=customerPaymentOptionsUrl.searchParams.get('paymentId');
+      const paymentId=rawPaymentId===null?undefined:Number(rawPaymentId);
+      if(rawPaymentId!==null&&(!Number.isSafeInteger(paymentId)||Number(paymentId)<=0))return error(response,400,'El cobro indicado no es válido.');
+      return json(response,200,await customerPaymentOptions(request.headers.authorization!,paymentId));
+    }
     if(request.method==='POST'&&request.url==='/api/sales/customer-payments/report')return json(response,200,await customerPaymentReport(request.headers.authorization!,await body(request)as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/sales/customer-payments/save')return json(response,201,await saveCustomerPayment(request.headers.authorization!,await body(request)as Record<string,unknown>));
     const customerPaymentRoute=request.url?.match(/^\/api\/sales\/customer-payments\/(\d+)$/);if(customerPaymentRoute){const id=Number(customerPaymentRoute[1]);if(request.method==='GET')return json(response,200,await customerPaymentDetail(request.headers.authorization!,id));if(request.method==='PUT')return json(response,200,await saveCustomerPayment(request.headers.authorization!,await body(request)as Record<string,unknown>,id));if(request.method==='DELETE')return json(response,200,await deleteCustomerPayment(request.headers.authorization!,id));}

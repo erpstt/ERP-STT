@@ -408,13 +408,205 @@
     max-width: 178px;
   }
 
+  /* Colour-grade the access video as a GENTIA surface while keeping the
+     dashboard animation readable. */
+  .login-video {
+    isolation: isolate;
+    border: 1px solid rgba(255, 255, 255, .3) !important;
+    border-radius: 18px !important;
+    background-color: #021b48 !important;
+    box-shadow:
+      0 28px 68px rgba(1, 17, 45, .46),
+      0 0 0 1px rgba(242, 105, 56, .14) !important;
+    transform: perspective(1000px) rotateY(-1.6deg) !important;
+  }
+
+  .login-video video,
+  .login-video > img {
+    filter: hue-rotate(38deg) saturate(.78) contrast(1.1) brightness(.86);
+    transform: scale(1.018);
+  }
+
+  .login-video::before {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    content: "";
+    pointer-events: none;
+    border-radius: inherit;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, .11),
+      inset 0 3px 0 var(--gentia-orange);
+  }
+
   .login-video::after {
     position: absolute;
     inset: 0;
+    z-index: 2;
     content: "";
     pointer-events: none;
-    background: rgba(4, 46, 114, .2);
-    mix-blend-mode: color;
+    border-radius: inherit;
+    background:
+      radial-gradient(circle at 88% 8%, rgba(242, 105, 56, .2), transparent 25%),
+      linear-gradient(180deg, rgba(4, 46, 114, .08) 20%, rgba(2, 25, 66, .12) 58%, rgba(2, 20, 53, .88) 100%) !important;
+    mix-blend-mode: normal;
+  }
+
+  .login-video-branding {
+    position: absolute;
+    right: 17px;
+    bottom: 15px;
+    left: 17px;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--gentia-white);
+    font-family: "DM Sans", sans-serif;
+  }
+
+  .login-video-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.35px;
+    text-transform: uppercase;
+  }
+
+  .login-video-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    border: 1px solid rgba(255, 255, 255, .2);
+    border-radius: 999px;
+    background-color: rgba(4, 46, 114, .7);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: .2px;
+    white-space: nowrap;
+    backdrop-filter: blur(7px);
+  }
+
+  .login-video-live i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--gentia-orange);
+    box-shadow: 0 0 0 3px rgba(242, 105, 56, .22);
+  }
+
+  /* Persistent boolean settings use a switch. Selection, filter and bulk
+     action checkboxes intentionally retain their native square control. */
+  .gentia-switch-label {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 10px !important;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .gentia-switch-control {
+    --gentia-switch-on: #159b78;
+    position: relative;
+    display: inline-flex !important;
+    flex-direction: row !important;
+    flex: 0 0 auto;
+    align-items: center;
+    width: 38px;
+    min-width: 38px;
+    height: 22px;
+    min-height: 22px;
+    margin: 0 !important;
+    cursor: pointer;
+    vertical-align: middle;
+  }
+
+  .gentia-switch-input {
+    position: absolute !important;
+    width: 1px !important;
+    min-width: 1px !important;
+    height: 1px !important;
+    min-height: 1px !important;
+    margin: -1px !important;
+    padding: 0 !important;
+    overflow: hidden;
+    border: 0 !important;
+    opacity: 0;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .gentia-switch-track {
+    position: relative;
+    display: block !important;
+    width: 38px;
+    height: 22px;
+    margin: 0 !important;
+    border: 1px solid #b8c3ce;
+    border-radius: 999px;
+    background-color: #cbd5dc;
+    box-shadow: inset 0 0 0 1px rgba(23, 35, 59, .04);
+    transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease;
+  }
+
+  .gentia-switch-track::after {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    content: "";
+    border-radius: 50%;
+    background-color: var(--gentia-white);
+    box-shadow: 0 1px 4px rgba(23, 35, 59, .3);
+    transition: transform .18s ease;
+  }
+
+  .gentia-switch-input:checked + .gentia-switch-track {
+    border-color: var(--gentia-switch-on);
+    background-color: var(--gentia-switch-on);
+    box-shadow: inset 0 0 0 1px rgba(0, 76, 56, .08), 0 0 0 1px rgba(21, 155, 120, .08);
+  }
+
+  .gentia-switch-input:checked + .gentia-switch-track::after {
+    transform: translateX(16px);
+  }
+
+  .gentia-switch-input:focus-visible + .gentia-switch-track {
+    outline: 3px solid rgba(21, 155, 120, .24);
+    outline-offset: 3px;
+  }
+
+  .gentia-switch-control:hover .gentia-switch-input:not(:disabled) + .gentia-switch-track {
+    border-color: #159b78;
+  }
+
+  .gentia-switch-input:disabled + .gentia-switch-track {
+    cursor: not-allowed;
+    opacity: .52;
+  }
+
+  .gentia-switch-control--compact {
+    width: 34px;
+    min-width: 34px;
+    height: 20px;
+    min-height: 20px;
+  }
+
+  .gentia-switch-control--compact .gentia-switch-track {
+    width: 34px;
+    height: 20px;
+  }
+
+  .gentia-switch-control--compact .gentia-switch-track::after {
+    width: 14px;
+    height: 14px;
+  }
+
+  .gentia-switch-control--compact .gentia-switch-input:checked + .gentia-switch-track::after {
+    transform: translateX(14px);
   }
 }
 
@@ -426,6 +618,10 @@
   .gentia-brand-mobile img {
     height: 36px;
   }
+
+  .login-video {
+    transform: none !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -436,6 +632,11 @@
     transition-duration: .01ms !important;
     animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
+  }
+
+  .gentia-switch-track,
+  .gentia-switch-track::after {
+    transition: none !important;
   }
 }
 

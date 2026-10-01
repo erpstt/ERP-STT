@@ -37,10 +37,10 @@ function colombianApp(component){
   };
 }
 
-test('la tarjeta se limita a Colombia y filtra las cuentas por sociedad, categoría y naturaleza',async()=>{
+test('la tarjeta se limita a Colombia y ofrece las cuentas globales compatibles por categoría y naturaleza',async()=>{
   const component=await loadComponent(),app=colombianApp(component);
   assert.equal(app.isColombiaSelected(),true);
-  assert.deepEqual(app.autorentAccounts('Activo','active').map(row=>row.account_id),[101]);
+  assert.deepEqual(app.autorentAccounts('Activo','active').map(row=>row.account_id),[101,102]);
   assert.deepEqual(app.autorentAccounts('Pasivo','passive').map(row=>row.account_id),[201]);
   app.autorentAccountSearch.active='135515';
   assert.deepEqual(app.autorentAccounts('Activo','active').map(row=>row.account_id),[101]);
@@ -64,9 +64,10 @@ test('muestra 1,10 por ciento y persiste el factor contable 0.0110',async()=>{
   assert.equal(saved.autorent_passive_account_id,201);
 });
 
-test('la plantilla presenta una sección condicional, campos requeridos y ayuda contable',async()=>{
+test('la plantilla presenta pestañas, una sección condicional y ayuda contable',async()=>{
   const html=await readFile(new URL('../public/index.html',import.meta.url),'utf8');
-  assert.match(html,/activeCatalog\.slug==='subsidiaries' && isColombiaSelected\(\)/);
+  assert.match(html,/class="subsidiary-form-tabs"/);
+  assert.match(html,/subsidiaryFormTab==='tax' && isColombiaSelected\(\)/);
   assert.match(html,/¿Practica Autorretención de Renta\?/);
   assert.match(html,/autorent_active_account_id/);
   assert.match(html,/autorent_passive_account_id/);

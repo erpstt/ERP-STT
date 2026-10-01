@@ -17,6 +17,7 @@
     "typescript": "^5.7.2"
   },
   "dependencies": {
+    "exceljs": "^4.4.0",
     "nodemailer": "^10.0.10",
     "pg": "^8.16.0",
     "read-excel-file": "^9.3.10",
