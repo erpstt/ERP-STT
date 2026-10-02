@@ -28,9 +28,10 @@ test('size and row limits', () => {
 });
 test('additional dimensions are retained and blank optional columns preserve old receipts',()=>{
   const fullHeader=journalCsvHeaders.join(',');
-  const expanded=parseJournalCsv(`${fullHeader}\n${line},Cliente,Cliente ejemplo,Servicios,Proyecto,Consultoria,Banco,Relacionada`)[0];
+  const expanded=parseJournalCsv(`${fullHeader}\n${line},Costa Rica,Cliente,Cliente ejemplo,Servicios,Proyecto,Consultoria,Banco,Relacionada`)[0];
+  assert.equal(expanded.pais_servicio,'Costa Rica');
   assert.equal(expanded.entidad,'Cliente'); assert.equal(expanded.nombre,'Cliente ejemplo');
   assert.equal(expanded.departamento,'Servicios'); assert.equal(expanded.centro_costos,'Proyecto');
   assert.equal(expanded.clase,'Consultoria'); assert.equal(expanded.acreedor_financiero,'Banco'); assert.equal(expanded.compania_relacionada,'Relacionada');
-  assert.deepEqual(parseJournalCsv(`${fullHeader}\n${line},,,,,,,`),parseJournalCsv(`${header}\n${line}`));
+  assert.deepEqual(parseJournalCsv(`${fullHeader}\n${line},,,,,,,,`),parseJournalCsv(`${header}\n${line}`));
 });

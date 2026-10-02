@@ -42,11 +42,13 @@ try{
 
   await db.query('begin');
   await db.query("set local lock_timeout='15s';set local statement_timeout='120s'");
-  const migration=await readFile(
-    new URL('../supabase/migrations/20260929100000_colombia_income_autorent.sql',import.meta.url),
-    'utf8'
-  );
-  await db.query(migration);
+  if(!installedBefore){
+    const migration=await readFile(
+      new URL('../supabase/migrations/20260929100000_colombia_income_autorent.sql',import.meta.url),
+      'utf8'
+    );
+    await db.query(migration);
+  }
 
   let colombia=await one(`
     select country_id from public.countries
@@ -142,7 +144,7 @@ try{
       (select fp.fiscal_period_id from public.fiscal_periods fp
        where fp.subsidiary_id=$1 and not fp.is_closed and not coalesce(fp.ar_closed,false)
        order by fp.start_date limit 1) fiscal_period_id,
-      (select fp.start_date from public.fiscal_periods fp
+      (select to_char(fp.start_date,'YYYY-MM-DD') from public.fiscal_periods fp
        where fp.subsidiary_id=$1 and not fp.is_closed and not coalesce(fp.ar_closed,false)
        order by fp.start_date limit 1) document_date,
       (select s.currency_id from public.subsidiaries s where s.subsidiary_id=$1) currency_id,
@@ -180,7 +182,7 @@ try{
     update public.subsidiaries set applies_income_autorent=true,
       autorent_active_account_id=$2,autorent_passive_account_id=$3,autorent_percentage=.0110
     where subsidiary_id=$1
-  `,[context.subsidiary_id,setup.passive_account_id,setup.active_account_id],/cuenta de anticipo.*Activo/i);
+  `,[context.subsidiary_id,setup.passive_account_id,setup.active_account_id],/cuenta de anticipo.*Activo|Seleccione una cuenta de Activo/i);
   await expectRejected(`
     update public.subsidiaries set applies_income_autorent=true,
       autorent_active_account_id=$2,autorent_passive_account_id=$3,autorent_percentage=0

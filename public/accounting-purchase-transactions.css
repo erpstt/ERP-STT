@@ -1,0 +1,107 @@
+.purchase-cost-centers {
+  min-width: 130px;
+  max-width: 220px;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.purchase-supports {
+  display: flex;
+  min-width: 175px;
+  max-width: 250px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  white-space: normal;
+}
+
+.purchase-support-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #0b6b50;
+  font-weight: 700;
+  line-height: 1.3;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+.purchase-support-link:hover {
+  border-color: currentColor;
+}
+
+.purchase-support-link:focus-visible {
+  outline: 3px solid rgba(20, 132, 95, .2);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.purchase-support-link[aria-busy="true"] {
+  opacity: .55;
+  pointer-events: none;
+}
+
+.purchase-support-link::before {
+  display: inline-grid;
+  width: 19px;
+  height: 19px;
+  flex: 0 0 19px;
+  place-items: center;
+  border-radius: 5px;
+  background: #e6f5ef;
+  color: #0b6b50;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.purchase-support-link.file::before {
+  content: "DOC";
+}
+
+.purchase-support-link.external::before {
+  content: "↗";
+}
+
+.purchase-support-empty,
+.purchase-support-unavailable {
+  color: #7b8797;
+  font-size: 12px;
+}
+
+.purchase-support-unavailable {
+  display: block;
+}
+
+@media print {
+  .purchase-supports {
+    min-width: 0;
+    max-width: none;
+    gap: 2px;
+  }
+
+  .purchase-support-link {
+    color: #142034;
+    font-size: 8pt;
+    font-weight: 500;
+  }
+
+  .purchase-support-link::before {
+    display: none;
+  }
+
+  .purchase-cost-centers {
+    min-width: 0;
+    max-width: none;
+  }
+
+  #workspace:has(.purchase-supports) table,
+  #workspace:has(.purchase-supports) th,
+  #workspace:has(.purchase-supports) td {
+    font-size: 7pt;
+  }
+
+  #workspace:has(.purchase-supports) th,
+  #workspace:has(.purchase-supports) td {
+    padding: 4px 5px;
+  }
+}

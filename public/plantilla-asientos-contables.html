@@ -24,6 +24,7 @@
 <tr><td>debito / credito</td><td>Importes sin impuestos en la moneda del asiento, por ejemplo 25000.00. Estos ejemplos no incluyen impuestos.</td></tr>
 <tr><td>nota_linea</td><td>Descripción de la línea.</td></tr>
 <tr><td>mes_servicio</td><td>Mes en formato AAAA-MM para facturas pendientes (ASI_PEN). Dejar vacío para los demás tipos.</td></tr>
+<tr><td>pais_servicio</td><td>País donde se presta el servicio. Es obligatorio para ASI_PEN y debe coincidir con el nombre, código ISO de 2 o 3 letras, o ID:123 de un país del catálogo CORE. Déjelo vacío para los demás tipos.</td></tr>
 <tr><td>entidad</td><td>Opcional: Cliente, Proveedor, Empleado o Ninguna. Corresponde al tipo de entidad de la línea.</td></tr>
 <tr><td>nombre</td><td>Nombre exacto del cliente o proveedor; para empleados, nombre y apellidos. Obligatorio si selecciona una entidad. Si hay nombres repetidos, use ID:123 con el identificador del registro en su catálogo.</td></tr>
 <tr><td>departamento</td><td>Nombre exacto o ID:123 de un departamento activo de la subsidiaria. Para clientes se asigna el departamento del cliente si deja la columna vacía; si lo completa, debe coincidir. Para empleados debe ser de tipo Interno.</td></tr>

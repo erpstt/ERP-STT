@@ -14,6 +14,7 @@ async function api(path,init={}){
 
 const find=(rows,key,value)=>rows.find(row=>String(row[key])===String(value));
 const formatDate=value=>value?new Intl.DateTimeFormat('es-CR',{day:'2-digit',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(`${String(value).slice(0,10)}T12:00:00Z`)):'—';
+const formatMonth=value=>/^\d{4}-(0[1-9]|1[0-2])$/.test(String(value||''))?new Intl.DateTimeFormat('es-CR',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(`${value}-01T12:00:00Z`)):'—';
 const safeName=value=>String(value||'factura.pdf').replace(/[\\/:*?"<>|\r\n]/g,'-');
 
 function showAction(message,type='success'){
@@ -119,8 +120,8 @@ try{
     const product=find(products,'product_id',line.product_id)||{},country=find(countries,'country_id',line.service_country_id),tax=find(taxes,'tax_code_id',line.tax_code_id),lineTax=Number(line.tax_amount||0),rate=Number(line.tax_rate||0);
     subtotal+=Number(line.amount||0);taxTotal+=lineTax;
     if(tax&&lineTax){const key=String(rate),group=taxGroups.get(key)||{rate,base:0,tax:0};group.base+=Number(line.amount||0);group.tax+=lineTax;taxGroups.set(key,group)}
-    return `<tr><td><strong>${escapeHtml(product.display_name||'Producto')}</strong>${line.note?`<span class="product-code">${escapeHtml(line.note)}</span>`:''}</td><td class="service-country">${escapeHtml(country?.name)}</td><td class="number">${Number(line.quantity||0).toLocaleString('es-CR',{maximumFractionDigits:6})}</td><td class="number">${money(line.unit_price)}</td><td class="number">${money(line.amount)}</td><td class="number">${lineTax?money(lineTax):'—'}</td><td class="number"><strong>${money(line.gross_amount)}</strong></td></tr>`;
-  }).join('')||'<tr><td colspan="7">La factura no contiene líneas.</td></tr>';
+    return `<tr><td><strong>${escapeHtml(product.display_name||'Producto')}</strong>${line.note?`<span class="product-code">${escapeHtml(line.note)}</span>`:''}</td><td class="service-country">${escapeHtml(country?.name)}</td><td class="service-month">${escapeHtml(formatMonth(line.service_month))}</td><td class="number">${Number(line.quantity||0).toLocaleString('es-CR',{maximumFractionDigits:6})}</td><td class="number">${money(line.unit_price)}</td><td class="number">${money(line.amount)}</td><td class="number">${lineTax?money(lineTax):'—'}</td><td class="number"><strong>${money(line.gross_amount)}</strong></td></tr>`;
+  }).join('')||'<tr><td colspan="8">La factura no contiene líneas.</td></tr>';
   $('taxBreakdown').innerHTML=taxGroups.size?[...taxGroups.values()].map(group=>`<div class="tax-row"><span>Base: ${money(group.base)}<br><small>Tasa: ${group.rate.toLocaleString('es-CR')}%</small></span><strong><small>Valor</small><br>${money(group.tax)}</strong></div>`).join(''):'<span class="tax-empty">Factura sin impuestos.</span>';
   const invoiceWithholdings=withholdings.filter(row=>String(row.invoice_id)===String(invoiceId));
   const withholdingTotal=invoiceWithholdings.reduce((sum,row)=>sum+Number(row.withholding_amount||0),0);

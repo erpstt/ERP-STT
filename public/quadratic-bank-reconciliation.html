@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Prueba de efectivo · GENTIA</title>
+  <link rel="stylesheet" href="/quadratic-bank-reconciliation.css?v=20261002">
+</head>
+<body>
+<main class="page-shell" aria-busy="true">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">BANCOS · CONCILIACIÓN Y CONTROL</p>
+      <h1>Prueba de efectivo de cuatro columnas</h1>
+      <p class="page-copy">Concilie simultáneamente el saldo inicial, los ingresos, los egresos y el saldo final entre el extracto bancario y los libros de GENTIA.</p>
+    </div>
+    <div class="header-actions">
+      <button id="downloadPdf" class="button secondary" type="button" disabled>Descargar PDF</button>
+      <button id="downloadExcel" class="button secondary" type="button" disabled>Descargar Excel</button>
+      <button id="newReconciliation" class="button primary" type="button">Nueva conciliación</button>
+    </div>
+  </header>
+
+  <p id="message" class="message" role="status" aria-live="polite"></p>
+
+  <section class="card control-card" aria-labelledby="controlTitle">
+    <div class="section-heading compact">
+      <div><p class="section-kicker">ENCABEZADO DE CONTROL</p><h2 id="controlTitle">Cuenta y período</h2></div>
+      <div class="status-group"><span id="statusBadge" class="status-badge draft">Sin guardar</span><span id="currencyBadge" class="currency-badge">—</span></div>
+    </div>
+    <div class="control-grid">
+      <label>Empresa activa<input id="subsidiary" readonly></label>
+      <label>Cuenta bancaria<select id="bankAccount" required><option value="">Seleccione una cuenta</option></select></label>
+      <label>Año<select id="periodYear"></select></label>
+      <label>Mes<select id="periodMonth"></select></label>
+      <label>Tolerancia de fecha para punteo<input id="toleranceDays" type="number" min="0" max="31" step="1" value="3"><small>± días para la conciliación automática.</small></label>
+      <button id="openPeriod" class="button secondary" type="button">Abrir período</button>
+    </div>
+    <div id="continuityNotice" class="continuity-notice" hidden></div>
+  </section>
+
+  <section id="workspace" hidden>
+    <section class="card bank-values" aria-labelledby="bankValuesTitle">
+      <div class="section-heading">
+        <div><p class="section-kicker">VALORES OFICIALES DEL EXTRACTO</p><h2 id="bankValuesTitle">Saldos y movimientos del banco</h2><p>Ingrese los cuatro valores del extracto. Los importes de libros se calculan automáticamente.</p></div>
+        <button id="saveDraft" class="button primary" type="button">Guardar borrador</button>
+      </div>
+      <div class="value-grid">
+        <label><span>1</span> Saldo inicial<input id="bankStartBalance" class="money-field" inputmode="decimal" value="0,00"></label>
+        <label><span>2</span> Ingresos / depósitos<input id="bankTotalReceipts" class="money-field" inputmode="decimal" value="0,00"></label>
+        <label><span>3</span> Egresos / retiros<input id="bankTotalDisbursements" class="money-field" inputmode="decimal" value="0,00"></label>
+        <label><span>4</span> Saldo final<input id="bankEndBalance" class="money-field" inputmode="decimal" value="0,00"></label>
+      </div>
+      <div id="bankIdentity" class="identity-check neutral">Saldo inicial + ingresos − egresos = saldo final</div>
+    </section>
+
+    <section class="difference-grid" aria-label="Diferencias de la conciliación">
+      <article data-difference="start"><small>1 · Saldo inicial</small><strong id="differenceStart">—</strong><span>Diferencia banco − libros</span></article>
+      <article data-difference="receipts"><small>2 · Ingresos</small><strong id="differenceReceipts">—</strong><span>Diferencia banco − libros</span></article>
+      <article data-difference="disbursements"><small>3 · Egresos</small><strong id="differenceDisbursements">—</strong><span>Diferencia banco − libros</span></article>
+      <article data-difference="end"><small>4 · Saldo final</small><strong id="differenceEnd">—</strong><span>Diferencia banco − libros</span></article>
+      <article id="balanceState" class="overall"><small>Cuadre obligatorio</small><strong>Sin calcular</strong><span>Las cuatro diferencias deben ser 0,00.</span></article>
+    </section>
+
+    <nav class="workspace-tabs" aria-label="Secciones de la prueba de efectivo">
+      <button type="button" data-panel="matrix" class="active" aria-selected="true">Matriz cuadrática</button>
+      <button type="button" data-panel="matching" aria-selected="false">Punteo bancario</button>
+      <button type="button" data-panel="items" aria-selected="false">Partidas de conciliación</button>
+      <button type="button" data-panel="history" aria-selected="false">Historial</button>
+    </nav>
+
+    <section id="matrixPanel" class="card workspace-panel">
+      <div class="section-heading">
+        <div><p class="section-kicker">MATRIZ DE CUATRO COLUMNAS</p><h2>Banco ajustado vs. libros ajustados</h2><p>Los ajustes se presentan en la sección que corresponde y conservan la identidad matemática del período.</p></div>
+        <div class="workflow-actions">
+          <button id="sendReview" class="button secondary" type="button">Enviar a revisión</button>
+          <button id="approve" class="button secondary" type="button">Aprobar</button>
+          <button id="closeReconciliation" class="button primary" type="button">Cerrar período</button>
+        </div>
+      </div>
+      <div class="matrix-scroll">
+        <table class="matrix-table">
+          <thead><tr><th>Concepto</th><th>1 · Saldo inicial</th><th>2 · Ingresos / depósitos</th><th>3 · Egresos / retiros</th><th>4 · Saldo final</th></tr></thead>
+          <tbody id="matrixRows"></tbody>
+        </table>
+      </div>
+      <div class="matrix-legend"><span><i class="bank-dot"></i>Ajustes al banco</span><span><i class="book-dot"></i>Ajustes a libros</span><span><i class="difference-dot"></i>Diferencia pendiente</span></div>
+    </section>
+
+    <section id="matchingPanel" class="card workspace-panel" hidden>
+      <div class="section-heading">
+        <div><p class="section-kicker">PUNTEO Y CONCILIACIÓN AUTOMÁTICA</p><h2>Extracto importado vs. movimientos del ERP</h2><p>GENTIA compara referencia, monto y fecha dentro de la tolerancia seleccionada.</p></div>
+        <div class="workflow-actions"><button id="autoMatch" class="button primary" type="button">Conciliar automáticamente</button><button id="manualMatch" class="button secondary" type="button" disabled>Conciliar selección</button></div>
+      </div>
+      <div class="match-summary"><span id="statementCount">0 pendientes en extracto</span><span id="matchedCount">0 conciliados</span><span id="bookCount">0 pendientes en libros</span></div>
+      <div class="matching-grid">
+        <section><header><div><b>Extracto bancario</b><small>Movimiento importado</small></div><span class="source-tag bank">BANCO</span></header><div id="statementLines" class="match-list"></div></section>
+        <div class="match-connector"><span>↔</span><small>Referencia<br>+ monto<br>+ fecha</small></div>
+        <section><header><div><b>Libro auxiliar</b><small>Movimiento registrado en GENTIA</small></div><span class="source-tag book">ERP</span></header><div id="bookTransactions" class="match-list"></div></section>
+      </div>
+    </section>
+
+    <section id="itemsPanel" class="card workspace-panel" hidden>
+      <div class="section-heading">
+        <div><p class="section-kicker">PARTIDAS DE CONCILIACIÓN</p><h2>Ajustes y partidas en tránsito</h2><p>Cada partida muestra su impacto en las cuatro columnas y en la sección banco o libros.</p></div>
+        <button id="newItem" class="button primary" type="button">Agregar partida</button>
+      </div>
+      <div class="table-scroll"><table class="items-table"><thead><tr><th>Tipo</th><th>Fecha</th><th>Referencia / descripción</th><th>Saldo inicial</th><th>Ingresos</th><th>Egresos</th><th>Saldo final</th><th>Acciones</th></tr></thead><tbody id="itemRows"></tbody></table></div>
+    </section>
+
+    <section id="historyPanel" class="card workspace-panel" hidden>
+      <div class="section-heading"><div><p class="section-kicker">TRAZABILIDAD</p><h2>Conciliaciones de la cuenta</h2><p>Consulte borradores, revisiones, aprobaciones y períodos cerrados.</p></div></div>
+      <div class="table-scroll"><table><thead><tr><th>Período</th><th>Cuenta</th><th>Estado</th><th>Preparado por</th><th>Aprobado por</th><th>Actualizado</th><th></th></tr></thead><tbody id="historyRows"></tbody></table></div>
+    </section>
+  </section>
+
+  <section id="emptyState" class="card empty-state">
+    <div>▦</div><h2>Seleccione una cuenta y un período</h2><p>Puede abrir una conciliación existente o preparar un nuevo borrador.</p>
+  </section>
+</main>
+
+<dialog id="itemDialog">
+  <form id="itemForm">
+    <header class="dialog-header"><div><p class="section-kicker">PARTIDA DE CONCILIACIÓN</p><h2 id="itemDialogTitle">Nueva partida</h2><p>El impacto sugerido se aplica según el tipo seleccionado y puede ajustarse cuando corresponda.</p></div><button id="closeItemDialog" class="icon-button" type="button" aria-label="Cerrar">×</button></header>
+    <input id="itemId" type="hidden"><input id="itemTransactionId" type="hidden">
+    <div class="dialog-grid">
+      <label>Tipo de partida<select id="itemType" required>
+        <option value="DEPOSIT_IN_TRANSIT_CURRENT">Depósito en tránsito · mes actual</option>
+        <option value="DEPOSIT_IN_TRANSIT_PRIOR">Depósito en tránsito · mes anterior</option>
+        <option value="OUTSTANDING_CHECK_CURRENT">Cheque/pago pendiente · mes actual</option>
+        <option value="OUTSTANDING_CHECK_PRIOR">Cheque/pago pendiente · mes anterior</option>
+        <option value="UNRECORDED_BANK_CHARGE">Cargo bancario no registrado</option>
+        <option value="UNRECORDED_BANK_CREDIT">Abono bancario no registrado</option>
+        <option value="BOOK_ERROR">Error o corrección en libros</option>
+        <option value="BANK_ERROR">Error o corrección del banco</option>
+      </select></label>
+      <label>Fecha<input id="itemDate" type="date" required></label>
+      <label>Referencia<input id="itemReference" maxlength="100"></label>
+      <label>Monto base<input id="itemAmount" class="money-field" inputmode="decimal" value="0,00" required></label>
+      <label class="wide">Descripción<input id="itemDescription" maxlength="255" required></label>
+    </div>
+    <fieldset><legend>Impacto en la matriz</legend><div class="impact-grid">
+      <label>1 · Saldo inicial<input id="impactStart" class="money-field" inputmode="decimal" value="0,00"></label>
+      <label>2 · Ingresos<input id="impactReceipts" class="money-field" inputmode="decimal" value="0,00"></label>
+      <label>3 · Egresos<input id="impactDisbursements" class="money-field" inputmode="decimal" value="0,00"></label>
+      <label>4 · Saldo final<input id="impactEnd" class="money-field" inputmode="decimal" value="0,00"></label>
+    </div><small id="impactHelp"></small></fieldset>
+    <p id="itemError" class="message error" role="alert"></p>
+    <footer><button id="cancelItem" class="button secondary" type="button">Cancelar</button><button id="saveItem" class="button primary" type="submit">Guardar partida</button></footer>
+  </form>
+</dialog>
+
+<dialog id="confirmDialog" class="confirm-dialog"><form method="dialog"><div class="confirm-icon">✓</div><h2 id="confirmTitle">Confirmar acción</h2><p id="confirmText"></p><div class="confirm-actions"><button value="cancel" class="button secondary">Cancelar</button><button id="confirmAction" value="confirm" class="button primary">Confirmar</button></div></form></dialog>
+
+<script type="module" src="/quadratic-bank-reconciliation.js?v=20261002"></script>
+</body>
+</html>

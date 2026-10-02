@@ -331,7 +331,7 @@
 <span>◉</span>
 <b>Ver</b>
 </a>
-<a v-if="activeCatalog.slug==='supplier-invoices'" class="icon-action view" title="Ver factura" aria-label="Ver factura de proveedor" href="/supplier-invoice-view.html" onclick="const invoiceId=this.closest('tr').querySelector('.id-cell').textContent.replace('#','').trim();sessionStorage.setItem('nexo_view_supplier_invoice',invoiceId);this.href='/supplier-invoice-view.html?id='+encodeURIComponent(invoiceId)">
+<a v-if="activeCatalog.slug==='supplier-invoices'" class="icon-action view" title="Ver factura" aria-label="Ver factura de proveedor" :href="'/supplier-invoice-view.html?id='+row.invoice_id">
 <span>◉</span>
 <b>Ver</b>
 </a>
@@ -344,7 +344,8 @@
 <a v-if="activeCatalog.slug==='credit-notes'" class="icon-action edit" :href="'/sales-note-entry.html?kind=CREDIT&id='+row.cn_id"><span>✎</span><b>Editar</b></a>
 <a v-if="activeCatalog.slug==='debit-notes'" class="icon-action edit" :href="'/sales-note-entry.html?kind=DEBIT&id='+row.dn_id"><span>✎</span><b>Editar</b></a>
 <a v-if="activeCatalog.slug==='invoices'" class="icon-action edit" :href="'/sales-invoice-entry.html?id='+row.invoice_id"><span>✎</span><b>Editar</b></a>
-<button v-if="activeCatalog.allowEdit !== false && !['invoices','credit-notes','debit-notes','supplier-credit-notes','supplier-debit-notes'].includes(activeCatalog.slug)" class="icon-action edit" title="Editar" aria-label="Editar registro" @click="openRecordForm(row)">
+<button v-if="activeCatalog.slug==='supplier-invoices'" type="button" class="icon-action edit" title="Editar factura" aria-label="Editar factura de proveedor" @click="openRecordForm(row)"><span>✎</span><b>Editar</b></button>
+<button v-if="activeCatalog.allowEdit !== false && !['invoices','supplier-invoices','credit-notes','debit-notes','supplier-credit-notes','supplier-debit-notes'].includes(activeCatalog.slug)" class="icon-action edit" title="Editar" aria-label="Editar registro" @click="openRecordForm(row)">
 <span>✎</span>
 <b>Editar</b>
 </button>
@@ -526,7 +527,7 @@
   </main>
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
-<script type="module" src="/app.js?v=20260930-catalog-performance">
+<script type="module" src="/app.js?v=20261002-quadratic-reconciliation">
 </script>
 <script src="/approval-notifications.js?v=3"></script></body>
 </html>

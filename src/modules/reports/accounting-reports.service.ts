@@ -29,6 +29,10 @@ export function runAccountingReport(authorization:string,report:string,filters:R
   if(report==='purchase-transactions')return rpc<Record<string,unknown>>(authorization,'run_purchase_transaction_report',{p_filters:filters});
   return rpc<Record<string,unknown>>(authorization,'run_accounting_report',{p_report:report,p_filters:filters});
 }
+export function purchaseTransactionSupport(authorization:string,supportId:number){
+  if(!Number.isSafeInteger(supportId)||supportId<=0)throw new Error('El respaldo solicitado no es válido.');
+  return rpc<Record<string,unknown>>(authorization,'purchase_transaction_support',{p_support_id:supportId});
+}
 export function reverseJournalEntry(authorization:string,journalId:number){return rpc<number>(authorization,'reverse_journal_entry',{target_journal_id:journalId});}
 export function pendingInvoiceReversalOptions(authorization:string,journalId:number,reversalDate:string){return rpc<Record<string,unknown>>(authorization,'pending_invoice_reversal_options',{p_journal_id:journalId,p_reversal_date:reversalDate});}
 export function reversePendingInvoiceJournal(authorization:string,journalId:number,payload:Record<string,unknown>){return rpc<Record<string,unknown>>(authorization,'reverse_pending_invoice_journal',{p_journal_id:journalId,p_payload:payload});}

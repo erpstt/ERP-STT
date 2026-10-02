@@ -72,7 +72,7 @@ import { consultarYGuardarTipoDeCambioNI } from './modules/configuration-catalog
 import { iniciarProgramacionTipoCambioNI } from './modules/configuration-catalogs/services/nicaragua-exchange-rate.scheduler.js';
 import { consultarYGuardarTipoDeCambioPE } from './modules/configuration-catalogs/services/peru-exchange-rate.service.js';
 import { iniciarProgramacionTipoCambioPE } from './modules/configuration-catalogs/services/peru-exchange-rate.scheduler.js';
-import { accountingReportOptions, bankReconciliationAction, pendingInvoiceReversalOptions, renderBankReconciliationPdf, reverseJournalEntry, reversePendingInvoiceJournal, runAccountingReport } from './modules/reports/accounting-reports.service.js';
+import { accountingReportOptions, bankReconciliationAction, pendingInvoiceReversalOptions, purchaseTransactionSupport, renderBankReconciliationPdf, reverseJournalEntry, reversePendingInvoiceJournal, runAccountingReport } from './modules/reports/accounting-reports.service.js';
 import { exportSettledInvoiceExcel, exportSettledInvoicePdf, runSettledInvoiceReport, settledInvoiceReportOptions } from './modules/reports/settled-invoices-report.service.js';
 import { exportSettledSupplierInvoiceExcel, exportSettledSupplierInvoicePdf, runSettledSupplierInvoiceReport, settledSupplierInvoiceReportOptions } from './modules/reports/settled-supplier-invoices-report.service.js';
 import {incomeForecastAction} from './modules/reports/income-forecast.service.js';
@@ -81,6 +81,7 @@ import { bankDepositOptions, saveBankDeposit, listBankDeposits, bankDepositDetai
 import { bankCheckOptions, saveBankCheck, bankCheckReport, bankCheckDetail, deleteBankCheck } from './modules/banking-catalogs/bank-check.service.js';
 import { bankCheckPeriods } from './modules/banking-catalogs/bank-check-period.service.js';
 import { bankFeeOptions, saveBankFee, importBankFees, bankFeeReport, bankFeeDetail, updateBankFee, deleteBankFee } from './modules/banking-catalogs/bank-fee.service.js';
+import { autoMatchQuadraticReconciliation, deleteQuadraticReconciliationItem, exportQuadraticReconciliationExcel, exportQuadraticReconciliationPdf, getQuadraticReconciliation, getQuadraticReconciliationMatrix, listQuadraticReconciliations, matchQuadraticReconciliation, quadraticReconciliationOptions, saveQuadraticReconciliation, saveQuadraticReconciliationItem, transitionQuadraticReconciliation, unmatchQuadraticReconciliation } from './modules/banking-catalogs/quadratic-reconciliation.service.js';
 import { purchaseWorkflowOptions, purchaseDocuments, purchaseDocumentDetail, savePurchaseDocument, deletePurchaseDocument } from './modules/purchasing-catalogs/purchase-workflow.service.js';
 import { supplierPaymentOptions, supplierPaymentReport, supplierPaymentDetail, saveSupplierPayment, deleteSupplierPayment } from './modules/purchasing-catalogs/supplier-payment.service.js';
 
@@ -184,6 +185,56 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(request.method==='POST'&&request.url==='/api/v1/reports/purchases/settled-invoices'){return json(response,200,await runSettledSupplierInvoiceReport(request.headers.authorization!,await body(request)as Record<string,unknown>));}
     if(request.method==='POST'&&request.url==='/api/v1/reports/purchases/settled-invoices/pdf'){return download(response,await exportSettledSupplierInvoicePdf(request.headers.authorization!,await body(request)as Record<string,unknown>));}
     if(request.method==='POST'&&request.url==='/api/v1/reports/purchases/settled-invoices/excel'){return download(response,await exportSettledSupplierInvoiceExcel(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    const quadraticUrl=new URL(request.url??'/','http://localhost'),quadraticBase='/api/v1/bank-reconciliations/quadratic';
+    if(quadraticUrl.pathname===`${quadraticBase}/options`){
+      if(request.method!=='GET')return error(response,405,'Método no permitido.');
+      return json(response,200,await quadraticReconciliationOptions(request.headers.authorization!));
+    }
+    if(quadraticUrl.pathname===quadraticBase){
+      if(request.method==='GET')return json(response,200,await listQuadraticReconciliations(request.headers.authorization!,Object.fromEntries(quadraticUrl.searchParams)));
+      if(request.method==='POST'){
+        const input=await body(request)as Record<string,unknown>;
+        return json(response,input.id?200:201,await saveQuadraticReconciliation(request.headers.authorization!,input));
+      }
+      return error(response,405,'Método no permitido.');
+    }
+    const quadraticItemRoute=quadraticUrl.pathname.match(/^\/api\/v1\/bank-reconciliations\/quadratic\/(\d+)\/items(?:\/(\d+))?$/);
+    if(quadraticItemRoute){
+      const reconciliationId=Number(quadraticItemRoute[1]),itemId=quadraticItemRoute[2]?Number(quadraticItemRoute[2]):null;
+      if(request.method==='POST'&&itemId===null){
+        const input=await body(request)as Record<string,unknown>;
+        return json(response,input.id?200:201,await saveQuadraticReconciliationItem(request.headers.authorization!,reconciliationId,input));
+      }
+      if(request.method==='DELETE'&&itemId!==null)return json(response,200,await deleteQuadraticReconciliationItem(request.headers.authorization!,reconciliationId,itemId));
+      return error(response,405,'Método no permitido.');
+    }
+    const quadraticMatchRoute=quadraticUrl.pathname.match(/^\/api\/v1\/bank-reconciliations\/quadratic\/(\d+)\/matches(?:\/(\d+))?$/);
+    if(quadraticMatchRoute){
+      const reconciliationId=Number(quadraticMatchRoute[1]),matchId=quadraticMatchRoute[2]?Number(quadraticMatchRoute[2]):null;
+      if(request.method==='POST'&&matchId===null)return json(response,201,await matchQuadraticReconciliation(request.headers.authorization!,reconciliationId,await body(request)as Record<string,unknown>));
+      if(request.method==='DELETE'&&matchId!==null)return json(response,200,await unmatchQuadraticReconciliation(request.headers.authorization!,reconciliationId,matchId));
+      return error(response,405,'Método no permitido.');
+    }
+    const quadraticActionRoute=quadraticUrl.pathname.match(/^\/api\/v1\/bank-reconciliations\/quadratic\/(\d+)\/(matrix|auto-match|transition|status|approve|close|pdf|xlsx)$/);
+    if(quadraticActionRoute){
+      const reconciliationId=Number(quadraticActionRoute[1]),action=quadraticActionRoute[2];
+      if(action==='matrix'&&request.method==='GET')return json(response,200,await getQuadraticReconciliationMatrix(request.headers.authorization!,reconciliationId));
+      if(action==='auto-match'&&request.method==='POST')return json(response,200,await autoMatchQuadraticReconciliation(request.headers.authorization!,reconciliationId,await body(request)as Record<string,unknown>));
+      if(['transition','status'].includes(action)&&request.method==='POST'){
+        const input=await body(request)as Record<string,unknown>;
+        return json(response,200,await transitionQuadraticReconciliation(request.headers.authorization!,reconciliationId,input.status??input.action));
+      }
+      if(action==='approve'&&request.method==='POST')return json(response,200,await transitionQuadraticReconciliation(request.headers.authorization!,reconciliationId,'approved'));
+      if(action==='close'&&request.method==='POST')return json(response,200,await transitionQuadraticReconciliation(request.headers.authorization!,reconciliationId,'closed'));
+      if(action==='pdf'&&request.method==='GET')return download(response,await exportQuadraticReconciliationPdf(request.headers.authorization!,reconciliationId));
+      if(action==='xlsx'&&request.method==='GET')return download(response,await exportQuadraticReconciliationExcel(request.headers.authorization!,reconciliationId));
+      return error(response,405,'Método no permitido.');
+    }
+    const quadraticDetailRoute=quadraticUrl.pathname.match(/^\/api\/v1\/bank-reconciliations\/quadratic\/(\d+)$/);
+    if(quadraticDetailRoute){
+      if(request.method!=='GET')return error(response,405,'Método no permitido.');
+      return json(response,200,await getQuadraticReconciliation(request.headers.authorization!,Number(quadraticDetailRoute[1])));
+    }
     const forecastRoute=request.url?.match(/^\/api\/reports\/income-forecast\/(options|generate|save)$/);
     if(request.method==='POST'&&forecastRoute){const auth=request.headers.authorization;if(!auth?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');return json(response,200,await incomeForecastAction(auth,forecastRoute[1],await body(request)as Record<string,unknown>));}
     if(request.method==='GET'&&request.url==='/api/banking/transfers/options'){return json(response,200,await bankTransferOptions(request.headers.authorization!));}
@@ -211,6 +262,8 @@ const server = createServer((request, response) => withAuditExecution(async () =
      if(request.method==='POST'&&journalReverseRoute){return json(response,201,{journalId:await reverseJournalEntry(request.headers.authorization!,Number(journalReverseRoute[1]))});}
      const pendingReversalUrl=new URL(request.url??'/',`http://${request.headers.host??'localhost'}`),pendingReversalRoute=pendingReversalUrl.pathname.match(/^\/api\/reports\/accounting\/pending-invoices\/(\d+)\/(reversal-options|reverse)$/);
      if(pendingReversalRoute){const journalId=Number(pendingReversalRoute[1]);if(request.method==='GET'&&pendingReversalRoute[2]==='reversal-options')return json(response,200,await pendingInvoiceReversalOptions(request.headers.authorization!,journalId,pendingReversalUrl.searchParams.get('date')??''));if(request.method==='POST'&&pendingReversalRoute[2]==='reverse'){try{return json(response,201,await reversePendingInvoiceJournal(request.headers.authorization!,journalId,await body(request)as Record<string,unknown>))}catch(cause){return error(response,422,cause instanceof Error?cause.message:'No fue posible reversar el pendiente.')}}}
+     const purchaseTransactionSupportRoute=request.url?.match(/^\/api\/reports\/accounting\/purchase-transactions\/supports\/(\d+)$/);
+     if(request.method==='GET'&&purchaseTransactionSupportRoute){return json(response,200,await purchaseTransactionSupport(request.headers.authorization!,Number(purchaseTransactionSupportRoute[1])));}
     const accountingReportRoute=request.url?.match(/^\/api\/reports\/accounting\/([a-z-]+)$/);
     if(request.method==='POST'&&accountingReportRoute){return json(response,200,await runAccountingReport(request.headers.authorization!,accountingReportRoute[1],await body(request) as Record<string,unknown>));}
     const coreRoute = request.url?.match(/^\/api\/core\/([a-z-]+)(?:\/(\d+))?$/);

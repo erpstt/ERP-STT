@@ -1,6 +1,6 @@
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 
-export const journalCsvOptionalHeaders = ['entidad','nombre','departamento','centro_costos','clase','acreedor_financiero','compania_relacionada'];
+export const journalCsvOptionalHeaders = ['pais_servicio','entidad','nombre','departamento','centro_costos','clase','acreedor_financiero','compania_relacionada'];
 export const journalCsvHeaders = ['asiento_referencia','tipo_asiento','fecha','moneda','tipo_cambio','nota_asiento','numero_cuenta','debito','credito','nota_linea','mes_servicio', ...journalCsvOptionalHeaders];
 
 // Quoted fields may contain delimiters, escaped quotes and line breaks (RFC 4180).
