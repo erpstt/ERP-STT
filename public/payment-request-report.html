@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Solicitudes de pago · GENTIA</title>
+  <link rel="stylesheet" href="/payment-request-report.css?v=20261002b">
+</head>
+<body>
+<main class="report-page">
+  <a class="back-link" href="/informes/contabilidad">← Todos los informes</a>
+
+  <header class="report-heading">
+    <div>
+      <p class="eyebrow">TESORERÍA · CONTROL Y TRAZABILIDAD</p>
+      <h1>Solicitudes de pago</h1>
+      <p class="lead">Consulta el ciclo completo de cada solicitud, desde su registro y aprobación hasta el pago, con terceros, dimensiones contables y respaldos.</p>
+    </div>
+    <div class="export-actions" aria-label="Descargar reporte">
+      <button id="downloadPdf" class="button secondary" type="button"><span aria-hidden="true">↓</span> Descargar PDF</button>
+      <button id="downloadExcel" class="button secondary" type="button"><span aria-hidden="true">↓</span> Descargar Excel</button>
+    </div>
+  </header>
+
+  <form id="filters" class="panel filters">
+    <div class="panel-title">
+      <div><span class="step">1</span><div><b>Parámetros del reporte</b><small>Los catálogos se limitan a la empresa activa y autorizada.</small></div></div>
+      <button id="resetFilters" class="button quiet" type="button">Restablecer</button>
+    </div>
+
+    <div class="filter-section">
+      <p>Período y estado</p>
+      <div class="filter-grid primary-grid">
+        <label>Empresa activa<input id="subsidiary" readonly aria-readonly="true" value="Cargando…"></label>
+        <label>Fecha a consultar<select id="dateField">
+          <option value="REQUEST">Fecha de solicitud</option>
+          <option value="PLANNED">Fecha programada</option>
+          <option value="APPLIED">Fecha de aplicación</option>
+        </select></label>
+        <label>Desde<input id="dateFrom" type="date" required></label>
+        <label>Hasta<input id="dateTo" type="date" required></label>
+        <label>Tipo de solicitud<select id="requestType"><option value="">Todos los tipos</option></select></label>
+        <label>Estado<select id="status"><option value="">Todos los estados</option></select></label>
+        <label>Moneda<select id="currency"><option value="">Todas las monedas</option></select></label>
+      </div>
+    </div>
+
+    <div class="filter-section analytic-section">
+      <p>Dimensiones y presentación</p>
+      <div class="filter-grid analytic-grid">
+        <label>Tercero<select id="thirdParty"><option value="">Todos los terceros</option></select></label>
+        <label>Departamento<select id="department"><option value="">Todos los departamentos</option></select></label>
+        <label>Centro de costo<select id="costCenter"><option value="">Todos los centros de costo</option></select></label>
+        <label>Solicitante<select id="requester"><option value="">Todos los solicitantes</option></select></label>
+        <label>Aprobador<select id="approver"><option value="">Todos los aprobadores</option></select></label>
+        <label>Método de pago<select id="method"><option value="">Todos los métodos</option></select></label>
+        <label>Cuenta contable<select id="account"><option value="">Todas las cuentas</option></select></label>
+        <label>Agrupar resultados<select id="groupBy">
+          <option value="NONE">Sin agrupación</option>
+          <option value="TYPE">Tipo de solicitud</option>
+          <option value="STATUS">Estado</option>
+          <option value="THIRD_PARTY">Tercero</option>
+          <option value="DEPARTMENT">Departamento</option>
+          <option value="COST_CENTER">Centro de costo</option>
+          <option value="CURRENCY">Moneda</option>
+          <option value="REQUESTER">Solicitante</option>
+        </select></label>
+        <label class="search-field">Búsqueda<input id="search" type="search" maxlength="120" placeholder="Número, concepto, factura o referencia"></label>
+        <button id="generate" class="button primary" type="submit">Generar reporte</button>
+      </div>
+    </div>
+    <p id="dateHelp" class="filter-note">El período se aplica a la fecha en que se creó cada solicitud.</p>
+  </form>
+
+  <div id="message" class="message" role="status" aria-live="polite"></div>
+  <section id="summary" class="summary-board" aria-label="Resumen del reporte"></section>
+
+  <section class="panel results-panel">
+    <div class="results-heading">
+      <div><span class="step">2</span><div><b>Detalle de solicitudes</b><small id="periodCaption">Seleccione los parámetros y genere el reporte.</small></div></div>
+      <span id="resultCount" class="record-count">0 solicitudes</span>
+    </div>
+    <div id="reportGroups" class="report-groups">
+      <div class="initial-state"><span aria-hidden="true">▤</span><b>Genere el reporte para consultar las solicitudes</b><small>Puede abrir cada registro para revisar partidas, aprobaciones, pagos y respaldos.</small></div>
+    </div>
+    <footer class="pager">
+      <label>Filas por página<select id="pageSize"><option>25</option><option selected>50</option><option>100</option><option>250</option></select></label>
+      <button id="previousPage" type="button">Anterior</button>
+      <span id="pageCaption">Página 1 de 1</span>
+      <button id="nextPage" type="button">Siguiente</button>
+    </footer>
+  </section>
+</main>
+<script type="module" src="/payment-request-report.js?v=20261002b"></script>
+</body>
+</html>

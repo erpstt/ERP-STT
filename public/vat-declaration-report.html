@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Declaración IVA / GCT · GENTIA</title>
+  <link rel="stylesheet" href="/vat-declaration-report.css?v=20261003">
+</head>
+<body>
+<main class="vat-page">
+  <a class="back-link" href="/informes/contabilidad">← Todos los informes</a>
+  <header class="report-heading">
+    <div>
+      <p class="eyebrow">FISCAL · IMPUESTOS INDIRECTOS</p>
+      <h1 id="reportTitle">Declaración de IVA / GCT</h1>
+      <p class="lead">Conciliación mensual del impuesto generado en ventas y el crédito fiscal de compras, con trazabilidad hasta cada documento.</p>
+    </div>
+    <div class="export-actions" aria-label="Descargar reporte">
+      <button id="downloadPdf" class="button secondary" type="button" disabled title="Genere la declaración antes de descargarla."><span aria-hidden="true">↓</span> Descargar PDF</button>
+      <button id="downloadExcel" class="button secondary" type="button" disabled title="Genere la declaración antes de descargarla."><span aria-hidden="true">↓</span> Descargar Excel</button>
+    </div>
+  </header>
+
+  <form id="filters" class="panel filters">
+    <div class="panel-title">
+      <div><span class="step">1</span><div><b>Parámetros de la declaración</b><small>La empresa, el país y la moneda provienen de la subsidiaria activa.</small></div></div>
+    </div>
+    <div class="filter-grid">
+      <label>Empresa activa<input id="subsidiary" readonly aria-readonly="true" value="Cargando…"></label>
+      <label>País<input id="country" readonly aria-readonly="true" value="—"></label>
+      <label>Moneda<input id="currency" readonly aria-readonly="true" value="—"></label>
+      <label>Periodo fiscal<input id="periodMonth" type="month" list="availablePeriods" required><datalist id="availablePeriods"></datalist></label>
+      <label>Saldo a favor anterior<input id="priorPeriodCredit" type="number" min="0" step="0.01" value="0"><small>Arrastre ya declarado de periodos anteriores.</small></label>
+      <label>Estado de los documentos
+        <details id="statusPicker" class="multi-select">
+          <summary><span id="statusSummary">Todos los estados</span><span class="chevron" aria-hidden="true">⌄</span></summary>
+          <div class="multi-menu">
+            <div class="multi-menu-head"><b>Estados a incluir</b><button id="clearStatuses" type="button">Usar todos</button></div>
+            <div id="statusOptions" class="status-options"></div>
+          </div>
+        </details>
+      </label>
+      <label class="switch-field"><span>Incluir ajustes fiscales</span><span class="gentia-switch"><input id="includeAdjustments" type="checkbox" role="switch" checked><span aria-hidden="true"></span></span><small>Incluye notas y ajustes contabilizados en el periodo.</small></label>
+      <button id="generate" class="button primary" type="submit">Generar declaración</button>
+    </div>
+    <p class="filter-note">Los importes se presentan en la moneda local de la empresa. Seleccione una fila de tarifa para revisar los documentos que forman su base e impuesto.</p>
+  </form>
+
+  <div id="message" class="message" role="status" aria-live="polite"></div>
+  <section id="summary" class="summary-board" aria-label="Resumen de la declaración"><div class="initial-summary">Genere el reporte para consultar la liquidación fiscal del periodo.</div></section>
+  <aside id="warnings" class="warning-list" hidden aria-label="Observaciones de la declaración"></aside>
+
+  <section class="panel declaration-panel">
+    <div class="panel-title result-title">
+      <div><span class="step">2</span><div><b>Determinación del impuesto</b><small id="periodCaption">Seleccione el periodo a consultar.</small></div></div>
+      <span id="documentCount" class="record-count">0 documentos</span>
+    </div>
+    <div class="declaration-grid">
+      <section class="tax-section sales-section" aria-labelledby="salesTitle">
+        <header><div><span class="section-icon">V</span><div><h2 id="salesTitle">Ventas · Débito fiscal</h2><p>Impuesto trasladado a clientes por tarifa.</p></div></div><strong id="salesTaxTotal">—</strong></header>
+        <div id="salesTable" class="tax-table-wrap"></div>
+      </section>
+      <section class="tax-section purchases-section" aria-labelledby="purchasesTitle">
+        <header><div><span class="section-icon">C</span><div><h2 id="purchasesTitle">Compras · Crédito fiscal</h2><p>Impuesto soportado y acreditable por tarifa.</p></div></div><strong id="purchaseTaxTotal">—</strong></header>
+        <div id="purchasesTable" class="tax-table-wrap"></div>
+      </section>
+      <section class="tax-section settlement-section" aria-labelledby="settlementTitle">
+        <header><div><span class="section-icon">=</span><div><h2 id="settlementTitle">Liquidación del periodo</h2><p>Conciliación del débito, crédito, retenciones, saldos anteriores y ajustes.</p></div></div><span id="settlementStatus" class="settlement-status">Sin calcular</span></header>
+        <div id="settlementContent" class="settlement-content"></div>
+      </section>
+    </div>
+  </section>
+</main>
+
+<dialog id="detailDialog" class="detail-dialog">
+  <div class="dialog-card">
+    <header class="dialog-heading">
+      <div><p id="detailEyebrow" class="eyebrow">DETALLE FISCAL</p><h2 id="detailTitle">Documentos de la tarifa</h2><p id="detailDescription"></p></div>
+      <button id="closeDetail" class="close-button" type="button" aria-label="Cerrar">×</button>
+    </header>
+    <div id="detailSummary" class="detail-summary"></div>
+    <div class="detail-table-wrap">
+      <table><thead><tr><th>Fecha</th><th>Documento</th><th>Cliente / Proveedor</th><th>Identificación</th><th>Estado</th><th class="number">Base imponible</th><th class="number">Impuesto</th><th class="number">Total</th></tr></thead><tbody id="detailRows"></tbody></table>
+    </div>
+    <footer><button id="closeDetailFooter" class="button primary" type="button">Cerrar detalle</button></footer>
+  </div>
+</dialog>
+<script type="module" src="/vat-declaration-report.js?v=20261003-1"></script>
+</body>
+</html>

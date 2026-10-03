@@ -75,6 +75,8 @@ import { iniciarProgramacionTipoCambioPE } from './modules/configuration-catalog
 import { accountingReportOptions, bankReconciliationAction, pendingInvoiceReversalOptions, purchaseTransactionSupport, renderBankReconciliationPdf, reverseJournalEntry, reversePendingInvoiceJournal, runAccountingReport } from './modules/reports/accounting-reports.service.js';
 import { exportSettledInvoiceExcel, exportSettledInvoicePdf, runSettledInvoiceReport, settledInvoiceReportOptions } from './modules/reports/settled-invoices-report.service.js';
 import { exportSettledSupplierInvoiceExcel, exportSettledSupplierInvoicePdf, runSettledSupplierInvoiceReport, settledSupplierInvoiceReportOptions } from './modules/reports/settled-supplier-invoices-report.service.js';
+import { exportPaymentRequestReportExcel, exportPaymentRequestReportPdf, paymentRequestReportOptions, runPaymentRequestReport } from './modules/reports/payment-requests-report.service.js';
+import { exportVatDeclarationReportExcel, exportVatDeclarationReportPdf, runVatDeclarationReport, vatDeclarationReportOptions } from './modules/reports/vat-declaration-report.service.js';
 import {incomeForecastAction} from './modules/reports/income-forecast.service.js';
 import { bankTransferJournal, bankTransferOptions, createBankTransfer, runBankTransferReport } from './modules/banking-catalogs/bank-transfer.service.js';
 import { bankDepositOptions, saveBankDeposit, listBankDeposits, bankDepositDetail, updateBankDeposit, deleteBankDeposit } from './modules/banking-catalogs/bank-deposit.service.js';
@@ -185,6 +187,14 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(request.method==='POST'&&request.url==='/api/v1/reports/purchases/settled-invoices'){return json(response,200,await runSettledSupplierInvoiceReport(request.headers.authorization!,await body(request)as Record<string,unknown>));}
     if(request.method==='POST'&&request.url==='/api/v1/reports/purchases/settled-invoices/pdf'){return download(response,await exportSettledSupplierInvoicePdf(request.headers.authorization!,await body(request)as Record<string,unknown>));}
     if(request.method==='POST'&&request.url==='/api/v1/reports/purchases/settled-invoices/excel'){return download(response,await exportSettledSupplierInvoiceExcel(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='GET'&&request.url==='/api/v1/reports/treasury/payment-requests/options'){return json(response,200,await paymentRequestReportOptions(request.headers.authorization!));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/treasury/payment-requests'){return json(response,200,await runPaymentRequestReport(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/treasury/payment-requests/pdf'){return download(response,await exportPaymentRequestReportPdf(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/treasury/payment-requests/excel'){return download(response,await exportPaymentRequestReportExcel(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='GET'&&request.url==='/api/v1/reports/tax/vat-declaration/options'){return json(response,200,await vatDeclarationReportOptions(request.headers.authorization!));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/tax/vat-declaration'){return json(response,200,await runVatDeclarationReport(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/tax/vat-declaration/pdf'){return download(response,await exportVatDeclarationReportPdf(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/tax/vat-declaration/excel'){return download(response,await exportVatDeclarationReportExcel(request.headers.authorization!,await body(request)as Record<string,unknown>));}
     const quadraticUrl=new URL(request.url??'/','http://localhost'),quadraticBase='/api/v1/bank-reconciliations/quadratic';
     if(quadraticUrl.pathname===`${quadraticBase}/options`){
       if(request.method!=='GET')return error(response,405,'Método no permitido.');
