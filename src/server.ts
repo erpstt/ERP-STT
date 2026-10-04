@@ -9,6 +9,7 @@ import { taxObligationCatalogAction } from './modules/tax-calendar/tax-obligatio
 import { recordActorAudit } from './modules/audit-catalogs/record-actor-audit.service.js';
 import { withAuditExecution } from './core/database/audit-context.js';
 import { paymentRequests } from './modules/treasury-catalogs/payment-requests.service.js';
+import { paymentBatchOptions, paymentBatchCandidates, paymentBatchReport, paymentBatchDetail, generatePaymentBatch, downloadPaymentBatch, markPaymentBatchSent, cancelPaymentBatch, applyPaymentBatchReference, applyPaymentBatchResponse } from './modules/treasury-catalogs/payment-batches.service.js';
 import { createReadStream } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
@@ -323,6 +324,22 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(configurationRoute){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para administrar Configuración.');const catalog=getConfigurationCatalog(configurationRoute[1]);const id=configurationRoute[2]?Number(configurationRoute[2]):null;if(request.method==='GET'&&id===null)return json(response,200,await listConfigurationRows(catalog,authorization));if(request.method==='POST'&&id===null)return json(response,201,await createConfigurationRow(catalog,authorization,await body(request)as Record<string,unknown>));if(request.method==='PATCH'&&id!==null)return json(response,200,await updateConfigurationRow(catalog,authorization,id,await body(request)as Record<string,unknown>));if(request.method==='DELETE'&&id!==null){await deleteConfigurationRow(catalog,authorization,id);return json(response,200,{success:true});}}
     const prRoute=request.url?.match(/^\/api\/treasury\/payment-requests\/(options|invoices|report|detail|save|transition|execute|supports|support-save|support-delete)$/);
     if(prRoute&&((prRoute[1]==='options'&&request.method==='GET')||(prRoute[1]!=='options'&&request.method==='POST')))return json(response,200,await paymentRequests(request.headers.authorization!,prRoute[1],prRoute[1]==='options'?{}:await body(request) as Record<string,unknown>));
+    const paymentBatchUrl=new URL(request.url??'/','http://localhost'),paymentBatchBase='/api/treasury/payment-batches';
+    if(paymentBatchUrl.pathname===`${paymentBatchBase}/options`&&request.method==='GET')return json(response,200,await paymentBatchOptions(request.headers.authorization!));
+    if(paymentBatchUrl.pathname===`${paymentBatchBase}/candidates`&&request.method==='POST')return json(response,200,await paymentBatchCandidates(request.headers.authorization!,await body(request)as Record<string,unknown>));
+    if(paymentBatchUrl.pathname===`${paymentBatchBase}/generate`&&request.method==='POST')return json(response,201,await generatePaymentBatch(request.headers.authorization!,await body(request)as Record<string,unknown>));
+    if(paymentBatchUrl.pathname===`${paymentBatchBase}/report`&&request.method==='POST')return json(response,200,await paymentBatchReport(request.headers.authorization!,await body(request)as Record<string,unknown>));
+    const paymentBatchRoute=paymentBatchUrl.pathname.match(/^\/api\/treasury\/payment-batches\/(\d+)\/(detail|download|sent|cancel|apply-reference|apply-response)$/);
+    if(paymentBatchRoute){
+      const id=Number(paymentBatchRoute[1]),action=paymentBatchRoute[2];
+      if(action==='detail'&&request.method==='GET')return json(response,200,await paymentBatchDetail(request.headers.authorization!,id));
+      if(action==='download'&&request.method==='GET')return download(response,await downloadPaymentBatch(request.headers.authorization!,id));
+      if(action==='sent'&&request.method==='POST')return json(response,200,await markPaymentBatchSent(request.headers.authorization!,id));
+      if(action==='cancel'&&request.method==='POST')return json(response,200,await cancelPaymentBatch(request.headers.authorization!,id,await body(request)as Record<string,unknown>));
+      if(action==='apply-reference'&&request.method==='POST')return json(response,200,await applyPaymentBatchReference(request.headers.authorization!,id,await body(request)as Record<string,unknown>));
+      if(action==='apply-response'&&request.method==='POST')return json(response,200,await applyPaymentBatchResponse(request.headers.authorization!,id,await body(request)as Record<string,unknown>));
+      return error(response,405,'Método no permitido.');
+    }
     const fxRoute=request.url?.match(/^\/api\/accounting\/fx-revaluation\/(options|settings|preview|execute|cancel|report)$/);
     if(fxRoute&&((fxRoute[1]==='options'&&request.method==='GET')||(fxRoute[1]!=='options'&&request.method==='POST')))return json(response,200,await fxRevaluation(request.headers.authorization!,fxRoute[1],fxRoute[1]==='options'?{}:await body(request) as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/accounting/journals/import'){return json(response,200,await importJournalCsv(request.headers.authorization!,await body(request)as Record<string,unknown>));}

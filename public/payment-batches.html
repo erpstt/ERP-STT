@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pagos masivos a proveedores · GENTIA</title>
+  <link rel="stylesheet" href="/fx-revaluation.css">
+  <link rel="stylesheet" href="/payment-batches.css?v=20261003">
+</head>
+<body>
+<main class="payment-batches-page">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">TESORERÍA · PAGOS MASIVOS</p>
+      <h1>Pagos masivos a proveedores</h1>
+      <p>Genere archivos bancarios y liquide lotes con trazabilidad desde la solicitud aprobada hasta el pago.</p>
+    </div>
+    <div class="heading-actions">
+      <button id="refreshView" type="button" class="button secondary">Actualizar</button>
+    </div>
+  </header>
+
+  <div class="company-strip">
+    <span>SUBSIDIARIA ACTIVA</span>
+    <strong id="company">Cargando…</strong>
+    <span class="module-code">PAG_MAS</span>
+  </div>
+
+  <nav class="batch-view-tabs" aria-label="Flujo de pagos masivos">
+    <button id="generatorViewTab" type="button" data-view="generator" aria-selected="true">
+      <span class="tab-step">1</span>
+      <span><b>Generar archivo</b><small>Seleccione solicitudes aprobadas y prepare el lote bancario.</small></span>
+      <strong id="candidateTabCount">0</strong>
+    </button>
+    <button id="historyViewTab" type="button" data-view="history" aria-selected="false">
+      <span class="tab-step">2</span>
+      <span><b>Historial de lotes</b><small>Descargue, envíe y aplique la respuesta del banco.</small></span>
+      <strong id="historyTabCount">0</strong>
+    </button>
+  </nav>
+
+  <div id="message" class="page-message" role="status" aria-live="polite"></div>
+
+  <section id="generatorView" class="view-panel">
+    <form id="candidateFilters" class="card filter-card">
+      <div class="section-heading compact-heading">
+        <div class="heading-copy">
+          <span class="step-badge">1</span>
+          <div><h2>Defina la cuenta pagadora</h2><p>La moneda y los formatos disponibles se validan contra la cuenta de origen.</p></div>
+        </div>
+        <button id="findCandidates" type="submit" class="button primary">Buscar solicitudes</button>
+      </div>
+      <div class="filter-grid">
+        <label class="wide-filter">Banco origen · Cuenta pagadora
+          <select id="bankAccount" required><option value="">Seleccione una cuenta</option></select>
+          <small id="accountHelp">Elija una cuenta bancaria activa de la subsidiaria.</small>
+        </label>
+        <label>Vencimiento de CxP hasta
+          <input id="dueTo" type="date" required>
+        </label>
+        <label>Moneda
+          <select id="currency" required><option value="">Seleccione una moneda</option></select>
+        </label>
+        <label>Proveedor
+          <select id="supplier"><option value="">Todos los proveedores</option></select>
+        </label>
+      </div>
+    </form>
+
+    <section class="card candidates-card">
+      <div class="section-heading candidates-heading">
+        <div>
+          <span class="eyebrow">SOLICITUDES ELEGIBLES</span>
+          <h2>Pagos aprobados pendientes de lote</h2>
+          <p id="candidateDescription">Use los filtros para consultar solicitudes listas para pago.</p>
+        </div>
+        <div class="validation-legend" aria-label="Leyenda de validación">
+          <span><i class="legend-dot valid"></i>Datos completos</span>
+          <span><i class="legend-dot invalid"></i>Requiere corrección</span>
+        </div>
+      </div>
+
+      <div id="candidateMetrics" class="candidate-metrics" hidden>
+        <div><small>Solicitudes encontradas</small><strong id="candidateCount">0</strong></div>
+        <div><small>Listas para incluir</small><strong id="validCount">0</strong></div>
+        <div><small>Con observaciones</small><strong id="invalidCount">0</strong></div>
+        <div><small>Saldo cuenta pagadora</small><strong id="accountBalance">—</strong></div>
+      </div>
+
+      <div class="table-scroll candidates-table-wrap">
+        <table class="candidates-table">
+          <thead>
+            <tr>
+              <th class="check-column"><input id="selectAllCandidates" type="checkbox" aria-label="Seleccionar todas las solicitudes válidas"></th>
+              <th>Solicitud</th>
+              <th>Proveedor</th>
+              <th>Facturas</th>
+              <th>Programación</th>
+              <th>Cuenta destino</th>
+              <th>Validación</th>
+              <th class="num">Monto</th>
+            </tr>
+          </thead>
+          <tbody id="candidateRows">
+            <tr><td colspan="8"><div class="empty-state"><span>⌕</span><b>Consulte las solicitudes aprobadas</b><small>Seleccione una cuenta pagadora y una fecha de vencimiento.</small></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <aside id="selectionBar" class="selection-bar" aria-label="Resumen del lote">
+      <div class="selection-total">
+        <small>SELECCIÓN ACTUAL</small>
+        <strong><span id="selectedCount">0</span> solicitudes</strong>
+        <b id="selectedAmount">0,00</b>
+      </div>
+      <div class="selection-controls">
+        <label>Formato bancario
+          <select id="format" required><option value="">Seleccione un formato</option></select>
+          <small id="formatHelp">Seleccione la plantilla habilitada para el banco y la moneda.</small>
+        </label>
+        <label>Fecha de ejecución
+          <input id="executionDate" type="date" required>
+        </label>
+        <label>Tipo de cambio
+          <input id="rate" type="number" min="0.00000001" step="0.00000001" value="1" required>
+        </label>
+        <button id="generateBatch" type="button" class="button primary" disabled>Generar archivo de pago</button>
+      </div>
+      <p id="selectionWarning" class="selection-warning" hidden></p>
+    </aside>
+  </section>
+
+  <section id="historyView" class="view-panel" hidden>
+    <form id="historyFilters" class="card filter-card">
+      <div class="section-heading compact-heading">
+        <div class="heading-copy">
+          <span class="step-badge">2</span>
+          <div><h2>Consulte los lotes bancarios</h2><p>Filtre por fecha de ejecución, estado y cuenta de origen.</p></div>
+        </div>
+        <button id="findBatches" type="submit" class="button primary">Consultar lotes</button>
+      </div>
+      <div class="history-filter-grid">
+        <label>Ejecución desde<input id="historyFrom" type="date" required></label>
+        <label>Ejecución hasta<input id="historyTo" type="date" required></label>
+        <label>Estado
+          <select id="historyStatus">
+            <option value="">Todos los estados</option>
+            <option value="DRAFT">Borrador</option>
+            <option value="FILE_GENERATED">Archivo generado</option>
+            <option value="SENT_TO_BANK">Enviado al banco</option>
+            <option value="FULLY_APPLIED">Aplicado completamente</option>
+            <option value="PARTIALLY_REJECTED">Rechazo parcial</option>
+            <option value="CANCELLED">Cancelado</option>
+          </select>
+        </label>
+        <label class="wide-filter">Cuenta pagadora
+          <select id="historyAccount"><option value="">Todas las cuentas</option></select>
+        </label>
+      </div>
+    </form>
+
+    <section class="card history-card">
+      <div class="section-heading history-heading">
+        <div><span class="eyebrow">CONTROL Y LIQUIDACIÓN</span><h2>Historial de lotes</h2><p id="historyDescription">Lotes generados para la subsidiaria activa.</p></div>
+        <span id="historyCount" class="record-count">0 lotes</span>
+      </div>
+      <div class="history-summary" id="historySummary" hidden>
+        <div><small>Total de lotes</small><b id="summaryBatches">0</b></div>
+        <div><small>Solicitudes incluidas</small><b id="summaryItems">0</b></div>
+        <div><small>Monto mostrado</small><b id="summaryAmount">0,00</b></div>
+        <div><small>Pendientes de liquidar</small><b id="summaryPending">0</b></div>
+      </div>
+      <div class="table-scroll history-table-wrap">
+        <table class="history-table">
+          <thead><tr><th>Lote</th><th>Ejecución</th><th>Banco / Cuenta</th><th>Moneda</th><th class="num">Solicitudes</th><th class="num">Total</th><th>Estado</th><th>Creado por</th><th>Acciones</th></tr></thead>
+          <tbody id="historyRows"><tr><td colspan="9"><div class="empty-state"><span>≡</span><b>Aún no se ha consultado el historial</b><small>Use los filtros para cargar los lotes.</small></div></td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+</main>
+
+<dialog id="generateDialog" class="batch-dialog confirm-dialog">
+  <form id="generateForm" method="dialog" class="dialog-card">
+    <div class="dialog-heading">
+      <div><span class="eyebrow">CONFIRMACIÓN DEL LOTE</span><h2>Generar archivo bancario</h2><p>Revise los totales antes de bloquear las solicitudes.</p></div>
+      <button type="button" class="close-button" data-close="generateDialog" aria-label="Cerrar">×</button>
+    </div>
+    <div id="generatePreview" class="generate-preview"></div>
+    <div id="generateNotice" class="dialog-notice"><b>Al confirmar</b><span>Las solicitudes quedarán asociadas al lote y no podrán pagarse por otra vía mientras permanezcan bloqueadas.</span></div>
+    <footer class="dialog-actions"><button type="button" class="button secondary" data-close="generateDialog">Volver</button><button id="confirmGenerate" type="submit" class="button primary">Confirmar y generar</button></footer>
+  </form>
+</dialog>
+
+<dialog id="detailDialog" class="batch-dialog detail-dialog">
+  <div class="dialog-card">
+    <div class="dialog-heading">
+      <div><span class="eyebrow">DETALLE DEL LOTE</span><h2 id="detailTitle">Lote de pago</h2><p id="detailSubtitle"></p></div>
+      <button type="button" class="close-button" data-close="detailDialog" aria-label="Cerrar">×</button>
+    </div>
+    <div id="detailSummary" class="detail-summary"></div>
+    <div class="detail-content">
+      <div class="detail-section-heading"><div><span class="eyebrow">SOLICITUDES INCLUIDAS</span><h3>Detalle de transferencias</h3></div><span id="detailItemCount"></span></div>
+      <div class="table-scroll detail-table-wrap"><table><thead><tr><th>Solicitud</th><th>Proveedor</th><th>Identificación / IBAN</th><th class="num">Importe solicitado</th><th>Estado / Referencia</th><th class="num">Transferencia</th></tr></thead><tbody id="detailRows"></tbody></table></div>
+    </div>
+    <footer id="detailActions" class="dialog-actions"><button type="button" class="button secondary" data-close="detailDialog">Cerrar</button></footer>
+  </div>
+</dialog>
+
+<dialog id="settlementDialog" class="batch-dialog settlement-dialog">
+  <form id="settlementForm" class="dialog-card">
+    <div class="dialog-heading">
+      <div><span class="eyebrow">RESPUESTA BANCARIA</span><h2 id="settlementTitle">Aplicar pagos del lote</h2><p>Use el archivo del banco o una referencia global de transferencia.</p></div>
+      <button type="button" class="close-button" data-close="settlementDialog" aria-label="Cerrar">×</button>
+    </div>
+    <div class="settlement-tabs" role="tablist" aria-label="Método de confirmación">
+      <button id="responseModeTab" type="button" data-mode="response" role="tab" aria-selected="true">Archivo de respuesta</button>
+      <button id="referenceModeTab" type="button" data-mode="reference" role="tab" aria-selected="false">Referencia global</button>
+    </div>
+    <section id="responseMode" class="settlement-pane">
+      <label class="drop-zone" for="responseFile">
+        <span class="upload-icon">⇧</span>
+        <b>Seleccione la respuesta del banco</b>
+        <small>Formatos admitidos: ACK, RES, CSV, TXT o XML · máximo 5 MB</small>
+        <input id="responseFile" type="file" accept=".ack,.res,.csv,.txt,.xml,text/plain,text/csv,application/xml,text/xml">
+      </label>
+      <div id="selectedFile" class="selected-file" hidden></div>
+      <p class="settlement-help">El sistema procesará cada transacción y separará los pagos aprobados de los rechazados por el banco.</p>
+    </section>
+    <section id="referenceMode" class="settlement-pane" hidden>
+      <label>Número de referencia global / transferencia
+        <input id="globalReference" maxlength="120" autocomplete="off" placeholder="Ej. BAC-TRX-20261003-001">
+      </label>
+      <p class="settlement-help">Esta opción confirma como pagadas todas las solicitudes vigentes del lote con la misma referencia.</p>
+    </section>
+    <p id="settlementError" class="inline-error" role="alert"></p>
+    <footer class="dialog-actions"><button type="button" class="button secondary" data-close="settlementDialog">Cancelar</button><button id="applySettlement" type="submit" class="button primary">Procesar y aplicar pagos</button></footer>
+  </form>
+</dialog>
+
+<dialog id="actionDialog" class="batch-dialog action-dialog">
+  <form id="actionForm" class="dialog-card">
+    <div class="dialog-heading"><div><span class="eyebrow">CONFIRMACIÓN</span><h2 id="actionTitle">Confirmar acción</h2><p id="actionDescription"></p></div><button type="button" class="close-button" data-close="actionDialog" aria-label="Cerrar">×</button></div>
+    <div id="actionNotice" class="dialog-notice"></div>
+    <footer class="dialog-actions"><button type="button" class="button secondary" data-close="actionDialog">Volver</button><button id="confirmAction" type="submit" class="button primary">Confirmar</button></footer>
+  </form>
+</dialog>
+
+<script type="module" src="/payment-batches.js?v=20261003"></script>
+</body>
+</html>
