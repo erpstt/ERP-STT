@@ -9,9 +9,9 @@ export async function paymentRequests(auth:string,action:string,payload:Record<s
    const detail=await rpc(auth,'wf_instance_detail',{p_entity_type:'PAYMENT_REQUEST',p_entity_id:id});
    if(detail?.instance){const map:Record<string,string>={APPROVE:'APROBAR',REJECT:'RECHAZAR',CANCEL:'CANCELAR'};return rpc(auth,'wf_act',{p_instance_id:detail.instance.id,p_action:map[transition],p_comment:payload.reason||null,p_ip:null})}
   }
-  const result=await rpc(auth,name,{p:payload});
-  if(transition==='SUBMIT')await rpc(auth,'wf_start_entity',{p_entity_type:'PAYMENT_REQUEST',p_entity_id:id,p_context:{}});
-  return result;
+  // pr_transition submits and materializes the workflow in one database transaction.
+  // This prevents a request from remaining pending when its UP approver cannot be resolved.
+  return rpc(auth,name,{p:payload});
  }
  return rpc(auth,name,action==='options'?{}:{p:payload});
 }

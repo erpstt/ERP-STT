@@ -19,6 +19,7 @@ import { createCountry, deleteCountry, listCountries, updateCountry } from './mo
 import { createCatalogRow, deleteCatalogRow, getCoreCatalog, listCatalogRows, updateCatalogRow } from './modules/core-catalogs/core-catalogs.module.js';
 import { createSecurityRow, deleteSecurityRow, getSecurityCatalog, listSecurityRows, updateSecurityRow } from './modules/security-catalogs/security-catalogs.module.js';
 import { listSubsidiaryApprovers, createOrganizationRow, deleteOrganizationRow, getOrganizationCatalog, listOrganizationRows, updateOrganizationRow } from './modules/organization-catalogs/organization-catalogs.module.js';
+import { listCostCentersByUpApprover, reassignCostCenterUpApprover, upApproverOptions, upApproverSelectorOptions } from './modules/organization-catalogs/up-approvers.service.js';
 import { assertExchangeRateAccess, createConfigurationRow, deleteConfigurationRow, getConfigurationCatalog, listConfigurationRows, suggestConsolidatedExchangeRate, updateConfigurationRow } from './modules/configuration-catalogs/configuration-catalogs.module.js';
 import { accountingCatalogs, createAccountingRow, deleteAccountingRow, getAccountingCatalog, listAccountingRows, updateAccountingRow } from './modules/accounting-catalogs/accounting-catalogs.module.js';
 import { createJournalEntry, updateJournalEntry } from './modules/accounting-catalogs/journal-entry.service.js';
@@ -298,6 +299,14 @@ const server = createServer((request, response) => withAuditExecution(async () =
       if (request.method === 'POST' && id === null) return json(response, 201, await createSecurityRow(catalog, authorization, await body(request) as Record<string, unknown>));
       if (request.method === 'PATCH' && id !== null) return json(response, 200, await updateSecurityRow(catalog, authorization, id, await body(request) as Record<string, unknown>));
       if (request.method === 'DELETE' && id !== null) { await deleteSecurityRow(catalog, authorization, id); return json(response, 200, { success: true }); }
+    }
+    const upApproverUrl=new URL(request.url??'/','http://localhost');
+    if(request.method==='GET'&&upApproverUrl.pathname==='/api/v1/cost-centers/up-approver-options')return json(response,200,await upApproverOptions(request.headers.authorization!));
+    const upApproverListRoute=upApproverUrl.pathname.match(/^\/api\/v1\/cost-centers\/up-approver\/(\d+)$/);
+    if(request.method==='GET'&&upApproverListRoute)return json(response,200,await listCostCentersByUpApprover(request.headers.authorization!,Number(upApproverListRoute[1])));
+    if(request.method==='POST'&&upApproverUrl.pathname==='/api/v1/cost-centers/reassign-up-approver')return json(response,200,await reassignCostCenterUpApprover(request.headers.authorization!,await body(request)as Record<string,unknown>));
+    if(request.method==='GET'&&upApproverUrl.pathname==='/api/organization/up-approver-options'){
+      return json(response,200,await upApproverSelectorOptions(request.headers.authorization!));
     }
     if(request.method==='GET'&&request.url==='/api/organization/approver-options')return json(response,200,await listSubsidiaryApprovers(request.headers.authorization!));
     const organizationRoute = request.url?.match(/^\/api\/organization\/([a-z-]+)(?:\/(\d+))?$/);

@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mantenimiento de Aprobadores UP · GENTIA</title>
+  <link rel="stylesheet" href="/up-approvers.css?v=20261004">
+</head>
+<body>
+  <main id="upApproversApp" class="up-page" aria-busy="true">
+    <header class="page-header">
+      <div class="page-heading">
+        <p class="eyebrow">GASTOS · CENTROS DE COSTOS</p>
+        <h1>Mantenimiento de Aprobadores UP</h1>
+        <p>Consulte y reasigne de forma controlada los aprobadores de centros de costos clasificados como CLIENTE.</p>
+      </div>
+      <button id="refresh" class="button secondary refresh-button" type="button" aria-label="Actualizar información">
+        <span aria-hidden="true">↻</span> Actualizar
+      </button>
+    </header>
+
+    <section class="company-strip" aria-label="Contexto de empresa">
+      <div class="company-mark" aria-hidden="true">UP</div>
+      <div>
+        <span>EMPRESA ACTIVA</span>
+        <strong id="activeCompany">Cargando empresa…</strong>
+      </div>
+      <span class="context-tag">Centros de costos · CLIENTE</span>
+    </section>
+
+    <p id="message" class="page-message" role="status" aria-live="polite"></p>
+
+    <section id="accessDenied" class="state-card" hidden>
+      <span class="state-symbol" aria-hidden="true">!</span>
+      <h2>Acceso restringido</h2>
+      <p>No tiene permiso para consultar el mantenimiento de Aprobadores UP.</p>
+    </section>
+
+    <section id="workspace" class="workspace" hidden>
+      <section class="card consultation-card" aria-labelledby="consultationTitle">
+        <div class="step-copy">
+          <span class="step-number" aria-hidden="true">1</span>
+          <div>
+            <h2 id="consultationTitle">Seleccione el aprobador actual</h2>
+            <p>Se mostrarán únicamente sus centros de costos de tipo CLIENTE en la empresa activa.</p>
+          </div>
+        </div>
+        <div class="consultation-controls">
+          <label for="currentApproverSearch">Buscar usuario
+            <input id="currentApproverSearch" type="search" autocomplete="off" placeholder="Nombre o correo del aprobador">
+          </label>
+          <label for="currentApprover">Aprobador actual (UP)
+            <select id="currentApprover" required>
+              <option value="">Seleccione un aprobador</option>
+            </select>
+          </label>
+          <button id="consult" class="button primary" type="button" disabled>Consultar centros</button>
+        </div>
+      </section>
+
+      <section class="card results-card" aria-labelledby="resultsTitle">
+        <header class="card-heading">
+          <div class="step-copy">
+            <span class="step-number" aria-hidden="true">2</span>
+            <div>
+              <h2 id="resultsTitle">Centros de costos asignados</h2>
+              <p id="resultsCaption">Seleccione un aprobador para cargar sus asignaciones.</p>
+            </div>
+          </div>
+          <span id="resultCount" class="result-count">0 centros</span>
+        </header>
+
+        <div class="table-toolbar">
+          <label class="search-field" for="centerSearch">
+            <span class="visually-hidden">Buscar centros de costos</span>
+            <span class="search-icon" aria-hidden="true">⌕</span>
+            <input id="centerSearch" type="search" autocomplete="off" placeholder="Buscar por código, nombre o subsidiaria" disabled>
+          </label>
+          <div class="selection-indicator" aria-live="polite">
+            <span id="selectedCount">0</span>
+            <small>seleccionados</small>
+          </div>
+        </div>
+
+        <div id="loadingState" class="loading-state" hidden role="status">
+          <span class="spinner" aria-hidden="true"></span>
+          <strong>Cargando centros de costos…</strong>
+          <small>Estamos consultando las asignaciones del aprobador.</small>
+        </div>
+
+        <div id="tableRegion" class="table-scroll" hidden tabindex="0" aria-label="Centros de costos del aprobador">
+          <table>
+            <thead>
+              <tr>
+                <th class="check-column">
+                  <input id="selectAll" type="checkbox" aria-label="Seleccionar todos los centros visibles">
+                </th>
+                <th>Código CC</th>
+                <th>Nombre del centro de costos</th>
+                <th>Subsidiaria</th>
+                <th>Tipo CC</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="centerRows"></tbody>
+          </table>
+        </div>
+
+        <div id="emptyState" class="empty-state">
+          <span class="empty-icon" aria-hidden="true">◎</span>
+          <h3>Seleccione un aprobador UP</h3>
+          <p>La consulta mostrará aquí todos los centros de costos CLIENTE que tiene asignados.</p>
+        </div>
+      </section>
+
+      <section class="card reassign-card" aria-labelledby="reassignTitle">
+        <div class="reassign-copy">
+          <div class="step-copy">
+            <span class="step-number" aria-hidden="true">3</span>
+            <div>
+              <h2 id="reassignTitle">Defina el nuevo aprobador</h2>
+              <p>Antes de aplicar el cambio verá un resumen con el alcance exacto de la reasignación.</p>
+            </div>
+          </div>
+          <div class="routing-note">
+            <span aria-hidden="true">i</span>
+            <p><strong>Aplicación del cambio</strong>Las nuevas solicitudes de Otros Pagos usarán este responsable. Las solicitudes ya enviadas conservan su aprobación actual.</p>
+          </div>
+        </div>
+        <div class="reassign-controls">
+          <label for="newApproverSearch">Buscar nuevo responsable
+            <input id="newApproverSearch" type="search" autocomplete="off" placeholder="Nombre o correo" disabled>
+          </label>
+          <label for="newApprover">Nuevo Aprobador UP
+            <select id="newApprover" disabled>
+              <option value="">Seleccione el nuevo aprobador</option>
+            </select>
+          </label>
+          <div class="action-buttons">
+            <button id="replaceSelected" class="button primary" type="button" disabled>
+              Reemplazar en seleccionados
+              <span id="selectedButtonCount" class="button-count">0</span>
+            </button>
+            <button id="replaceAll" class="button secondary emphasized" type="button" disabled>
+              Reemplazar en todos
+              <span id="allButtonCount" class="button-count">0</span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="confirmDialog" class="confirm-dialog" aria-labelledby="confirmTitle" aria-describedby="confirmDescription">
+    <form id="confirmForm" method="dialog">
+      <header class="dialog-header">
+        <div>
+          <p class="eyebrow">CONFIRMACIÓN DE REASIGNACIÓN</p>
+          <h2 id="confirmTitle">Revisar cambio de Aprobador UP</h2>
+          <p id="confirmDescription">Verifique el responsable y el alcance antes de continuar.</p>
+        </div>
+        <button id="closeDialog" class="dialog-close" type="button" aria-label="Cerrar">×</button>
+      </header>
+
+      <div class="dialog-body">
+        <div class="approver-transition" aria-label="Cambio de aprobador">
+          <article>
+            <small>APROBADOR ACTUAL</small>
+            <strong id="confirmCurrent">—</strong>
+            <span id="confirmCurrentEmail">—</span>
+          </article>
+          <span class="transition-arrow" aria-hidden="true">→</span>
+          <article class="destination">
+            <small>NUEVO APROBADOR</small>
+            <strong id="confirmNew">—</strong>
+            <span id="confirmNewEmail">—</span>
+          </article>
+        </div>
+
+        <section class="scope-summary">
+          <div class="scope-count"><strong id="confirmCount">0</strong><span>centros de costos</span></div>
+          <div>
+            <small>ALCANCE</small>
+            <strong id="confirmScope">Centros seleccionados</strong>
+            <p id="confirmScopeHelp"></p>
+          </div>
+        </section>
+
+        <details id="confirmDetails" class="confirm-details">
+          <summary>Ver centros incluidos <span id="confirmDetailsCount"></span></summary>
+          <ul id="confirmCenters"></ul>
+        </details>
+
+        <div class="confirmation-warning">
+          <span aria-hidden="true">!</span>
+          <p><strong>Este cambio afecta el enrutamiento futuro.</strong> Confirme que el nuevo usuario debe aprobar las solicitudes asociadas a estos centros.</p>
+        </div>
+        <p id="dialogError" class="dialog-error" role="alert"></p>
+      </div>
+
+      <footer class="dialog-footer">
+        <button id="cancelDialog" class="button secondary" type="button">Volver</button>
+        <button id="confirmReassign" class="button primary" type="submit">Confirmar reasignación</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <script type="module" src="/up-approvers.js?v=20261004"></script>
+</body>
+</html>
