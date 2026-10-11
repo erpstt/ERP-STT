@@ -4,6 +4,7 @@ import { statementSettings, customerStatement, startStatementNotifications } fro
 import { notificationSettings, paymentNotifications, startEmailNotifications } from './modules/notifications/email-notification.service.js';
 import { salesInvoiceTemplateSettings } from './modules/notifications/sales-invoice-email.js';
 import { downloadSalesInvoicePdf, sendSalesInvoiceEmail } from './modules/notifications/sales-invoice-delivery.service.js';
+import { expenseApprovalTemplateSettings, startExpenseApprovalNotifications } from './modules/notifications/expense-approval-email.js';
 import { startTaxCalendarNotifications, taxCalendarAction, taxCalendarDocument } from './modules/tax-calendar/tax-calendar.service.js';
 import { taxObligationCatalogAction } from './modules/tax-calendar/tax-obligation-catalog.service.js';
 import { recordActorAudit } from './modules/audit-catalogs/record-actor-audit.service.js';
@@ -380,7 +381,7 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(budgetRoute){const readOnly=['options','execution-report'].includes(budgetRoute[1]);if(request.method!=='POST'&&!(readOnly&&request.method==='GET'))return json(response,405,{error:'Método no permitido.'});const input=request.method==='GET'?Object.fromEntries(new URL(request.url!,'http://localhost').searchParams):await body(request)as Record<string,unknown>;return json(response,200,await budgetAction(request.headers.authorization!,budgetRoute[1],input));}
     if(request.url?.split('?')[0]==='/apps/budget/builder'||request.url?.split('?')[0]==='/apps/budget/dashboard')return await serveFile('/budget.html',response);
     const notificationRoute=request.url?.match(/^\/api\/configuration\/notification-templates\/(get|save|preview)$/);
-    if(notificationRoute&&request.method==='POST'){const input=await body(request)as Record<string,unknown>;const settings=input.kind==='ESTADO_CUENTA'?statementSettings:input.kind==='FACTURA_VENTA'?salesInvoiceTemplateSettings:notificationSettings;return json(response,200,await settings(request.headers.authorization!,notificationRoute[1],input));}
+    if(notificationRoute&&request.method==='POST'){const input=await body(request)as Record<string,unknown>;const settings=input.kind==='ESTADO_CUENTA'?statementSettings:input.kind==='FACTURA_VENTA'?salesInvoiceTemplateSettings:input.kind==='SOLICITUD_GASTO_APROBACION'?expenseApprovalTemplateSettings:notificationSettings;return json(response,200,await settings(request.headers.authorization!,notificationRoute[1],input));}
     const statementRoute=request.url?.match(/^\/api\/entities\/customers\/(\d+)\/statement\/(get|send|pdf)$/);
     if(statementRoute&&request.method==='POST')return json(response,200,await customerStatement(request.headers.authorization!,Number(statementRoute[1]),statementRoute[2],await body(request)as Record<string,unknown>));
     const paymentNotificationRoute=request.url?.match(/^\/api\/purchasing\/supplier-payments\/(\d+)\/notifications\/(history|resend)$/);
@@ -489,4 +490,4 @@ const server = createServer((request, response) => withAuditExecution(async () =
   }
 }));
 
-server.listen(Number(process.env.PORT ?? 3000), '0.0.0.0', () => {startEmailNotifications();startStatementNotifications();startScheduledReports();startTaxCalendarNotifications();console.log(`GENTIA ERP disponible en el puerto ${process.env.PORT ?? 3000}`);iniciarProgramacionTipoCambioRD();iniciarProgramacionTipoCambioCR();iniciarProgramacionTipoCambioGT();iniciarProgramacionTipoCambioJM();iniciarProgramacionTipoCambioCO();iniciarProgramacionTipoCambioAR();iniciarProgramacionTipoCambioNI();iniciarProgramacionTipoCambioPE();});
+server.listen(Number(process.env.PORT ?? 3000), '0.0.0.0', () => {startEmailNotifications();startExpenseApprovalNotifications();startStatementNotifications();startScheduledReports();startTaxCalendarNotifications();console.log(`GENTIA ERP disponible en el puerto ${process.env.PORT ?? 3000}`);iniciarProgramacionTipoCambioRD();iniciarProgramacionTipoCambioCR();iniciarProgramacionTipoCambioGT();iniciarProgramacionTipoCambioJM();iniciarProgramacionTipoCambioCO();iniciarProgramacionTipoCambioAR();iniciarProgramacionTipoCambioNI();iniciarProgramacionTipoCambioPE();});

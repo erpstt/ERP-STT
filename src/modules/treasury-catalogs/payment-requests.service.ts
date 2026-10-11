@@ -3,6 +3,15 @@ const actions:Record<string,string>={options:'pr_options',invoices:'pr_invoices'
 async function rpc(auth:string,name:string,parameters:Record<string,unknown>={}){const c=getSupabaseConfig();if(!c)throw Error('Supabase no está configurado.');const r=await fetchSupabase(new URL(`/rest/v1/rpc/${name}`,c.url),{method:'POST',headers:{apikey:c.anonKey,Authorization:auth,'Content-Type':'application/json'},body:JSON.stringify(parameters)}),raw=await r.text(),result=raw?JSON.parse(raw):null;if(!r.ok)throw Error(result?.message||'No fue posible procesar la solicitud.');return result}
 export async function paymentRequests(auth:string,action:string,payload:Record<string,unknown>={}){
  const name=actions[action];if(!name)throw Error('Solicitud no válida.');
+ if(action==='detail'){
+  const id=Number(payload.id);
+  const[detail,inbox]=await Promise.all([
+   rpc(auth,name,{p:payload}),
+   rpc(auth,'wf_inbox')
+  ]);
+  const canActApproval=Array.isArray(inbox)&&inbox.some(item=>item?.entityType==='PAYMENT_REQUEST'&&Number(item?.entityId)===id);
+  return detail&&typeof detail==='object'?{...detail,canActApproval}:detail;
+ }
  if(action==='transition'){
   const transition=String(payload.transition||'').toUpperCase(),id=Number(payload.id);
   if(['APPROVE','REJECT','CANCEL'].includes(transition)){

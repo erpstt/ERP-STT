@@ -28,6 +28,16 @@ const kinds={
   preview:'Ejemplo de una factura de venta. Esta vista no envía correos.',
   schedule:'Envío manual: el usuario revisa el destinatario y confirma el envío desde la factura de venta.',
   transport:'SMTP activado. Las facturas podrán enviarse desde su vista de detalle.'
+ },
+ SOLICITUD_GASTO_APROBACION:{
+  title:'Solicitud de gasto pendiente de aprobación',
+  tags:['empresa_nombre','aprobador_nombre','numero_solicitud','solicitante_nombre','tipo_solicitud','fecha_solicitud','fecha_pago_programada','moneda','monto_total','concepto','departamentos','centros_costo','nivel_aprobacion','enlace_solicitud'],
+  active:'Notificar por correo las solicitudes de gasto pendientes',
+  activeHelp:'Se envía al aprobador asignado cuando una solicitud de tipo Otros Pagos entra en su nivel de aprobación. También requiere que el SMTP esté activo.',
+  automatic:'El resumen de la solicitud, el monto, el departamento, los centros de costo, el botón para revisarla y las instrucciones de aprobación se agregan automáticamente.',
+  preview:'Ejemplo de una solicitud de gasto pendiente. Esta vista no envía correos ni aprueba transacciones.',
+  schedule:'Envío automático: se genera al enviar la solicitud a aprobación y en cada nuevo nivel aplicable.',
+  transport:'SMTP activado. Las nuevas solicitudes de gasto se notificarán al aprobador correspondiente.'
  }
 };
 const requested=new URLSearchParams(location.search).get('kind');
