@@ -217,6 +217,20 @@ td{padding:15px 18px;border-top:1px solid #edf0f3;color:#344054;font-size:12px}
 .multi-option input{width:17px!important;height:17px!important;accent-color:#18835f;flex:0 0 auto}
 .multi-select small{display:block;color:#8793a2;padding:12px;text-align:center}
 
+.modal.account-master-modal:has(.form-grid){width:min(780px,100%)}
+.account-master-modal .multi-select{max-height:310px;padding:9px;border-color:#cfdad6;background:#fbfdfc}
+.account-subsidiary-summary{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 9px;padding:11px 12px;border-radius:8px;background:linear-gradient(135deg,#eaf7f2,#f5faf8);border:1px solid #cfe8df}
+.account-subsidiary-summary div{display:flex;align-items:baseline;gap:7px}
+.account-subsidiary-summary strong{color:#0f6f54;font:800 16px Manrope,sans-serif}
+.account-subsidiary-summary span{color:#61766e;font-size:11px}
+.account-subsidiary-summary .account-subsidiary-status{padding:5px 8px;border-radius:999px;background:#d8f1e8;color:#0c7456;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.35px}
+.account-subsidiary-search{position:relative;margin-bottom:7px}
+.account-subsidiary-search>span{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#708079;font-size:16px;pointer-events:none}
+.form-grid .account-subsidiary-search input{height:38px;padding-left:32px;background:#fff}
+.account-master-modal .multi-option{border-bottom:1px solid #edf2f0;border-radius:0}
+.account-master-modal .multi-option:last-of-type{border-bottom:0}
+.account-subsidiary-help{display:block;margin-top:7px;color:#65766f;font-size:11px;line-height:1.45}
+
 
 
 .approver-section{grid-column:1/-1;margin-top:12px;padding-top:18px;border-top:1px solid #dce7e2}.approver-section h3{margin:0 0 6px;color:#177b60;font-size:15px}.approver-section p{margin:0;color:#6c7f8f;font-size:12px;line-height:1.5}

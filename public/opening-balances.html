@@ -1,1 +1,51 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Saldos iniciales</title><link rel="stylesheet" href="/opening-balances.css"></head><body><main><header><p>CONTABILIDAD · MIGRACIÓN</p><h1>Carga de Saldos Iniciales</h1><span>Importe, valide y contabilice la apertura financiera de la subsidiaria.</span></header><section class="company"><small>SUBSIDIARIA ACTIVA</small><b id="company">Cargando…</b><em id="currency"></em></section><nav><b>1 Parámetros</b><b>2 Plantillas</b><b>3 Validación</b><b>4 Contabilización</b></nav><section class="card params"><label>Fecha de apertura<input id="date" type="date"></label><label>Tipo de carga<select id="type"><option value="FISCAL_YEAR">Inicio de año fiscal</option><option value="MID_YEAR">A mitad de período fiscal</option></select></label><label>Cuenta transitoria<select id="transition"></select></label></section><section class="files"><article><h2>Libro Mayor</h2><p>Balance y, para mitad de período, resultados YTD con dimensiones.</p><a href="/plantilla-saldos-mayor.csv" download>Descargar plantilla</a><input id="gl" type="file" accept=".csv"></article><article><h2>Cuentas por Cobrar</h2><p>Facturas pendientes por cliente, moneda y vencimiento.</p><a href="/plantilla-saldos-cxc.csv" download>Descargar plantilla</a><input id="ar" type="file" accept=".csv"></article><article><h2>Cuentas por Pagar</h2><p>Facturas pendientes por proveedor, moneda y vencimiento.</p><a href="/plantilla-saldos-cxp.csv" download>Descargar plantilla</a><input id="ap" type="file" accept=".csv"></article></section><div class="actions"><button id="validate">Validar y previsualizar</button><button id="post" disabled>Contabilizar Saldos Iniciales</button><button id="reverse" class="danger" hidden>Anular y reversar apertura</button></div><section id="summary" class="summary" hidden></section><section class="card table"><table><thead><tr><th>Origen</th><th>Fila</th><th>Cuenta</th><th>Documento</th><th>Moneda / tasa</th><th>Dimensiones</th><th>Débito local</th><th>Crédito local</th></tr></thead><tbody id="rows"></tbody></table></section><p id="message"></p></main><script type="module" src="/opening-balances.js"></script></body></html>
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Carga de saldos iniciales · GENTIA</title>
+  <link rel="stylesheet" href="/opening-balances.css?v=20261012-fa">
+</head>
+<body>
+<main>
+  <header class="page-head">
+    <div><p>CONTABILIDAD · MIGRACIÓN</p><h1>Carga de Saldos Iniciales</h1><span>Importe, valide y contabilice la apertura financiera y sus auxiliares.</span></div>
+  </header>
+
+  <section class="company"><div><small>SUBSIDIARIA ACTIVA</small><b id="company">Cargando…</b></div><em id="currency"></em></section>
+
+  <nav class="steps" aria-label="Etapas de la carga"><b><span>1</span> Parámetros</b><b><span>2</span> Plantillas</b><b><span>3</span> Validación</b><b><span>4</span> Contabilización</b></nav>
+
+  <section class="card params">
+    <label>Fecha de apertura<input id="date" type="date"></label>
+    <label>Tipo de carga<select id="type"><option value="FISCAL_YEAR">Inicio de año fiscal</option><option value="MID_YEAR">A mitad de período fiscal</option></select></label>
+    <label>Cuenta transitoria<select id="transition"></select></label>
+  </section>
+
+  <section class="files">
+    <article><div class="file-number">01</div><h2>Libro Mayor</h2><p>Balance y, para mitad de período, resultados YTD con dimensiones.</p><a href="/plantilla-saldos-mayor.csv" download>↓ Descargar plantilla CSV</a><label class="file-picker">Seleccionar archivo<input id="gl" type="file" accept=".csv,text/csv"><span id="glName">Ningún archivo</span></label></article>
+    <article><div class="file-number">02</div><h2>Cuentas por Cobrar</h2><p>Facturas pendientes por cliente, moneda y vencimiento.</p><a href="/plantilla-saldos-cxc.csv" download>↓ Descargar plantilla CSV</a><label class="file-picker">Seleccionar archivo<input id="ar" type="file" accept=".csv,text/csv"><span id="arName">Ningún archivo</span></label></article>
+    <article><div class="file-number">03</div><h2>Cuentas por Pagar</h2><p>Facturas pendientes por proveedor, moneda y vencimiento.</p><a href="/plantilla-saldos-cxp.csv" download>↓ Descargar plantilla CSV</a><label class="file-picker">Seleccionar archivo<input id="ap" type="file" accept=".csv,text/csv"><span id="apName">Ningún archivo</span></label></article>
+    <article class="asset-file"><div class="file-number">04</div><h2>Auxiliar de Activos Fijos</h2><p>Fichas históricas, costo, depreciación acumulada y vida útil consumida.</p><a href="/plantilla-saldos-activos-fijos.csv" download>↓ Descargar plantilla CSV</a><small id="faCatalogHint" class="catalog-hint">Consultando categorías disponibles…</small><label class="file-picker">Seleccionar archivo<input id="fa" type="file" accept=".csv,text/csv"><span id="faName">Ningún archivo</span></label></article>
+  </section>
+
+  <aside class="information"><b>Cómo se registra el auxiliar</b><span>Use fechas AAAA-MM-DD, importes sin separadores de miles, la moneda funcional y los códigos vigentes de categoría, ubicación y dimensiones. Puede usar punto o coma para los decimales. El archivo crea las fichas y su depreciación histórica sin volver a contabilizar esos importes. Las fichas que ya existan a la fecha de apertura se reconocen automáticamente para evitar duplicados.</span></aside>
+
+  <div class="actions"><button id="validate" class="primary">Validar y previsualizar</button><button id="post" class="primary" disabled>Contabilizar saldos iniciales</button><button id="reverse" class="danger" hidden>Anular y reversar apertura</button></div>
+  <p id="message" role="status"></p>
+
+  <section id="summary" class="summary" hidden></section>
+
+  <section id="assetSummarySection" hidden>
+    <div class="section-title"><div><small>AUXILIAR DE ACTIVOS FIJOS</small><h2>Control de la carga</h2></div><span id="assetStatus" class="badge"></span></div>
+    <div id="assetSummary" class="summary asset-summary"></div>
+    <div class="card table"><table><thead><tr><th>Tipo</th><th>Cuenta contable</th><th class="num">Libro Mayor</th><th class="num">Ya registrado</th><th class="num">Archivo</th><th class="num">Auxiliar total</th><th class="num">Diferencia</th><th>Estado</th></tr></thead><tbody id="assetReconciliation"></tbody></table></div>
+    <div class="card table asset-table"><table><thead><tr><th>Fila</th><th>Código / activo</th><th>Categoría</th><th>Ubicación / dimensiones</th><th>Fechas</th><th class="num">Costo</th><th class="num">Dep. acumulada</th><th class="num">Valor en libros</th><th class="num">Meses consumidos</th><th>Estado</th></tr></thead><tbody id="assetRows"></tbody></table></div>
+  </section>
+
+  <section class="section-title"><div><small>APERTURA CONTABLE</small><h2>Detalle del asiento</h2></div></section>
+  <section class="card table"><table><thead><tr><th>Origen</th><th>Fila</th><th>Cuenta</th><th>Documento</th><th>Moneda / tasa</th><th>Dimensiones</th><th class="num">Débito local</th><th class="num">Crédito local</th></tr></thead><tbody id="rows"></tbody></table></section>
+</main>
+<script type="module" src="/opening-balances.js?v=20261012-fa"></script>
+</body>
+</html>

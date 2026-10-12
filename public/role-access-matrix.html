@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Permisos por rol · GENTIA</title><link rel="stylesheet" href="/role-access-matrix.css?v=20261012"><link rel="stylesheet" href="/role-access-special.css?v=20261012"></head>
+<body><main id="matrixApp" class="permission-page" v-cloak>
+  <header class="page-head"><div><p class="eyebrow">SEGURIDAD · CONTROL DE ACCESO</p><h1>Permisos por rol</h1><p>Define el acceso y las acciones disponibles para cada opción del ERP.</p></div>
+    <button class="primary" type="button" :disabled="loading||saving||!selectedRoleId||administratorRole" @click="save">{{saving?'Guardando…':'Guardar permisos'}}</button>
+  </header>
+  <section class="role-panel">
+    <label><span>Rol a configurar</span><select v-model.number="selectedRoleId" :disabled="loading||saving" @change="loadRole"><option v-for="role in roles" :value="role.roleId">{{role.name}}</option></select></label>
+    <div class="role-summary"><strong>{{selectedRole?.name||'Seleccione un rol'}}</strong><span>{{selectedRole?.description||'Sin descripción registrada'}}</span></div>
+    <div class="scope-note"><b>{{enabledResources}}</b><span>opciones con acceso</span></div>
+  </section>
+  <div v-if="administratorRole" class="notice info"><strong>Acceso administrativo protegido.</strong> El rol Administrador conserva acceso total al sistema para evitar bloqueos de gestión.</div>
+  <div v-if="message" class="notice" :class="messageType">{{message}}</div>
+  <nav class="view-tabs" aria-label="Tipos de permiso">
+    <button type="button" :class="{active:activeTab==='standard'}" @click="activeTab='standard'">Acceso y acciones por módulo</button>
+    <button type="button" :class="{active:activeTab==='special'}" @click="activeTab='special'">Acciones especiales <span>{{specialEnabled}}</span></button>
+  </nav>
+  <section class="tools" aria-label="Herramientas de la matriz">
+    <label class="search"><span>⌕</span><input v-model="search" :placeholder="activeTab==='standard'?'Buscar módulo u opción':'Buscar permiso, módulo o código'" aria-label="Buscar permisos"></label>
+    <div class="legend"><span><i class="dot on"></i>Sí</span><span><i class="dot off"></i>No</span><span><i class="na">—</i>No aplica</span></div>
+  </section>
+  <p v-if="loading" class="state">Cargando la matriz de seguridad…</p>
+  <p v-else-if="activeTab==='standard'&&!filteredModules.length" class="state">No hay opciones que coincidan con la búsqueda.</p>
+  <section v-else-if="activeTab==='standard'" class="module-list">
+    <article v-for="module in filteredModules" :key="module.key" class="module-card">
+      <header><button type="button" class="module-title" @click="toggleModule(module.key)" :aria-expanded="expanded.has(module.key)"><span class="chevron" :class="{open:expanded.has(module.key)}">›</span><span><strong>{{module.name}}</strong><small>{{module.resources.length}} opciones</small></span></button>
+        <div class="module-actions" v-if="!administratorRole"><button type="button" @click="setModule(module,true)">Permitir módulo</button><button type="button" @click="setModule(module,false)">Quitar acceso</button></div>
+      </header>
+      <div v-show="expanded.has(module.key)" class="matrix-scroll"><table><thead><tr><th>Opción del módulo</th><th>Acceso</th><th>Crear</th><th>Editar</th><th>Eliminar</th></tr></thead>
+        <tbody><tr v-for="resource in module.resources" :key="resource.key"><td><strong>{{resource.optionName}}</strong><small>{{resource.key}}</small></td>
+          <td v-for="action in actions" :key="action.key"><span v-if="!resource.actions.includes(action.key)" class="not-applicable">—<small>No aplica</small></span>
+            <label v-else class="switch-control" :class="{disabled:administratorRole}"><input type="checkbox" :disabled="administratorRole" :checked="allowed(resource,action.key)" @change="changePermission(resource,action.key,$event.target.checked)"><span class="switch" aria-hidden="true"></span><b>{{allowed(resource,action.key)?'Sí':'No'}}</b></label>
+          </td></tr></tbody></table></div>
+    </article>
+  </section>
+  <section v-else class="special-access">
+    <div class="special-explanation"><div class="special-icon">⚙</div><div><strong>Acciones especiales del sistema</strong><p>Controlan operaciones como aprobar, contabilizar, reversar, ejecutar, publicar o bloquear. Se guardan junto con los accesos del módulo.</p></div></div>
+    <p v-if="!filteredSpecialModules.length" class="state">No hay permisos especiales que coincidan con la búsqueda.</p>
+    <article v-for="module in filteredSpecialModules" :key="module.name" class="module-card special-card">
+      <header><div class="module-title static"><span><strong>{{module.name}}</strong><small>{{module.permissions.length}} permisos especializados</small></span></div>
+        <div class="module-actions" v-if="!administratorRole"><button type="button" @click="setSpecialModule(module,true)">Permitir todos</button><button type="button" @click="setSpecialModule(module,false)">Quitar todos</button></div></header>
+      <div class="matrix-scroll"><table class="special-table"><thead><tr><th>Permiso especial</th><th>Código técnico</th><th>Asignado</th></tr></thead><tbody>
+        <tr v-for="permission in module.permissions" :key="permission.permissionId"><td><strong>{{permission.description||'Permiso especializado'}}</strong><small>{{specialType(permission.code)}}</small></td><td><code>{{permission.code}}</code></td><td><label class="switch-control" :class="{disabled:administratorRole}"><input type="checkbox" :disabled="administratorRole" :checked="administratorRole||permission.enabled" @change="toggleSpecial(permission,$event.target.checked)"><span class="switch"></span><b>{{administratorRole||permission.enabled?'Sí':'No'}}</b></label></td></tr>
+      </tbody></table></div>
+    </article>
+  </section>
+  <footer class="sticky-save" v-if="dirty&&!administratorRole"><span><b>Cambios sin guardar</b><small>Guarda la matriz para aplicarla al rol.</small></span><button class="primary" type="button" :disabled="saving" @click="save">{{saving?'Guardando…':'Guardar permisos'}}</button></footer>
+</main><script type="module" src="/role-access-matrix.js?v=20261012-special"></script></body></html>

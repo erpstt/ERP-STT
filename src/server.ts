@@ -19,6 +19,7 @@ import { authController } from './modules/auth/auth.module.js';
 import { createCountry, deleteCountry, listCountries, updateCountry } from './modules/countries/countries.module.js';
 import { createCatalogRow, deleteCatalogRow, getCoreCatalog, listCatalogRows, updateCatalogRow } from './modules/core-catalogs/core-catalogs.module.js';
 import { createSecurityRow, deleteSecurityRow, getSecurityCatalog, listSecurityRows, updateSecurityRow } from './modules/security-catalogs/security-catalogs.module.js';
+import { assertRoleAccess, isRoleAccessResource, myRoleAccess, roleAccessMatrix, saveRoleAccessMatrix } from './modules/security-catalogs/role-access-matrix.module.js';
 import { listSubsidiaryApprovers, createOrganizationRow, deleteOrganizationRow, getOrganizationCatalog, listOrganizationRows, updateOrganizationRow } from './modules/organization-catalogs/organization-catalogs.module.js';
 import { listCostCentersByUpApprover, reassignCostCenterUpApprover, upApproverOptions, upApproverSelectorOptions } from './modules/organization-catalogs/up-approvers.service.js';
 import { assertExchangeRateAccess, createConfigurationRow, deleteConfigurationRow, getConfigurationCatalog, listConfigurationRows, suggestConsolidatedExchangeRate, updateConfigurationRow } from './modules/configuration-catalogs/configuration-catalogs.module.js';
@@ -279,6 +280,8 @@ const server = createServer((request, response) => withAuditExecution(async () =
      if(request.method==='GET'&&purchaseTransactionSupportRoute){return json(response,200,await purchaseTransactionSupport(request.headers.authorization!,Number(purchaseTransactionSupportRoute[1])));}
     const accountingReportRoute=request.url?.match(/^\/api\/reports\/accounting\/([a-z-]+)$/);
     if(request.method==='POST'&&accountingReportRoute){return json(response,200,await runAccountingReport(request.headers.authorization!,accountingReportRoute[1],await body(request) as Record<string,unknown>));}
+    const accessUrl=new URL(request.url??'/',`http://${request.headers.host??'localhost'}`),accessRoute=accessUrl.pathname.match(/^\/api\/(core|security|organization|configuration|accounting|banking|treasury|entities|inventory|sales|transaction-engine|purchasing|expenses|fixed-assets|workflow|documents|audit|consolidation|ai)\/([a-z-]+)(?:\/\d+)?$/);
+    if(accessRoute){const resourceKey=`${accessRoute[1]}:${accessRoute[2]}`;if(isRoleAccessResource(resourceKey)){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');await assertRoleAccess(authorization,resourceKey,request.method==='GET'?'view':request.method==='POST'?'create':request.method==='PATCH'?'edit':'delete');}}
     const coreRoute = request.url?.match(/^\/api\/core\/([a-z-]+)(?:\/(\d+))?$/);
     if (coreRoute) {
       const authorization = request.headers.authorization;
@@ -290,10 +293,21 @@ const server = createServer((request, response) => withAuditExecution(async () =
       if (request.method === 'PATCH' && id !== null) return json(response, 200, await updateCatalogRow(catalog, authorization, id, await body(request) as Record<string, unknown>));
       if (request.method === 'DELETE' && id !== null) { await deleteCatalogRow(catalog, authorization, id); return json(response, 200, { success: true }); }
     }
+    const securityAccessUrl=new URL(request.url??'/',`http://${request.headers.host??'localhost'}`);
+    if(securityAccessUrl.pathname==='/api/security/my-role-access'&&request.method==='GET'){
+      const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');
+      return json(response,200,await myRoleAccess(authorization));
+    }
+    if(securityAccessUrl.pathname==='/api/security/role-access-matrix'){
+      const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para administrar Seguridad.');
+      if(request.method==='GET')return json(response,200,await roleAccessMatrix(authorization,Number(securityAccessUrl.searchParams.get('roleId')||0)));
+      if(request.method==='POST')return json(response,200,await saveRoleAccessMatrix(authorization,await body(request)as Record<string,unknown>));
+    }
     const securityRoute = request.url?.match(/^\/api\/security\/([a-z-]+)(?:\/(\d+))?$/);
     if (securityRoute) {
       const authorization = request.headers.authorization;
       if (!authorization?.startsWith('Bearer ')) return error(response, 401, 'Debe iniciar sesión para administrar Seguridad.');
+      if(['permissions','role-permissions'].includes(securityRoute[1])&&request.method!=='GET')return error(response,405,'Este catálogo es administrado por el sistema. Use Permisos por rol para cambiar asignaciones.');
       const catalog = getSecurityCatalog(securityRoute[1]);
       const id = securityRoute[2] ? Number(securityRoute[2]) : null;
       if (request.method === 'GET' && id === null) return json(response, 200, await listSecurityRows(catalog, authorization));
@@ -444,7 +458,14 @@ const server = createServer((request, response) => withAuditExecution(async () =
       const salesInvoiceEntryUpdate=request.url?.match(/^\/api\/sales\/invoice-entry\/(\d+)$/);if(request.method==='PUT'&&salesInvoiceEntryUpdate){const authorization=request.headers.authorization!;return json(response,200,await saveSalesInvoice(authorization,await body(request)as Record<string,unknown>,Number(salesInvoiceEntryUpdate[1])));}
       const supplierInvoiceEntryUpdate=request.url?.match(/^\/api\/purchasing\/supplier-invoice-entry\/(\d+)$/);if(request.method==='PUT'&&supplierInvoiceEntryUpdate){const authorization=request.headers.authorization!;return json(response,200,await saveSupplierInvoice(authorization,await body(request)as Record<string,unknown>,Number(supplierInvoiceEntryUpdate[1])));}
       const supplierNoteEntry=request.url?.match(/^\/api\/purchasing\/supplier-note-entry\/(CREDIT|DEBIT)(?:\/(\d+))?$/);if(supplierNoteEntry&&['POST','PUT'].includes(request.method||'')){const authorization=request.headers.authorization!;return json(response,request.method==='POST'?201:200,await saveSupplierNote(authorization,supplierNoteEntry[1],await body(request)as Record<string,unknown>,supplierNoteEntry[2]?Number(supplierNoteEntry[2]):null));}
-    const openingRoute=request.url?.match(/^\/api\/opening-balances\/(options|validate|preview|post|reverse)$/);if(openingRoute){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para administrar saldos iniciales.');return json(response,200,await openingBalances(authorization,openingRoute[1],request.method==='GET'?{}:await body(request)as Record<string,unknown>));}
+    const openingRoute=request.url?.match(/^\/api\/opening-balances\/(options|validate|preview|post|reverse)$/);if(openingRoute){
+      const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para administrar saldos iniciales.');
+      if(request.method!=='POST')return error(response,405,'Método no permitido.');
+      const openingAction=openingRoute[1];
+      const openingPermission=['options','preview'].includes(openingAction)?'view':openingAction==='reverse'?'delete':'create';
+      await assertRoleAccess(authorization,'accounting:opening-balances',openingPermission);
+      return json(response,200,await openingBalances(authorization,openingAction,await body(request)as Record<string,unknown>));
+    }
     const accountingRoute=request.url?.match(/^\/api\/accounting\/([a-z-]+)(?:\/(\d+))?$/);if(accountingRoute){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para administrar Contabilidad.');const catalog=getAccountingCatalog(accountingRoute[1]);const id=accountingRoute[2]?Number(accountingRoute[2]):null;if(request.method==='GET'&&id===null)return json(response,200,await listAccountingRows(catalog,authorization));if(request.method==='POST'&&id===null)return json(response,201,await createAccountingRow(catalog,authorization,await body(request)as Record<string,unknown>));if(request.method==='PATCH'&&id!==null)return json(response,200,await updateAccountingRow(catalog,authorization,id,await body(request)as Record<string,unknown>));if(request.method==='DELETE'&&id!==null){await deleteAccountingRow(catalog,authorization,id);return json(response,200,{success:true});}}
     const bankingRoute=request.url?.match(/^\/api\/banking\/([a-z-]+)(?:\/(\d+))?$/);if(bankingRoute){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para administrar Bancos.');const catalog=getBankingCatalog(bankingRoute[1]);const id=bankingRoute[2]?Number(bankingRoute[2]):null;if(request.method==='GET'&&id===null)return json(response,200,await listBankingRows(catalog,authorization));if(request.method==='POST'&&id===null)return json(response,201,await createBankingRow(catalog,authorization,await body(request)as Record<string,unknown>));if(request.method==='PATCH'&&id!==null)return json(response,200,await updateBankingRow(catalog,authorization,id,await body(request)as Record<string,unknown>));if(request.method==='DELETE'&&id!==null){await deleteBankingRow(catalog,authorization,id);return json(response,200,{success:true});}}
     const treasuryRoute=request.url?.match(/^\/api\/treasury\/([a-z-]+)(?:\/(\d+))?$/);if(treasuryRoute){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para administrar Tesorería.');const catalog=getTreasuryCatalog(treasuryRoute[1]);const id=treasuryRoute[2]?Number(treasuryRoute[2]):null;if(request.method==='GET'&&id===null)return json(response,200,await listTreasuryRows(catalog,authorization));if(request.method==='POST'&&id===null)return json(response,201,await createTreasuryRow(catalog,authorization,await body(request)as Record<string,unknown>));if(request.method==='PATCH'&&id!==null)return json(response,200,await updateTreasuryRow(catalog,authorization,id,await body(request)as Record<string,unknown>));if(request.method==='DELETE'&&id!==null){await deleteTreasuryRow(catalog,authorization,id);return json(response,200,{success:true});}}

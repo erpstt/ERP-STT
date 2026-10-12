@@ -5,8 +5,11 @@ const client=new pg.Client({host:process.env.SUPABASE_DB_HOST||'aws-0-us-east-1.
 await client.connect();
 try{
  await client.query('begin');
- const context=(await client.query('select u.email,ucs.session_id from user_company_sessions ucs join users u using(user_id) order by selected_at desc limit 1')).rows[0];
- await client.query("select set_config('request.jwt.claims',$1,false)",[JSON.stringify(context)]);
+ const context=(await client.query(`select u.email,au.id auth_id,ucs.session_id
+   from user_company_sessions ucs join users u using(user_id)
+   join auth.users au on lower(au.email)=lower(u.email)
+   order by selected_at desc limit 1`)).rows[0];
+ await client.query("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({sub:context.auth_id,email:context.email,session_id:context.session_id})]);
  const options=(await client.query('select fixed_asset_options() value')).rows[0].value;
  if(!options.subsidiary||!options.categories.length||!options.locations.length||options.currencies.length!==1||String(options.currencies[0].id)!==String(options.subsidiary.currencyId))throw Error('La moneda local u opciones del activo son inválidas.');
  if(options.departments.some(item=>!['Interno','Cliente'].includes(item.type)))throw Error('Existe un tipo de departamento inválido.');
