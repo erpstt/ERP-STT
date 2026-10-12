@@ -51,13 +51,27 @@ function renderAssets(data){
  $('assetRows').innerHTML=assets.map(asset=>`<tr><td>${asset.row}</td><td><b>${esc(asset.number)}</b><small>${esc(asset.name)}</small>${asset.serial?`<small>Serie: ${esc(asset.serial)}</small>`:''}</td><td>${esc(asset.categoryCode)}<small>${esc(asset.category)}</small></td><td>${esc(asset.location)}<small>${[asset.department,asset.costCenter,asset.className].filter(Boolean).map(esc).join(' · ')||'Sin dimensiones'}</small></td><td>${esc(asset.purchaseDate)}<small>En servicio: ${esc(asset.serviceDate)}</small></td><td class="num">${fmt(asset.cost)}</td><td class="num">${fmt(asset.accumulated)}</td><td class="num">${fmt(asset.bookValue)}</td><td class="num">${Number(asset.depreciatedMonths||0)}</td><td><span class="row-status ${asset.created?'created':'pending'}">${asset.created?'Cargado':'Por cargar'}</span></td></tr>`).join('');
 }
 
+function renderDimensions(row){
+ const dimensions=[
+  ['Departamento',row.department],['Centro de costos',row.costCenter],['Clase',row.className],
+  ['Acreedor financiero',row.financialCreditor],['Compañía relacionada',row.relatedCompany],['Sucursal',row.location]
+ ].filter(([,value])=>value!==null&&value!==undefined&&String(value).trim()!=='');
+ return dimensions.length?`<span class="dimension-list">${dimensions.map(([label,value])=>`<small><b>${label}:</b> ${esc(value)}</small>`).join('')}</span>`:'—';
+}
+
+function originalAmount(row,side){
+ const explicit=row[side==='debit'?'debitFx':'creditFx'];
+ if(explicit!==null&&explicit!==undefined&&explicit!=='')return explicit;
+ return Number(row[side]||0)>0?row.foreignAmount||0:0;
+}
+
 function show(data){
  const summary=data.summary||{},run=data.run||{};
  runId=run.id||data.runId||runId;posted=run.status==='POSTED';
  if(runId&&window.NexoRecordAudit?.show)window.NexoRecordAudit.show('opening_balance_runs',runId,'main');
  $('summary').hidden=false;
  $('summary').innerHTML=`<div><small>Líneas contables</small><b>${summary.count||0}</b></div><div><small>Débitos</small><b>${fmt(summary.debit)}</b></div><div><small>Créditos</small><b>${fmt(summary.credit)}</b></div><div><small>Diferencia</small><b class="${Math.abs(Number(summary.difference||0))>.005?'bad-text':''}">${fmt(summary.difference)}</b></div>`;
- $('rows').innerHTML=(data.rows||[]).map(row=>`<tr><td><span class="source">${esc(row.sourceType)}</span></td><td>${row.row}</td><td>${esc(row.account)}</td><td>${esc(row.document||'—')}</td><td>${esc(row.currency)} / ${esc(row.rate)}</td><td>${[row.costCenter,row.location,row.project].filter(Boolean).map(esc).join(' · ')||'—'}</td><td class="num">${fmt(row.debit)}</td><td class="num">${fmt(row.credit)}</td></tr>`).join('')||'<tr><td colspan="8" class="empty">El lote no contiene líneas contables para mostrar.</td></tr>';
+ $('rows').innerHTML=(data.rows||[]).map(row=>`<tr><td><span class="source">${esc(row.sourceType)}</span></td><td>${row.row}</td><td>${esc(row.account)}</td><td>${esc(row.document||'—')}</td><td><b>${esc(row.currency)}</b><small>Tasa: ${esc(row.rate)}</small></td><td>${renderDimensions(row)}</td><td class="num">${fmt(row.debit)}</td><td class="num">${fmt(row.credit)}</td><td class="num">${fmt(originalAmount(row,'debit'))}</td><td class="num">${fmt(originalAmount(row,'credit'))}</td></tr>`).join('')||'<tr><td colspan="10" class="empty">El lote no contiene líneas contables para mostrar.</td></tr>';
  renderAssets(data);
  const assetSummary=data.assetSummary||{},hasPendingAssets=Number(assetSummary.pending||0)>0,assetsBalanced=assetSummary.balanced!==false;
  $('post').textContent=posted?'Cargar auxiliar de activos':'Contabilizar saldos iniciales';

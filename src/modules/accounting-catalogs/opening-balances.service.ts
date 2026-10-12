@@ -31,7 +31,7 @@ function rows(text:string){
  if(quoted)throw Error('El archivo CSV contiene un campo entre comillas sin cerrar.');
  record.push(value.trim());if(record.some(cell=>cell!==''))records.push(record);
  if(records.length<2)return[];
- const headers=records[0].map(header=>header.trim().toLowerCase());
+ const headers=records[0].map(header=>header.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,''));
  if(headers.some(header=>!header))throw Error('El archivo CSV contiene una columna sin encabezado.');
  if(new Set(headers).size!==headers.length)throw Error('El archivo CSV contiene encabezados duplicados.');
  return records.slice(1).map((values,index)=>{
@@ -51,11 +51,42 @@ function amount(value:unknown){
  return normalized;
 }
 
-function accountingCsv(text:string,type:string){
- return rows(text).map(({row,data:x})=>{
+function requireColumns(parsed:{row:number;data:Record<string,string>}[],label:string,columns:string[]){
+ if(!parsed.length)return;
+ const missing=columns.filter(column=>!(column in parsed[0].data));
+ if(missing.length)throw Error(`La plantilla de ${label} no contiene ${missing.length===1?'la columna':'las columnas'} ${missing.join(', ')}.`);
+}
+
+function applyAccountingAliases(parsed:{row:number;data:Record<string,string>}[]){
+ const aliases:Record<string,string[]>= {
+  moneda:['moneda_original'],
+  debito_moneda_local:['debito_local','debito'],credito_moneda_local:['credito_local','credito'],
+  debito_moneda_original:['debito_moneda_origen','debito_original','debito_moneda_extranjera'],credito_moneda_original:['credito_moneda_origen','credito_original','credito_moneda_extranjera'],
+  centro_costos:['centro_de_costos','centro_costo'],acreedor_financiero:['acreedores_financieros'],compania_relacionada:['companias_relacionadas'],sucursal:['ubicacion']
+ };
+ for(const{data}of parsed)for(const[target,candidates]of Object.entries(aliases))if(!(target in data)){
+  const candidate=candidates.find(name=>name in data);if(candidate)data[target]=data[candidate];
+ }
+}
+
+export function parseOpeningAccountingCsv(text:string,type:'GL'|'AR'|'AP'){
+ const parsed=rows(text);
+ applyAccountingAliases(parsed);
+ const common=['cuenta','moneda','centro_costos','sucursal','nota'];
+ if(type==='GL')requireColumns(parsed,'Libro Mayor',['cuenta','debito_moneda_local','credito_moneda_local','moneda','debito_moneda_original','credito_moneda_original','departamento','centro_costos','clase','acreedor_financiero','compania_relacionada','sucursal','nota']);
+ else requireColumns(parsed,type==='AR'?'Cuentas por Cobrar':'Cuentas por Pagar',['identificacion_tercero','numero_documento','fecha_emision','fecha_vencimiento',...common.slice(0,2),'saldo',...common.slice(2)]);
+ return parsed.map(({row,data:x})=>{
+  if(!x.cuenta)throw Error(`${type} fila ${row}: complete la cuenta contable.`);
+  if(!x.moneda)throw Error(`${type} fila ${row}: complete la moneda.`);
   if(type!=='GL'&&(!x.identificacion_tercero||!x.numero_documento))throw Error(`${type} fila ${row}: complete tercero y documento.`);
   const balance=x.saldo||x.monto||'';
-  return{sourceType:type,sourceRow:row,account:x.cuenta,documentNumber:x.numero_documento||'',issueDate:x.fecha_emision||'',dueDate:x.fecha_vencimiento||'',currency:(x.moneda||'').toUpperCase(),debit:amount(x.debito||(type==='AR'?balance:'')),credit:amount(x.credito||(type==='AP'?balance:'')),entityTaxId:x.identificacion_tercero||'',costCenter:x.centro_costos||'',location:x.sucursal||'',project:x.proyecto||'',note:x.nota||''};
+  return{
+   sourceType:type,sourceRow:row,account:x.cuenta,documentNumber:x.numero_documento||'',issueDate:x.fecha_emision||'',dueDate:x.fecha_vencimiento||'',currency:(x.moneda||'').toUpperCase(),
+   debit:amount(type==='GL'?x.debito_moneda_local:(type==='AR'?balance:'')),credit:amount(type==='GL'?x.credito_moneda_local:(type==='AP'?balance:'')),
+   debitFx:amount(type==='GL'?x.debito_moneda_original:''),creditFx:amount(type==='GL'?x.credito_moneda_original:''),entityTaxId:x.identificacion_tercero||'',
+   department:x.departamento||'',costCenter:x.centro_costos||'',className:x.clase||'',financialCreditor:x.acreedor_financiero||'',relatedCompany:x.compania_relacionada||'',
+   location:x.sucursal||'',note:x.nota||''
+  };
  });
 }
 
@@ -77,7 +108,7 @@ async function rpc(auth:string,name:string,p:Record<string,unknown>={}){
 
 export function openingBalances(auth:string,action:string,p:Record<string,unknown>={}){
  if(action==='validate'){
-  const financialRows=[...accountingCsv(String(p.gl||''),'GL'),...accountingCsv(String(p.ar||''),'AR'),...accountingCsv(String(p.ap||''),'AP')];
+  const financialRows=[...parseOpeningAccountingCsv(String(p.gl||''),'GL'),...parseOpeningAccountingCsv(String(p.ar||''),'AR'),...parseOpeningAccountingCsv(String(p.ap||''),'AP')];
   const assets=fixedAssetCsv(String(p.fa||''));
   if(!financialRows.length&&!assets.length)throw Error('Cargue al menos una plantilla con datos.');
   return rpc(auth,map.validate,{p:{expectedSubsidiaryId:p.expectedSubsidiaryId,openingDate:p.openingDate,loadType:p.loadType,transitionAccountId:p.transitionAccountId,rows:financialRows,assets}});

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Carga de saldos iniciales · GENTIA</title>
-  <link rel="stylesheet" href="/opening-balances.css?v=20261012-fa">
+  <link rel="stylesheet" href="/opening-balances.css?v=20261012-fx">
 </head>
 <body>
 <main>
@@ -23,11 +23,13 @@
   </section>
 
   <section class="files">
-    <article><div class="file-number">01</div><h2>Libro Mayor</h2><p>Balance y, para mitad de período, resultados YTD con dimensiones.</p><a href="/plantilla-saldos-mayor.csv" download>↓ Descargar plantilla CSV</a><label class="file-picker">Seleccionar archivo<input id="gl" type="file" accept=".csv,text/csv"><span id="glName">Ningún archivo</span></label></article>
+    <article><div class="file-number">01</div><h2>Libro Mayor</h2><p>Saldos en moneda local y su equivalencia en moneda original, con dimensiones analíticas.</p><a href="/plantilla-saldos-mayor.csv" download>↓ Descargar plantilla CSV</a><label class="file-picker">Seleccionar archivo<input id="gl" type="file" accept=".csv,text/csv"><span id="glName">Ningún archivo</span></label></article>
     <article><div class="file-number">02</div><h2>Cuentas por Cobrar</h2><p>Facturas pendientes por cliente, moneda y vencimiento.</p><a href="/plantilla-saldos-cxc.csv" download>↓ Descargar plantilla CSV</a><label class="file-picker">Seleccionar archivo<input id="ar" type="file" accept=".csv,text/csv"><span id="arName">Ningún archivo</span></label></article>
     <article><div class="file-number">03</div><h2>Cuentas por Pagar</h2><p>Facturas pendientes por proveedor, moneda y vencimiento.</p><a href="/plantilla-saldos-cxp.csv" download>↓ Descargar plantilla CSV</a><label class="file-picker">Seleccionar archivo<input id="ap" type="file" accept=".csv,text/csv"><span id="apName">Ningún archivo</span></label></article>
     <article class="asset-file"><div class="file-number">04</div><h2>Auxiliar de Activos Fijos</h2><p>Fichas históricas, costo, depreciación acumulada y vida útil consumida.</p><a href="/plantilla-saldos-activos-fijos.csv" download>↓ Descargar plantilla CSV</a><small id="faCatalogHint" class="catalog-hint">Consultando categorías disponibles…</small><label class="file-picker">Seleccionar archivo<input id="fa" type="file" accept=".csv,text/csv"><span id="faName">Ningún archivo</span></label></article>
   </section>
+
+  <aside class="information fx-information"><b>Libro Mayor en dos monedas</b><span>Registre cada débito o crédito en moneda local y, cuando corresponda, su equivalencia en la moneda original. La tasa histórica se calcula con ambos importes y se conserva; las revaluaciones posteriores la usarán únicamente en cuentas marcadas para revaluación cambiaria. Departamento, centro de costos, clase, acreedor financiero y compañía relacionada son dimensiones opcionales según la cuenta. <strong>Sucursal se mantiene para uso futuro y puede dejarse vacía.</strong> Centro de costos sustituye a Proyecto.</span></aside>
 
   <aside class="information"><b>Cómo se registra el auxiliar</b><span>Use fechas AAAA-MM-DD, importes sin separadores de miles, la moneda funcional y los códigos vigentes de categoría, ubicación y dimensiones. Puede usar punto o coma para los decimales. El archivo crea las fichas y su depreciación histórica sin volver a contabilizar esos importes. Las fichas que ya existan a la fecha de apertura se reconocen automáticamente para evitar duplicados.</span></aside>
 
@@ -44,8 +46,8 @@
   </section>
 
   <section class="section-title"><div><small>APERTURA CONTABLE</small><h2>Detalle del asiento</h2></div></section>
-  <section class="card table"><table><thead><tr><th>Origen</th><th>Fila</th><th>Cuenta</th><th>Documento</th><th>Moneda / tasa</th><th>Dimensiones</th><th class="num">Débito local</th><th class="num">Crédito local</th></tr></thead><tbody id="rows"></tbody></table></section>
+  <section class="card table"><table><thead><tr><th>Origen</th><th>Fila</th><th>Cuenta</th><th>Documento</th><th>Moneda original / tasa histórica</th><th>Dimensiones</th><th class="num">Débito local</th><th class="num">Crédito local</th><th class="num">Débito original</th><th class="num">Crédito original</th></tr></thead><tbody id="rows"></tbody></table></section>
 </main>
-<script type="module" src="/opening-balances.js?v=20261012-fa"></script>
+<script type="module" src="/opening-balances.js?v=20261012-fx"></script>
 </body>
 </html>

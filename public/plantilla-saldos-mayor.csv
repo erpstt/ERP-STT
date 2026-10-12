@@ -1,2 +1,2 @@
-cuenta,moneda,debito,credito,centro_costos,sucursal,proyecto,nota
-110001,USD,1000.00,,CC-ADM,Jamaica,PROY-01,Saldo inicial de ejemplo
+﻿cuenta,debito_moneda_local,credito_moneda_local,moneda,debito_moneda_original,credito_moneda_original,departamento,centro_costos,clase,acreedor_financiero,compania_relacionada,sucursal,nota
+110001,1000000,,USD,50000,,Administrativo,CC-ADM,,,,,Saldo inicial de ejemplo
