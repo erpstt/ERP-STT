@@ -19,7 +19,7 @@ try{
  await db.query("set local lock_timeout='5s';set local statement_timeout='90s'");
  const installed=await value("select to_regprocedure('public.sales_invoice_email_settings(text,jsonb)') is not null value");
  const migration=await readFile(new URL('../supabase/migrations/20260928130000_sales_invoice_email_template.sql',import.meta.url),'utf8');
- await db.query(migration);
+ if(!installed)await db.query(migration);
 
  const admin=await one(`
   select u.user_id,u.email,au.id sub,r.role_id,ucs.subsidiary_id

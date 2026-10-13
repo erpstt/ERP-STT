@@ -30,7 +30,7 @@ import { importJournalCsv } from './modules/accounting-catalogs/journal-import.s
 import { openingBalances } from './modules/accounting-catalogs/opening-balances.service.js';
 import { saveSupplierInvoice } from './modules/purchasing-catalogs/supplier-invoice.service.js';
 import { saveSupplierNote } from './modules/purchasing-catalogs/supplier-note.service.js';
-import { saveSalesInvoice } from './modules/sales-catalogs/sales-invoice.service.js';
+import { saveSalesInvoice, setSalesInvoicePdfLineUnification } from './modules/sales-catalogs/sales-invoice.service.js';
 import { salesWorkflowOptions, salesDocuments, salesDocumentDetail, saveSalesDocument, deleteSalesDocument } from './modules/sales-catalogs/sales-workflow.service.js';
 import { customerPaymentOptions, customerPaymentReport, customerPaymentDetail, saveCustomerPayment, deleteCustomerPayment } from './modules/sales-catalogs/customer-payment.service.js';
 import { saveSalesNote } from './modules/sales-catalogs/sales-note.service.js';
@@ -400,6 +400,14 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(statementRoute&&request.method==='POST')return json(response,200,await customerStatement(request.headers.authorization!,Number(statementRoute[1]),statementRoute[2],await body(request)as Record<string,unknown>));
     const paymentNotificationRoute=request.url?.match(/^\/api\/purchasing\/supplier-payments\/(\d+)\/notifications\/(history|resend)$/);
     if(paymentNotificationRoute&&request.method==='POST')return json(response,200,await paymentNotifications(request.headers.authorization!,Number(paymentNotificationRoute[1]),paymentNotificationRoute[2],await body(request)as Record<string,unknown>));
+    const salesInvoicePdfPreferenceRoute=request.url?.split('?')[0].match(/^\/api\/sales\/invoices\/(\d+)\/pdf-line-unification$/);
+    if(salesInvoicePdfPreferenceRoute){
+      if(request.method!=='PUT')return error(response,405,'Método no permitido.');
+      const input=await body(request)as Record<string,unknown>;
+      return json(response,200,await setSalesInvoicePdfLineUnification(
+        request.headers.authorization!,Number(salesInvoicePdfPreferenceRoute[1]),input.unificar_lineas_pdf
+      ));
+    }
     const salesInvoiceDeliveryRoute=request.url?.split('?')[0].match(/^\/api\/sales\/invoices\/(\d+)\/(pdf|email)$/);
     if(salesInvoiceDeliveryRoute){
       const invoiceId=Number(salesInvoiceDeliveryRoute[1]),action=salesInvoiceDeliveryRoute[2];

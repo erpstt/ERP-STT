@@ -13,6 +13,20 @@ export type SalesInvoiceSupport = {
   fileData?: string;
 };
 
+export type SalesInvoicePdfLine = {
+  product:string;
+  description:string;
+  serviceCountry:string;
+  quantity:number;
+  unitPrice:number;
+  amount:number;
+  taxCodeId?:number|null;
+  taxCode?:string;
+  taxRate:number;
+  taxAmount:number;
+  grossAmount:number;
+};
+
 export type SalesInvoiceDocument = {
   id: number;
   number: string;
@@ -25,12 +39,17 @@ export type SalesInvoiceDocument = {
   customer: {name:string; email:string; address:string; taxId:string};
   currency: {code:string; name:string; symbol:string};
   paymentTerm: string;
-  lines: Array<{
-    product:string; description:string; serviceCountry:string; quantity:number;
-    unitPrice:number; amount:number; taxRate:number; taxAmount:number; grossAmount:number;
-  }>;
+  unifyLinesPdf?: boolean;
+  lines: SalesInvoicePdfLine[];
   withholdingTotal: number;
   supports: SalesInvoiceSupport[];
+};
+
+export type SalesInvoicePdfViewModel = {
+  lines:SalesInvoicePdfLine[];
+  subtotal:number;
+  tax:number;
+  total:number;
 };
 
 type MailAttachment = {filename:string; content:Buffer; contentType:string; contentDisposition:'attachment'};
@@ -41,6 +60,171 @@ const emailPattern=/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/;
 const esc=(value:unknown)=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]!));
 const date=(value:unknown)=>{const raw=String(value??'').slice(0,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(raw))return '—';return new Intl.DateTimeFormat('es-CR',{day:'2-digit',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(`${raw}T12:00:00Z`));};
 const safeFileName=(value:unknown,fallback='archivo')=>String(value??fallback).replace(/[\\/\r\n\0<>:"|?*]/g,'_').trim().slice(0,160)||fallback;
+const consolidatedDescription='Bienes y servicios según detalle de la factura';
+const amountScale=1_000_000;
+const centsScale=10_000;
+
+function toMicros(value:unknown,label:string){
+  const number=Number(value),scaled=Math.round(number*amountScale);
+  if(!Number.isFinite(number)||!Number.isSafeInteger(scaled))throw Error(`El ${label} de una línea no es válido para generar el PDF.`);
+  return scaled;
+}
+
+function microsToCents(value:number){
+  const sign=value<0?-1:1;
+  return sign*Math.floor((Math.abs(value)+centsScale/2)/centsScale);
+}
+
+function allocateCents(values:number[],target:number){
+  if(!values.length)return[];
+  const allocated=values.map(value=>Math.trunc(value/centsScale));
+  let remainder=target-allocated.reduce((sum,value)=>sum+value,0);
+  if(!remainder)return allocated;
+  const direction=remainder>0?1:-1,indexes=values.map((value,index)=>({
+    index,
+    // Math.trunc is intentional: the residual remains signed, so a negative
+    // cent is assigned to a negative fraction instead of changing the sign of
+    // a positive group (and vice versa).
+    residual:value-allocated[index]*centsScale
+  })).sort((left,right)=>{
+    const difference=direction>0?right.residual-left.residual:left.residual-right.residual;
+    return difference||left.index-right.index;
+  });
+  for(let cursor=0;remainder!==0;cursor++){
+    allocated[indexes[cursor%indexes.length].index]+=direction;
+    remainder-=direction;
+  }
+  return allocated;
+}
+
+function addMicros(left:number,right:number,label:string){
+  const total=left+right;
+  if(!Number.isSafeInteger(total))throw Error(`El ${label} acumulado no es válido para generar el PDF.`);
+  return total;
+}
+
+type PdfLineGroup={first:SalesInvoicePdfLine;amount:number;tax:number;gross:number;countries:Set<string>};
+
+/**
+ * Subtotal and tax have independent, exact document targets. Their initial
+ * largest-remainder allocations can occasionally put both rounding cents in
+ * the same tax group. Move a component cent between groups only when that
+ * improves the displayed gross totals. Component totals and signs remain
+ * unchanged, while every displayed row still satisfies amount + tax = gross.
+ */
+function reconcileGroupedGrossCents(groups:PdfLineGroup[],amounts:number[],taxes:number[]){
+  const components=[
+    {allocated:amounts,raw:groups.map(group=>group.amount)},
+    {allocated:taxes,raw:groups.map(group=>group.tax)}
+  ];
+  const gross=amounts.map((amount,index)=>amount+taxes[index]);
+  const rawGross=groups.map(group=>group.gross/centsScale);
+  const epsilon=1e-12;
+
+  for(;;){
+    let best:{component:number;from:number;to:number;grossCost:number;componentCost:number}|null=null;
+    for(let component=0;component<components.length;component++){
+      const current=components[component].allocated,raw=components[component].raw;
+      for(let from=0;from<groups.length;from++){
+        // Never turn a zero/positive source negative or a negative source
+        // more positive than zero. This keeps discounts and regular charges
+        // semantically stable after cent allocation.
+        if(raw[from]>=0&&current[from]<=0)continue;
+        for(let to=0;to<groups.length;to++){
+          if(to===from)continue;
+          if(raw[to]<=0&&current[to]>=0)continue;
+          const grossCost=
+            (2*(gross[to]-rawGross[to])+1)+
+            (-2*(gross[from]-rawGross[from])+1);
+          if(grossCost>=-epsilon)continue;
+          const rawFrom=raw[from]/centsScale,rawTo=raw[to]/centsScale;
+          const componentCost=
+            (2*(current[to]-rawTo)+1)+
+            (-2*(current[from]-rawFrom)+1);
+          const candidate={component,from,to,grossCost,componentCost};
+          if(!best||
+            candidate.grossCost<best.grossCost-epsilon||
+            (Math.abs(candidate.grossCost-best.grossCost)<=epsilon&&(
+              candidate.componentCost<best.componentCost-epsilon||
+              (Math.abs(candidate.componentCost-best.componentCost)<=epsilon&&(
+                candidate.component<best.component||
+                (candidate.component===best.component&&(candidate.from<best.from||
+                  (candidate.from===best.from&&candidate.to<best.to)))
+              ))
+            )))best=candidate;
+        }
+      }
+    }
+    if(!best)break;
+    components[best.component].allocated[best.from]-=1;
+    components[best.component].allocated[best.to]+=1;
+    gross[best.from]-=1;
+    gross[best.to]+=1;
+  }
+
+  return gross;
+}
+
+/** Construye únicamente la presentación del PDF; nunca altera las líneas persistidas ni el DTO recibido. */
+export function prepareSalesInvoicePdfViewModel(document:SalesInvoiceDocument):SalesInvoicePdfViewModel{
+  const originalLines=document.lines.map(line=>({...line}));
+  if(!document.unifyLinesPdf){
+    return{
+      lines:originalLines,
+      subtotal:originalLines.reduce((sum,line)=>sum+Number(line.amount||0),0),
+      tax:originalLines.reduce((sum,line)=>sum+Number(line.taxAmount||0),0),
+      total:Number(document.total||0)
+    };
+  }
+
+  const groups=new Map<string,PdfLineGroup>();
+  for(const [lineIndex,line] of originalLines.entries()){
+    const rate=Number(line.taxRate||0),taxCodeId=line.taxCodeId??null;
+    if(!Number.isFinite(rate))throw Error('La tasa de impuesto de una línea no es válida para generar el PDF.');
+    const amount=toMicros(line.amount,'importe'),tax=toMicros(line.taxAmount,'impuesto'),gross=toMicros(line.grossAmount,'total');
+    const calculatedGross=addMicros(amount,tax,`total de la línea ${lineIndex+1}`);
+    if(calculatedGross!==gross)throw Error(`El subtotal, el impuesto y el importe bruto de la línea ${lineIndex+1} no coinciden para generar el PDF.`);
+    const normalizedTaxCode=String(line.taxCode??'').trim().normalize('NFKC').toLocaleUpperCase('es');
+    const taxKey=taxCodeId===null?`CODE:${normalizedTaxCode||'SIN_IMPUESTO'}`:`ID:${String(taxCodeId)}`;
+    const key=`${taxKey}|${rate.toFixed(6)}`;
+    const country=String(line.serviceCountry||'').trim()||'—';
+    const group=groups.get(key)??{first:line,amount:0,tax:0,gross:0,countries:new Set<string>()};
+    group.amount=addMicros(group.amount,amount,'subtotal del grupo');
+    group.tax=addMicros(group.tax,tax,'impuesto del grupo');
+    group.gross=addMicros(group.gross,gross,'importe bruto del grupo');
+    group.countries.add(country);
+    groups.set(key,group);
+  }
+
+  const grouped=[...groups.values()];
+  const grossMicros=grouped.reduce((sum,group)=>addMicros(sum,group.gross,'importe bruto de las líneas'),0);
+  const amountMicros=grouped.reduce((sum,group)=>addMicros(sum,group.amount,'subtotal de las líneas'),0);
+  const lineGrossCents=microsToCents(grossMicros);
+  const documentTotalCents=microsToCents(toMicros(document.total,'total de la factura'));
+  if(lineGrossCents!==documentTotalCents)throw Error('Las líneas de la factura no coinciden al centavo con el total y no se puede generar el PDF unificado.');
+
+  const subtotalCents=microsToCents(amountMicros);
+  const taxCents=documentTotalCents-subtotalCents;
+  const allocatedAmounts=allocateCents(grouped.map(group=>group.amount),subtotalCents);
+  const allocatedTaxes=allocateCents(grouped.map(group=>group.tax),taxCents);
+  const allocatedGross=reconcileGroupedGrossCents(grouped,allocatedAmounts,allocatedTaxes);
+  const lines=grouped.map((group,index)=>{
+    const amount=allocatedAmounts[index]/100,taxAmount=allocatedTaxes[index]/100;
+    return{
+      ...group.first,
+      product:'Bienes y servicios',
+      description:consolidatedDescription,
+      serviceCountry:group.countries.size===1?[...group.countries][0]:'Varios / según detalle',
+      quantity:1,
+      unitPrice:amount,
+      amount,
+      taxAmount,
+      grossAmount:allocatedGross[index]/100
+    };
+  });
+
+  return{lines,subtotal:subtotalCents/100,tax:taxCents/100,total:documentTotalCents/100};
+}
 
 export async function loadSalesInvoiceDocument(authorization:string,invoiceId:number):Promise<SalesInvoiceDocument>{
   if(!Number.isSafeInteger(invoiceId)||invoiceId<=0)throw Error('Factura de venta inválida.');
@@ -54,12 +238,12 @@ export async function loadSalesInvoiceDocument(authorization:string,invoiceId:nu
 function money(value:number,document:SalesInvoiceDocument){return `${document.currency.symbol} ${value.toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2})}`.trim();}
 
 export function buildSalesInvoicePdfHtml(document:SalesInvoiceDocument){
-  const subtotal=document.lines.reduce((sum,line)=>sum+line.amount,0),tax=document.lines.reduce((sum,line)=>sum+line.taxAmount,0);
+  const viewModel=prepareSalesInvoicePdfViewModel(document),{subtotal,tax}=viewModel;
   const embeddedLogo=document.company.logo&&/^data:image\/(?:png|jpeg|webp);base64,[a-zA-Z0-9+/=]+$/.test(document.company.logo)&&document.company.logo.length<2_000_000?`<img src="${document.company.logo}" alt="Logo">`:'';
-  const lineRows=document.lines.map(line=>`<tr><td><b>${esc(line.product)}</b>${line.description?`<small>${esc(line.description)}</small>`:''}</td><td>${esc(line.serviceCountry)}</td><td class="num">${line.quantity.toLocaleString('es-CR',{maximumFractionDigits:6})}</td><td class="num">${esc(money(line.unitPrice,document))}</td><td class="num">${esc(money(line.amount,document))}</td><td class="num">${esc(money(line.taxAmount,document))}</td><td class="num strong">${esc(money(line.grossAmount,document))}</td></tr>`).join('');
+  const lineRows=viewModel.lines.map(line=>{const taxLabel=`${line.taxCode||'Sin impuesto'} · ${Number(line.taxRate||0).toLocaleString('es-CR',{maximumFractionDigits:6})}%`;return`<tr><td><b>${esc(line.product)}</b>${line.description?`<small>${esc(line.description)}</small>`:''}</td><td>${esc(line.serviceCountry)}</td><td class="num">${line.quantity.toLocaleString('es-CR',{maximumFractionDigits:6})}</td><td class="num">${esc(money(line.unitPrice,document))}</td><td class="num">${esc(money(line.amount,document))}</td><td class="num tax-cell"><span>${esc(money(line.taxAmount,document))}</span><small>${esc(taxLabel)}</small></td><td class="num strong">${esc(money(line.grossAmount,document))}</td></tr>`}).join('');
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><style>
-  @page{size:A4;margin:13mm}*{box-sizing:border-box}body{margin:0;color:#17233b;font:12px Arial,sans-serif}header{display:flex;justify-content:space-between;gap:28px;padding-bottom:20px;border-bottom:3px solid #f26938}.brand{display:flex;align-items:center;gap:15px}.brand img{max-width:86px;max-height:64px}.brand h1{margin:0;font-size:22px}.brand p{margin:6px 0 0;max-width:420px;color:#64748b;white-space:pre-line}.identity{text-align:right}.identity small{color:#042e72;font-weight:bold;letter-spacing:.13em}.identity h2{margin:8px 0;font-size:24px}.identity span{display:inline-block;padding:5px 10px;border-radius:20px;background:#e6f6ef;color:#087252;font-weight:bold;font-size:10px}.parties{display:grid;grid-template-columns:1.2fr 1fr;gap:34px;margin:24px 0}.customer{padding:17px;background:#f5f8fb;border-radius:8px}.eyebrow{margin:0 0 10px;color:#64748b;font-size:10px;font-weight:bold;letter-spacing:.12em}.customer b{font-size:17px}.customer p{margin:5px 0;color:#475569}.facts{margin:0}.facts div,.totals div{display:flex;justify-content:space-between;gap:20px;padding:6px 0;border-bottom:1px solid #e2e8f0}.facts dt,.totals dt{color:#64748b}.facts dd,.totals dd{margin:0;text-align:right;font-weight:bold}table{width:100%;border-collapse:collapse}thead{display:table-header-group}tr{break-inside:avoid}th{padding:9px 7px;background:#edf2f6;border-bottom:2px solid #cbd5e1;color:#526176;text-align:left;font-size:9px;text-transform:uppercase}td{padding:10px 7px;border-bottom:1px solid #e2e8f0;vertical-align:top}td small{display:block;margin-top:3px;color:#64748b}.num{text-align:right;white-space:nowrap}.strong{font-weight:bold}.closing{display:grid;grid-template-columns:1fr 285px;gap:45px;margin-top:24px}.notes p{color:#475569;white-space:pre-wrap}.totals{margin:0}.totals .grand{margin-top:7px;padding:12px 8px;background:#eef9f5;border-top:2px solid #042e72;border-bottom:3px double #f26938;font-size:16px}footer{margin-top:55px;padding-top:10px;border-top:1px solid #d7dee8;color:#64748b;font-size:9px;display:flex;justify-content:space-between}
-  </style></head><body><header><div class="brand">${embeddedLogo}<div><h1>${esc(document.company.name)}</h1><p>${esc(document.company.address)}</p></div></div><div class="identity"><small>FACTURA DE VENTA</small><h2>${esc(document.number)}</h2><span>CONTABILIZADA</span></div></header><section class="parties"><div class="customer"><p class="eyebrow">FACTURAR A</p><b>${esc(document.customer.name)}</b><p>${document.customer.taxId?`Identificación fiscal: ${esc(document.customer.taxId)}`:''}</p><p>${esc(document.customer.address)}</p><p>${esc(document.customer.email)}</p></div><dl class="facts"><div><dt>Fecha de emisión</dt><dd>${esc(date(document.issueDate))}</dd></div><div><dt>Fecha de vencimiento</dt><dd>${esc(date(document.dueDate))}</dd></div><div><dt>Términos de pago</dt><dd>${esc(document.paymentTerm||'—')}</dd></div><div><dt>Moneda</dt><dd>${esc(`${document.currency.code} - ${document.currency.name}`)}</dd></div></dl></section><table><thead><tr><th>Producto / descripción</th><th>País de servicio</th><th class="num">Cantidad</th><th class="num">Precio unitario</th><th class="num">Subtotal</th><th class="num">Impuesto</th><th class="num">Total</th></tr></thead><tbody>${lineRows||'<tr><td colspan="7">La factura no contiene líneas.</td></tr>'}</tbody></table><section class="closing"><div class="notes"><p class="eyebrow">NOTA</p><p>${esc(document.memo||'—')}</p></div><dl class="totals"><div><dt>Subtotal</dt><dd>${esc(money(subtotal,document))}</dd></div><div><dt>Impuestos</dt><dd>${esc(money(tax,document))}</dd></div><div><dt>Retenciones</dt><dd>${esc(money(document.withholdingTotal,document))}</dd></div><div class="grand"><dt>Total factura</dt><dd>${esc(money(document.total,document))}</dd></div><div><dt>Saldo por cobrar</dt><dd>${esc(money(document.receivable,document))}</dd></div></dl></section><footer><span>${esc(document.company.name)}</span><span>Documento generado desde GENTIA ERP</span></footer></body></html>`;
+  @page{size:A4;margin:13mm}*{box-sizing:border-box}body{margin:0;color:#17233b;font:12px Arial,sans-serif}header{display:flex;justify-content:space-between;gap:28px;padding-bottom:20px;border-bottom:3px solid #f26938}.brand{display:flex;align-items:center;gap:15px}.brand img{max-width:86px;max-height:64px}.brand h1{margin:0;font-size:22px}.brand p{margin:6px 0 0;max-width:420px;color:#64748b;white-space:pre-line}.identity{text-align:right}.identity small{color:#042e72;font-weight:bold;letter-spacing:.13em}.identity h2{margin:8px 0;font-size:24px}.identity span{display:inline-block;padding:5px 10px;border-radius:20px;background:#e6f6ef;color:#087252;font-weight:bold;font-size:10px}.parties{display:grid;grid-template-columns:1.2fr 1fr;gap:34px;margin:24px 0}.customer{padding:17px;background:#f5f8fb;border-radius:8px}.eyebrow{margin:0 0 10px;color:#64748b;font-size:10px;font-weight:bold;letter-spacing:.12em}.customer b{font-size:17px}.customer p{margin:5px 0;color:#475569}.facts{margin:0}.facts div,.totals div{display:flex;justify-content:space-between;gap:20px;padding:6px 0;border-bottom:1px solid #e2e8f0}.facts dt,.totals dt{color:#64748b}.facts dd,.totals dd{margin:0;text-align:right;font-weight:bold}table{width:100%;border-collapse:collapse}thead{display:table-header-group}tr{break-inside:avoid}th{padding:9px 7px;background:#edf2f6;border-bottom:2px solid #cbd5e1;color:#526176;text-align:left;font-size:9px;text-transform:uppercase}td{padding:10px 7px;border-bottom:1px solid #e2e8f0;vertical-align:top}td small{display:block;margin-top:3px;color:#64748b}.num{text-align:right;white-space:nowrap}.tax-cell small{max-width:115px;margin-left:auto;white-space:normal}.strong{font-weight:bold}.closing{display:grid;grid-template-columns:1fr 285px;gap:45px;margin-top:24px}.notes p{color:#475569;white-space:pre-wrap}.totals{margin:0}.totals .grand{margin-top:7px;padding:12px 8px;background:#eef9f5;border-top:2px solid #042e72;border-bottom:3px double #f26938;font-size:16px}footer{margin-top:55px;padding-top:10px;border-top:1px solid #d7dee8;color:#64748b;font-size:9px;display:flex;justify-content:space-between}
+  </style></head><body><header><div class="brand">${embeddedLogo}<div><h1>${esc(document.company.name)}</h1><p>${esc(document.company.address)}</p></div></div><div class="identity"><small>FACTURA DE VENTA</small><h2>${esc(document.number)}</h2><span>CONTABILIZADA</span></div></header><section class="parties"><div class="customer"><p class="eyebrow">FACTURAR A</p><b>${esc(document.customer.name)}</b><p>${document.customer.taxId?`Identificación fiscal: ${esc(document.customer.taxId)}`:''}</p><p>${esc(document.customer.address)}</p><p>${esc(document.customer.email)}</p></div><dl class="facts"><div><dt>Fecha de emisión</dt><dd>${esc(date(document.issueDate))}</dd></div><div><dt>Fecha de vencimiento</dt><dd>${esc(date(document.dueDate))}</dd></div><div><dt>Términos de pago</dt><dd>${esc(document.paymentTerm||'—')}</dd></div><div><dt>Moneda</dt><dd>${esc(`${document.currency.code} - ${document.currency.name}`)}</dd></div></dl></section><table><thead><tr><th>Producto / descripción</th><th>País de servicio</th><th class="num">Cantidad</th><th class="num">Precio unitario</th><th class="num">Subtotal</th><th class="num">Impuesto</th><th class="num">Total</th></tr></thead><tbody>${lineRows||'<tr><td colspan="7">La factura no contiene líneas.</td></tr>'}</tbody></table><section class="closing"><div class="notes"><p class="eyebrow">NOTA</p><p>${esc(document.memo||'—')}</p></div><dl class="totals"><div><dt>Subtotal</dt><dd>${esc(money(subtotal,document))}</dd></div><div><dt>Impuestos</dt><dd>${esc(money(tax,document))}</dd></div><div><dt>Retenciones</dt><dd>${esc(money(document.withholdingTotal,document))}</dd></div><div class="grand"><dt>Total factura</dt><dd>${esc(money(viewModel.total,document))}</dd></div><div><dt>Saldo por cobrar</dt><dd>${esc(money(document.receivable,document))}</dd></div></dl></section><footer><span>${esc(document.company.name)}</span><span>Documento generado desde GENTIA ERP</span></footer></body></html>`;
 }
 
 export function renderSalesInvoicePdf(document:SalesInvoiceDocument){
