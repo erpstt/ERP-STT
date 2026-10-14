@@ -81,6 +81,7 @@ import { exportSettledInvoiceExcel, exportSettledInvoicePdf, runSettledInvoiceRe
 import { exportSettledSupplierInvoiceExcel, exportSettledSupplierInvoicePdf, runSettledSupplierInvoiceReport, settledSupplierInvoiceReportOptions } from './modules/reports/settled-supplier-invoices-report.service.js';
 import { exportPaymentRequestReportExcel, exportPaymentRequestReportPdf, paymentRequestReportOptions, runPaymentRequestReport } from './modules/reports/payment-requests-report.service.js';
 import { exportVatDeclarationReportExcel, exportVatDeclarationReportPdf, runVatDeclarationReport, vatDeclarationReportOptions } from './modules/reports/vat-declaration-report.service.js';
+import { eightColumnBalanceOptions, exportEightColumnBalanceExcel, exportEightColumnBalancePdf, runEightColumnBalanceReport } from './modules/reports/eight-column-balance-report.service.js';
 import {incomeForecastAction} from './modules/reports/income-forecast.service.js';
 import { bankTransferJournal, bankTransferOptions, createBankTransfer, runBankTransferReport } from './modules/banking-catalogs/bank-transfer.service.js';
 import { bankDepositOptions, saveBankDeposit, listBankDeposits, bankDepositDetail, updateBankDeposit, deleteBankDeposit } from './modules/banking-catalogs/bank-deposit.service.js';
@@ -199,6 +200,10 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(request.method==='POST'&&request.url==='/api/v1/reports/tax/vat-declaration'){return json(response,200,await runVatDeclarationReport(request.headers.authorization!,await body(request)as Record<string,unknown>));}
     if(request.method==='POST'&&request.url==='/api/v1/reports/tax/vat-declaration/pdf'){return download(response,await exportVatDeclarationReportPdf(request.headers.authorization!,await body(request)as Record<string,unknown>));}
     if(request.method==='POST'&&request.url==='/api/v1/reports/tax/vat-declaration/excel'){return download(response,await exportVatDeclarationReportExcel(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='GET'&&request.url==='/api/v1/reports/accounting/eight-column-balance/options'){return json(response,200,await eightColumnBalanceOptions(request.headers.authorization!));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/accounting/eight-column-balance'){return json(response,200,await runEightColumnBalanceReport(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/accounting/eight-column-balance/pdf'){return download(response,await exportEightColumnBalancePdf(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/accounting/eight-column-balance/excel'){return download(response,await exportEightColumnBalanceExcel(request.headers.authorization!,await body(request)as Record<string,unknown>));}
     const quadraticUrl=new URL(request.url??'/','http://localhost'),quadraticBase='/api/v1/bank-reconciliations/quadratic';
     if(quadraticUrl.pathname===`${quadraticBase}/options`){
       if(request.method!=='GET')return error(response,405,'Método no permitido.');
