@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Carga de saldos iniciales · GENTIA</title>
-  <link rel="stylesheet" href="/opening-balances.css?v=20261012-fx">
+  <link rel="stylesheet" href="/opening-balances.css?v=20261014-all-excel">
 </head>
 <body>
 <main>
@@ -23,20 +23,31 @@
   </section>
 
   <section class="files">
-    <article><div class="file-number">01</div><h2>Libro Mayor</h2><p>Saldos en moneda local y su equivalencia en moneda original, con dimensiones analíticas.</p><a href="/plantilla-saldos-mayor.csv" download>↓ Descargar plantilla CSV</a><label class="file-picker">Seleccionar archivo<input id="gl" type="file" accept=".csv,text/csv"><span id="glName">Ningún archivo</span></label></article>
-    <article><div class="file-number">02</div><h2>Cuentas por Cobrar</h2><p>Facturas pendientes por cliente, moneda y vencimiento.</p><a href="/plantilla-saldos-cxc.csv" download>↓ Descargar plantilla CSV</a><label class="file-picker">Seleccionar archivo<input id="ar" type="file" accept=".csv,text/csv"><span id="arName">Ningún archivo</span></label></article>
-    <article><div class="file-number">03</div><h2>Cuentas por Pagar</h2><p>Facturas pendientes por proveedor, moneda y vencimiento.</p><a href="/plantilla-saldos-cxp.csv" download>↓ Descargar plantilla CSV</a><label class="file-picker">Seleccionar archivo<input id="ap" type="file" accept=".csv,text/csv"><span id="apName">Ningún archivo</span></label></article>
-    <article class="asset-file"><div class="file-number">04</div><h2>Auxiliar de Activos Fijos</h2><p>Fichas históricas, costo, depreciación acumulada y vida útil consumida.</p><a href="/plantilla-saldos-activos-fijos.csv" download>↓ Descargar plantilla CSV</a><small id="faCatalogHint" class="catalog-hint">Consultando categorías disponibles…</small><label class="file-picker">Seleccionar archivo<input id="fa" type="file" accept=".csv,text/csv"><span id="faName">Ningún archivo</span></label></article>
+    <article><div class="file-number">01</div><h2>Libro Mayor</h2><p>Saldos en moneda local y su equivalencia en moneda original, con dimensiones analíticas.</p><div class="template-links" aria-label="Plantillas de Libro Mayor"><a href="/plantilla-saldos-mayor.csv" download>↓ CSV</a><a href="/plantilla-saldos-mayor.xlsx" download>↓ Excel</a></div><label class="file-picker">Seleccionar archivo<input id="gl" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><span id="glName">Ningún archivo</span></label></article>
+    <article><div class="file-number">02</div><h2>Cuentas por Cobrar</h2><p>Facturas pendientes por cliente, moneda y vencimiento.</p><div class="template-links" aria-label="Plantillas de Cuentas por Cobrar"><a href="/plantilla-saldos-cxc.csv" download>↓ CSV</a><a href="/plantilla-saldos-cxc.xlsx" download>↓ Excel</a></div><label class="file-picker">Seleccionar archivo<input id="ar" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><span id="arName">Ningún archivo</span></label></article>
+    <article><div class="file-number">03</div><h2>Cuentas por Pagar</h2><p>Facturas pendientes por proveedor, moneda y vencimiento.</p><div class="template-links" aria-label="Plantillas de Cuentas por Pagar"><a href="/plantilla-saldos-cxp.csv" download>↓ CSV</a><a href="/plantilla-saldos-cxp.xlsx" download>↓ Excel</a></div><label class="file-picker">Seleccionar archivo<input id="ap" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><span id="apName">Ningún archivo</span></label></article>
+    <article class="asset-file"><div class="file-number">04</div><h2>Auxiliar de Activos Fijos</h2><p>Fichas históricas, costo, depreciación acumulada y vida útil consumida.</p><div class="template-links" aria-label="Plantillas del Auxiliar de Activos Fijos"><a href="/plantilla-saldos-activos-fijos.csv" download>↓ CSV</a><a href="/plantilla-saldos-activos-fijos.xlsx" download>↓ Excel</a></div><small id="faCatalogHint" class="catalog-hint">Consultando categorías disponibles…</small><label class="file-picker">Seleccionar archivo<input id="fa" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><span id="faName">Ningún archivo</span></label></article>
+    <article class="pending-file"><div class="file-number">05</div><h2>Auxiliar de Pendientes de Facturar</h2><p>Partidas abiertas por cliente, moneda, servicio y dimensiones, conciliadas con el Mayor.</p><div class="template-links" aria-label="Plantillas del Auxiliar de Pendientes de Facturar"><a href="/plantilla-saldos-pendientes-facturar.csv" download>↓ CSV</a><a href="/plantilla-saldos-pendientes-facturar.xlsx" download>↓ Excel</a></div><small class="catalog-hint">Registro original: débito 113003 y crédito 413001.</small><label class="file-picker">Seleccionar archivo<input id="pending" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><span id="pendingName">Ningún archivo</span></label></article>
   </section>
 
   <aside class="information fx-information"><b>Libro Mayor en dos monedas</b><span>Registre cada débito o crédito en moneda local y, cuando corresponda, su equivalencia en la moneda original. La tasa histórica se calcula con ambos importes y se conserva; las revaluaciones posteriores la usarán únicamente en cuentas marcadas para revaluación cambiaria. Departamento, centro de costos, clase, acreedor financiero y compañía relacionada son dimensiones opcionales según la cuenta. <strong>Sucursal se mantiene para uso futuro y puede dejarse vacía.</strong> Centro de costos sustituye a Proyecto.</span></aside>
 
-  <aside class="information"><b>Cómo se registra el auxiliar</b><span>Use fechas AAAA-MM-DD, importes sin separadores de miles, la moneda funcional y los códigos vigentes de categoría, ubicación y dimensiones. Puede usar punto o coma para los decimales. El archivo crea las fichas y su depreciación histórica sin volver a contabilizar esos importes. Las fichas que ya existan a la fecha de apertura se reconocen automáticamente para evitar duplicados.</span></aside>
+  <aside class="information"><b>Auxiliar de activos fijos</b><span>Use fechas AAAA-MM-DD, importes sin separadores de miles, la moneda funcional y los códigos vigentes de categoría, ubicación y dimensiones. Puede usar punto o coma para los decimales. El archivo crea las fichas y su depreciación histórica sin volver a contabilizar esos importes. Las fichas que ya existan a la fecha de apertura se reconocen automáticamente para evitar duplicados.</span></aside>
+
+  <aside class="information pending-information"><b>Pendientes de facturar</b><span>La plantilla conserva el detalle operativo sin contabilizarlo otra vez. Cada referencia debe incluir su registro histórico: <strong>débito 113003 · Facturación Pendiente de Emitir</strong> y <strong>crédito 413001 · Servicios Pendientes de Facturar</strong>. Al facturar, el sistema generará la reversión total o parcial con <strong>débito 413001</strong> y <strong>crédito 113003</strong>.</span></aside>
 
   <div class="actions"><button id="validate" class="primary">Validar y previsualizar</button><button id="post" class="primary" disabled>Contabilizar saldos iniciales</button><button id="reverse" class="danger" hidden>Anular y reversar apertura</button></div>
   <p id="message" role="status"></p>
 
   <section id="summary" class="summary" hidden></section>
+
+  <section id="pendingSummarySection" hidden>
+    <div class="section-title"><div><small>AUXILIAR DE PENDIENTES DE FACTURAR</small><h2>Conciliación Mayor vs. auxiliar</h2></div><span id="pendingStatus" class="badge"></span></div>
+    <p class="pending-rule"><b>Registro histórico:</b> 113003 al debe / 413001 al haber. <b>Reversión futura:</b> 413001 al debe / 113003 al haber. Cada referencia debe contener exactamente dos líneas.</p>
+    <div id="pendingSummary" class="summary pending-summary"></div>
+    <div class="card table"><table><thead><tr><th>Cuenta contable</th><th class="num">Libro Mayor</th><th class="num">Ya registrado</th><th class="num">Archivo</th><th class="num">Auxiliar total</th><th class="num">Diferencia</th><th>Estado</th></tr></thead><tbody id="pendingReconciliation"></tbody></table></div>
+    <div class="card table pending-table"><table><thead><tr><th>Referencia</th><th>Cliente</th><th>Fecha de origen</th><th>Servicio</th><th>Moneda / tasa</th><th class="num">Importe inicial</th><th class="num">Reversado</th><th class="num">Saldo disponible</th><th>Validación</th></tr></thead><tbody id="pendingItems"></tbody></table></div>
+  </section>
 
   <section id="assetSummarySection" hidden>
     <div class="section-title"><div><small>AUXILIAR DE ACTIVOS FIJOS</small><h2>Control de la carga</h2></div><span id="assetStatus" class="badge"></span></div>
@@ -48,6 +59,6 @@
   <section class="section-title"><div><small>APERTURA CONTABLE</small><h2>Detalle del asiento</h2></div></section>
   <section class="card table"><table><thead><tr><th>Origen</th><th>Fila</th><th>Cuenta</th><th>Documento</th><th>Moneda original / tasa histórica</th><th>Dimensiones</th><th class="num">Débito local</th><th class="num">Crédito local</th><th class="num">Débito original</th><th class="num">Crédito original</th></tr></thead><tbody id="rows"></tbody></table></section>
 </main>
-<script type="module" src="/opening-balances.js?v=20261012-fx"></script>
+<script type="module" src="/opening-balances.js?v=20261014-all-excel"></script>
 </body>
 </html>

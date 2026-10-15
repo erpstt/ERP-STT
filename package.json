@@ -7,7 +7,9 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:opening-pending": "npm run build && node --test scripts/opening-pending-parser.test.mjs",
+    "test:opening-files": "npm run build && node --test scripts/opening-all-file-parser.test.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

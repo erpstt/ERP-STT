@@ -98,14 +98,17 @@ try { loadEnvFile?.('.env'); } catch { /* Las variables también pueden venir de
 accountingCatalogs.find(c=>c.slug==='chart-accounts')?.fields.splice(8,0,{key:'cash_flow_activity',label:'Tipo de actividad de flujo',type:'text',required:true,options:['OPERACION','INVERSION','FINANCIACION','EFECTIVO_EQUIVALENTE','NO_APLICA']});
 const publicDir = join(process.cwd(), 'public');
 const vueBrowserBuild = join(process.cwd(), 'node_modules', 'vue', 'dist', 'vue.esm-browser.prod.js');
-const mime: Record<string, string> = { '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.mp4': 'video/mp4', '.csv': 'text/csv' };
+const mime: Record<string, string> = { '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.mp4': 'video/mp4', '.csv': 'text/csv', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
 
 async function body(request: IncomingMessage): Promise<unknown> {
+  const isOpeningBalanceValidation = request.url === '/api/opening-balances/validate';
+  const maxBodyBytes = isOpeningBalanceValidation ? 36 * 1024 * 1024 : 8 * 1024 * 1024;
   let raw = '';
   for await (const chunk of request) {
     raw += chunk;
-    if (Buffer.byteLength(raw, 'utf8') > 8 * 1024 * 1024) {
-      const failure = new Error('La solicitud supera el límite permitido de 8 MB.') as Error & { status?: number };
+    if (Buffer.byteLength(raw, 'utf8') > maxBodyBytes) {
+      const limitMb = Math.floor(maxBodyBytes / 1024 / 1024);
+      const failure = new Error(`La solicitud supera el límite permitido de ${limitMb} MB.`) as Error & { status?: number };
       failure.status = 413;
       throw failure;
     }
@@ -279,7 +282,10 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(request.method==='POST'&&bankActionRoute){return json(response,200,{result:await bankReconciliationAction(request.headers.authorization!,bankActionRoute[1],await body(request) as Record<string,unknown>)});}
      const journalReverseRoute=request.url?.match(/^\/api\/reports\/accounting\/journal\/(\d+)\/reverse$/);
      if(request.method==='POST'&&journalReverseRoute){return json(response,201,{journalId:await reverseJournalEntry(request.headers.authorization!,Number(journalReverseRoute[1]))});}
-     const pendingReversalUrl=new URL(request.url??'/',`http://${request.headers.host??'localhost'}`),pendingReversalRoute=pendingReversalUrl.pathname.match(/^\/api\/reports\/accounting\/pending-invoices\/(\d+)\/(reversal-options|reverse)$/);
+     // Los identificadores negativos representan pendientes importados con la
+     // apertura. No son asientos fuente: el RPC los resuelve contra el auxiliar
+     // y crea el asiento real únicamente cuando se registra la reversión.
+     const pendingReversalUrl=new URL(request.url??'/',`http://${request.headers.host??'localhost'}`),pendingReversalRoute=pendingReversalUrl.pathname.match(/^\/api\/reports\/accounting\/pending-invoices\/(-?\d+)\/(reversal-options|reverse)$/);
      if(pendingReversalRoute){const journalId=Number(pendingReversalRoute[1]);if(request.method==='GET'&&pendingReversalRoute[2]==='reversal-options')return json(response,200,await pendingInvoiceReversalOptions(request.headers.authorization!,journalId,pendingReversalUrl.searchParams.get('date')??''));if(request.method==='POST'&&pendingReversalRoute[2]==='reverse'){try{return json(response,201,await reversePendingInvoiceJournal(request.headers.authorization!,journalId,await body(request)as Record<string,unknown>))}catch(cause){return error(response,422,cause instanceof Error?cause.message:'No fue posible reversar el pendiente.')}}}
      const purchaseTransactionSupportRoute=request.url?.match(/^\/api\/reports\/accounting\/purchase-transactions\/supports\/(\d+)$/);
      if(request.method==='GET'&&purchaseTransactionSupportRoute){return json(response,200,await purchaseTransactionSupport(request.headers.authorization!,Number(purchaseTransactionSupportRoute[1])));}
