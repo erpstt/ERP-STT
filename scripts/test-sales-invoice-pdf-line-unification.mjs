@@ -24,6 +24,7 @@ const baseDocument={
   customer:{name:'Cliente regional',email:'facturas@example.invalid',address:'Costa Rica',taxId:'3-101-123456'},
   currency:{code:'USD',name:'Dólar estadounidense',symbol:'$'},
   paymentTerm:'Neto 30',
+  unifiedLineDescription:'Servicios profesionales según contrato STT-2026',
   withholdingTotal:0,
   supports:[],
   lines
@@ -49,7 +50,7 @@ assert.equal(iva13.amount,300);
 assert.equal(iva13.unitPrice,iva13.amount);
 assert.equal(iva13.taxAmount,39);
 assert.equal(iva13.grossAmount,339);
-assert.equal(iva13.description,'Bienes y servicios según detalle de la factura');
+assert.equal(iva13.description,'Servicios profesionales según contrato STT-2026');
 assert.equal(iva13.serviceCountry,'Varios / según detalle');
 assert.equal(unified.lines[1].serviceCountry,'Costa Rica','Debe conservar el país cuando es único en el grupo.');
 
@@ -63,13 +64,18 @@ assert.ok(unified.lines.every(line=>Math.round((line.amount+line.taxAmount)*100)
 assert.deepEqual(baseDocument,originalSnapshot,'La consolidación no puede alterar el DTO ni sus líneas.');
 
 const html=buildSalesInvoicePdfHtml({...baseDocument,unifyLinesPdf:true});
-assert.match(html,/Bienes y servicios según detalle de la factura/);
+assert.match(html,/Servicios profesionales según contrato STT-2026/);
 assert.match(html,/IVA13 · 13%/,'El código y la tasa deben verse dentro de la celda de impuesto.');
 assert.match(html,/IVA13 · 5%/,'Una tasa distinta del mismo código debe quedar visible por separado.');
 assert.match(html,/IVA13-ESPECIAL · 13%/);
 assert.match(html,/Sin impuesto · 0%/);
-assert.match(html,/Varios \/ según detalle/);
+assert.doesNotMatch(html,/País de servicio/,'El PDF unificado no debe mostrar la columna País de servicio.');
+assert.doesNotMatch(html,/Varios \/ según detalle/,'El país no debe imprimirse dentro del PDF unificado.');
 assert.match(html,/Total factura<\/dt><dd>\$ 422,11/,'El total del HTML debe utilizar el ViewModel reconciliado.');
+
+const normalHtml=buildSalesInvoicePdfHtml({...baseDocument,unifyLinesPdf:false});
+assert.match(normalHtml,/País de servicio/,'El PDF normal conserva la dimensión País de servicio.');
+assert.match(normalHtml,/Costa Rica/);
 
 assert.throws(
   ()=>prepareSalesInvoicePdfViewModel({...baseDocument,total:422.12,unifyLinesPdf:true}),

@@ -102,6 +102,10 @@ td{padding:15px 18px;border-top:1px solid #edf0f3;color:#344054;font-size:12px}
 .nav-children a.active>span{background:#62d2a6;border-color:#62d2a6}
 .new-record{border-radius:7px;padding:11px 15px;cursor:pointer;box-shadow:0 4px 10px #18835f20;display:flex;align-items:center;gap:6px}
 .new-record:hover{background:#126f50;transform:translateY(-1px)}
+.records-head-actions,.catalog-export-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.catalog-export-button{background:#fff!important;color:#063b79!important;border:1px solid #b9cbe0!important;box-shadow:none!important;padding:10px 13px}
+.catalog-export-button:hover{background:#eef6ff!important;border-color:#063b79!important;transform:translateY(-1px)}
+.catalog-export-button:disabled{opacity:.55;cursor:wait;transform:none}
 .table-tools{align-items:center}
 .search-box{border-radius:6px;padding:7px 10px;background:#fff;display:flex;align-items:center}
 .search-box:focus-within{border-color:#69b99c;box-shadow:0 0 0 3px #55b99514}

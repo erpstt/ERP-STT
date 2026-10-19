@@ -39,14 +39,18 @@ export function saveSalesInvoice(
 export function setSalesInvoicePdfLineUnification(
   authorization:string,
   invoiceId:number,
-  unifyLinesPdf:unknown
+  unifyLinesPdf:unknown,
+  descriptionValue:unknown
 ){
   if(!Number.isSafeInteger(invoiceId)||invoiceId<=0)throw Error('Factura de venta inválida.');
   if(typeof unifyLinesPdf!=='boolean')throw Error('Indique si desea unificar las líneas en el PDF.');
+  const description=String(descriptionValue??'').trim();
+  if(unifyLinesPdf&&!description)throw Error('Ingrese la descripción que aparecerá en las líneas del PDF unificado.');
+  if(description.length>500)throw Error('La descripción del PDF no puede superar 500 caracteres.');
   return invoiceRpc(
     authorization,
-    'set_sales_invoice_pdf_line_unification',
-    {p_invoice_id:invoiceId,p_unify:unifyLinesPdf},
+    'set_sales_invoice_pdf_presentation',
+    {p_invoice_id:invoiceId,p_unify:unifyLinesPdf,p_description:description||'Bienes y servicios según detalle de la factura'},
     'No fue posible actualizar la presentación PDF de la factura.'
   );
 }

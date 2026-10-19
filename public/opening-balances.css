@@ -7,11 +7,11 @@
 
 /* Quinta carga: auxiliar operativo de pendientes de facturar. */
 .files{grid-template-columns:repeat(5,minmax(210px,1fr))}
-.files article.pending-file{border-top:4px solid var(--green);padding-top:13px}
+.files article.pending-file{border-top:4px solid #10845f!important;padding-top:13px}
 .files article.pending-file p{min-height:52px}
 .template-links{display:flex;align-items:center;gap:14px}
 .template-links a{display:inline-flex;align-items:center}
-.pending-information{background:#edf8f3;border-color:#b7dece;border-left-color:var(--green)}
+.pending-information{background:#edf8f3;border-color:#b7dece;border-left-color:#10845f!important}
 .pending-information b{color:#087052}
 .pending-information span{color:#365f52}
 .pending-summary div:last-child{background:#edf8f3;border-color:#b7dece}
@@ -23,6 +23,7 @@
 
 /* Plantillas consistentes en CSV y Excel para las cinco cargas. */
 .files article{display:flex;flex-direction:column}
+.files article.financial-file{border-top:4px solid var(--navy);padding-top:13px}
 .files article p{min-height:52px}
 .files article .file-picker{margin-top:auto}
 .template-links{gap:7px;margin:1px 0 14px}

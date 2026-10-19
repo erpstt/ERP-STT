@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Transacciones modificadas y eliminadas · GENTIA</title>
+  <link rel="stylesheet" href="/audit-change-report.css?v=20261019c">
+</head>
+<body>
+<main class="audit-page">
+  <a class="back-link" href="/">← Volver a la aplicación</a>
+
+  <header class="report-heading">
+    <div>
+      <p class="eyebrow">AUDITORÍA · CONTROL DE TRANSACCIONES</p>
+      <h1>Transacciones modificadas y eliminadas</h1>
+      <p class="lead">Consulte qué facturas, asientos y otros documentos fueron modificados o eliminados durante el mes, quién realizó el cambio y qué información cambió.</p>
+    </div>
+    <div class="export-actions" aria-label="Descargar reporte">
+      <button id="downloadPdf" class="button secondary" type="button" disabled><span aria-hidden="true">↓</span> Descargar PDF</button>
+      <button id="downloadExcel" class="button secondary" type="button" disabled><span aria-hidden="true">↓</span> Descargar Excel</button>
+    </div>
+  </header>
+
+  <form id="filters" class="panel filters">
+    <div class="panel-title">
+      <div><span class="step">1</span><div><b>Consulta de documentos</b><small>Seleccione el mes y, si lo necesita, limite el resultado por usuario o tipo de transacción.</small></div></div>
+      <button id="resetFilters" class="button quiet" type="button">Restablecer</button>
+    </div>
+    <div class="filter-grid">
+      <label>Subsidiaria
+        <select id="subsidiary"><option value="">Todas las empresas autorizadas</option></select>
+      </label>
+      <label>Mes del cambio
+        <input id="month" type="month" list="availableMonths" required>
+        <datalist id="availableMonths"></datalist>
+      </label>
+      <label>Usuario que realizó el cambio
+        <select id="user"><option value="">Todos los usuarios</option></select>
+      </label>
+      <label>Tipo de cambio
+        <select id="action">
+          <option value="">Modificados y eliminados</option>
+          <option value="UPDATE">Solo modificados</option>
+          <option value="DELETE">Solo eliminados</option>
+        </select>
+      </label>
+      <label>Área del sistema
+        <select id="module"><option value="">Todos los módulos</option></select>
+      </label>
+      <label>Tipo de transacción
+        <select id="entityType"><option value="">Todas las transacciones</option></select>
+      </label>
+      <label class="search-field">Buscar documento
+        <input id="search" type="search" maxlength="120" placeholder="Número, usuario o dato modificado">
+      </label>
+      <button id="generate" class="button primary" type="submit">Generar reporte</button>
+    </div>
+    <p class="filter-note">Se incluyen únicamente documentos transaccionales dentro de su acceso autorizado. Los datos confidenciales permanecen protegidos.</p>
+  </form>
+
+  <div id="message" class="message" role="status" aria-live="polite"></div>
+
+  <section id="summary" class="summary-board" aria-label="Indicadores de calidad">
+    <div class="initial-summary">Seleccione un mes para conocer cuántos documentos tuvieron cambios.</div>
+  </section>
+
+  <section class="panel results-panel">
+    <div class="results-heading">
+      <div><span class="step">2</span><div><b>Documentos por tipo de transacción</b><small id="periodCaption">Seleccione el mes a consultar.</small></div></div>
+      <span id="resultCount" class="record-count">0 cambios</span>
+    </div>
+    <div id="reportRows" class="report-content">
+      <div class="initial-state"><span aria-hidden="true">⌕</span><b>Genere el reporte para revisar los documentos</b><small>Los resultados se mostrarán separados en facturas de venta, facturas de proveedor, asientos de diario y los demás tipos disponibles.</small></div>
+    </div>
+    <footer class="pager">
+      <label>Filas por página
+        <select id="pageSize"><option>25</option><option selected>50</option><option>100</option><option>200</option></select>
+      </label>
+      <button id="previousPage" type="button">Anterior</button>
+      <span id="pageCaption">Página 1 de 1</span>
+      <button id="nextPage" type="button">Siguiente</button>
+    </footer>
+  </section>
+</main>
+<script type="module" src="/audit-change-report.js?v=20261019c"></script>
+</body>
+</html>

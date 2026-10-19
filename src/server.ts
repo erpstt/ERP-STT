@@ -21,6 +21,7 @@ import { createCatalogRow, deleteCatalogRow, getCoreCatalog, listCatalogRows, up
 import { createSecurityRow, deleteSecurityRow, getSecurityCatalog, listSecurityRows, updateSecurityRow } from './modules/security-catalogs/security-catalogs.module.js';
 import { assertRoleAccess, isRoleAccessResource, myRoleAccess, roleAccessMatrix, saveRoleAccessMatrix } from './modules/security-catalogs/role-access-matrix.module.js';
 import { listSubsidiaryApprovers, createOrganizationRow, deleteOrganizationRow, getOrganizationCatalog, listOrganizationRows, updateOrganizationRow } from './modules/organization-catalogs/organization-catalogs.module.js';
+import { exportCostCenters } from './modules/organization-catalogs/cost-center-export.service.js';
 import { listCostCentersByUpApprover, reassignCostCenterUpApprover, upApproverOptions, upApproverSelectorOptions } from './modules/organization-catalogs/up-approvers.service.js';
 import { assertExchangeRateAccess, createConfigurationRow, deleteConfigurationRow, getConfigurationCatalog, listConfigurationRows, suggestConsolidatedExchangeRate, updateConfigurationRow } from './modules/configuration-catalogs/configuration-catalogs.module.js';
 import { accountingCatalogs, createAccountingRow, deleteAccountingRow, getAccountingCatalog, listAccountingRows, updateAccountingRow } from './modules/accounting-catalogs/accounting-catalogs.module.js';
@@ -82,6 +83,7 @@ import { exportSettledSupplierInvoiceExcel, exportSettledSupplierInvoicePdf, run
 import { exportPaymentRequestReportExcel, exportPaymentRequestReportPdf, paymentRequestReportOptions, runPaymentRequestReport } from './modules/reports/payment-requests-report.service.js';
 import { exportVatDeclarationReportExcel, exportVatDeclarationReportPdf, runVatDeclarationReport, vatDeclarationReportOptions } from './modules/reports/vat-declaration-report.service.js';
 import { eightColumnBalanceOptions, exportEightColumnBalanceExcel, exportEightColumnBalancePdf, runEightColumnBalanceReport } from './modules/reports/eight-column-balance-report.service.js';
+import { auditChangeReportOptions, exportAuditChangeReportExcel, exportAuditChangeReportPdf, runAuditChangeReport } from './modules/reports/audit-change-report.service.js';
 import {incomeForecastAction} from './modules/reports/income-forecast.service.js';
 import { bankTransferJournal, bankTransferOptions, createBankTransfer, runBankTransferReport } from './modules/banking-catalogs/bank-transfer.service.js';
 import { bankDepositOptions, saveBankDeposit, listBankDeposits, bankDepositDetail, updateBankDeposit, deleteBankDeposit } from './modules/banking-catalogs/bank-deposit.service.js';
@@ -207,6 +209,10 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(request.method==='POST'&&request.url==='/api/v1/reports/accounting/eight-column-balance'){return json(response,200,await runEightColumnBalanceReport(request.headers.authorization!,await body(request)as Record<string,unknown>));}
     if(request.method==='POST'&&request.url==='/api/v1/reports/accounting/eight-column-balance/pdf'){return download(response,await exportEightColumnBalancePdf(request.headers.authorization!,await body(request)as Record<string,unknown>));}
     if(request.method==='POST'&&request.url==='/api/v1/reports/accounting/eight-column-balance/excel'){return download(response,await exportEightColumnBalanceExcel(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='GET'&&request.url==='/api/v1/reports/audit/changes/options'){return json(response,200,await auditChangeReportOptions(request.headers.authorization!));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/audit/changes'){return json(response,200,await runAuditChangeReport(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/audit/changes/pdf'){return download(response,await exportAuditChangeReportPdf(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/audit/changes/excel'){return download(response,await exportAuditChangeReportExcel(request.headers.authorization!,await body(request)as Record<string,unknown>));}
     const quadraticUrl=new URL(request.url??'/','http://localhost'),quadraticBase='/api/v1/bank-reconciliations/quadratic';
     if(quadraticUrl.pathname===`${quadraticBase}/options`){
       if(request.method!=='GET')return error(response,405,'Método no permitido.');
@@ -335,6 +341,11 @@ const server = createServer((request, response) => withAuditExecution(async () =
       return json(response,200,await upApproverSelectorOptions(request.headers.authorization!));
     }
     if(request.method==='GET'&&request.url==='/api/organization/approver-options')return json(response,200,await listSubsidiaryApprovers(request.headers.authorization!));
+    if(request.method==='GET'&&upApproverUrl.pathname==='/api/organization/cost-centers/export'){
+      const authorization=request.headers.authorization;
+      if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para descargar los centros de costos.');
+      return download(response,await exportCostCenters(authorization,upApproverUrl.searchParams.get('format')||'',upApproverUrl.searchParams.get('search')||''));
+    }
     const organizationRoute = request.url?.match(/^\/api\/organization\/([a-z-]+)(?:\/(\d+))?$/);
     if (organizationRoute) {
       const authorization = request.headers.authorization;
@@ -416,7 +427,8 @@ const server = createServer((request, response) => withAuditExecution(async () =
       if(request.method!=='PUT')return error(response,405,'Método no permitido.');
       const input=await body(request)as Record<string,unknown>;
       return json(response,200,await setSalesInvoicePdfLineUnification(
-        request.headers.authorization!,Number(salesInvoicePdfPreferenceRoute[1]),input.unificar_lineas_pdf
+        request.headers.authorization!,Number(salesInvoicePdfPreferenceRoute[1]),input.unificar_lineas_pdf,
+        input.unificar_lineas_pdf_descripcion
       ));
     }
     const salesInvoiceDeliveryRoute=request.url?.split('?')[0].match(/^\/api\/sales\/invoices\/(\d+)\/(pdf|email)$/);

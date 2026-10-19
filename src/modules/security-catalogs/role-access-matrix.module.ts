@@ -72,7 +72,7 @@ export const roleAccessModules:AccessModule[] = [
     custom('workflow','Workflow','Configuración de Flujos de Aprobación','approval-workflows',['view','create','edit','delete']),
     ...catalogs('workflow','Workflow',workflowCatalogs)]},
   {key:'documents',name:'Documentos',resources:[custom('documents','Documentos','Diseñador de Plantillas PDF','pdf-templates',['view','create','edit','delete']),...catalogs('documents','Documentos',documentCatalogs)]},
-  {key:'audit',name:'Auditoría',resources:catalogs('audit','Auditoría',auditCatalogs).map(x=>({...x,actions:['view'] as Action[]}))},
+  {key:'audit',name:'Auditoría',resources:[custom('audit','Auditoría','Transacciones modificadas y eliminadas','change-report',['view']),...catalogs('audit','Auditoría',auditCatalogs).map(x=>({...x,actions:['view'] as Action[]}))]},
   {key:'consolidation',name:'Consolidación',resources:[custom('consolidation','Consolidación','Consolidación financiera','financial-consolidation',['view','create','edit']),...catalogs('consolidation','Consolidación',consolidationCatalogs)]},
   {key:'reports',name:'Informes',resources:[custom('reports','Informes','Reportes de Contabilidad','accounting-reports',['view']),custom('reports','Informes','Envíos programados','scheduled-reports',['view','create','edit','delete'])]},
   {key:'ai',name:'IA',resources:catalogs('ai','IA',aiCatalogs)}

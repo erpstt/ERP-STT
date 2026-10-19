@@ -11,7 +11,8 @@ const invoice={
   payment_term_id:1,invoice_date:'2026-10-10',due_date:'2026-10-25',
   fiscal_period_id:1,currency_id:1,exchange_rate:1,memo:'Servicios profesionales',
   transaction_id:500,journal_id:600,location_id:1,total_amount:113,
-  receivable_amount:113,unificar_lineas_pdf:true
+  receivable_amount:113,unificar_lineas_pdf:true,
+  unificar_lineas_pdf_descripcion:'Servicios de consultoría mensual'
 };
 
 const invoiceLine={
@@ -60,7 +61,7 @@ async function openInvoice({edit=false}={}){
       return route.fulfill({json:{invoiceId:91,journalId:691,transactionNumber:'FAC-VEN-91',total:113}});
     }
     if(path==='/api/sales/invoices/77/pdf-line-unification'&&method==='PUT'){
-      return route.fulfill({json:{invoiceId:77,unifyLinesPdf:body.unificar_lineas_pdf}});
+      return route.fulfill({json:{invoiceId:77,unifyLinesPdf:body.unificar_lineas_pdf,unifiedLineDescription:body.unificar_lineas_pdf_descripcion}});
     }
     if(path==='/api/sales/invoice-entry/77'&&method==='PUT'){
       return route.fulfill({json:{invoiceId:77,journalId:600,transactionNumber:'FAC-VEN-77',total:113}});
@@ -96,6 +97,7 @@ try{
   const toggle=normal.frame.locator('#unifyPdfLines');
   assert.equal(await toggle.getAttribute('role'),'switch');
   assert.equal(await toggle.isChecked(),false,'La opción debe iniciar desactivada en una factura nueva.');
+  assert.equal(await normal.frame.locator('#unifiedPdfDescriptionField').isVisible(),false,'La descripción debe mostrarse únicamente al unificar.');
   assert.equal(
     (await normal.frame.locator('label[for="unifyPdfLines"] strong').textContent()).trim(),
     'Unificar líneas en el PDF por tipo de impuesto'
@@ -107,6 +109,7 @@ try{
   await completeNewInvoice(normal);
   const normalPayload=await saveAndPayload(normal,'/api/sales/invoice-entry','POST');
   assert.equal(normalPayload.unificar_lineas_pdf,false);
+  assert.equal(normalPayload.unificar_lineas_pdf_descripcion,'Bienes y servicios según detalle de la factura');
   assert.equal(typeof normalPayload.unificar_lineas_pdf,'boolean');
   assert.deepEqual(normal.errors,[]);
   await normal.owner.close();
@@ -115,8 +118,11 @@ try{
   await completeNewInvoice(unified);
   await unified.frame.locator('label[for="unifyPdfLines"] .gentia-switch-track').click();
   assert.equal(await unified.frame.locator('#unifyPdfLines').isChecked(),true);
+  assert.equal(await unified.frame.locator('#unifiedPdfDescriptionField').isVisible(),true);
+  await unified.frame.locator('#unifiedPdfDescription').fill('Servicios prestados según contrato regional');
   const unifiedPayload=await saveAndPayload(unified,'/api/sales/invoice-entry','POST');
   assert.equal(unifiedPayload.unificar_lineas_pdf,true);
+  assert.equal(unifiedPayload.unificar_lineas_pdf_descripcion,'Servicios prestados según contrato regional');
   assert.equal(typeof unifiedPayload.unificar_lineas_pdf,'boolean');
   assert.deepEqual(unified.errors,[]);
   await unified.owner.close();
@@ -124,15 +130,17 @@ try{
   const edited=await openInvoice({edit:true});
   const editToggle=edited.frame.locator('#unifyPdfLines');
   assert.equal(await editToggle.isChecked(),true,'La edición debe cargar la opción guardada en la factura.');
+  assert.equal(await edited.frame.locator('#unifiedPdfDescription').inputValue(),'Servicios de consultoría mensual');
   await edited.frame.locator('label[for="unifyPdfLines"] .gentia-switch-track').click();
   await edited.frame.locator('#unifyPdfStatus.success').waitFor({state:'visible'});
   assert.equal(await editToggle.isChecked(),false);
   const preferenceRequest=edited.requests.find(item=>item.path==='/api/sales/invoices/77/pdf-line-unification'&&item.method==='PUT');
   assert.ok(preferenceRequest,'Cambiar la preferencia debe usar el endpoint dedicado.');
-  assert.deepEqual(preferenceRequest.body,{unificar_lineas_pdf:false});
+  assert.deepEqual(preferenceRequest.body,{unificar_lineas_pdf:false,unificar_lineas_pdf_descripcion:'Servicios de consultoría mensual'});
   assert.equal(edited.requests.some(item=>item.path==='/api/sales/invoice-entry/77'&&item.method==='PUT'),false,'La preferencia no debe recontabilizar la factura.');
   const editedPayload=await saveAndPayload(edited,'/api/sales/invoice-entry/77','PUT');
   assert.equal(editedPayload.unificar_lineas_pdf,false);
+  assert.equal(editedPayload.unificar_lineas_pdf_descripcion,'Servicios de consultoría mensual');
   assert.equal(typeof editedPayload.unificar_lineas_pdf,'boolean');
   assert.deepEqual(edited.errors,[]);
   await edited.owner.close();

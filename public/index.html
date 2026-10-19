@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/login-refresh.css">
   <link rel="stylesheet" href="/login-position.css">
-  <link rel="stylesheet" href="/dashboard.css?v=20261010-chart-accounts">
+  <link rel="stylesheet" href="/dashboard.css?v=20261015-cost-center-export">
   <link rel="stylesheet" href="/modal-scroll.css?v=20260911-entity-fullscreen">
   <link rel="stylesheet" href="/company-selection.css">
   <link rel="stylesheet" href="/subsidiary-branding.css?v=20260814">
@@ -267,6 +267,10 @@
 <p class="dashboard-copy">{{ activeCatalog.description }}</p>
 </div>
 <div class="records-head-actions">
+<div v-if="activeCatalog.slug==='cost-centers'" class="catalog-export-actions" role="group" aria-label="Descargar centros de costos">
+<button type="button" class="new-record catalog-export-button" :disabled="tableLoading || Boolean(costCenterExporting)" @click="downloadCostCenters('csv')"><span>↓</span> {{ costCenterExporting==='csv' ? 'Preparando…' : 'CSV' }}</button>
+<button type="button" class="new-record catalog-export-button" :disabled="tableLoading || Boolean(costCenterExporting)" @click="downloadCostCenters('xlsx')"><span>↓</span> {{ costCenterExporting==='xlsx' ? 'Preparando…' : 'Excel' }}</button>
+</div>
 <details v-if="activeCatalog.slug==='exchange-rates' && exchangeRateActions.length" class="rate-query-menu">
 <summary class="new-record">
 <span>↻</span> Consultar tasa <b>⌄</b>
@@ -535,7 +539,7 @@
   </main>
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
-<script type="module" src="/app.js?v=20261012-permissions">
+<script type="module" src="/app.js?v=20261015-cost-center-export">
 </script>
 <script src="/approval-notifications.js?v=3"></script></body>
 </html>
