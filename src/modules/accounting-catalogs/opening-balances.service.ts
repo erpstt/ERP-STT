@@ -58,7 +58,7 @@ type PendingLine={
  department:string;costCenter:string;className:string;financialCreditor:string;relatedCompany:string;location:string;note:string;
 };
 export type OpeningPendingItem={
- reference:string;originDate:string;entityTaxId:string;currency:string;exchangeRate:string;serviceMonth:string;serviceCountry:string;note:string;supportUrl:string;supportLink:string;lines:PendingLine[];
+ reference:string;periodType:'ACTUAL'|'ANTERIOR';originDate:string;entityTaxId:string;currency:string;exchangeRate:string;serviceMonth:string;serviceCountry:string;note:string;supportUrl:string;supportLink:string;lines:PendingLine[];
 };
 export type OpeningBankItem={
  sourceRow:number;bankCode:string;accountNumber:string;currency:string;recordType:'SALDO_CONCILIADO'|'DEPOSITO_EN_TRANSITO'|'CHEQUE_EN_TRANSITO';
@@ -124,6 +124,7 @@ function applyAccountingAliases(parsed:{row:number;data:Record<string,string>}[]
 function applyPendingAliases(parsed:ParsedRow[]){
  const aliases:Record<string,string[]>={
   id_pendiente:['referencia','referencia_pendiente','numero_pendiente','numero_documento'],
+  tipo_periodo:['tipo_de_periodo','period_type','clasificacion_periodo'],
   fecha_origen:['fecha','fecha_documento','fecha_reconocimiento'],
   identificacion_cliente:['identificacion_tercero','cliente_identificacion','nit_cliente','ruc_cliente'],
   tipo_cambio:['tipo_cambio_historico','tasa_cambio','tasa','exchange_rate'],
@@ -193,7 +194,7 @@ function validIsoDate(value:string){
 
 function parseOpeningPendingRows(parsed:ParsedRow[],openingDate=''):OpeningPendingItem[]{
  applyPendingAliases(parsed);
- const required=['id_pendiente','fecha_origen','identificacion_cliente','moneda','tipo_cambio','cuenta','debito_moneda_local','credito_moneda_local','debito_moneda_original','credito_moneda_original','mes_servicio','pais_servicio','departamento','centro_costos','clase','acreedor_financiero','compania_relacionada','sucursal','nota'];
+ const required=['id_pendiente','tipo_periodo','fecha_origen','identificacion_cliente','moneda','tipo_cambio','cuenta','debito_moneda_local','credito_moneda_local','debito_moneda_original','credito_moneda_original','mes_servicio','pais_servicio','departamento','centro_costos','clase','acreedor_financiero','compania_relacionada','sucursal','nota'];
  requireColumns(parsed,'Auxiliar de Pendientes de Facturar',required);
  const grouped=new Map<string,{header:Record<string,string>;rows:ParsedRow[]}>();
  for(const current of parsed){
@@ -205,12 +206,14 @@ function parseOpeningPendingRows(parsed:ParsedRow[],openingDate=''):OpeningPendi
  const items:OpeningPendingItem[]=[];
  for(const[reference,group]of grouped){
   const first=group.header,firstRow=group.rows[0].row;
-  const commonFields:[string,string][]=[['fecha_origen','fecha de origen'],['identificacion_cliente','cliente'],['moneda','moneda'],['tipo_cambio','tipo de cambio'],['mes_servicio','mes de servicio'],['pais_servicio','país de servicio'],['enlace_respaldo','enlace de respaldo']];
+  const commonFields:[string,string][]=[['tipo_periodo','tipo de período'],['fecha_origen','fecha de origen'],['identificacion_cliente','cliente'],['moneda','moneda'],['tipo_cambio','tipo de cambio'],['mes_servicio','mes de servicio'],['pais_servicio','país de servicio'],['enlace_respaldo','enlace de respaldo']];
   for(const[field,label]of commonFields){
    const values=new Set(group.rows.map(({data})=>String(data[field]??'').trim().toUpperCase()));
    if(values.size>1)throw Error(`Pendiente ${reference}: ${label} debe ser igual en todas sus líneas.`);
   }
+  const periodType=first.tipo_periodo.trim().toUpperCase()as OpeningPendingItem['periodType'];
   const originDate=first.fecha_origen.trim(),serviceMonth=first.mes_servicio.trim(),currency=first.moneda.trim().toUpperCase(),entityTaxId=first.identificacion_cliente.trim(),serviceCountry=first.pais_servicio.trim().toUpperCase();
+  if(!['ACTUAL','ANTERIOR'].includes(periodType))throw Error(`Pendiente ${reference}: tipo_periodo debe ser ACTUAL o ANTERIOR.`);
   if(!validIsoDate(originDate))throw Error(`Pendiente ${reference}: use fecha_origen con formato YYYY-MM-DD y una fecha válida.`);
   if(openingDate&&originDate>openingDate)throw Error(`Pendiente ${reference}: la fecha de origen no puede ser posterior a la fecha de apertura.`);
   if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(serviceMonth))throw Error(`Pendiente ${reference}: use mes_servicio con formato YYYY-MM.`);
@@ -219,25 +222,26 @@ function parseOpeningPendingRows(parsed:ParsedRow[],openingDate=''):OpeningPendi
   if(!/^[A-Z]{3}$/.test(currency))throw Error(`Pendiente ${reference}: moneda debe ser un código ISO de tres letras.`);
   if(!serviceCountry)throw Error(`Pendiente ${reference}: complete el país de servicio.`);
   const exchangeRate=exchangeRateDecimal(first.tipo_cambio,firstRow);
-  if(group.rows.length!==2)throw Error(`Pendiente ${reference}: incluya exactamente dos líneas, 113003 al debe y 413001 al haber.`);
+  const controlAccount=periodType==='ACTUAL'?'113003':'113004',counterpartAccount=periodType==='ACTUAL'?'413001':'413002';
+  if(group.rows.length!==2)throw Error(`Pendiente ${reference}: incluya exactamente dos líneas, ${controlAccount} al debe y ${counterpartAccount} al haber.`);
   const lines:PendingLine[]=group.rows.map(({row,data:x})=>{
    const account=x.cuenta.replace(/\s/g,'');
-   if(!['113003','413001'].includes(account))throw Error(`Pendientes de Facturar fila ${row}: solo se permiten las cuentas 113003 y 413001.`);
+   if(![controlAccount,counterpartAccount].includes(account))throw Error(`Pendientes de Facturar fila ${row}: para tipo ${periodType} solo se permiten las cuentas ${controlAccount} y ${counterpartAccount}.`);
    const debit=decimal(x.debito_moneda_local,'débito en moneda local',row),credit=decimal(x.credito_moneda_local,'crédito en moneda local',row),debitFx=decimal(x.debito_moneda_original,'débito en moneda original',row),creditFx=decimal(x.credito_moneda_original,'crédito en moneda original',row);
-   if(account==='113003'&&(Number(debit)<=0||Number(credit)!==0||Number(debitFx)<=0||Number(creditFx)!==0))throw Error(`Pendientes de Facturar fila ${row}: la cuenta 113003 debe llevar el débito local y original.`);
-   if(account==='413001'&&(Number(credit)<=0||Number(debit)!==0||Number(creditFx)<=0||Number(debitFx)!==0))throw Error(`Pendientes de Facturar fila ${row}: la cuenta 413001 debe llevar el crédito local y original.`);
+   if(account===controlAccount&&(Number(debit)<=0||Number(credit)!==0||Number(debitFx)<=0||Number(creditFx)!==0))throw Error(`Pendientes de Facturar fila ${row}: la cuenta ${controlAccount} debe llevar el débito local y original.`);
+   if(account===counterpartAccount&&(Number(credit)<=0||Number(debit)!==0||Number(creditFx)<=0||Number(debitFx)!==0))throw Error(`Pendientes de Facturar fila ${row}: la cuenta ${counterpartAccount} debe llevar el crédito local y original.`);
    const marker=x.es_linea_control;
-   if(marker!==undefined&&marker.trim()&&controlMarker(marker,row)!==(account==='113003'))throw Error(`Pendientes de Facturar fila ${row}: es_linea_control solo puede marcarse para la cuenta 113003.`);
-   return{sourceRow:row,account,debit,credit,debitFx,creditFx,isControlLine:account==='113003',department:x.departamento||'',costCenter:x.centro_costos||'',className:x.clase||'',financialCreditor:x.acreedor_financiero||'',relatedCompany:x.compania_relacionada||'',location:x.sucursal||'',note:x.nota||''};
+   if(marker!==undefined&&marker.trim()&&controlMarker(marker,row)!==(account===controlAccount))throw Error(`Pendientes de Facturar fila ${row}: es_linea_control solo puede marcarse para la cuenta ${controlAccount}.`);
+   return{sourceRow:row,account,debit,credit,debitFx,creditFx,isControlLine:account===controlAccount,department:x.departamento||'',costCenter:x.centro_costos||'',className:x.clase||'',financialCreditor:x.acreedor_financiero||'',relatedCompany:x.compania_relacionada||'',location:x.sucursal||'',note:x.nota||''};
   });
-  if(lines.filter(line=>line.account==='113003').length!==1||lines.filter(line=>line.account==='413001').length!==1)throw Error(`Pendiente ${reference}: incluya una línea 113003 y una línea 413001.`);
+  if(lines.filter(line=>line.account===controlAccount).length!==1||lines.filter(line=>line.account===counterpartAccount).length!==1)throw Error(`Pendiente ${reference}: incluya una línea ${controlAccount} y una línea ${counterpartAccount}.`);
   const debit=lines.reduce((sum,line)=>sum+Number(line.debit),0),credit=lines.reduce((sum,line)=>sum+Number(line.credit),0),debitFx=lines.reduce((sum,line)=>sum+Number(line.debitFx),0),creditFx=lines.reduce((sum,line)=>sum+Number(line.creditFx),0);
   if(!close(debit,credit))throw Error(`Pendiente ${reference}: los débitos y créditos en moneda local no cuadran.`);
   if(!close(debitFx,creditFx,.00005))throw Error(`Pendiente ${reference}: los débitos y créditos en moneda original no cuadran.`);
   if(!close(debit,debitFx*Number(exchangeRate)))throw Error(`Pendiente ${reference}: el importe local no corresponde al importe original por el tipo de cambio indicado.`);
   const supportLink=(first.enlace_respaldo||'').trim();
   if(supportLink&&!/^https?:\/\/[^\s]+$/i.test(supportLink))throw Error(`Pendiente ${reference}: el enlace de respaldo debe iniciar con http:// o https://.`);
-  items.push({reference,originDate,entityTaxId,currency,exchangeRate,serviceMonth,serviceCountry,note:group.rows.map(row=>row.data.nota).find(Boolean)||'',supportUrl:supportLink,supportLink,lines});
+  items.push({reference,periodType,originDate,entityTaxId,currency,exchangeRate,serviceMonth,serviceCountry,note:group.rows.map(row=>row.data.nota).find(Boolean)||'',supportUrl:supportLink,supportLink,lines});
  }
  return items;
 }

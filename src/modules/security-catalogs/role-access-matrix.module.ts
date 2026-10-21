@@ -47,6 +47,7 @@ export const roleAccessModules:AccessModule[] = [
   ]},
   {key:'accounting',name:'Contabilidad',resources:[...catalogs('accounting','Contabilidad',accountingCatalogs),
     custom('accounting','Contabilidad','Carga de Saldos Iniciales','opening-balances',['view','create','delete']),
+    custom('accounting','Contabilidad','Reclasificación anual de pendientes','pending-invoice-reclassification',['view','create']),
     custom('accounting','Contabilidad','Solicitudes de Pago','payment-requests',['view','create','edit','delete']),
     custom('accounting','Contabilidad','Revaluación de moneda extranjera','fx-revaluation',['view','create']),
     custom('accounting','Contabilidad','Análisis de revaluación','fx-revaluation-analysis',['view'])]},

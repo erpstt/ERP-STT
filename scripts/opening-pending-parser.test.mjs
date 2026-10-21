@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import ExcelJS from 'exceljs';
 import {parseOpeningPendingCsv,parseOpeningPendingFile} from '../dist/modules/accounting-catalogs/opening-balances.service.js';
 
-const headers=['referencia_pendiente','fecha_origen','identificacion_cliente','moneda','tipo_cambio_historico','cuenta','debito_moneda_local','credito_moneda_local','debito_moneda_original','credito_moneda_original','es_linea_control','mes_servicio','pais_servicio','departamento','centro_costos','clase','acreedor_financiero','compania_relacionada','sucursal','nota','url_respaldo'];
+const headers=['referencia_pendiente','tipo_periodo','fecha_origen','identificacion_cliente','moneda','tipo_cambio_historico','cuenta','debito_moneda_local','credito_moneda_local','debito_moneda_original','credito_moneda_original','es_linea_control','mes_servicio','pais_servicio','departamento','centro_costos','clase','acreedor_financiero','compania_relacionada','sucursal','nota','url_respaldo'];
 const data=[
- ['PEN-INI-001','2026-09-30','111','JMD','1','113003','100000','','100000','','SI','2026-09','JAM','Administrativo','CC-ADM','','','','','Saldo inicial','https://example.com/respaldo.pdf'],
- ['PEN-INI-001','2026-09-30','111','JMD','1','413001','','100000','','100000','NO','2026-09','JAM','Administrativo','CC-ADM','','','','','Saldo inicial','https://example.com/respaldo.pdf']
+ ['PEN-INI-001','ACTUAL','2026-09-30','111','JMD','1','113003','100000','','100000','','SI','2026-09','JAM','Administrativo','CC-ADM','','','','','Saldo inicial','https://example.com/respaldo.pdf'],
+ ['PEN-INI-001','ACTUAL','2026-09-30','111','JMD','1','413001','','100000','','100000','NO','2026-09','JAM','Administrativo','CC-ADM','','','','','Saldo inicial','https://example.com/respaldo.pdf']
 ];
 
 function csv(rows=data){return[headers,...rows].map(row=>row.join(',')).join('\n');}
@@ -20,13 +20,13 @@ test('agrupa las dos líneas y conserva el respaldo del pendiente',()=>{
 });
 
 test('rechaza una composición distinta a Dr 113003 / Cr 413001',()=>{
- const invalid=structuredClone(data);invalid[0][6]='';invalid[0][7]='100000';
+ const invalid=structuredClone(data);invalid[0][7]='';invalid[0][8]='100000';
  assert.throws(()=>parseOpeningPendingCsv(csv(invalid),'2026-09-30'),/113003 debe llevar el débito local y original/);
 });
 
 test('acepta una tasa histórica con tres decimales',()=>{
  const withPreciseRate=structuredClone(data);
- for(const row of withPreciseRate){row[4]='2.500';row[6]=row[6]?'100':'';row[7]=row[7]?'100':'';row[8]=row[8]?'40':'';row[9]=row[9]?'40':'';}
+ for(const row of withPreciseRate){row[5]='2.500';row[7]=row[7]?'100':'';row[8]=row[8]?'100':'';row[9]=row[9]?'40':'';row[10]=row[10]?'40':'';}
  const result=parseOpeningPendingCsv(csv(withPreciseRate),'2026-09-30');
  assert.equal(result[0].exchangeRate,'2.500');
 });

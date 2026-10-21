@@ -17,8 +17,12 @@
 .pending-information b{color:#087052}
 .pending-information span{color:#365f52}
 .pending-summary div:last-child{background:#edf8f3;border-color:#b7dece}
+.pending-summary{grid-template-columns:repeat(5,minmax(0,1fr))}
+.period-badge{display:inline-flex;border-radius:999px;padding:5px 9px;font-size:10px;font-weight:850;white-space:nowrap}.period-badge.current{background:#dff5ec;color:#087052}.period-badge.previous{background:#e8eef9;color:#244f89}
 .pending-rule{margin:0 0 10px;padding:10px 12px;border:1px solid #b7dece;border-radius:8px;background:#f3fbf7;color:#365f52;font-size:11px;line-height:1.45}
 .pending-table{margin-top:12px}
+@media(max-width:1100px){.pending-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.pending-summary{grid-template-columns:1fr}}
 .bank-information{background:#edf8fa;border-color:#b8dfe4;border-left-color:#1f7a8c!important}
 .bank-information b{color:#11606f}
 .bank-information span{color:#365f67}
