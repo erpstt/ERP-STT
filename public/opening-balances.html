@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Carga de saldos iniciales · GENTIA</title>
-  <link rel="stylesheet" href="/opening-balances.css?v=20261015-pending-green">
+  <link rel="stylesheet" href="/opening-balances.css?v=20261021-bank-opening">
 </head>
 <body>
 <main>
@@ -28,6 +28,7 @@
     <article class="financial-file"><div class="file-number">03</div><h2>Cuentas por Pagar</h2><p>Facturas pendientes por proveedor, moneda y vencimiento.</p><div class="template-links" aria-label="Plantillas de Cuentas por Pagar"><a href="/plantilla-saldos-cxp.csv" download>↓ CSV</a><a href="/plantilla-saldos-cxp.xlsx" download>↓ Excel</a></div><label class="file-picker">Seleccionar archivo<input id="ap" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><span id="apName">Ningún archivo</span></label></article>
     <article class="asset-file"><div class="file-number">04</div><h2>Auxiliar de Activos Fijos</h2><p>Fichas históricas, costo, depreciación acumulada y vida útil consumida.</p><div class="template-links" aria-label="Plantillas del Auxiliar de Activos Fijos"><a href="/plantilla-saldos-activos-fijos.csv" download>↓ CSV</a><a href="/plantilla-saldos-activos-fijos.xlsx" download>↓ Excel</a></div><small id="faCatalogHint" class="catalog-hint">Consultando categorías disponibles…</small><label class="file-picker">Seleccionar archivo<input id="fa" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><span id="faName">Ningún archivo</span></label></article>
     <article class="pending-file"><div class="file-number">05</div><h2>Auxiliar de Pendientes de Facturar</h2><p>Partidas abiertas por cliente, moneda, servicio y dimensiones, conciliadas con el Mayor.</p><div class="template-links" aria-label="Plantillas del Auxiliar de Pendientes de Facturar"><a href="/plantilla-saldos-pendientes-facturar.csv" download>↓ CSV</a><a href="/plantilla-saldos-pendientes-facturar.xlsx" download>↓ Excel</a></div><small class="catalog-hint">Registro original: débito 113003 y crédito 413001.</small><label class="file-picker">Seleccionar archivo<input id="pending" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><span id="pendingName">Ningún archivo</span></label></article>
+    <article class="bank-file"><div class="file-number">06</div><h2>Auxiliar de Bancos</h2><p>Saldos conciliados y partidas en tránsito por banco, cuenta y moneda.</p><div class="template-links" aria-label="Plantillas del Auxiliar de Bancos"><a href="/plantilla-saldos-bancos.csv" download>↓ CSV</a><a href="/plantilla-saldos-bancos.xlsx" download>↓ Excel</a></div><small id="bankCatalogHint" class="catalog-hint">Consultando cuentas bancarias disponibles…</small><label class="file-picker">Seleccionar archivo<input id="banks" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><span id="banksName">Ningún archivo</span></label></article>
   </section>
 
   <aside class="information fx-information"><b>Libro Mayor en dos monedas</b><span>Registre cada débito o crédito en moneda local y, cuando corresponda, su equivalencia en la moneda original. La tasa histórica se calcula con ambos importes y se conserva; las revaluaciones posteriores la usarán únicamente en cuentas marcadas para revaluación cambiaria. Departamento, centro de costos, clase, acreedor financiero y compañía relacionada son dimensiones opcionales según la cuenta. <strong>Sucursal se mantiene para uso futuro y puede dejarse vacía.</strong> Centro de costos sustituye a Proyecto.</span></aside>
@@ -35,6 +36,8 @@
   <aside class="information"><b>Auxiliar de activos fijos</b><span>Use fechas AAAA-MM-DD, importes sin separadores de miles, la moneda funcional y los códigos vigentes de categoría, ubicación y dimensiones. Puede usar punto o coma para los decimales. El archivo crea las fichas y su depreciación histórica sin volver a contabilizar esos importes. Las fichas que ya existan a la fecha de apertura se reconocen automáticamente para evitar duplicados.</span></aside>
 
   <aside class="information pending-information"><b>Pendientes de facturar</b><span>La plantilla conserva el detalle operativo sin contabilizarlo otra vez. Cada referencia debe incluir su registro histórico: <strong>débito 113003 · Facturación Pendiente de Emitir</strong> y <strong>crédito 413001 · Servicios Pendientes de Facturar</strong>. Al facturar, el sistema generará la reversión total o parcial con <strong>débito 413001</strong> y <strong>crédito 113003</strong>.</span></aside>
+
+  <aside class="information bank-information"><b>Auxiliar de bancos</b><span>Registre una fila <strong>SALDO_CONCILIADO</strong> por cuenta y, si existen, los <strong>DEPÓSITOS EN TRÁNSITO</strong> y <strong>CHEQUES EN TRÁNSITO</strong> pendientes a la fecha de apertura. Los saldos conciliados pueden ser negativos por sobregiro; las partidas en tránsito se escriben positivas y GENTIA aplica su signo. El auxiliar no vuelve a contabilizar el Mayor: crea el punto de partida de las conciliaciones bancarias y debe cuadrar con las cuentas de bancos del asiento de apertura.</span></aside>
 
   <div class="actions"><button id="validate" class="primary">Validar y previsualizar</button><button id="post" class="primary" disabled>Contabilizar saldos iniciales</button><button id="reverse" class="danger" hidden>Anular y reversar apertura</button></div>
   <p id="message" role="status"></p>
@@ -56,9 +59,17 @@
     <div class="card table asset-table"><table><thead><tr><th>Fila</th><th>Código / activo</th><th>Categoría</th><th>Ubicación / dimensiones</th><th>Fechas</th><th class="num">Costo</th><th class="num">Dep. acumulada</th><th class="num">Valor en libros</th><th class="num">Meses consumidos</th><th>Estado</th></tr></thead><tbody id="assetRows"></tbody></table></div>
   </section>
 
+  <section id="bankSummarySection" hidden>
+    <div class="section-title"><div><small>AUXILIAR DE BANCOS</small><h2>Conciliación del saldo inicial por cuenta bancaria</h2></div><span id="bankStatus" class="badge"></span></div>
+    <p class="bank-rule"><b>Control:</b> el saldo auxiliar en moneda local debe coincidir con el Libro Mayor para cada cuenta contable bancaria. Los depósitos y cheques en tránsito se conservan para la primera conciliación.</p>
+    <div id="bankSummary" class="summary bank-summary"></div>
+    <div class="card table"><table><thead><tr><th>Banco / cuenta</th><th>Cuenta contable</th><th>Moneda</th><th class="num">Libro Mayor<br>(original / local)</th><th class="num">Auxiliar bancario<br>(original / local)</th><th class="num">Diferencia<br>(original / local)</th><th>Estado</th></tr></thead><tbody id="bankReconciliation"></tbody></table></div>
+    <div class="card table bank-table"><table><thead><tr><th>Fila</th><th>Banco / cuenta</th><th>Tipo de registro</th><th>Fechas</th><th>Referencia / detalle</th><th>Moneda</th><th class="num">Importe original</th><th class="num">Equivalente local</th><th>Validación</th></tr></thead><tbody id="bankItems"></tbody></table></div>
+  </section>
+
   <section class="section-title"><div><small>APERTURA CONTABLE</small><h2>Detalle del asiento</h2></div></section>
   <section class="card table"><table><thead><tr><th>Origen</th><th>Fila</th><th>Cuenta</th><th>Documento</th><th>Moneda original / tasa histórica</th><th>Dimensiones</th><th class="num">Débito local</th><th class="num">Crédito local</th><th class="num">Débito original</th><th class="num">Crédito original</th></tr></thead><tbody id="rows"></tbody></table></section>
 </main>
-<script type="module" src="/opening-balances.js?v=20261014-all-excel"></script>
+<script type="module" src="/opening-balances.js?v=20261021-bank-opening"></script>
 </body>
 </html>

@@ -5,10 +5,12 @@
 .catalog-hint{display:block;margin-top:9px;color:#5f6f82;font-size:10px;line-height:1.4;max-height:42px;overflow:auto}
 .fx-information{background:#eef6ff;border-color:#bfd5ee;border-left-color:var(--navy)}.fx-information b{color:var(--navy)}.fx-information span{color:#40536b}.dimension-list{display:grid;gap:2px;min-width:155px}.dimension-list small{margin:0}.dimension-list small b{color:#40536b}
 
-/* Quinta carga: auxiliar operativo de pendientes de facturar. */
-.files{grid-template-columns:repeat(5,minmax(210px,1fr))}
+/* Auxiliares operativos de apertura. */
+.files{grid-template-columns:repeat(3,minmax(250px,1fr))}
 .files article.pending-file{border-top:4px solid #10845f!important;padding-top:13px}
 .files article.pending-file p{min-height:52px}
+.files article.bank-file{border-top:4px solid #1f7a8c!important;padding-top:13px}
+.files article.bank-file p{min-height:52px}
 .template-links{display:flex;align-items:center;gap:14px}
 .template-links a{display:inline-flex;align-items:center}
 .pending-information{background:#edf8f3;border-color:#b7dece;border-left-color:#10845f!important}
@@ -17,6 +19,12 @@
 .pending-summary div:last-child{background:#edf8f3;border-color:#b7dece}
 .pending-rule{margin:0 0 10px;padding:10px 12px;border:1px solid #b7dece;border-radius:8px;background:#f3fbf7;color:#365f52;font-size:11px;line-height:1.45}
 .pending-table{margin-top:12px}
+.bank-information{background:#edf8fa;border-color:#b8dfe4;border-left-color:#1f7a8c!important}
+.bank-information b{color:#11606f}
+.bank-information span{color:#365f67}
+.bank-rule{margin:0 0 10px;padding:10px 12px;border:1px solid #b8dfe4;border-radius:8px;background:#f1fafb;color:#365f67;font-size:11px;line-height:1.45}
+.bank-summary div:last-child{background:#edf8fa;border-color:#b8dfe4}
+.bank-table{margin-top:12px}
 @media(max-width:1350px){.files{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){.files{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:760px){.files{grid-template-columns:1fr}}

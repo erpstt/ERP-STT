@@ -12,7 +12,7 @@ async function api(action,body={}){
  return data;
 }
 
-const uploadNames={gl:'Libro Mayor',ar:'Cuentas por Cobrar',ap:'Cuentas por Pagar',fa:'Activos Fijos',pending:'Pendientes de Facturar'};
+const uploadNames={gl:'Libro Mayor',ar:'Cuentas por Cobrar',ap:'Cuentas por Pagar',fa:'Activos Fijos',pending:'Pendientes de Facturar',banks:'Auxiliar de Bancos'};
 const readUpload=id=>new Promise((resolve,reject)=>{
  const file=$(id).files[0];if(!file)return resolve('');
  if(file.size>5_000_000)return reject(Error(`El archivo de ${uploadNames[id]} supera 5 MB.`));
@@ -100,6 +100,47 @@ function renderPending(data){
  return{hasPending:true,balanced,hasPendingToCreate};
 }
 
+const bankTypeLabel=value=>({SALDO_CONCILIADO:'Saldo conciliado',DEPOSITO_EN_TRANSITO:'Depósito en tránsito',CHEQUE_EN_TRANSITO:'Cheque en tránsito'}[String(value||'').toUpperCase()]||String(value||'Registro bancario'));
+
+function renderBanks(data){
+ const summary=data.bankSummary||data.banks?.summary||{};
+ const items=data.bankItems||data.banks?.items||[];
+ const reconciliation=data.bankReconciliation||data.banks?.reconciliation||[];
+ const count=Number(firstValue(summary,'count','records','items')??items.length);
+ const accounts=Number(firstValue(summary,'accounts','accountCount','bankAccounts')??new Set(items.map(item=>`${firstValue(item,'bankCode','bank_code')}|${firstValue(item,'accountNumber','account_number')}`)).size);
+ const hasBanks=count>0||items.length>0||reconciliation.length>0;
+ $('bankSummarySection').hidden=!hasBanks;
+ if(!hasBanks)return{hasBanks:false,balanced:true,hasBankToCreate:false};
+ const hasItemErrors=items.some(item=>Array.isArray(item.errors)?item.errors.length:Boolean(item.error||item.validationError));
+ const balanced=summary.balanced!==false&&!hasItemErrors&&reconciliation.every(row=>Math.abs(Number(firstValue(row,'difference','variance')||0))<=.005&&Math.abs(Number(firstValue(row,'localDifference','differenceLocal')||0))<=.005);
+ $('bankStatus').className=`badge ${balanced?'ok':'bad'}`;
+ $('bankStatus').textContent=balanced?'Conciliado con el Mayor':'Requiere corrección';
+ const openingLocal=firstValue(summary,'openingLocal','openingBalanceLocal','localEquivalent','balanceLocal');
+ const depositsLocal=firstValue(summary,'transitDepositsLocal','depositsLocal','depositLocal');
+ const checksLocal=Math.abs(Number(firstValue(summary,'transitChecksLocal','checksLocal','checkLocal')||0));
+ $('bankSummary').innerHTML=`<div><small>Cuentas bancarias</small><b>${accounts.toLocaleString('es-CR')}</b></div><div><small>Registros del archivo</small><b>${count.toLocaleString('es-CR')}</b></div><div><small>Saldo conciliado local</small><b>${fmt(openingLocal)}</b></div><div><small>Partidas en tránsito</small><b>${fmt(depositsLocal)} / ${fmt(checksLocal)}</b><small>Depósitos / cheques en moneda local</small></div>`;
+ $('bankReconciliation').innerHTML=reconciliation.map(row=>{
+  const difference=Number(firstValue(row,'difference','variance')||0),localDifference=Number(firstValue(row,'localDifference','differenceLocal')||0),ok=Math.abs(difference)<=.005&&Math.abs(localDifference)<=.005;
+  const bank=[firstValue(row,'bankCode','bank_code'),firstValue(row,'bankName','bank_name')].filter(Boolean).map(esc).join(' · ');
+  const account=firstValue(row,'accountNumber','account_number','bankAccountNumber');
+  const ledgerNumber=firstValue(row,'ledgerAccountNumber','account','accountNumberGl','glAccountNumber');
+  const ledgerName=firstValue(row,'ledgerAccountName','accountName','glAccountName');
+  return`<tr><td><b>${bank||'Banco'}</b><small>${esc(account)}</small></td><td><b>${esc(ledgerNumber)}</b><small>${esc(ledgerName)}</small></td><td>${esc(firstValue(row,'currency','currencyCode'))}</td><td class="num">${fmt(firstValue(row,'ledger','generalLedger'))}<small>Local: ${fmt(firstValue(row,'ledgerLocal','generalLedgerLocal'))}</small></td><td class="num"><b>${fmt(firstValue(row,'auxiliary','bankAuxiliary'))}</b><small>Local: ${fmt(firstValue(row,'auxiliaryLocal','bankAuxiliaryLocal'))}</small></td><td class="num ${ok?'':'bad-text'}">${fmt(difference)}<small>Local: ${fmt(localDifference)}</small></td><td><span class="row-status ${ok?'ok':'bad'}">${ok?'Cuadra':'Diferencia'}</span></td></tr>`;
+ }).join('')||'<tr><td colspan="7" class="empty">No hay cuentas bancarias para conciliar.</td></tr>';
+ $('bankItems').innerHTML=items.map(item=>{
+  const errors=Array.isArray(item.errors)?item.errors.filter(Boolean):[item.error||item.validationError].filter(Boolean);
+  const created=Boolean(firstValue(item,'created','createdBankTransactionId','bankTransactionId','active'));
+  const statusClass=errors.length?'bad':created?'created':'pending',statusText=errors.length?errors.join(' · '):created?'Cargado':'Por cargar';
+  const bank=[firstValue(item,'bankCode','bank_code'),firstValue(item,'bankName','bank_name')].filter(Boolean).map(esc).join(' · ');
+  const detail=[firstValue(item,'beneficiary'),firstValue(item,'description')].filter(Boolean).map(esc).join(' · ');
+  const date=firstValue(item,'transactionDate','transaction_date','date'),valueDate=firstValue(item,'valueDate','value_date');
+  return`<tr><td>${esc(firstValue(item,'row','sourceRow','source_row'))}</td><td><b>${bank||'Banco'}</b><small>${esc(firstValue(item,'accountNumber','account_number'))}</small></td><td><span class="source">${esc(bankTypeLabel(firstValue(item,'recordType','record_type','type')))}</span></td><td>${esc(date)}${valueDate?`<small>Fecha valor: ${esc(valueDate)}</small>`:''}</td><td><b>${esc(firstValue(item,'reference')||'—')}</b><small>${detail||'Sin detalle adicional'}</small></td><td>${esc(firstValue(item,'currency','currencyCode'))}</td><td class="num">${fmt(firstValue(item,'originalAmount','original_amount','amount'))}</td><td class="num">${fmt(firstValue(item,'localEquivalent','local_equivalent','localAmount'))}</td><td><span class="row-status ${statusClass}">${esc(statusText)}</span></td></tr>`;
+ }).join('')||'<tr><td colspan="9" class="empty">El archivo no contiene registros bancarios para mostrar.</td></tr>';
+ const pendingCount=Number(firstValue(summary,'pending','pendingCount','recordsPending')||0);
+ const hasBankToCreate=pendingCount>0||items.some(item=>item.created===false||['PENDING','STAGED','POR_CARGAR'].includes(String(firstValue(item,'status','state')||'').toUpperCase()));
+ return{hasBanks:true,balanced,hasBankToCreate};
+}
+
 function renderDimensions(row){
  const dimensions=[
   ['Departamento',row.department],['Centro de costos',row.costCenter],['Clase',row.className],
@@ -123,9 +164,10 @@ function show(data){
  $('rows').innerHTML=(data.rows||[]).map(row=>`<tr><td><span class="source">${esc(row.sourceType)}</span></td><td>${row.row}</td><td>${esc(row.account)}</td><td>${esc(row.document||'—')}</td><td><b>${esc(row.currency)}</b><small>Tasa: ${esc(row.rate)}</small></td><td>${renderDimensions(row)}</td><td class="num">${fmt(row.debit)}</td><td class="num">${fmt(row.credit)}</td><td class="num">${fmt(originalAmount(row,'debit'))}</td><td class="num">${fmt(originalAmount(row,'credit'))}</td></tr>`).join('')||'<tr><td colspan="10" class="empty">El lote no contiene líneas contables para mostrar.</td></tr>';
  renderAssets(data);
  const pendingState=renderPending(data);
+ const bankState=renderBanks(data);
  const assetSummary=data.assetSummary||{},hasPendingAssets=Number(assetSummary.pending||0)>0,assetsBalanced=assetSummary.balanced!==false;
  $('post').textContent=posted?'Cargar auxiliares validados':'Contabilizar saldos iniciales';
- $('post').disabled=!canCreate||Math.abs(Number(summary.difference||0))>.005||!assetsBalanced||!pendingState.balanced||(posted&&!hasPendingAssets&&!pendingState.hasPendingToCreate)||(!posted&&run.status!=='VALIDATED');
+ $('post').disabled=!canCreate||Math.abs(Number(summary.difference||0))>.005||!assetsBalanced||!pendingState.balanced||!bankState.balanced||(posted&&!hasPendingAssets&&!pendingState.hasPendingToCreate&&!bankState.hasBankToCreate)||(!posted&&run.status!=='VALIDATED');
  $('reverse').hidden=!canReverse||!posted;
  for(const id of ['date','type','transition'])$(id).disabled=!canCreate||posted;
  for(const id of ['gl','ar','ap']){
@@ -138,10 +180,14 @@ async function init(){
  try{
   const data=await api('options');
   subsidiaryId=data.subsidiary.id;canCreate=data.canCreate===true;canReverse=data.canReverse===true;$('validate').disabled=!canCreate;
-  for(const id of ['date','type','transition','gl','ar','ap','fa','pending'])$(id).disabled=!canCreate;
+  for(const id of ['date','type','transition','gl','ar','ap','fa','pending','banks'])$(id).disabled=!canCreate;
   $('company').textContent=data.subsidiary.name;$('currency').textContent=`Moneda funcional: ${data.subsidiary.currency}`;
   const categories=data.assetCategories||[];
   $('faCatalogHint').textContent=categories.length?`Categorías válidas: ${categories.map(item=>item.code).join(', ')}`:'Configure primero una categoría activa de Activos Fijos.';
+  const bankAccounts=data.bankAccounts||[];
+  $('bankCatalogHint').textContent=bankAccounts.length
+   ?`Cuentas válidas: ${bankAccounts.map(item=>`${item.bankCode} · ${item.accountNumber} (${item.currency})`).join(', ')}`
+   :'Configure primero una cuenta bancaria activa para la subsidiaria.';
   const transitionAccounts=data.accounts.filter(account=>account.number==='319999'),existingRun=data.run;
   if(!transitionAccounts.length&&existingRun?.status!=='POSTED')throw Error('La cuenta transitoria 319999 no está asignada a esta subsidiaria.');
   const transitionOptions=transitionAccounts.map(account=>`<option value="${account.id}">${esc(account.number)} · ${esc(account.name)}</option>`);
@@ -158,7 +204,7 @@ function invalidateValidation(){
  if(runId)setMessage('Los datos cambiaron. Valide nuevamente antes de contabilizar.','working');
 }
 
-for(const id of ['gl','ar','ap','fa','pending'])$(id).addEventListener('change',()=>{$(`${id}Name`).textContent=$(id).files[0]?.name||'Ningún archivo';invalidateValidation();});
+for(const id of ['gl','ar','ap','fa','pending','banks'])$(id).addEventListener('change',()=>{$(`${id}Name`).textContent=$(id).files[0]?.name||'Ningún archivo';invalidateValidation();});
 for(const id of ['date','type','transition'])$(id).addEventListener('change',invalidateValidation);
 
 $('validate').onclick=async()=>{
@@ -167,9 +213,9 @@ $('validate').onclick=async()=>{
  try{
   assertActiveCompany();
   setMessage('Validando archivos, catálogos y conciliación…','working');
-  let gl='',ar='',ap='',fa='',pending='';
-  if(posted)[fa,pending]=await Promise.all(['fa','pending'].map(readUpload));else[gl,ar,ap,fa,pending]=await Promise.all(['gl','ar','ap','fa','pending'].map(readUpload));
-  data=await api('validate',{expectedSubsidiaryId:subsidiaryId,openingDate:$('date').value,loadType:$('type').value,transitionAccountId:$('transition').value,gl,ar,ap,fa,pending});
+  let gl='',ar='',ap='',fa='',pending='',banks='';
+  if(posted)[fa,pending,banks]=await Promise.all(['fa','pending','banks'].map(readUpload));else[gl,ar,ap,fa,pending,banks]=await Promise.all(['gl','ar','ap','fa','pending','banks'].map(readUpload));
+  data=await api('validate',{expectedSubsidiaryId:subsidiaryId,openingDate:$('date').value,loadType:$('type').value,transitionAccountId:$('transition').value,gl,ar,ap,fa,pending,banks});
  }catch(error){setMessage(error.message);}
  finally{endWork(controls);}
   if(data){show(data);setMessage(data.run?.status==='POSTED'?'Auxiliares validados. Revise las conciliaciones antes de completar la carga.':'Validación correcta. Revise la balanza y las conciliaciones antes de contabilizar.','success');}else $('post').disabled=true;
@@ -187,9 +233,10 @@ $('post').onclick=async()=>{
  finally{endWork(controls);}
  if(result){
   const pendingCreated=Number(result.pendingCreated||result.pendingItemsCreated||result.pendingActivated||0);
-  const completion=result.auxiliariesOnly||result.assetsOnly||result.pendingOnly?`Auxiliares cargados: ${result.assetsCreated||0} activo(s) y ${pendingCreated} pendiente(s) de facturar.`:`Apertura contabilizada: ${result.journalNumber}. Activos creados: ${result.assetsCreated||0}. Pendientes creados: ${pendingCreated}.`;
+  const banksCreated=Number(result.banksCreated||result.bankItemsCreated||result.bankTransactionsCreated||0);
+  const completion=result.auxiliariesOnly||result.assetsOnly||result.pendingOnly||result.bankOnly||result.banksOnly?`Auxiliares cargados: ${result.assetsCreated||0} activo(s), ${pendingCreated} pendiente(s) de facturar y ${banksCreated} registro(s) bancario(s).`:`Apertura contabilizada: ${result.journalNumber}. Activos creados: ${result.assetsCreated||0}. Pendientes creados: ${pendingCreated}. Registros bancarios: ${banksCreated}.`;
   setMessage(completion,'success');
-  for(const id of ['fa','pending']){$(id).value='';$(`${id}Name`).textContent='Ningún archivo';}
+  for(const id of ['fa','pending','banks']){$(id).value='';$(`${id}Name`).textContent='Ningún archivo';}
   if(preview)show(preview);else $('post').disabled=true;
  }
 };
@@ -206,8 +253,8 @@ $('reverse').onclick=async()=>{
  finally{endWork(controls);}
  if(result){posted=false;runId=null;
   for(const id of ['date','type','transition','gl','ar','ap'])$(id).disabled=!canCreate;
-  for(const id of ['gl','ar','ap','fa','pending']){$(id).value='';$(`${id}Name`).textContent='Ningún archivo';}
-  $('summary').hidden=true;$('assetSummarySection').hidden=true;$('pendingSummarySection').hidden=true;$('rows').innerHTML='';$('reverse').hidden=true;$('post').disabled=true;
+  for(const id of ['gl','ar','ap','fa','pending','banks']){$(id).value='';$(`${id}Name`).textContent='Ningún archivo';}
+  $('summary').hidden=true;$('assetSummarySection').hidden=true;$('pendingSummarySection').hidden=true;$('bankSummarySection').hidden=true;$('rows').innerHTML='';$('reverse').hidden=true;$('post').disabled=true;
   setMessage(`Apertura reversada: ${result.number}. Ya puede preparar una nueva carga.`,'success');
  }
 };

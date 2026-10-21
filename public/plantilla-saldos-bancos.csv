@@ -1,0 +1,4 @@
+codigo_banco,numero_cuenta_bancaria,moneda,tipo_registro,fecha_movimiento,fecha_valor,referencia,beneficiario,descripcion,importe_moneda_original,equivalente_moneda_local
+BANK01,000123456789,USD,SALDO_CONCILIADO,2026-09-30,2026-09-30,SALDO-APERTURA,,Saldo conciliado según libros,50000,1000000
+BANK01,000123456789,USD,DEPOSITO_EN_TRANSITO,2026-09-29,,DEP-001,Cliente ejemplo,Depósito pendiente de reflejar en el extracto,1200,24000
+BANK01,000123456789,USD,CHEQUE_EN_TRANSITO,2026-09-28,,CHQ-001,Proveedor ejemplo,Cheque pendiente de cobro,800,16000

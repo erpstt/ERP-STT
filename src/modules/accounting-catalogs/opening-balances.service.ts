@@ -60,6 +60,10 @@ type PendingLine={
 export type OpeningPendingItem={
  reference:string;originDate:string;entityTaxId:string;currency:string;exchangeRate:string;serviceMonth:string;serviceCountry:string;note:string;supportUrl:string;supportLink:string;lines:PendingLine[];
 };
+export type OpeningBankItem={
+ sourceRow:number;bankCode:string;accountNumber:string;currency:string;recordType:'SALDO_CONCILIADO'|'DEPOSITO_EN_TRANSITO'|'CHEQUE_EN_TRANSITO';
+ transactionDate:string;valueDate:string;reference:string;beneficiary:string;description:string;originalAmount:string;localEquivalent:string;
+};
 
 function normalizedHeader(value:unknown){
  return String(value??'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
@@ -243,6 +247,62 @@ export function parseOpeningPendingCsv(text:string,openingDate=''){
  return parseOpeningPendingRows(rows(text),openingDate);
 }
 
+function applyBankAliases(parsed:ParsedRow[]){
+ const aliases:Record<string,string[]>={
+  codigo_banco:['banco','bank_code'],numero_cuenta_bancaria:['cuenta_bancaria','numero_cuenta','bank_account'],
+  moneda:['currency'],tipo_registro:['tipo','record_type'],fecha_movimiento:['fecha','transaction_date'],fecha_valor:['value_date'],
+  referencia:['reference'],beneficiario:['beneficiary'],descripcion:['description'],
+  importe_moneda_original:['importe_original','monto_moneda_original','original_amount'],
+  equivalente_moneda_local:['equivalente_local','importe_moneda_local','local_equivalent']
+ };
+ for(const{data}of parsed)for(const[target,candidates]of Object.entries(aliases))if(!(target in data)){
+  const candidate=candidates.find(name=>name in data);if(candidate)data[target]=data[candidate];
+ }
+}
+
+function parseOpeningBankRows(parsed:ParsedRow[],openingDate=''):OpeningBankItem[]{
+ applyBankAliases(parsed);
+ const label='Auxiliar de Bancos',required=['codigo_banco','numero_cuenta_bancaria','moneda','tipo_registro','fecha_movimiento','fecha_valor','referencia','beneficiario','descripcion','importe_moneda_original','equivalente_moneda_local'];
+ requireColumns(parsed,label,required);
+ const allowed=new Set(['SALDO_CONCILIADO','DEPOSITO_EN_TRANSITO','CHEQUE_EN_TRANSITO']),openingBalances=new Set<string>();
+ return parsed.map(({row,data:x})=>{
+  const bankCode=(x.codigo_banco||'').trim().toUpperCase(),accountNumber=(x.numero_cuenta_bancaria||'').trim(),currency=(x.moneda||'').trim().toUpperCase();
+  const recordType=(x.tipo_registro||'').trim().toUpperCase()as OpeningBankItem['recordType'];
+  const transactionDate=(x.fecha_movimiento||'').trim(),valueDate=(x.fecha_valor||'').trim(),reference=(x.referencia||'').trim();
+  if(!bankCode)throw Error(`${label} fila ${row}: complete codigo_banco.`);
+  if(!accountNumber)throw Error(`${label} fila ${row}: complete numero_cuenta_bancaria.`);
+  if(!/^[A-Z]{3}$/.test(currency))throw Error(`${label} fila ${row}: moneda debe ser un codigo ISO de tres letras.`);
+  if(!allowed.has(recordType))throw Error(`${label} fila ${row}: tipo_registro debe ser SALDO_CONCILIADO, DEPOSITO_EN_TRANSITO o CHEQUE_EN_TRANSITO.`);
+  if(!validIsoDate(transactionDate))throw Error(`${label} fila ${row}: use fecha_movimiento con formato YYYY-MM-DD y una fecha valida.`);
+  if(openingDate&&transactionDate>openingDate)throw Error(`${label} fila ${row}: fecha_movimiento no puede ser posterior a la fecha de apertura.`);
+  if(valueDate&&!validIsoDate(valueDate))throw Error(`${label} fila ${row}: use fecha_valor con formato YYYY-MM-DD y una fecha valida, o dejela vacia.`);
+  if(openingDate&&valueDate&&valueDate>openingDate)throw Error(`${label} fila ${row}: fecha_valor no puede ser posterior a la fecha de apertura.`);
+  if(recordType!=='SALDO_CONCILIADO'&&!reference)throw Error(`${label} fila ${row}: complete referencia para la partida en transito.`);
+  const originalRaw=amount(x.importe_moneda_original),localRaw=amount(x.equivalente_moneda_local);
+  if(!originalRaw)throw Error(`${label} fila ${row}: complete importe_moneda_original.`);
+  if(!localRaw)throw Error(`${label} fila ${row}: complete equivalente_moneda_local.`);
+  const originalInput=Number(originalRaw),localInput=Number(localRaw);
+  if(recordType==='SALDO_CONCILIADO'){
+   if((originalInput===0)!==(localInput===0))throw Error(`${label} fila ${row}: el saldo original y su equivalente local deben ser ambos cero o ambos distintos de cero.`);
+   if(originalInput!==0&&Math.sign(originalInput)!==Math.sign(localInput))throw Error(`${label} fila ${row}: el saldo original y su equivalente local deben tener el mismo signo.`);
+   const key=`${bankCode}\u0000${accountNumber.toUpperCase()}\u0000${currency}`;
+   if(openingBalances.has(key))throw Error(`${label} fila ${row}: la cuenta bancaria ya tiene una fila SALDO_CONCILIADO.`);
+   openingBalances.add(key);
+  }else if(originalInput<=0||localInput<=0)throw Error(`${label} fila ${row}: las partidas en transito deben ingresarse con importes positivos; el sistema deriva el signo.`);
+  const sign=recordType==='CHEQUE_EN_TRANSITO'?-1:1;
+  return{
+   sourceRow:row,bankCode,accountNumber,currency,recordType,transactionDate,valueDate,reference,
+   beneficiary:(x.beneficiario||'').trim(),description:(x.descripcion||'').trim(),
+   originalAmount:String(recordType==='SALDO_CONCILIADO'?originalInput:originalInput*sign),
+   localEquivalent:String(recordType==='SALDO_CONCILIADO'?localInput:localInput*sign)
+  };
+ });
+}
+
+export function parseOpeningBankCsv(text:string,openingDate=''){
+ return parseOpeningBankRows(rows(text),openingDate);
+}
+
 async function parseOpeningUpload<T>(
  input:unknown,
  label:string,
@@ -275,6 +335,10 @@ async function parseOpeningUpload<T>(
 
 export async function parseOpeningPendingFile(input:unknown,openingDate:string,fileNameHint=''){
  return parseOpeningUpload(input,'Pendientes de Facturar',fileNameHint,text=>parseOpeningPendingCsv(text,openingDate),parsed=>parseOpeningPendingRows(parsed,openingDate));
+}
+
+export async function parseOpeningBankFile(input:unknown,openingDate:string,fileNameHint=''){
+ return parseOpeningUpload(input,'Auxiliar de Bancos',fileNameHint,text=>parseOpeningBankCsv(text,openingDate),parsed=>parseOpeningBankRows(parsed,openingDate));
 }
 
 function parseOpeningFixedAssetRows(parsed:ParsedRow[]){
@@ -315,23 +379,27 @@ function normalizeOpeningPreview(value:unknown){
   ...result,
   pendingSummary:result.pendingSummary??result.pending_summary??nested.summary??{},
   pendingReconciliation:result.pendingReconciliation??result.pending_reconciliation??nested.reconciliation??[],
-  pendingItems:result.pendingItems??result.pending_items??nested.items??(Array.isArray(result.pending)?result.pending:[])
+  pendingItems:result.pendingItems??result.pending_items??nested.items??(Array.isArray(result.pending)?result.pending:[]),
+  bankSummary:result.bankSummary??result.bank_summary??result.banksSummary??result.banks_summary??(result.banks&&typeof result.banks==='object'&&!Array.isArray(result.banks)?(result.banks as Record<string,unknown>).summary:{}),
+  bankReconciliation:result.bankReconciliation??result.bank_reconciliation??result.banksReconciliation??result.banks_reconciliation??(result.banks&&typeof result.banks==='object'&&!Array.isArray(result.banks)?(result.banks as Record<string,unknown>).reconciliation:[]),
+  bankItems:result.bankItems??result.bank_items??result.banksItems??result.banks_items??(result.banks&&typeof result.banks==='object'&&!Array.isArray(result.banks)?(result.banks as Record<string,unknown>).items:[])??[]
  };
 }
 
 export async function openingBalances(auth:string,action:string,p:Record<string,unknown>={}){
  if(action==='validate'){
   const openingDate=String(p.openingDate||'');
-  const[glRows,arRows,apRows,assets,pending]=await Promise.all([
+  const[glRows,arRows,apRows,assets,pending,banks]=await Promise.all([
    parseOpeningAccountingFile(p.gl,'GL',String(p.glFileName||'')),
    parseOpeningAccountingFile(p.ar,'AR',String(p.arFileName||'')),
    parseOpeningAccountingFile(p.ap,'AP',String(p.apFileName||'')),
    parseOpeningFixedAssetFile(p.fa,String(p.faFileName||'')),
-   parseOpeningPendingFile(p.pending,openingDate,String(p.pendingFileName||''))
+   parseOpeningPendingFile(p.pending,openingDate,String(p.pendingFileName||'')),
+   parseOpeningBankFile(p.banks,openingDate,String(p.banksFileName||''))
   ]);
   const financialRows=[...glRows,...arRows,...apRows];
-  if(!financialRows.length&&!assets.length&&!pending.length)throw Error('Cargue al menos una plantilla con datos.');
-  return normalizeOpeningPreview(await rpc(auth,map.validate,{p:{expectedSubsidiaryId:p.expectedSubsidiaryId,openingDate:p.openingDate,loadType:p.loadType,transitionAccountId:p.transitionAccountId,rows:financialRows,assets,pending}}));
+  if(!financialRows.length&&!assets.length&&!pending.length&&!banks.length)throw Error('Cargue al menos una plantilla con datos.');
+  return normalizeOpeningPreview(await rpc(auth,map.validate,{p:{expectedSubsidiaryId:p.expectedSubsidiaryId,openingDate:p.openingDate,loadType:p.loadType,transitionAccountId:p.transitionAccountId,rows:financialRows,assets,pending,banks}}));
  }
  const fn=map[action];if(!fn)throw Error('Acción inválida.');
  const result=await rpc(auth,fn,action==='preview'||action==='post'||action==='reverse'?{p_run_id:Number(p.runId)}:{});
