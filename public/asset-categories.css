@@ -9,6 +9,32 @@
 
 body.modal-open { overflow: hidden; }
 
+.title-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.exports { display: flex; gap: 7px; }
+
+.export-button {
+  min-height: 39px;
+  padding: 9px 12px;
+  border-color: #b8d9cd;
+  color: #076c50;
+  background: #f2faf7;
+  font-weight: 800;
+}
+
+.export-button:hover:not(:disabled) {
+  border-color: #62b899;
+  background: #e6f6f0;
+}
+
+.export-button:disabled { cursor: wait; opacity: .65; }
+
 #modal.overlay {
   display: flex;
   align-items: center;
@@ -203,6 +229,9 @@ body.modal-open { overflow: hidden; }
 }
 
 @media (max-width: 850px) {
+  .title { align-items: flex-start; gap: 16px; }
+  .title-actions { max-width: 420px; }
+  .exports { width: 100%; justify-content: flex-end; }
   #modal.overlay { padding: 14px; }
   #entry.asset-category-dialog {
     width: calc(100vw - 28px);
@@ -219,6 +248,9 @@ body.modal-open { overflow: hidden; }
 }
 
 @media (max-width: 560px) {
+  .title { display: block; }
+  .title-actions { justify-content: flex-start; margin-top: 14px; }
+  .exports { justify-content: flex-start; }
   #entry .dialog-head,
   #entry .header-grid,
   #entry footer { padding-left: 18px; padding-right: 18px; }

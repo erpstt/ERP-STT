@@ -47,7 +47,7 @@ async function load() {
   try {
     const result = await api('/api/fixed-assets/asset-category-report', {
       method: 'POST',
-      body: JSON.stringify({ search: $('search').value, status: $('filterStatus').value })
+      body: JSON.stringify({ search: $('search').value.trim(), status: $('filterStatus').value })
     });
     rows = result.rows || [];
     $('count').textContent = `${rows.length} registro${rows.length === 1 ? '' : 's'}`;
@@ -87,6 +87,50 @@ async function load() {
   }
 }
 
+async function downloadCategories(format) {
+  const buttons = [$('exportCsv'), $('exportExcel'), $('exportPdf')];
+  if (buttons.some((button) => button.disabled)) return;
+  const selected = format === 'xlsx' ? $('exportExcel') : format === 'pdf' ? $('exportPdf') : $('exportCsv');
+  const label = selected.textContent;
+  buttons.forEach((button) => { button.disabled = true; });
+  selected.textContent = 'Preparando…';
+  $('message').textContent = '';
+  try {
+    const query = new URLSearchParams({
+      format,
+      status: $('filterStatus').value,
+      search: $('search').value.trim()
+    });
+    const response = await fetch(`/api/fixed-assets/asset-categories/export?${query}`, {
+      headers: { Authorization: `Bearer ${token}`, 'X-Device-Token': device || '' }
+    });
+    if (!response.ok) {
+      let payload = {};
+      try { payload = await response.json(); } catch { /* La respuesta puede no ser JSON. */ }
+      throw Error(payload?.error?.message || payload?.message || 'No fue posible preparar la descarga de categorías de activos.');
+    }
+    const blob = await response.blob();
+    const disposition = response.headers.get('content-disposition') || '';
+    const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+    const plain = disposition.match(/filename="?([^";]+)"?/i);
+    const extension = format === 'xlsx' ? 'xlsx' : format;
+    const fileName = encoded ? decodeURIComponent(encoded[1]) : plain?.[1] || `categorias-activos-${new Date().toISOString().slice(0, 10)}.${extension}`;
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  } catch (error) {
+    $('message').textContent = error.message;
+  } finally {
+    buttons.forEach((button) => { button.disabled = false; });
+    selected.textContent = label;
+  }
+}
+
 function updateMethod() {
   const disabled = $('method').value === 'No Depreciable';
   $('life').disabled = disabled;
@@ -116,6 +160,9 @@ function open(id = null) {window.NexoRecordAudit.show('asset_category',id,'#entr
 }
 
 $('method').onchange = updateMethod;
+$('exportCsv').onclick = () => downloadCategories('csv');
+$('exportExcel').onclick = () => downloadCategories('xlsx');
+$('exportPdf').onclick = () => downloadCategories('pdf');
 $('new').onclick = () => open();
 $('close').onclick = $('cancel').onclick = () => { $('modal').hidden = true; document.body.classList.remove('modal-open'); };
 $('filters').onsubmit = (event) => { event.preventDefault(); load(); };
