@@ -86,6 +86,8 @@ import { exportSettledSupplierInvoiceExcel, exportSettledSupplierInvoicePdf, run
 import { exportPaymentRequestReportExcel, exportPaymentRequestReportPdf, paymentRequestReportOptions, runPaymentRequestReport } from './modules/reports/payment-requests-report.service.js';
 import { exportVatDeclarationReportExcel, exportVatDeclarationReportPdf, runVatDeclarationReport, vatDeclarationReportOptions } from './modules/reports/vat-declaration-report.service.js';
 import { eightColumnBalanceOptions, exportEightColumnBalanceExcel, exportEightColumnBalancePdf, runEightColumnBalanceReport } from './modules/reports/eight-column-balance-report.service.js';
+import { exportIntercompanyLoansExcel, exportIntercompanyLoansPdf, intercompanyLoansReportOptions, runIntercompanyLoansReport } from './modules/reports/intercompany-loans-report.service.js';
+import { exportIntercompanyCommercialExcel, exportIntercompanyCommercialPdf, intercompanyCommercialReportOptions, runIntercompanyCommercialReport } from './modules/reports/intercompany-commercial-report.service.js';
 import { auditChangeReportOptions, exportAuditChangeReportExcel, exportAuditChangeReportPdf, runAuditChangeReport } from './modules/reports/audit-change-report.service.js';
 import {incomeForecastAction} from './modules/reports/income-forecast.service.js';
 import { bankTransferJournal, bankTransferOptions, createBankTransfer, runBankTransferReport } from './modules/banking-catalogs/bank-transfer.service.js';
@@ -212,6 +214,14 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(request.method==='POST'&&request.url==='/api/v1/reports/accounting/eight-column-balance'){return json(response,200,await runEightColumnBalanceReport(request.headers.authorization!,await body(request)as Record<string,unknown>));}
     if(request.method==='POST'&&request.url==='/api/v1/reports/accounting/eight-column-balance/pdf'){return download(response,await exportEightColumnBalancePdf(request.headers.authorization!,await body(request)as Record<string,unknown>));}
     if(request.method==='POST'&&request.url==='/api/v1/reports/accounting/eight-column-balance/excel'){return download(response,await exportEightColumnBalanceExcel(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='GET'&&request.url==='/api/v1/reports/accounting/intercompany-loans/options'){return json(response,200,await intercompanyLoansReportOptions(request.headers.authorization!));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/accounting/intercompany-loans'){return json(response,200,await runIntercompanyLoansReport(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/accounting/intercompany-loans/pdf'){return download(response,await exportIntercompanyLoansPdf(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/accounting/intercompany-loans/excel'){return download(response,await exportIntercompanyLoansExcel(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='GET'&&request.url==='/api/v1/reports/accounting/intercompany-commercial/options'){return json(response,200,await intercompanyCommercialReportOptions(request.headers.authorization!));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/accounting/intercompany-commercial'){return json(response,200,await runIntercompanyCommercialReport(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/accounting/intercompany-commercial/pdf'){return download(response,await exportIntercompanyCommercialPdf(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    if(request.method==='POST'&&request.url==='/api/v1/reports/accounting/intercompany-commercial/excel'){return download(response,await exportIntercompanyCommercialExcel(request.headers.authorization!,await body(request)as Record<string,unknown>));}
     if(request.method==='GET'&&request.url==='/api/v1/reports/audit/changes/options'){return json(response,200,await auditChangeReportOptions(request.headers.authorization!));}
     if(request.method==='POST'&&request.url==='/api/v1/reports/audit/changes'){return json(response,200,await runAuditChangeReport(request.headers.authorization!,await body(request)as Record<string,unknown>));}
     if(request.method==='POST'&&request.url==='/api/v1/reports/audit/changes/pdf'){return download(response,await exportAuditChangeReportPdf(request.headers.authorization!,await body(request)as Record<string,unknown>));}

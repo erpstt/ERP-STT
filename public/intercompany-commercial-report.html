@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Cuentas comerciales intercompany · GENTIA</title>
+  <link rel="stylesheet" href="/intercompany-commercial-report.css?v=20261023">
+</head>
+<body>
+<main class="report-page">
+  <a class="back-link" href="/informes/contabilidad">← Todos los reportes</a>
+
+  <header class="report-heading">
+    <div>
+      <p class="eyebrow">CONTABILIDAD · OPERACIONES INTERCOMPANY</p>
+      <h1>Cuentas comerciales intercompany</h1>
+      <p class="lead">Cartera comercial de clientes y proveedores intercompany en las cuentas 113002 y 211002, separada por tercero y moneda.</p>
+    </div>
+    <div class="export-actions" aria-label="Descargar reporte">
+      <button id="downloadCsv" class="button secondary" type="button"><span aria-hidden="true">↓</span> CSV</button>
+      <button id="downloadExcel" class="button secondary" type="button"><span aria-hidden="true">↓</span> Excel</button>
+      <button id="downloadPdf" class="button secondary" type="button"><span aria-hidden="true">↓</span> PDF</button>
+    </div>
+  </header>
+
+  <form id="filters" class="panel filters">
+    <div class="panel-title">
+      <div><span class="step">1</span><div><b>Parámetros del reporte</b><small>Defina la empresa, el período, el tercero comercial y la moneda que desea consultar.</small></div></div>
+      <button id="resetFilters" class="button quiet" type="button">Restablecer</button>
+    </div>
+    <div class="filter-grid">
+      <label>Subsidiaria<select id="subsidiary" required></select></label>
+      <label>Libro contable<select id="book"><option value="">Libro principal</option></select></label>
+      <label>Desde<input id="dateFrom" type="date" required></label>
+      <label>Hasta<input id="dateTo" type="date" required></label>
+      <label>Tercero comercial<select id="thirdParty"><option value="">Todos los terceros</option></select></label>
+      <label>Moneda<select id="currency"><option value="">Todas las monedas</option></select></label>
+      <label>Tipo de saldo<select id="direction">
+        <option value="ALL">Cuentas por cobrar y pagar</option>
+        <option value="RECEIVABLE">Solo cuentas por cobrar</option>
+        <option value="PAYABLE">Solo cuentas por pagar</option>
+      </select></label>
+      <label class="check-field"><input id="onlyPending" type="checkbox" checked><span>Solo documentos con saldo pendiente</span></label>
+      <label class="search-field">Búsqueda<input id="search" type="search" maxlength="120" placeholder="Factura, tercero, identificación, asiento o concepto"></label>
+      <button id="generate" class="button primary" type="submit">Generar reporte</button>
+    </div>
+  </form>
+
+  <div id="message" class="message" role="status" aria-live="polite"></div>
+  <section id="reportMeta" class="report-meta" hidden></section>
+  <section id="summary" class="summary-board" aria-label="Resumen por moneda">
+    <div class="initial-state"><span aria-hidden="true">⇄</span><b>Genere el reporte para consultar la cartera comercial intercompany</b><small>Las monedas se presentan por separado y nunca se suman entre sí.</small></div>
+  </section>
+  <section id="quality" class="quality-panel" hidden></section>
+
+  <div id="results" class="results" hidden>
+    <section id="receivablesSection" class="panel balance-section receivable-section">
+      <header class="section-heading"><div><span class="section-icon">CxC</span><div><p>SECCIÓN A · CUENTA 113002</p><h2>Cuentas por cobrar clientes intercompany</h2><small>Facturas y saldos por cliente y moneda.</small></div></div><span id="receivablesCount" class="record-count">0 registros</span></header>
+      <div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Moneda</th><th class="number">Documentos pendientes</th><th class="number">Saldo inicial</th><th class="number">Débitos</th><th class="number">Créditos</th><th class="number">Saldo Mayor</th><th class="number">Saldo auxiliar</th><th class="number">Diferencia</th></tr></thead><tbody id="receivablesRows"></tbody></table></div>
+    </section>
+
+    <section id="payablesSection" class="panel balance-section payable-section">
+      <header class="section-heading"><div><span class="section-icon">CxP</span><div><p>SECCIÓN B · CUENTA 211002</p><h2>Cuentas por pagar proveedores intercompany</h2><small>Facturas y saldos por proveedor y moneda.</small></div></div><span id="payablesCount" class="record-count">0 registros</span></header>
+      <div class="table-wrap"><table><thead><tr><th>Proveedor</th><th>Moneda</th><th class="number">Documentos pendientes</th><th class="number">Saldo inicial</th><th class="number">Débitos</th><th class="number">Créditos</th><th class="number">Saldo Mayor</th><th class="number">Saldo auxiliar</th><th class="number">Diferencia</th></tr></thead><tbody id="payablesRows"></tbody></table></div>
+    </section>
+
+    <section id="netSection" class="panel net-section">
+      <header class="section-heading"><div><span class="section-icon">=</span><div><p>SECCIÓN C</p><h2>Resumen comercial por moneda</h2><small>La diferencia CxC menos CxP es informativa; no representa compensación legal entre clientes y proveedores.</small></div></div><span id="netCount" class="record-count">0 monedas</span></header>
+      <div class="table-wrap"><table><thead><tr><th>Moneda</th><th class="number">Clientes por cobrar</th><th class="number">Proveedores por pagar</th><th class="number">Diferencia informativa</th><th>Resultado</th></tr></thead><tbody id="netRows"></tbody></table></div>
+    </section>
+
+    <section id="localSection" class="panel local-section">
+      <header class="section-heading"><div><span class="section-icon">ML</span><div><p>CONTROL MULTIMONEDA</p><h2>Equivalencia en moneda local por tercero</h2><small>Cada moneda original permanece separada; los importes se muestran también en la moneda funcional de la subsidiaria.</small></div></div><span id="localCount" class="record-count">0 equivalencias</span></header>
+      <div class="table-wrap"><table><thead><tr><th>Subsidiaria</th><th>Cliente / proveedor</th><th>Moneda original</th><th>Moneda funcional</th><th class="number">CxC equivalente</th><th class="number">CxP equivalente</th><th class="number">Diferencia</th></tr></thead><tbody id="localRows"></tbody></table></div>
+    </section>
+
+    <section id="detailSection" class="panel detail-section">
+      <header class="section-heading"><div><span class="section-icon">≡</span><div><p>TRAZABILIDAD</p><h2>Detalle de documentos</h2><small>Cada factura conserva su cliente o proveedor, cuenta contable, moneda original y saldo pendiente.</small></div></div><span id="detailCount" class="record-count">0 documentos</span></header>
+      <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Vencimiento</th><th>Tipo</th><th>Factura / asiento</th><th>Cliente / proveedor</th><th>Moneda</th><th>Cuenta contable</th><th>Antigüedad</th><th class="number">Importe</th><th class="number">Cobros / pagos</th><th class="number">Notas de crédito</th><th class="number">Notas de débito</th><th class="number">Saldo pendiente</th></tr></thead><tbody id="detailRows"></tbody></table></div>
+    </section>
+  </div>
+</main>
+<script type="module" src="/intercompany-commercial-report.js?v=20261023"></script>
+</body>
+</html>
