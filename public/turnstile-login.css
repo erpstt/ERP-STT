@@ -1,0 +1,11 @@
+.turnstile-field {
+  min-height: 66px;
+  margin: -5px 0 20px;
+}
+.turnstile-field > div { min-height: 65px; }
+.turnstile-field small {
+  display: block;
+  margin-top: 5px;
+  color: #788394;
+  font-size: 10px;
+}

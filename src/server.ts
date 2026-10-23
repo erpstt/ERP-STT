@@ -64,6 +64,8 @@ import { assertActiveSession, revokeCurrentSession, SessionAuthenticationError }
 import { assertRegisteredDevice } from './modules/auth/services/device.service.js';
 import { changePassword } from './modules/auth/services/password-history.service.js';
 import { error, json } from './core/interceptors/http-response.js';
+import { turnstilePublicConfig, verifyTurnstileToken, TurnstileValidationError } from './core/security/turnstile.service.js';
+import { assertLoginAllowed, clearLoginFailures, LoginRateLimitError, recordLoginFailure } from './core/security/login-rate-limit.js';
 import { consultarYGuardarTipoDeCambioRD } from './modules/configuration-catalogs/services/dominican-republic-exchange-rate.service.js';
 import { iniciarProgramacionTipoCambioRD } from './modules/configuration-catalogs/services/dominican-republic-exchange-rate.scheduler.js';
 import { consultarYGuardarTipoDeCambioCR } from './modules/configuration-catalogs/services/costa-rica-exchange-rate.service.js';
@@ -135,9 +137,40 @@ function download(response: ServerResponse, file: { fileName: string; mimeType: 
 }
 
 function clientIp(request: IncomingMessage) {
-  const forwarded = request.headers['x-forwarded-for'];
-  const value = Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(',')[0];
-  return value?.trim() || request.socket.remoteAddress?.replace(/^::ffff:/, '') || null;
+  if (process.env.TRUST_CLOUDFLARE_PROXY?.trim().toLowerCase() === 'true') {
+    const cloudflareIp = request.headers['cf-connecting-ip'];
+    const value = Array.isArray(cloudflareIp) ? cloudflareIp[0] : cloudflareIp;
+    if (value?.trim()) return value.trim();
+  }
+  return request.socket.remoteAddress?.replace(/^::ffff:/, '') || null;
+}
+
+function applySecurityHeaders(request: IncomingMessage, response: ServerResponse) {
+  response.setHeader('X-Content-Type-Options', 'nosniff');
+  response.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  response.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()');
+  response.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  response.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+  response.setHeader('Content-Security-Policy', [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "form-action 'self'",
+    "frame-ancestors 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    "img-src 'self' data: blob: https:",
+    "media-src 'self' blob:",
+    "connect-src 'self' https://challenges.cloudflare.com",
+    "frame-src 'self' https://challenges.cloudflare.com"
+  ].join('; '));
+  if (request.url?.startsWith('/api/')) response.setHeader('Cache-Control', 'private, no-store');
+  const forwardedProto = request.headers['x-forwarded-proto'];
+  if (process.env.NODE_ENV === 'production' && forwardedProto === 'https') {
+    response.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
 }
 
 async function serveFile(pathname: string, response: ServerResponse) {
@@ -163,15 +196,29 @@ async function serveFile(pathname: string, response: ServerResponse) {
 }
 
 const server = createServer((request, response) => withAuditExecution(async () => {
+  applySecurityHeaders(request, response);
   try {
     if (request.method === 'GET' && request.url?.split('?')[0] === '/assets/vue.js') {
       response.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=86400' });
       createReadStream(vueBrowserBuild).pipe(response);
       return;
     }
+    if (request.method === 'GET' && request.url === '/api/security/turnstile/config') {
+      return json(response, 200, turnstilePublicConfig());
+    }
     if (request.method === 'POST' && request.url === '/api/auth/login') {
-      const result = await authController.signIn(await body(request) as { email: string; password: string; deviceToken?: string; deviceName?: string }, clientIp(request));
-      return json(response, 200, result);
+      const input = await body(request) as { email: string; password: string; deviceToken?: string; deviceName?: string; turnstileToken?: string };
+      const ip = clientIp(request);
+      assertLoginAllowed(ip, input.email);
+      try {
+        await verifyTurnstileToken(input.turnstileToken, ip);
+        const result = await authController.signIn(input, ip);
+        clearLoginFailures(ip, input.email);
+        return json(response, 200, result);
+      } catch (cause) {
+        if (!(cause instanceof TurnstileValidationError && cause.status === 503)) recordLoginFailure(ip, input.email);
+        throw cause;
+      }
     }
     if (request.method === 'POST' && request.url === '/api/auth/logout') {
       const authorization = request.headers.authorization;
@@ -601,6 +648,7 @@ const server = createServer((request, response) => withAuditExecution(async () =
     }
     await serveFile(request.url?.split('?')[0] ?? '/', response);
   } catch (cause) {
+    if (cause instanceof LoginRateLimitError) response.setHeader('Retry-After', String(cause.retryAfterSeconds));
     error(response, cause instanceof SessionAuthenticationError ? 401 : (cause as {status?:number})?.status || (cause instanceof Error&&/^Saldo presupuestario/.test(cause.message)?422:400), cause instanceof Error ? cause.message : 'No fue posible procesar la solicitud.');
   }
 }));
