@@ -78,6 +78,8 @@ const auxiliaryHeaders = [
   'cuenta',
   'moneda',
   'saldo',
+  'equivalente_moneda_local',
+  'tipo_cambio_historico',
   'centro_costos',
   'sucursal',
   'nota',
@@ -91,10 +93,10 @@ for (const csv of [glTemplateBytes, arTemplateBytes, apTemplateBytes, templateBy
 assert.match(service, /text\.replace\(\/\^\\uFEFF\//);
 assert.match(service, /if\(records\.length<2\)return\[\]/);
 assert.match(service, /excelSeparator/);
-assert.match(service, /encabezados duplicados/);
+assert.match(service, /function duplicateHeaderFailure/);
 assert.match(service, /normalize\('NFD'\).*replace\(\/\[\\u0300-\\u036f\]/s);
-assert.match(service, /más columnas que el encabezado/);
-assert.match(service, /importe .* es ambiguo/);
+assert.match(service, /function extraColumnFailure/);
+assert.match(service, /El importe .* es ambiguo/);
 assert.match(service, /function fixedAssetCsv\(text:string\)/);
 assert.match(service, /debito_moneda_local/);
 assert.match(service, /debito_moneda_original/);
@@ -115,8 +117,8 @@ assert.match(client, /row\.staged/);
 assert.match(client, /row\.auxiliary/);
 assert.match(client, /const readUpload=id=>new Promise/);
 assert.match(client, /endsWith\('\.xlsx'\)/);
-assert.match(client, /if\(posted\)\[fa,pending\]=await Promise\.all\(\['fa','pending'\]\.map\(readUpload\)\)/);
-assert.match(client, /else\[gl,ar,ap,fa,pending\]=await Promise\.all\(\['gl','ar','ap','fa','pending'\]\.map\(readUpload\)\)/);
+assert.match(client, /const ids=posted\?\['fa','pending','banks'\]:uploadIds/);
+assert.match(client, /uploads=await readSelectedUploads\(ids\)/);
 assert.match(client, /function invalidateValidation\(\)/);
 assert.match(client, /\['date','type','transition'\].*addEventListener\('change',invalidateValidation\)/s);
 assert.match(client, /run\.status!=='VALIDATED'/);
@@ -142,6 +144,27 @@ assert.doesNotMatch(client, /row\.project/);
 assert.match(html, /Sucursal se mantiene para uso futuro y puede dejarse vacía/);
 assert.match(html, /Débito original/);
 assert.match(html, /Crédito original/);
+assert.match(html, /Conciliación Mayor vs\. Cuentas por Cobrar y Pagar/);
+assert.match(html, /el sistema no lo suma dos veces/i);
+assert.match(client, /function renderArAp\(data\)/);
+assert.match(client, /arApReconciliation/);
+assert.match(client, /Diferencia real del Libro Mayor/);
+assert.match(client, /function renderBalanceDifference\(summary\)/);
+assert.match(client, /difference>0\?'crédito':'débito'/);
+assert.match(client, /Después de excluir las cuentas de control duplicadas/);
+assert.match(client, /function historicalRateSource\(row\)/);
+assert.match(client, /GL_RESIDUAL:'Inferida del Mayor'/);
+assert.match(client, /rate-source .*inferred/);
+assert.match(html, /id="balanceDifference"/);
+assert.match(html, /opening-balances\.(?:css|js)\?v=20261022-post-confirmation-modal/);
+assert.match(html, /id="postConfirmationDialog"[^>]*aria-labelledby="postConfirmTitle"/);
+assert.match(html, /id="postConfirmCompany"/);
+assert.match(html, /id="postConfirmLoadType"/);
+assert.match(html, /id="postConfirmDebit"/);
+assert.match(html, /id="postConfirmCredit"/);
+assert.match(client, /function openPostConfirmation\(\)/);
+assert.match(client, /function submitValidatedOpening\(\)/);
+assert.doesNotMatch(client, /confirm\(question\)/);
 
 console.log(
   'OK: plantillas con doble moneda y dimensiones, sin Proyecto, auxiliar fijo y vista previa de apertura cubiertos en la interfaz.',

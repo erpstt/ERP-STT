@@ -3,30 +3,109 @@ const token=()=>localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo
 const device=()=>localStorage.getItem('nexo_device_token')||sessionStorage.getItem('nexo_device_token')||'';
 const fmt=value=>Number(value||0).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const esc=value=>String(value??'—').replace(/[&<>"']/g,character=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
-let runId=null,posted=false,canCreate=false,canReverse=false,subsidiaryId=null,working=false;
+let runId=null,posted=false,canCreate=false,canReverse=false,subsidiaryId=null,functionalCurrency='',working=false,lastPreview=null,postSubmitting=false,postDialogReturnFocus=null;
 
 async function api(action,body={}){
  const response=await fetch(`/api/opening-balances/${action}`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token()}`,'X-Device-Token':device()},body:JSON.stringify(body)});
- const data=await response.json();
- if(!response.ok)throw Error(data.error?.message||'No fue posible procesar la apertura.');
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok){
+  const failure=Error(data.error?.message||'No fue posible procesar la apertura.');
+  failure.code=data.error?.code||'';
+  failure.files=Array.isArray(data.error?.files)?data.error.files:[];
+  throw failure;
+ }
  return data;
 }
 
-const uploadNames={gl:'Libro Mayor',ar:'Cuentas por Cobrar',ap:'Cuentas por Pagar',fa:'Activos Fijos',pending:'Pendientes de Facturar',banks:'Auxiliar de Bancos'};
+const uploadNames={gl:'Libro Mayor',ar:'Cuentas por Cobrar',ap:'Cuentas por Pagar',fa:'Auxiliar de Activos Fijos',pending:'Auxiliar de Pendientes de Facturar',banks:'Auxiliar de Bancos'};
+const uploadIds=Object.keys(uploadNames);
+const selectedFileName=id=>$(id)?.files?.[0]?.name||'';
+const uploadFailure=(id,message,code='FILE_READ_ERROR',suggestion='Seleccione nuevamente el archivo y vuelva a validar.')=>{
+ const failure=Error(message);
+ failure.files=[{key:id,label:uploadNames[id],fileName:selectedFileName(id)||'Archivo no identificado',errors:[{code,message,suggestion}]}];
+ return failure;
+};
 const readUpload=id=>new Promise((resolve,reject)=>{
  const file=$(id).files[0];if(!file)return resolve('');
- if(file.size>5_000_000)return reject(Error(`El archivo de ${uploadNames[id]} supera 5 MB.`));
+ if(file.size>5_000_000)return reject(uploadFailure(id,`El archivo supera el límite permitido de 5 MB.`,'FILE_TOO_LARGE','Reduzca el tamaño del archivo o divida la información antes de volver a cargarlo.'));
  if(file.name.toLowerCase().endsWith('.csv')){
-  const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsText(file,'utf-8');return;
+  const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(uploadFailure(id,'No fue posible leer el archivo CSV.'));reader.readAsText(file,'utf-8');return;
  }
- if(!file.name.toLowerCase().endsWith('.xlsx'))return reject(Error(`Seleccione un archivo CSV o Excel (.xlsx) para ${uploadNames[id]}.`));
+ if(!file.name.toLowerCase().endsWith('.xlsx'))return reject(uploadFailure(id,'El formato del archivo no es válido.','UNSUPPORTED_FILE_TYPE','Seleccione una plantilla en formato CSV o Excel (.xlsx).'));
  const reader=new FileReader();
  reader.onload=()=>resolve({fileName:file.name,base64:String(reader.result).split(',')[1]||''});
- reader.onerror=reject;
+ reader.onerror=()=>reject(uploadFailure(id,'No fue posible leer el archivo Excel.'));
  reader.readAsDataURL(file);
 });
 
+async function readSelectedUploads(ids){
+ const results=await Promise.allSettled(ids.map(readUpload)),values={},files=[];
+ results.forEach((result,index)=>{
+  const id=ids[index];
+  if(result.status==='fulfilled'){values[id]=result.value;return;}
+  const failure=result.reason;
+  if(Array.isArray(failure?.files)&&failure.files.length)files.push(...failure.files);
+  else files.push({key:id,label:uploadNames[id],fileName:selectedFileName(id)||'Archivo no identificado',errors:[{code:'FILE_READ_ERROR',message:failure?.message||'No fue posible leer el archivo.',suggestion:'Seleccione nuevamente el archivo y vuelva a validar.'}]});
+ });
+ if(files.length){
+  const failure=Error(`${files.length===1?'Un archivo requiere':'Varios archivos requieren'} corrección antes de continuar.`);
+  failure.code='OPENING_BALANCE_FILES_INVALID';failure.files=files;throw failure;
+ }
+ return values;
+}
+
 function setMessage(text,type='error'){$('message').className=type;$('message').textContent=text;}
+
+let validationFileErrors=[];
+
+function normalizeValidationFiles(files){
+ return(Array.isArray(files)?files:[]).filter(file=>file&&typeof file==='object').map((file,index)=>{
+  const rawKey=String(file.key||'').trim().toLowerCase(),key=uploadNames[rawKey]?rawKey:'';
+  const label=String(file.label||uploadNames[key]||`Archivo ${index+1}`).trim();
+  const fileName=String(file.fileName||selectedFileName(key)||'Archivo no identificado').trim();
+  const sourceErrors=Array.isArray(file.errors)&&file.errors.length?file.errors:[{message:file.message||'El archivo no pudo validarse.'}];
+  const errors=sourceErrors.map(issue=>typeof issue==='string'?{message:issue}:{...issue,message:String(issue?.message||'El archivo no pudo validarse.')});
+  return{key,label,fileName,errors};
+ });
+}
+
+function issueLocation(issue){
+ const parts=[];
+ if(issue.row!==undefined&&issue.row!==null&&String(issue.row)!=='')parts.push(`Fila ${issue.row}`);
+ const field=String(issue.field??'').trim();if(field)parts.push(`Campo ${field}`);
+ if(issue.columnLetter)parts.push(`Columna ${issue.columnLetter}${issue.column!==undefined&&issue.column!==null?` (posición ${issue.column})`:''}`);
+ else if(issue.column!==undefined&&issue.column!==null&&String(issue.column)!=='')parts.push(`Columna ${issue.column}`);
+ return parts.join(' · ');
+}
+
+function renderValidationErrors(focusPanel=false){
+ for(const id of uploadIds){
+  const invalid=validationFileErrors.some(file=>file.key===id),card=document.querySelector(`[data-upload-card="${id}"]`),input=$(id),badge=card?.querySelector('.file-validation-badge');
+  card?.classList.toggle('has-validation-error',invalid);
+  if(badge)badge.hidden=!invalid;
+  if(input){if(invalid){input.setAttribute('aria-invalid','true');input.setAttribute('aria-describedby','validationErrorsSummary');}else{input.removeAttribute('aria-invalid');input.removeAttribute('aria-describedby');}}
+ }
+ const panel=$('validationErrors'),container=$('validationErrorFiles');
+ if(!validationFileErrors.length){panel.hidden=true;container.innerHTML='';return;}
+ const totalErrors=validationFileErrors.reduce((sum,file)=>sum+file.errors.length,0),fileCount=validationFileErrors.length;
+ $('validationErrorsSummary').textContent=`Se ${totalErrors===1?'encontró 1 error':`encontraron ${totalErrors} errores`} en ${fileCount===1?'1 archivo':`${fileCount} archivos`}. Corrija los elementos indicados y vuelva a validar.`;
+ container.innerHTML=validationFileErrors.map((file,index)=>{
+  const action=file.key?`<button type="button" class="reselect-file" data-reselect="${esc(file.key)}">Seleccionar otro archivo</button>`:'';
+  const issues=file.errors.map(issue=>{
+   const location=issueLocation(issue);
+   return`<li><div class="validation-error-detail">${location?`<span class="validation-error-location">${esc(location)}</span>`:''}<b>${esc(issue.message)}</b>${issue.suggestion?`<small>${esc(issue.suggestion)}</small>`:''}</div></li>`;
+  }).join('');
+  return`<article class="validation-error-file"><header><span class="validation-error-number">${index+1}</span><div><b>${esc(file.label)}</b><span title="${esc(file.fileName)}">${esc(file.fileName)}</span></div>${action}</header><ol>${issues}</ol></article>`;
+ }).join('');
+ panel.hidden=false;
+ if(focusPanel){panel.focus({preventScroll:true});panel.scrollIntoView({behavior:'smooth',block:'nearest'});}
+}
+
+function showValidationErrors(files){validationFileErrors=normalizeValidationFiles(files);renderValidationErrors(true);}
+function clearValidationErrors(id=''){
+ validationFileErrors=id?validationFileErrors.filter(file=>file.key!==id):[];
+ renderValidationErrors(false);
+}
 
 function beginWork(){
  if(working)return null;
@@ -64,6 +143,41 @@ const firstValue=(object,...keys)=>{
  for(const key of keys)if(object?.[key]!==undefined&&object[key]!==null)return object[key];
  return undefined;
 };
+
+function renderArAp(data){
+ const summary=data.arApSummary||data.arAp?.summary||{};
+ const unified=Array.isArray(data.arApReconciliation)?data.arApReconciliation:[];
+ const arRows=Array.isArray(data.arReconciliation)?data.arReconciliation:[];
+ const apRows=Array.isArray(data.apReconciliation)?data.apReconciliation:[];
+ const reconciliation=unified.length?unified:[
+  ...arRows.map(row=>({...row,sourceType:firstValue(row,'sourceType','source_type')||'AR'})),
+  ...apRows.map(row=>({...row,sourceType:firstValue(row,'sourceType','source_type')||'AP'}))
+ ];
+ const financialRows=Array.isArray(data.rows)?data.rows:[];
+ const arDocuments=Number(firstValue(summary,'arDocuments','receivableDocuments','arCount')??financialRows.filter(row=>String(firstValue(row,'sourceType','source_type')).toUpperCase()==='AR').length);
+ const apDocuments=Number(firstValue(summary,'apDocuments','payableDocuments','apCount')??financialRows.filter(row=>String(firstValue(row,'sourceType','source_type')).toUpperCase()==='AP').length);
+ const hasArAp=arDocuments>0||apDocuments>0||reconciliation.length>0;
+ $('arApSummarySection').hidden=!hasArAp;
+ if(!hasArAp)return{hasArAp:false,balanced:true};
+ const rowBalanced=row=>{
+  const originalDifference=Number(firstValue(row,'originalDifference','differenceOriginal','foreignDifference')||0);
+  const localDifference=Number(firstValue(row,'localDifference','differenceLocal','difference')||0);
+  return firstValue(row,'balanced')===false?false:Math.abs(originalDifference)<=.005&&Math.abs(localDifference)<=.005;
+ };
+ const balanced=summary.balanced!==false&&reconciliation.length>0&&reconciliation.every(rowBalanced);
+ $('arApStatus').className=`badge ${balanced?'ok':'bad'}`;
+ $('arApStatus').textContent=balanced?'Conciliado con el Mayor':'Requiere corrección';
+ const arLocal=Number(firstValue(summary,'arAuxiliaryLocal','receivableLocal','arLocal')??reconciliation.filter(row=>String(firstValue(row,'sourceType','source_type')).toUpperCase()==='AR').reduce((sum,row)=>sum+Number(firstValue(row,'auxiliaryLocal','localAuxiliary')||0),0));
+ const apLocal=Number(firstValue(summary,'apAuxiliaryLocal','payableLocal','apLocal')??reconciliation.filter(row=>String(firstValue(row,'sourceType','source_type')).toUpperCase()==='AP').reduce((sum,row)=>sum+Number(firstValue(row,'auxiliaryLocal','localAuxiliary')||0),0));
+ $('arApSummary').innerHTML=`<div><small>Facturas por cobrar</small><b>${arDocuments.toLocaleString('es-CR')}</b></div><div><small>Auxiliar CxC en moneda local</small><b>${fmt(arLocal)}</b></div><div><small>Facturas por pagar</small><b>${apDocuments.toLocaleString('es-CR')}</b></div><div><small>Auxiliar CxP en moneda local</small><b>${fmt(apLocal)}</b></div>`;
+ $('arApReconciliation').innerHTML=reconciliation.map(row=>{
+  const type=String(firstValue(row,'sourceType','source_type','type')||'').toUpperCase(),isAr=type==='AR';
+  const originalDifference=Number(firstValue(row,'originalDifference','differenceOriginal','foreignDifference')||0);
+  const localDifference=Number(firstValue(row,'localDifference','differenceLocal','difference')||0),ok=rowBalanced(row);
+  return`<tr><td><span class="reconciliation-kind ${isAr?'ar':'ap'}">${isAr?'CxC':'CxP'}</span></td><td><b>${esc(firstValue(row,'accountNumber','account','ledgerAccountNumber'))}</b><small>${esc(firstValue(row,'accountName','ledgerAccountName'))}</small></td><td>${esc(firstValue(row,'currency','currencyCode'))}</td><td class="num">${fmt(firstValue(row,'ledgerOriginal','generalLedgerOriginal'))}<small>Local: ${fmt(firstValue(row,'ledgerLocal','generalLedgerLocal'))}</small></td><td class="num"><b>${fmt(firstValue(row,'auxiliaryOriginal','totalOriginal'))}</b><small>Local: ${fmt(firstValue(row,'auxiliaryLocal','totalLocal'))}</small></td><td class="num ${ok?'':'bad-text'}">${fmt(originalDifference)}<small>Local: ${fmt(localDifference)}</small></td><td><span class="row-status ${ok?'ok':'bad'}">${ok?'Cuadra':'Diferencia'}</span></td></tr>`;
+ }).join('')||'<tr><td colspan="7" class="empty">No se recibió el detalle de conciliación. Valide nuevamente antes de contabilizar.</td></tr>';
+ return{hasArAp:true,balanced};
+}
 
 function renderPending(data){
  const summary=data.pendingSummary||data.pending?.summary||{};
@@ -152,25 +266,65 @@ function renderDimensions(row){
  return dimensions.length?`<span class="dimension-list">${dimensions.map(([label,value])=>`<small><b>${label}:</b> ${esc(value)}</small>`).join('')}</span>`:'—';
 }
 
+function bankPreviewHasDifferences(data){
+ const summary=data.bankSummary||data.banks?.summary||{};
+ const reconciliation=data.bankReconciliation||data.banks?.reconciliation||[];
+ return summary.balanced===false||reconciliation.some(row=>
+  Math.abs(Number(firstValue(row,'difference','variance')||0))>.005
+  ||Math.abs(Number(firstValue(row,'localDifference','differenceLocal')||0))>.005
+ );
+}
+
+function renderBalanceDifference(summary){
+ const difference=Number(summary.difference||0),panel=$('balanceDifference');
+ if(Math.abs(difference)<=.005){panel.hidden=true;panel.innerHTML='';return;}
+ const missing=difference>0?'crédito':'débito';
+ const symbols={JMD:'J$',USD:'US$',CRC:'₡',EUR:'€',COP:'COL$',PEN:'S/',PAB:'B/.'};
+ const currency=String(functionalCurrency||firstValue(summary,'currency','localCurrency')||'').toUpperCase();
+ const amount=`${symbols[currency]||currency||''}${symbols[currency]?' ':currency?' ':''}${fmt(Math.abs(difference))}`;
+ panel.innerHTML=`<b>La apertura todavía no cuadra.</b><span>Después de excluir las cuentas de control duplicadas, falta un <strong>${missing}</strong> por <strong>${esc(amount)}</strong>. Revise las líneas del Libro Mayor y las diferencias de conciliación mostradas abajo.</span>`;
+ panel.hidden=false;
+}
+
 function originalAmount(row,side){
  const explicit=row[side==='debit'?'debitFx':'creditFx'];
  if(explicit!==null&&explicit!==undefined&&explicit!=='')return explicit;
  return Number(row[side]||0)>0?row.foreignAmount||0:0;
 }
 
+function historicalRateSource(row){
+ const source=String(firstValue(row,'rateSource','historicalRateSource')||'').toUpperCase();
+ const label=firstValue(row,'rateSourceLabel','historicalRateSourceLabel')||({
+  LOCAL_CURRENCY:'Moneda local',
+  EXPLICIT_LOCAL_AND_RATE:'Tasa informada',
+  EXPLICIT_LOCAL:'Tasa informada',
+  EXPLICIT_RATE:'Tasa informada',
+  GL_RESIDUAL:'Inferida del Mayor'
+ }[source]||'');
+ return{source,label};
+}
+
 function show(data){
  const summary=data.summary||{},run=data.run||{};
+ lastPreview=data;
  runId=run.id||data.runId||runId;posted=run.status==='POSTED';
  if(runId&&window.NexoRecordAudit?.show)window.NexoRecordAudit.show('opening_balance_runs',runId,'main');
  $('summary').hidden=false;
- $('summary').innerHTML=`<div><small>Líneas contables</small><b>${summary.count||0}</b></div><div><small>Débitos</small><b>${fmt(summary.debit)}</b></div><div><small>Créditos</small><b>${fmt(summary.credit)}</b></div><div><small>Diferencia</small><b class="${Math.abs(Number(summary.difference||0))>.005?'bad-text':''}">${fmt(summary.difference)}</b></div>`;
- $('rows').innerHTML=(data.rows||[]).map(row=>`<tr><td><span class="source">${esc(row.sourceType)}</span></td><td>${row.row}</td><td>${esc(row.account)}</td><td>${esc(row.document||'—')}</td><td><b>${esc(row.currency)}</b><small>Tasa: ${esc(row.rate)}</small></td><td>${renderDimensions(row)}</td><td class="num">${fmt(row.debit)}</td><td class="num">${fmt(row.credit)}</td><td class="num">${fmt(originalAmount(row,'debit'))}</td><td class="num">${fmt(originalAmount(row,'credit'))}</td></tr>`).join('')||'<tr><td colspan="10" class="empty">El lote no contiene líneas contables para mostrar.</td></tr>';
+ $('summary').innerHTML=`<div><small>Líneas contables</small><b>${summary.count||0}</b></div><div><small>Débitos</small><b>${fmt(summary.debit)}</b></div><div><small>Créditos</small><b>${fmt(summary.credit)}</b></div><div><small>Diferencia real del Libro Mayor</small><b class="${Math.abs(Number(summary.difference||0))>.005?'bad-text':''}">${fmt(summary.difference)}</b></div>`;
+ renderBalanceDifference(summary);
+ $('rows').innerHTML=(data.rows||[]).map(row=>{
+  const rateSource=historicalRateSource(row);
+  const rateSourceBadge=['AR','AP'].includes(String(row.sourceType).toUpperCase())&&rateSource.label
+   ?`<small class="rate-source ${rateSource.source==='GL_RESIDUAL'?'inferred':'declared'}">${esc(rateSource.label)}</small>`:'';
+  return`<tr><td><span class="source">${esc(row.sourceType)}</span></td><td>${row.row}</td><td>${esc(row.account)}</td><td>${esc(row.document||'—')}</td><td><b>${esc(row.currency)}</b><small>Tasa: ${esc(row.rate)}</small>${rateSourceBadge}</td><td>${renderDimensions(row)}</td><td class="num">${fmt(row.debit)}</td><td class="num">${fmt(row.credit)}</td><td class="num">${fmt(originalAmount(row,'debit'))}</td><td class="num">${fmt(originalAmount(row,'credit'))}</td></tr>`;
+ }).join('')||'<tr><td colspan="10" class="empty">El lote no contiene líneas contables para mostrar.</td></tr>';
+ const arApState=renderArAp(data);
  renderAssets(data);
  const pendingState=renderPending(data);
  const bankState=renderBanks(data);
  const assetSummary=data.assetSummary||{},hasPendingAssets=Number(assetSummary.pending||0)>0,assetsBalanced=assetSummary.balanced!==false;
  $('post').textContent=posted?'Cargar auxiliares validados':'Contabilizar saldos iniciales';
- $('post').disabled=!canCreate||Math.abs(Number(summary.difference||0))>.005||!assetsBalanced||!pendingState.balanced||!bankState.balanced||(posted&&!hasPendingAssets&&!pendingState.hasPendingToCreate&&!bankState.hasBankToCreate)||(!posted&&run.status!=='VALIDATED');
+ $('post').disabled=!canCreate||Math.abs(Number(summary.difference||0))>.005||!arApState.balanced||!assetsBalanced||!pendingState.balanced||!bankState.balanced||(posted&&!hasPendingAssets&&!pendingState.hasPendingToCreate&&!bankState.hasBankToCreate)||(!posted&&run.status!=='VALIDATED');
  $('reverse').hidden=!canReverse||!posted;
  for(const id of ['date','type','transition'])$(id).disabled=!canCreate||posted;
  for(const id of ['gl','ar','ap']){
@@ -182,7 +336,7 @@ function show(data){
 async function init(){
  try{
   const data=await api('options');
-  subsidiaryId=data.subsidiary.id;canCreate=data.canCreate===true;canReverse=data.canReverse===true;$('validate').disabled=!canCreate;
+  subsidiaryId=data.subsidiary.id;functionalCurrency=String(data.subsidiary.currency||'').toUpperCase();canCreate=data.canCreate===true;canReverse=data.canReverse===true;$('validate').disabled=!canCreate;
   for(const id of ['date','type','transition','gl','ar','ap','fa','pending','banks'])$(id).disabled=!canCreate;
   $('company').textContent=data.subsidiary.name;$('currency').textContent=`Moneda funcional: ${data.subsidiary.currency}`;
   const categories=data.assetCategories||[];
@@ -207,41 +361,188 @@ function invalidateValidation(){
  if(runId)setMessage('Los datos cambiaron. Valide nuevamente antes de contabilizar.','working');
 }
 
-for(const id of ['gl','ar','ap','fa','pending','banks'])$(id).addEventListener('change',()=>{$(`${id}Name`).textContent=$(id).files[0]?.name||'Ningún archivo';invalidateValidation();});
+for(const id of uploadIds)$(id).addEventListener('change',()=>{
+ const name=selectedFileName(id),nameElement=$(`${id}Name`);
+ nameElement.textContent=name||'Ningún archivo';nameElement.title=name;
+ clearValidationErrors(id);invalidateValidation();
+});
 for(const id of ['date','type','transition'])$(id).addEventListener('change',invalidateValidation);
+
+$('validationErrorFiles').addEventListener('click',event=>{
+ const button=event.target.closest('[data-reselect]');if(!button)return;
+ const id=button.dataset.reselect,input=$(id);if(!input)return;
+ input.value='';$(`${id}Name`).textContent='Ningún archivo';$(`${id}Name`).removeAttribute('title');
+ clearValidationErrors(id);invalidateValidation();input.click();
+});
 
 $('validate').onclick=async()=>{
  const controls=beginWork();if(!controls)return;
  let data=null;
  try{
   assertActiveCompany();
+  clearValidationErrors();
   setMessage('Validando archivos, catálogos y conciliación…','working');
-  let gl='',ar='',ap='',fa='',pending='',banks='';
-  if(posted)[fa,pending,banks]=await Promise.all(['fa','pending','banks'].map(readUpload));else[gl,ar,ap,fa,pending,banks]=await Promise.all(['gl','ar','ap','fa','pending','banks'].map(readUpload));
-  data=await api('validate',{expectedSubsidiaryId:subsidiaryId,openingDate:$('date').value,loadType:$('type').value,transitionAccountId:$('transition').value,gl,ar,ap,fa,pending,banks});
- }catch(error){setMessage(error.message);}
+  const ids=posted?['fa','pending','banks']:uploadIds,uploads=await readSelectedUploads(ids);
+  const files=Object.fromEntries(uploadIds.map(id=>[id,uploads[id]??'']));
+  const fileNames=Object.fromEntries(uploadIds.map(id=>[`${id}FileName`,selectedFileName(id)]));
+  data=await api('validate',{expectedSubsidiaryId:subsidiaryId,openingDate:$('date').value,loadType:$('type').value,transitionAccountId:$('transition').value,...files,...fileNames});
+ }catch(error){
+  if(Array.isArray(error.files)&&error.files.length){showValidationErrors(error.files);setMessage('La validación encontró archivos que requieren corrección.','error');}
+  else setMessage(error.message);
+ }
  finally{endWork(controls);}
-  if(data){show(data);setMessage(data.run?.status==='POSTED'?'Auxiliares validados. Revise las conciliaciones antes de completar la carga.':'Validación correcta. Revise la balanza y las conciliaciones antes de contabilizar.','success');}else $('post').disabled=true;
+  if(data){
+   clearValidationErrors();show(data);
+   if(bankPreviewHasDifferences(data))setMessage('Validación completada con diferencias bancarias. Revise la conciliación del Auxiliar de Bancos por cuenta y moneda antes de contabilizar.','error');
+   else setMessage(data.run?.status==='POSTED'?'Auxiliares validados. Revise las conciliaciones antes de completar la carga.':'Validación correcta. Revise la balanza y las conciliaciones antes de contabilizar.','success');
+  }else $('post').disabled=true;
 };
 
-$('post').onclick=async()=>{
- try{assertActiveCompany();}catch(error){setMessage(error.message);return;}
- const question=posted?'¿Cargar los auxiliares validados? Los importes no se contabilizarán nuevamente.':'¿Contabilizar definitivamente los saldos iniciales y crear sus auxiliares?';
- if(!confirm(question))return;
- const controls=beginWork();if(!controls)return;
- let result=null,preview=null;
- try{
-  result=await api('post',{runId});preview=await api('preview',{runId}).catch(()=>null);
- }catch(error){setMessage(error.message);}
- finally{endWork(controls);}
- if(result){
-  const pendingCreated=Number(result.pendingCreated||result.pendingItemsCreated||result.pendingActivated||0);
-  const banksCreated=Number(result.banksCreated||result.bankItemsCreated||result.bankTransactionsCreated||0);
-  const completion=result.auxiliariesOnly||result.assetsOnly||result.pendingOnly||result.bankOnly||result.banksOnly?`Auxiliares cargados: ${result.assetsCreated||0} activo(s), ${pendingCreated} pendiente(s) de facturar y ${banksCreated} registro(s) bancario(s).`:`Apertura contabilizada: ${result.journalNumber}. Activos creados: ${result.assetsCreated||0}. Pendientes creados: ${pendingCreated}. Registros bancarios: ${banksCreated}.`;
-  setMessage(completion,'success');
-  for(const id of ['fa','pending','banks']){$(id).value='';$(`${id}Name`).textContent='Ningún archivo';}
-  if(preview)show(preview);else $('post').disabled=true;
+function localizedOpeningDate(value){
+ const parts=String(value||'').split('-').map(Number);
+ if(parts.length!==3||parts.some(part=>!Number.isFinite(part)))return value||'—';
+ return new Date(parts[0],parts[1]-1,parts[2]).toLocaleDateString('es-CR',{day:'2-digit',month:'long',year:'numeric'});
+}
+
+function countPreviewItems(summary,items,totalKeys,pendingKeys=[]){
+ const list=Array.isArray(items)?items:[];
+ const keys=posted?pendingKeys:totalKeys;
+ const explicit=firstValue(summary,...keys);
+ if(explicit!==undefined)return Math.max(0,Number(explicit)||0);
+ if(!posted)return list.length;
+ return list.filter(item=>!Boolean(firstValue(item,'created','active','isActive','createdPendingId','pendingId','createdBankTransactionId','bankTransactionId'))).length;
+}
+
+function postAuxiliaryCounts(data){
+ const financialRows=Array.isArray(data.rows)?data.rows:[];
+ const arAp=data.arApSummary||data.arAp?.summary||{};
+ const assets=Array.isArray(data.assets)?data.assets:[];
+ const pendingItems=data.pendingItems||data.pendings||data.pending?.items||[];
+ const bankItems=data.bankItems||data.banks?.items||[];
+ const assetSummary=data.assetSummary||{};
+ const pendingSummary=data.pendingSummary||data.pending?.summary||{};
+ const bankSummary=data.bankSummary||data.banks?.summary||{};
+ const arCount=posted?0:Number(firstValue(arAp,'arDocuments','receivableDocuments','arCount')??financialRows.filter(row=>String(firstValue(row,'sourceType','source_type')).toUpperCase()==='AR').length);
+ const apCount=posted?0:Number(firstValue(arAp,'apDocuments','payableDocuments','apCount')??financialRows.filter(row=>String(firstValue(row,'sourceType','source_type')).toUpperCase()==='AP').length);
+ return[
+  {label:'Facturas por cobrar',value:arCount},
+  {label:'Facturas por pagar',value:apCount},
+  {label:'Activos fijos',value:countPreviewItems(assetSummary,assets,['count','records','items'],['pending','pendingCount'])},
+  {label:'Pendientes de facturar',value:countPreviewItems(pendingSummary,pendingItems,['count','items','references'],['pending','pendingCount','recordsPending'])},
+  {label:'Registros bancarios',value:countPreviewItems(bankSummary,bankItems,['count','records','items'],['pending','pendingCount','recordsPending'])}
+ ].filter(item=>item.value>0);
+}
+
+function populatePostConfirmation(){
+ const data=lastPreview||{},summary=data.summary||{},dialog=$('postConfirmationDialog');
+ const auxiliaryMode=posted===true;
+ dialog.classList.toggle('auxiliary-mode',auxiliaryMode);
+ $('postConfirmTitle').textContent=auxiliaryMode?'Cargar auxiliares validados':'Contabilizar saldos iniciales';
+ $('postConfirmDescription').textContent=auxiliaryMode?'Confirme la carga complementaria sobre la apertura ya contabilizada.':'Revise el lote validado antes de generar el asiento de apertura.';
+ $('postConfirmOperation').textContent=auxiliaryMode?'CARGA COMPLEMENTARIA':'APERTURA CONTABLE';
+ $('postConfirmOperationText').textContent=auxiliaryMode?'Solo se crearán los auxiliares nuevos incluidos en esta validación.':'El lote está cuadrado, conciliado y listo para contabilizar.';
+ $('postConfirmCompany').textContent=$('company').textContent||'—';
+ $('postConfirmDate').textContent=localizedOpeningDate($('date').value);
+ $('postConfirmLoadType').textContent=$('type').selectedOptions?.[0]?.textContent||'—';
+ $('postConfirmLines').textContent=Number(summary.count||0).toLocaleString('es-CR');
+ $('postConfirmCurrency').textContent=functionalCurrency||'—';
+ const currency=functionalCurrency?`${functionalCurrency} `:'';
+ $('postConfirmDebit').textContent=`${currency}${fmt(summary.debit)}`;
+ $('postConfirmCredit').textContent=`${currency}${fmt(summary.credit)}`;
+ const auxiliaries=postAuxiliaryCounts(data);
+ $('postConfirmAuxTitle').textContent=auxiliaryMode?'Auxiliares nuevos que se cargarán':'Auxiliares que se crearán';
+ $('postConfirmAuxiliaries').innerHTML=auxiliaries.length
+  ?auxiliaries.map(item=>`<div class="post-confirmation-auxiliary"><b>${item.value.toLocaleString('es-CR')}</b><small>${esc(item.label)}</small></div>`).join('')
+  :'<div class="post-confirmation-auxiliary empty"><b>0</b><small>No hay auxiliares nuevos en este lote.</small></div>';
+ $('postConfirmNotice').innerHTML=auxiliaryMode
+  ?'<span aria-hidden="true">i</span><p><b>El Libro Mayor no se contabilizará nuevamente</b><small>Esta operación conserva el asiento de apertura existente y crea únicamente el detalle auxiliar pendiente.</small></p>'
+  :'<span aria-hidden="true">i</span><p><b>Operación definitiva</b><small>Se generará el asiento de apertura y se crearán los auxiliares mostrados. Revise los totales antes de continuar.</small></p>';
+ $('postConfirmSubmit').textContent=auxiliaryMode?'Cargar auxiliares':'Contabilizar definitivamente';
+}
+
+function setPostConfirmationBusy(busy,error=''){
+ postSubmitting=busy;
+ const dialog=$('postConfirmationDialog'),progress=$('postConfirmProgress');
+ dialog.setAttribute('aria-busy',busy?'true':'false');
+ $('postConfirmSubmit').disabled=busy;
+ $('postConfirmCancel').disabled=busy;
+ $('postConfirmClose').disabled=busy;
+ if(error){
+  progress.className='post-confirmation-progress error';
+  progress.textContent=error;
+  progress.hidden=false;
+ }else if(busy){
+  progress.className='post-confirmation-progress';
+  progress.innerHTML=`<span aria-hidden="true"></span>${posted?'Cargando auxiliares sin repostear el Libro Mayor…':'Contabilizando la apertura y creando auxiliares…'}`;
+  progress.hidden=false;
+ }else{
+  progress.className='post-confirmation-progress';progress.hidden=true;progress.textContent='';
  }
+}
+
+function finishPostConfirmation(){
+ const dialog=$('postConfirmationDialog');
+ setPostConfirmationBusy(false);
+ if(typeof dialog.close==='function')dialog.close();else dialog.removeAttribute('open');
+ document.body.classList.remove('dialog-open');
+ postDialogReturnFocus?.focus?.();postDialogReturnFocus=null;
+}
+
+function dismissPostConfirmation(){
+ if(postSubmitting)return;
+ finishPostConfirmation();
+}
+
+function openPostConfirmation(){
+ if(working||postSubmitting)return;
+ populatePostConfirmation();setPostConfirmationBusy(false);
+ const dialog=$('postConfirmationDialog');postDialogReturnFocus=document.activeElement;
+ document.body.classList.add('dialog-open');
+ if(typeof dialog.showModal==='function')dialog.showModal();else dialog.setAttribute('open','');
+ requestAnimationFrame(()=>$('postConfirmCancel').focus());
+}
+
+async function submitValidatedOpening(){
+ if(postSubmitting||working)return;
+ let controls=null,result=null,preview=null,failure=null;
+ try{
+  assertActiveCompany();
+  if(!runId)throw Error('Valide nuevamente la carga antes de contabilizar.');
+  controls=beginWork();if(!controls)return;
+  setPostConfirmationBusy(true);
+  result=await api('post',{runId});
+  preview=await api('preview',{runId}).catch(()=>null);
+ }catch(error){failure=error;setMessage(error.message);}
+ finally{if(controls)endWork(controls);}
+ if(!result){
+  setPostConfirmationBusy(false,failure?.message||'No fue posible completar la contabilización.');
+  return;
+ }
+ const pendingCreated=Number(result.pendingCreated||result.pendingItemsCreated||result.pendingActivated||0);
+ const banksCreated=Number(result.banksCreated||result.bankItemsCreated||result.bankTransactionsCreated||0);
+ const completion=result.auxiliariesOnly||result.assetsOnly||result.pendingOnly||result.bankOnly||result.banksOnly?`Auxiliares cargados: ${result.assetsCreated||0} activo(s), ${pendingCreated} pendiente(s) de facturar y ${banksCreated} registro(s) bancario(s).`:`Apertura contabilizada: ${result.journalNumber}. Activos creados: ${result.assetsCreated||0}. Pendientes creados: ${pendingCreated}. Registros bancarios: ${banksCreated}.`;
+ setMessage(completion,'success');
+ for(const id of ['fa','pending','banks']){$(id).value='';$(`${id}Name`).textContent='Ningún archivo';}
+ if(preview)show(preview);else $('post').disabled=true;
+ finishPostConfirmation();
+}
+
+$('postConfirmationDialog').addEventListener('cancel',event=>{event.preventDefault();dismissPostConfirmation();});
+$('postConfirmationDialog').addEventListener('click',event=>{if(event.target===$('postConfirmationDialog'))dismissPostConfirmation();});
+$('postConfirmationDialog').addEventListener('keydown',event=>{
+ if(event.key!=='Tab')return;
+ const controls=[...$('postConfirmationDialog').querySelectorAll('button:not([disabled]),[href],input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])')].filter(element=>element.offsetParent!==null);
+ if(!controls.length){event.preventDefault();$('postConfirmationDialog').focus();return;}
+ const first=controls[0],last=controls.at(-1);
+ if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+ else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+});
+$('postConfirmClose').onclick=dismissPostConfirmation;
+$('postConfirmCancel').onclick=dismissPostConfirmation;
+$('postConfirmSubmit').onclick=submitValidatedOpening;
+
+$('post').onclick=()=>{
+ try{assertActiveCompany();openPostConfirmation();}catch(error){setMessage(error.message);}
 };
 
 $('reverse').onclick=async()=>{
@@ -254,10 +555,10 @@ $('reverse').onclick=async()=>{
  }
  catch(error){setMessage(error.message);}
  finally{endWork(controls);}
- if(result){posted=false;runId=null;
+ if(result){posted=false;runId=null;lastPreview=null;
   for(const id of ['date','type','transition','gl','ar','ap'])$(id).disabled=!canCreate;
   for(const id of ['gl','ar','ap','fa','pending','banks']){$(id).value='';$(`${id}Name`).textContent='Ningún archivo';}
-  $('summary').hidden=true;$('assetSummarySection').hidden=true;$('pendingSummarySection').hidden=true;$('bankSummarySection').hidden=true;$('rows').innerHTML='';$('reverse').hidden=true;$('post').disabled=true;
+  $('summary').hidden=true;$('balanceDifference').hidden=true;$('balanceDifference').innerHTML='';$('arApSummarySection').hidden=true;$('assetSummarySection').hidden=true;$('pendingSummarySection').hidden=true;$('bankSummarySection').hidden=true;$('rows').innerHTML='';$('reverse').hidden=true;$('post').disabled=true;
   setMessage(`Apertura reversada: ${result.number}. Ya puede preparar una nueva carga.`,'success');
  }
 };

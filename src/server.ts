@@ -28,7 +28,7 @@ import { accountingCatalogs, createAccountingRow, deleteAccountingRow, getAccoun
 import { createJournalEntry, updateJournalEntry } from './modules/accounting-catalogs/journal-entry.service.js';
 import { fxRevaluation } from './modules/accounting-catalogs/fx-revaluation.service.js';
 import { importJournalCsv } from './modules/accounting-catalogs/journal-import.service.js';
-import { openingBalances } from './modules/accounting-catalogs/opening-balances.service.js';
+import { OpeningBalanceFilesValidationError, openingBalances } from './modules/accounting-catalogs/opening-balances.service.js';
 import { saveSupplierInvoice } from './modules/purchasing-catalogs/supplier-invoice.service.js';
 import { saveSupplierNote } from './modules/purchasing-catalogs/supplier-note.service.js';
 import { saveSalesInvoice, setSalesInvoicePdfLineUnification } from './modules/sales-catalogs/sales-invoice.service.js';
@@ -512,7 +512,11 @@ const server = createServer((request, response) => withAuditExecution(async () =
       const openingAction=openingRoute[1];
       const openingPermission=['options','preview'].includes(openingAction)?'view':openingAction==='reverse'?'delete':'create';
       await assertRoleAccess(authorization,'accounting:opening-balances',openingPermission);
-      return json(response,200,await openingBalances(authorization,openingAction,await body(request)as Record<string,unknown>));
+      try{return json(response,200,await openingBalances(authorization,openingAction,await body(request)as Record<string,unknown>));}
+      catch(cause){
+        if(cause instanceof OpeningBalanceFilesValidationError)return json(response,422,{error:{status:422,code:cause.code,message:cause.message,files:cause.files}});
+        throw cause;
+      }
     }
     const accountingRoute=request.url?.match(/^\/api\/accounting\/([a-z-]+)(?:\/(\d+))?$/);if(accountingRoute){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para administrar Contabilidad.');const catalog=getAccountingCatalog(accountingRoute[1]);const id=accountingRoute[2]?Number(accountingRoute[2]):null;if(request.method==='GET'&&id===null)return json(response,200,await listAccountingRows(catalog,authorization));if(request.method==='POST'&&id===null)return json(response,201,await createAccountingRow(catalog,authorization,await body(request)as Record<string,unknown>));if(request.method==='PATCH'&&id!==null)return json(response,200,await updateAccountingRow(catalog,authorization,id,await body(request)as Record<string,unknown>));if(request.method==='DELETE'&&id!==null){await deleteAccountingRow(catalog,authorization,id);return json(response,200,{success:true});}}
     const bankingRoute=request.url?.match(/^\/api\/banking\/([a-z-]+)(?:\/(\d+))?$/);if(bankingRoute){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para administrar Bancos.');const catalog=getBankingCatalog(bankingRoute[1]);const id=bankingRoute[2]?Number(bankingRoute[2]):null;if(request.method==='GET'&&id===null)return json(response,200,await listBankingRows(catalog,authorization));if(request.method==='POST'&&id===null)return json(response,201,await createBankingRow(catalog,authorization,await body(request)as Record<string,unknown>));if(request.method==='PATCH'&&id!==null)return json(response,200,await updateBankingRow(catalog,authorization,id,await body(request)as Record<string,unknown>));if(request.method==='DELETE'&&id!==null){await deleteBankingRow(catalog,authorization,id);return json(response,200,{success:true});}}

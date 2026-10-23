@@ -5,6 +5,50 @@ const MAX_OPENING_FILE_BYTES=5_000_000;
 const MAX_OPENING_ROWS=50_000;
 const MAX_OPENING_COLUMNS=200;
 
+type OpeningFileError={code:string;message:string;row?:number;rows?:number[];column?:number;columnLetter?:string;field?:string;value?:string;suggestion?:string};
+export type OpeningBalanceFileValidation={key:string;label:string;fileName:string;errors:OpeningFileError[]};
+
+class OpeningFileParseError extends Error{
+ constructor(message:string,public readonly detail:OpeningFileError){super(message);this.name='OpeningFileParseError';}
+}
+
+export class OpeningBalanceFilesValidationError extends Error{
+ readonly status=422;
+ readonly code='OPENING_BALANCE_FILES_INVALID';
+ constructor(public readonly files:OpeningBalanceFileValidation[]){
+  super(`${files.length} ${files.length===1?'archivo requiere':'archivos requieren'} corrección antes de continuar.`);
+  this.name='OpeningBalanceFilesValidationError';
+ }
+}
+
+function columnLetter(position:number){
+ let value=position,result='';
+ while(value>0){value--;result=String.fromCharCode(65+(value%26))+result;value=Math.floor(value/26);}
+ return result;
+}
+
+function columnReference(position:number){return`${columnLetter(position)} (${position})`;}
+
+function emptyHeaderFailure(row:number,indexes:number[]){
+ const references=indexes.map(index=>columnReference(index+1));
+ const message=`Fila ${row}: ${indexes.length===1?'la columna':'las columnas'} ${references.join(', ')} ${indexes.length===1?'no tiene':'no tienen'} encabezado.`;
+ const detailMessage=indexes.length===1?'El encabezado de esta columna está vacío o no contiene un nombre válido.':`Hay encabezados vacíos o inválidos en las columnas ${references.join(', ')}.`;
+ return new OpeningFileParseError(message,{code:'EMPTY_HEADER',message:detailMessage,row,column:indexes[0]+1,columnLetter:columnLetter(indexes[0]+1),suggestion:'Escriba un encabezado o elimine la columna vacía de la plantilla.'});
+}
+
+function duplicateHeaderFailure(row:number,headers:string[]){
+ const duplicates=[...new Set(headers.filter((header,index)=>headers.indexOf(header)!==index))];
+ const groups=duplicates.map(header=>`"${header}" en ${headers.map((value,index)=>value===header?columnReference(index+1):'').filter(Boolean).join(' y ')}`);
+ const message=`Fila ${row}: ${duplicates.length===1?'el encabezado está duplicado':'los encabezados están duplicados'}: ${groups.join('; ')}.`;
+ const first=headers.indexOf(duplicates[0])+1;
+ return new OpeningFileParseError(message,{code:'DUPLICATE_HEADER',message:`${duplicates.length===1?'El encabezado está repetido':'Hay encabezados repetidos'}: ${groups.join('; ')}.`,row,column:first,columnLetter:columnLetter(first),suggestion:'Conserve una sola columna para cada encabezado.'});
+}
+
+function extraColumnFailure(row:number,position:number){
+ const message=`Fila ${row}: la columna ${columnReference(position)} contiene datos, pero no existe en el encabezado.`;
+ return new OpeningFileParseError(message,{code:'EXTRA_COLUMN',message:'Esta columna contiene datos, pero no existe en el encabezado.',row,column:position,columnLetter:columnLetter(position),suggestion:'Agregue el encabezado correspondiente o elimine esa columna adicional.'});
+}
+
 function delimiter(line:string){
  let comma=0,semicolon=0,quoted=false;
  for(let i=0;i<line.length;i++){
@@ -19,9 +63,12 @@ function rows(text:string){
  if(Buffer.byteLength(text,'utf8')>MAX_OPENING_FILE_BYTES)throw Error('El archivo de saldos iniciales supera 5 MB.');
  if(text.includes('\0'))throw Error('El archivo CSV no contiene texto válido.');
  let source=text.replace(/^\uFEFF/,'');
- const excelSeparator=source.match(/^sep=([;,])(?:\r?\n|$)/i),separator=excelSeparator?.[1]??delimiter(source.split(/\r?\n/,1)[0]??''),records:string[][]=[];
+ const excelSeparator=source.match(/^(?:[ \t]*(?:\r\n|\n|\r))*[ \t]*sep=([;,])[ \t]*(?:\r\n|\n|\r|$)/i);
+ const sourceStartLine=excelSeparator?1+(excelSeparator[0].match(/\r\n|\n|\r/g)?.length??0):1;
  if(excelSeparator)source=source.slice(excelSeparator[0].length);
- let record:string[]=[],value='',quoted=false;
+ const firstContentLine=source.split(/\r\n|\n|\r/).find(line=>line.trim()!=='')??'';
+ const separator=excelSeparator?.[1]??delimiter(firstContentLine),records:{values:string[];row:number}[]=[];
+ let record:string[]=[],value='',quoted=false,physicalLine=sourceStartLine,recordStartLine=physicalLine;
  for(let index=0;index<source.length;index++){
   const character=source[index];
   if(character==='"'){
@@ -31,24 +78,31 @@ function rows(text:string){
    if(character==='\r'&&source[index+1]==='\n')index++;
    record.push(value.trim());value='';
    if(record.some(cell=>cell!=='')){
-    records.push(record);
+    records.push({values:record,row:recordStartLine});
     if(records.length>MAX_OPENING_ROWS+1)throw Error(`El archivo CSV supera el límite de ${MAX_OPENING_ROWS.toLocaleString('es-CR')} filas.`);
    }
-   record=[];
-  }else value+=character;
+   record=[];physicalLine++;recordStartLine=physicalLine;
+  }else{
+   value+=character;
+   if(character==='\n'||(character==='\r'&&source[index+1]!=='\n'))physicalLine++;
+  }
  }
  if(quoted)throw Error('El archivo CSV contiene un campo entre comillas sin cerrar.');
- record.push(value.trim());if(record.some(cell=>cell!==''))records.push(record);
- if(records.length<2)return[];
+ record.push(value.trim());if(record.some(cell=>cell!==''))records.push({values:record,row:recordStartLine});
+ if(!records.length)return[];
  if(records.length>MAX_OPENING_ROWS+1)throw Error(`El archivo CSV supera el límite de ${MAX_OPENING_ROWS.toLocaleString('es-CR')} filas.`);
- if(records[0].length>MAX_OPENING_COLUMNS)throw Error(`El archivo CSV supera el límite de ${MAX_OPENING_COLUMNS} columnas.`);
- const headers=records[0].map(header=>header.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,''));
- if(headers.some(header=>!header))throw Error('El archivo CSV contiene una columna sin encabezado.');
- if(new Set(headers).size!==headers.length)throw Error('El archivo CSV contiene encabezados duplicados.');
- return records.slice(1).map((values,index)=>{
-  if(values.length>MAX_OPENING_COLUMNS)throw Error(`CSV fila ${index+2}: supera el límite de ${MAX_OPENING_COLUMNS} columnas.`);
-  if(values.slice(headers.length).some(value=>value!==''))throw Error(`CSV fila ${index+2}: contiene más columnas que el encabezado.`);
-  return{row:index+2,data:Object.fromEntries(headers.map((header,column)=>[header,values[column]??'']))};
+ const headerRecord=records[0],headerRow=headerRecord.row;
+ if(headerRecord.values.length>MAX_OPENING_COLUMNS)throw Error(`El archivo CSV supera el límite de ${MAX_OPENING_COLUMNS} columnas.`);
+ const headers=headerRecord.values.map(header=>header.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,''));
+ const emptyHeaders=headers.flatMap((header,index)=>header?[]:[index]);
+ if(emptyHeaders.length)throw emptyHeaderFailure(headerRow,emptyHeaders);
+ if(new Set(headers).size!==headers.length)throw duplicateHeaderFailure(headerRow,headers);
+ if(records.length<2)return[];
+ return records.slice(1).map(({values,row})=>{
+  if(values.length>MAX_OPENING_COLUMNS)throw Error(`CSV fila ${row}: supera el límite de ${MAX_OPENING_COLUMNS} columnas.`);
+  const extraIndex=values.findIndex((value,column)=>column>=headers.length&&value!=='');
+  if(extraIndex>=0)throw extraColumnFailure(row,extraIndex+1);
+  return{row,data:Object.fromEntries(headers.map((header,column)=>[header,values[column]??'']))};
  });
 }
 
@@ -79,15 +133,19 @@ function spreadsheetCell(value:unknown){
 function spreadsheetRows(matrix:unknown[][],label='Pendientes de Facturar'):ParsedRow[]{
  if(matrix.length>MAX_OPENING_ROWS+1)throw Error(`La hoja de ${label} supera el límite de ${MAX_OPENING_ROWS.toLocaleString('es-CR')} filas.`);
  const nonEmpty=matrix.map((record,index)=>({record,row:index+1})).filter(({record})=>record.some(cell=>spreadsheetCell(cell)!==''));
- if(nonEmpty.length<2)return[];
+ if(!nonEmpty.length)return[];
  const headerRecord=nonEmpty[0].record;
+ const headerRow=nonEmpty[0].row;
  if(headerRecord.length>MAX_OPENING_COLUMNS)throw Error(`La hoja de ${label} supera el límite de ${MAX_OPENING_COLUMNS} columnas.`);
  const headers=headerRecord.map(normalizedHeader);
- if(headers.some(header=>!header))throw Error(`La hoja de ${label} contiene una columna sin encabezado.`);
- if(new Set(headers).size!==headers.length)throw Error(`La hoja de ${label} contiene encabezados duplicados.`);
+ const emptyHeaders=headers.flatMap((header,index)=>header?[]:[index]);
+ if(emptyHeaders.length)throw emptyHeaderFailure(headerRow,emptyHeaders);
+ if(new Set(headers).size!==headers.length)throw duplicateHeaderFailure(headerRow,headers);
+ if(nonEmpty.length<2)return[];
  return nonEmpty.slice(1).map(({record,row})=>{
   if(record.length>MAX_OPENING_COLUMNS)throw Error(`${label} fila ${row}: supera el límite de ${MAX_OPENING_COLUMNS} columnas.`);
-  if(record.slice(headers.length).some(cell=>spreadsheetCell(cell)!==''))throw Error(`${label} fila ${row}: contiene más columnas que el encabezado.`);
+  const extraIndex=record.findIndex((cell,column)=>column>=headers.length&&spreadsheetCell(cell)!=='');
+  if(extraIndex>=0)throw extraColumnFailure(row,extraIndex+1);
   return{row,data:Object.fromEntries(headers.map((header,column)=>[header,spreadsheetCell(record[column])]))};
  });
 }
@@ -112,6 +170,9 @@ function requireColumns(parsed:{row:number;data:Record<string,string>}[],label:s
 function applyAccountingAliases(parsed:{row:number;data:Record<string,string>}[]){
  const aliases:Record<string,string[]>= {
   moneda:['moneda_original'],
+  saldo:['saldo_moneda_original','importe_moneda_original','saldo_original','monto_original'],
+  equivalente_moneda_local:['equivalente_local','importe_moneda_local','saldo_moneda_local','saldo_local','local_equivalent'],
+  tipo_cambio_historico:['tipo_cambio','tasa_cambio','tasa_historica','historical_exchange_rate','exchange_rate'],
   debito_moneda_local:['debito_local','debito'],credito_moneda_local:['credito_local','credito'],
   debito_moneda_original:['debito_moneda_origen','debito_original','debito_moneda_extranjera'],credito_moneda_original:['credito_moneda_origen','credito_original','credito_moneda_extranjera'],
   centro_costos:['centro_de_costos','centro_costo'],acreedor_financiero:['acreedores_financieros'],compania_relacionada:['companias_relacionadas'],sucursal:['ubicacion']
@@ -119,6 +180,56 @@ function applyAccountingAliases(parsed:{row:number;data:Record<string,string>}[]
  for(const{data}of parsed)for(const[target,candidates]of Object.entries(aliases))if(!(target in data)){
   const candidate=candidates.find(name=>name in data);if(candidate)data[target]=data[candidate];
  }
+}
+
+function openingAccountingAmount(
+ data:Record<string,string>,row:number,property:string,aliases:string[],field:string,source:string,required=true
+){
+ const value=String(data[property]??'').trim(),column=openingColumn(data,[property,...aliases]);
+ if(!value&&!required)return'';
+ if(!value)throw new OpeningFileParseError(`${source} fila ${row}: complete ${field}.`,{
+  code:'REQUIRED_AMOUNT',message:`Complete ${field}.`,row,...(column?{column,columnLetter:columnLetter(column)}:{}),field,value,
+  suggestion:'Use un importe positivo sin separadores de miles; puede utilizar punto o coma para los decimales.'
+ });
+ let parsed='';
+ try{parsed=amount(value);}catch(cause){
+  const detail=cause instanceof Error?cause.message:`El valor "${value}" no es numérico.`;
+  throw new OpeningFileParseError(`${source} fila ${row}: ${detail}`,{
+   code:'INVALID_AMOUNT',message:detail,row,...(column?{column,columnLetter:columnLetter(column)}:{}),field,value,
+   suggestion:'Use un importe positivo sin separadores de miles; por ejemplo, 75500.00.'
+  });
+ }
+ if(Number(parsed)<=0)throw new OpeningFileParseError(`${source} fila ${row}: ${field} debe ser mayor que cero.`,{
+  code:'INVALID_AMOUNT',message:`${field} debe ser mayor que cero.`,row,...(column?{column,columnLetter:columnLetter(column)}:{}),field,value,
+  suggestion:'Registre solamente documentos con saldo pendiente positivo.'
+ });
+ return parsed;
+}
+
+function openingAccountingRate(data:Record<string,string>,row:number,original:string,local:string,source:string){
+ const property='tipo_cambio_historico',aliases=['tipo_cambio','tasa_cambio','tasa_historica','historical_exchange_rate','exchange_rate'];
+ const value=String(data[property]??'').trim(),column=openingColumn(data,[property,...aliases]);
+ let parsed='';
+ if(value){
+  try{parsed=amount(value);}catch(cause){
+   const detail=cause instanceof Error?cause.message:`El valor "${value}" no es numérico.`;
+   throw new OpeningFileParseError(`${source} fila ${row}: ${detail}`,{
+    code:'INVALID_EXCHANGE_RATE',message:detail,row,...(column?{column,columnLetter:columnLetter(column)}:{}),field:'Tipo de cambio histórico',value,
+    suggestion:'Use una tasa positiva sin separadores de miles; por ejemplo, 151.000000.'
+   });
+  }
+  if(Number(parsed)<=0)throw new OpeningFileParseError(`${source} fila ${row}: el tipo de cambio histórico debe ser mayor que cero.`,{
+   code:'INVALID_EXCHANGE_RATE',message:'El tipo de cambio histórico debe ser mayor que cero.',row,...(column?{column,columnLetter:columnLetter(column)}:{}),field:'Tipo de cambio histórico',value,
+   suggestion:'Indique la tasa histórica positiva o deje la celda vacía para calcularla con ambos importes.'
+  });
+ }
+ if(!value)return local?(Number(local)/Number(original)).toFixed(10).replace(/0+$/,'').replace(/\.$/,''):'';
+ const rounded=(numericValue:number)=>Math.round((numericValue+Number.EPSILON)*100)/100,rate=Number(parsed);
+ if(local&&Math.abs(rounded(Number(local))-rounded(Number(original)*rate))>.000001)throw new OpeningFileParseError(`${source} fila ${row}: el equivalente en moneda local no corresponde al saldo original por el tipo de cambio histórico.`,{
+  code:'EXCHANGE_RATE_MISMATCH',message:`El saldo original ${original}, la equivalencia local ${local} y la tasa ${parsed} no coinciden al centavo.`,row,...(column?{column,columnLetter:columnLetter(column)}:{}),field:'Tipo de cambio histórico',value,
+  suggestion:'Corrija el importe local o la tasa. La fórmula es: saldo_moneda_original × tipo_cambio_historico = equivalente_moneda_local.'
+ });
+ return parsed;
 }
 
 function applyPendingAliases(parsed:ParsedRow[]){
@@ -148,11 +259,19 @@ function parseOpeningAccountingRows(parsed:ParsedRow[],type:'GL'|'AR'|'AP'){
   if(!x.cuenta)throw Error(`${type} fila ${row}: complete la cuenta contable.`);
   if(!x.moneda)throw Error(`${type} fila ${row}: complete la moneda.`);
   if(type!=='GL'&&(!x.identificacion_tercero||!x.numero_documento))throw Error(`${type} fila ${row}: complete tercero y documento.`);
-  const balance=x.saldo||x.monto||'';
+  const source=type==='AR'?'Cuentas por Cobrar':type==='AP'?'Cuentas por Pagar':'Libro Mayor';
+  const issueDate=type==='GL'?'':openingIsoDate(x,row,'fecha_emision',[],'Fecha de emisi\u00f3n',source);
+  const dueDate=type==='GL'?'':openingIsoDate(x,row,'fecha_vencimiento',[],'Fecha de vencimiento',source);
+  const originalBalance=type==='GL'?'':openingAccountingAmount(x,row,'saldo',['saldo_moneda_original','importe_moneda_original','saldo_original','monto_original'],'Saldo en moneda original',source);
+  const explicitLocalEquivalent=type==='GL'?'':openingAccountingAmount(x,row,'equivalente_moneda_local',['equivalente_local','importe_moneda_local','saldo_moneda_local','saldo_local','local_equivalent'],'Equivalente en moneda local',source,false);
+  const historicalRate=type==='GL'?'':openingAccountingRate(x,row,originalBalance,explicitLocalEquivalent,source);
+  const localEquivalent=explicitLocalEquivalent||(historicalRate?String(Math.round((Number(originalBalance)*Number(historicalRate)+Number.EPSILON)*100)/100):'');
   return{
-   sourceType:type,sourceRow:row,account:x.cuenta,documentNumber:x.numero_documento||'',issueDate:x.fecha_emision||'',dueDate:x.fecha_vencimiento||'',currency:(x.moneda||'').toUpperCase(),
-   debit:amount(type==='GL'?x.debito_moneda_local:(type==='AR'?balance:'')),credit:amount(type==='GL'?x.credito_moneda_local:(type==='AP'?balance:'')),
-   debitFx:amount(type==='GL'?x.debito_moneda_original:''),creditFx:amount(type==='GL'?x.credito_moneda_original:''),entityTaxId:x.identificacion_tercero||'',
+   sourceType:type,sourceRow:row,account:x.cuenta,documentNumber:x.numero_documento||'',issueDate,dueDate,currency:(x.moneda||'').toUpperCase(),
+   debit:amount(type==='GL'?x.debito_moneda_local:(type==='AR'?originalBalance:'')),credit:amount(type==='GL'?x.credito_moneda_local:(type==='AP'?originalBalance:'')),
+   debitFx:amount(type==='GL'?x.debito_moneda_original:(type==='AR'?originalBalance:'')),creditFx:amount(type==='GL'?x.credito_moneda_original:(type==='AP'?originalBalance:'')),
+   ...(type==='GL'?{}:{localDebit:type==='AR'?localEquivalent:'',localCredit:type==='AP'?localEquivalent:'',localEquivalent,originalAmount:originalBalance,exchangeRate:historicalRate,historicalRate,auxiliaryOnly:true}),
+   entityTaxId:x.identificacion_tercero||'',
    department:x.departamento||'',costCenter:x.centro_costos||'',className:x.clase||'',financialCreditor:x.acreedor_financiero||'',relatedCompany:x.compania_relacionada||'',
    location:x.sucursal||'',note:x.nota||''
   };
@@ -186,10 +305,38 @@ function exchangeRateDecimal(value:unknown,row:number){
  return normalized;
 }
 function close(a:number,b:number,tolerance=.005){return Math.abs(a-b)<=tolerance;}
-function validIsoDate(value:string){
- const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(value);if(!match)return false;
- const year=Number(match[1]),month=Number(match[2]),day=Number(match[3]),date=new Date(Date.UTC(year,month-1,day));
- return date.getUTCFullYear()===year&&date.getUTCMonth()===month-1&&date.getUTCDate()===day;
+function normalizedOpeningDateValue(value:unknown){
+ const raw=String(value??'').trim();
+ let match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(raw),year:number,month:number,day:number;
+ if(match){year=Number(match[1]);month=Number(match[2]);day=Number(match[3]);}
+ else{
+  match=/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/.exec(raw);
+  if(!match)return'';
+  day=Number(match[1]);month=Number(match[2]);year=Number(match[3]);
+ }
+ const date=new Date(Date.UTC(year,month-1,day));
+ if(date.getUTCFullYear()!==year||date.getUTCMonth()!==month-1||date.getUTCDate()!==day)return'';
+ return`${String(year).padStart(4,'0')}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+}
+
+function openingColumn(data:Record<string,string>,fields:string[]){
+ const headers=Object.keys(data);
+ const positions=fields.map(field=>headers.indexOf(field)+1).filter(position=>position>0);
+ return positions.length?Math.min(...positions):undefined;
+}
+
+function openingIsoDate(
+ data:Record<string,string>,row:number,property:string,aliases:string[],field:string,source:string,required=true
+){
+ const value=String(data[property]??'').trim(),column=openingColumn(data,[property,...aliases]);
+ const normalized=normalizedOpeningDateValue(value);
+ if(value&&normalized)return normalized;
+ if(!value&&!required)return '';
+ const message=value?`El valor "${value}" no es una fecha valida para ${field}.`:`Complete ${field}.`;
+ throw new OpeningFileParseError(`${source} fila ${row}: ${message}`,{
+  code:value?'INVALID_DATE':'REQUIRED_DATE',message,row,...(column?{column,columnLetter:columnLetter(column)}:{}),field,value,
+  suggestion:'Use AAAA-MM-DD, DD/MM/AAAA o DD-MM-AAAA; por ejemplo, 2021-12-29 o 29/12/2021.'
+ });
 }
 
 function parseOpeningPendingRows(parsed:ParsedRow[],openingDate=''):OpeningPendingItem[]{
@@ -212,9 +359,8 @@ function parseOpeningPendingRows(parsed:ParsedRow[],openingDate=''):OpeningPendi
    if(values.size>1)throw Error(`Pendiente ${reference}: ${label} debe ser igual en todas sus líneas.`);
   }
   const periodType=first.tipo_periodo.trim().toUpperCase()as OpeningPendingItem['periodType'];
-  const originDate=first.fecha_origen.trim(),serviceMonth=first.mes_servicio.trim(),currency=first.moneda.trim().toUpperCase(),entityTaxId=first.identificacion_cliente.trim(),serviceCountry=first.pais_servicio.trim().toUpperCase();
+  const originDate=openingIsoDate(first,firstRow,'fecha_origen',['fecha','fecha_documento','fecha_reconocimiento'],'Fecha de origen','Auxiliar de Pendientes de Facturar'),serviceMonth=first.mes_servicio.trim(),currency=first.moneda.trim().toUpperCase(),entityTaxId=first.identificacion_cliente.trim(),serviceCountry=first.pais_servicio.trim().toUpperCase();
   if(!['ACTUAL','ANTERIOR'].includes(periodType))throw Error(`Pendiente ${reference}: tipo_periodo debe ser ACTUAL o ANTERIOR.`);
-  if(!validIsoDate(originDate))throw Error(`Pendiente ${reference}: use fecha_origen con formato YYYY-MM-DD y una fecha válida.`);
   if(openingDate&&originDate>openingDate)throw Error(`Pendiente ${reference}: la fecha de origen no puede ser posterior a la fecha de apertura.`);
   if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(serviceMonth))throw Error(`Pendiente ${reference}: use mes_servicio con formato YYYY-MM.`);
   if(openingDate&&serviceMonth>openingDate.slice(0,7))throw Error(`Pendiente ${reference}: el mes de servicio no puede ser posterior a la fecha de apertura.`);
@@ -272,14 +418,13 @@ function parseOpeningBankRows(parsed:ParsedRow[],openingDate=''):OpeningBankItem
  return parsed.map(({row,data:x})=>{
   const bankCode=(x.codigo_banco||'').trim().toUpperCase(),accountNumber=(x.numero_cuenta_bancaria||'').trim(),currency=(x.moneda||'').trim().toUpperCase();
   const recordType=(x.tipo_registro||'').trim().toUpperCase()as OpeningBankItem['recordType'];
-  const transactionDate=(x.fecha_movimiento||'').trim(),valueDate=(x.fecha_valor||'').trim(),reference=(x.referencia||'').trim();
+  const transactionDate=openingIsoDate(x,row,'fecha_movimiento',['fecha','transaction_date'],'Fecha de movimiento',label);
+  const valueDate=openingIsoDate(x,row,'fecha_valor',['value_date'],'Fecha valor',label,false),reference=(x.referencia||'').trim();
   if(!bankCode)throw Error(`${label} fila ${row}: complete codigo_banco.`);
   if(!accountNumber)throw Error(`${label} fila ${row}: complete numero_cuenta_bancaria.`);
   if(!/^[A-Z]{3}$/.test(currency))throw Error(`${label} fila ${row}: moneda debe ser un codigo ISO de tres letras.`);
   if(!allowed.has(recordType))throw Error(`${label} fila ${row}: tipo_registro debe ser SALDO_CONCILIADO, DEPOSITO_EN_TRANSITO o CHEQUE_EN_TRANSITO.`);
-  if(!validIsoDate(transactionDate))throw Error(`${label} fila ${row}: use fecha_movimiento con formato YYYY-MM-DD y una fecha valida.`);
   if(openingDate&&transactionDate>openingDate)throw Error(`${label} fila ${row}: fecha_movimiento no puede ser posterior a la fecha de apertura.`);
-  if(valueDate&&!validIsoDate(valueDate))throw Error(`${label} fila ${row}: use fecha_valor con formato YYYY-MM-DD y una fecha valida, o dejela vacia.`);
   if(openingDate&&valueDate&&valueDate>openingDate)throw Error(`${label} fila ${row}: fecha_valor no puede ser posterior a la fecha de apertura.`);
   if(recordType!=='SALDO_CONCILIADO'&&!reference)throw Error(`${label} fila ${row}: complete referencia para la partida en transito.`);
   const originalRaw=amount(x.importe_moneda_original),localRaw=amount(x.equivalente_moneda_local);
@@ -349,9 +494,13 @@ function parseOpeningFixedAssetRows(parsed:ParsedRow[]){
  if(!parsed.length)return[];
  const required=['nombre_activo','codigo_categoria','fecha_compra','fecha_en_servicio','costo_historico','depreciacion_acumulada','meses_depreciados','ubicacion','estado','moneda'];
  for(const field of required)if(!(field in parsed[0].data))throw Error(`La plantilla de Activos Fijos no contiene la columna ${field}.`);
- return parsed.map(({row,data:x})=>({
-  sourceRow:row,assetNumber:x.codigo_activo||'AUTO',name:x.nombre_activo,categoryCode:(x.codigo_categoria||'').toUpperCase(),serial:x.numero_serie||'',description:x.descripcion||'',purchaseDate:x.fecha_compra||'',serviceDate:x.fecha_en_servicio||'',cost:amount(x.costo_historico),accumulatedDepreciation:amount(x.depreciacion_acumulada),bookValue:amount(x.valor_en_libros),depreciatedMonths:x.meses_depreciados||'0',location:x.ubicacion||'',departmentType:x.tipo_departamento||'',department:x.departamento||'',costCenter:x.centro_costos||'',className:x.clase||'',status:(x.estado||'ACTIVO').toUpperCase(),currency:(x.moneda||'').toUpperCase(),note:x.nota||''
- }));
+ return parsed.map(({row,data:x})=>{
+  const purchaseDate=openingIsoDate(x,row,'fecha_compra',[],'Fecha de compra','Auxiliar de Activos Fijos');
+  const serviceDate=openingIsoDate(x,row,'fecha_en_servicio',[],'Fecha en servicio','Auxiliar de Activos Fijos');
+  return{
+   sourceRow:row,assetNumber:x.codigo_activo||'AUTO',name:x.nombre_activo,categoryCode:(x.codigo_categoria||'').toUpperCase(),serial:x.numero_serie||'',description:x.descripcion||'',purchaseDate,serviceDate,cost:amount(x.costo_historico),accumulatedDepreciation:amount(x.depreciacion_acumulada),bookValue:amount(x.valor_en_libros),depreciatedMonths:x.meses_depreciados||'0',location:x.ubicacion||'',departmentType:x.tipo_departamento||'',department:x.departamento||'',costCenter:x.centro_costos||'',className:x.clase||'',status:(x.estado||'ACTIVO').toUpperCase(),currency:(x.moneda||'').toUpperCase(),note:x.nota||''
+  };
+ });
 }
 
 export function parseOpeningFixedAssetCsv(text:string){
@@ -379,8 +528,13 @@ async function rpc(auth:string,name:string,p:Record<string,unknown>={}){
 function normalizeOpeningPreview(value:unknown){
  if(!value||typeof value!=='object'||Array.isArray(value))return value;
  const result=value as Record<string,unknown>,nested=result.pending&&typeof result.pending==='object'&&!Array.isArray(result.pending)?result.pending as Record<string,unknown>:{};
+ const arAp=result.arAp&&typeof result.arAp==='object'&&!Array.isArray(result.arAp)?result.arAp as Record<string,unknown>:{};
  return{
   ...result,
+  arApSummary:result.arApSummary??result.ar_ap_summary??arAp.summary??{},
+  arApReconciliation:result.arApReconciliation??result.ar_ap_reconciliation??arAp.reconciliation??[],
+  arReconciliation:result.arReconciliation??result.ar_reconciliation??arAp.arReconciliation??arAp.ar_reconciliation??[],
+  apReconciliation:result.apReconciliation??result.ap_reconciliation??arAp.apReconciliation??arAp.ap_reconciliation??[],
   pendingSummary:result.pendingSummary??result.pending_summary??nested.summary??{},
   pendingReconciliation:result.pendingReconciliation??result.pending_reconciliation??nested.reconciliation??[],
   pendingItems:result.pendingItems??result.pending_items??nested.items??(Array.isArray(result.pending)?result.pending:[]),
@@ -390,20 +544,154 @@ function normalizeOpeningPreview(value:unknown){
  };
 }
 
+function openingUploadFileName(input:unknown,hint:unknown){
+ if(input&&typeof input==='object'&&!Array.isArray(input)){
+  const file=input as Record<string,unknown>,name=String(file.fileName||file.name||'').trim();
+  if(name)return name;
+ }
+ const name=String(hint||'').trim();
+ if(name)return name;
+ return typeof input==='string'&&input.trim()?'Archivo CSV sin nombre':'Archivo sin nombre';
+}
+
+function openingFileError(cause:unknown):OpeningFileError{
+ if(cause instanceof OpeningFileParseError)return cause.detail;
+ const message=cause instanceof Error?cause.message:'No fue posible leer el archivo.';
+ const rowMatch=/\bfila\s+(\d+)/i.exec(message),row=rowMatch?Number(rowMatch[1]):undefined;
+ return{code:'INVALID_FILE',message,...(row?{row}:{}),suggestion:'Revise la plantilla y corrija el dato indicado.'};
+}
+
+type OpeningValidationSource={key:string;label:string;fileName:string;rows:Record<string,unknown>[]};
+type OpeningDimensionFailure={property:string;field:string;value:string;message:string;suggestion:string};
+
+function openingLookupText(value:unknown){return String(value??'').trim().normalize('NFC').toLowerCase();}
+
+function openingDimensionFailure(message:string):OpeningDimensionFailure|null{
+ const match=/^(.+?)\s+"([^"]+)"\s+(.+)$/.exec(message.trim());
+ if(!match)return null;
+ const dimension=openingLookupText(match[1]).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
+ const definitions:Record<string,{property:string;field:string;lookup:string}>={
+  departamento:{property:'department',field:'Departamento',lookup:'nombre exacto o ID:identificador'},
+  'centro de costos':{property:'costCenter',field:'Centro de costos',lookup:'código, nombre exacto o ID:identificador'},
+  clase:{property:'className',field:'Clase',lookup:'nombre exacto o ID:identificador'},
+  'acreedor financiero':{property:'financialCreditor',field:'Acreedor financiero',lookup:'código, identificación, nombre exacto o ID:identificador'},
+  'compania relacionada':{property:'relatedCompany',field:'Compañía relacionada',lookup:'código, identificación, nombre exacto o ID:identificador'},
+  'ubicacion / sucursal':{property:'location',field:'Ubicación / sucursal',lookup:'nombre exacto o ID:identificador'}
+ };
+ const definition=definitions[dimension];if(!definition)return null;
+ const value=match[2].trim(),reason=match[3].trim().replace(/\s+Use\s+.+$/i,'').trim();
+ return{
+  property:definition.property,field:definition.field,value,
+  message:`${definition.field} "${value}" ${reason}`,
+  suggestion:`Corrija el campo ${definition.field} y use un valor activo asignado a la subsidiaria: ${definition.lookup}.`
+ };
+}
+
+function openingRowNumber(value:unknown){
+ const row=Number(value);return Number.isInteger(row)&&row>0?row:undefined;
+}
+
+function openingRowSummary(rows:number[]){
+ const ordered=[...new Set(rows)].sort((left,right)=>left-right),groups:string[]=[];
+ for(let index=0;index<ordered.length;index++){
+  const start=ordered[index];let end=start;
+  while(index+1<ordered.length&&ordered[index+1]===end+1){end=ordered[++index];}
+  groups.push(start===end?String(start):`${start}–${end}`);
+ }
+ return groups.join(', ');
+}
+
+function openingSourceField(failure:OpeningDimensionFailure,key:string){
+ return failure.property==='location'&&key!=='fa'?'Sucursal':failure.field;
+}
+
+function openingSourceSuggestion(failure:OpeningDimensionFailure,field:string){
+ return failure.suggestion.replace(`campo ${failure.field}`,`campo ${field}`);
+}
+
+function openingDimensionFileErrors(failure:OpeningDimensionFailure,sources:OpeningValidationSource[]):OpeningBalanceFileValidation[]{
+ const expected=openingLookupText(failure.value);
+ return sources.flatMap(source=>{
+  const rows=source.rows.flatMap(row=>openingLookupText(row[failure.property])===expected&&openingRowNumber(row.sourceRow)?[openingRowNumber(row.sourceRow)!]:[]);
+  if(!rows.length)return[];
+  const uniqueRows=[...new Set(rows)].sort((left,right)=>left-right),rowText=openingRowSummary(uniqueRows);
+  const message=uniqueRows.length===1?failure.message:`${failure.message} Filas afectadas: ${rowText}.`;
+  const field=openingSourceField(failure,source.key);
+  return[{key:source.key,label:source.label,fileName:source.fileName,errors:[{
+   code:'INVALID_CATALOG_REFERENCE',message,row:uniqueRows[0],rows:uniqueRows,field,value:failure.value,suggestion:openingSourceSuggestion(failure,field)
+  }]}];
+ });
+}
+
+function openingPrefixedRpcError(message:string){
+ const rules:{key:string;expression:RegExp}[]=[
+  {key:'gl',expression:/^(?:GL|Libro Mayor)\s+fila\s+(\d+)\s*:\s*(.+)$/i},
+  {key:'ar',expression:/^(?:AR|CxC|Cuentas por Cobrar)\s+fila\s+(\d+)\s*:\s*(.+)$/i},
+  {key:'ap',expression:/^(?:AP|CxP|Cuentas por Pagar)\s+fila\s+(\d+)\s*:\s*(.+)$/i},
+  {key:'pending',expression:/^Pendientes de Facturar\s+fila\s+(\d+)\s*:\s*(.+)$/i},
+  {key:'fa',expression:/^(?:Activos Fijos|Auxiliar de Activos Fijos)\s+fila\s+(\d+)\s*:\s*(.+)$/i},
+  {key:'banks',expression:/^Auxiliar de Bancos\s+fila\s+(\d+)\s*:\s*(.+)$/i}
+ ];
+ for(const rule of rules){const match=rule.expression.exec(message);if(match)return{key:rule.key,row:Number(match[1]),detail:match[2].trim()};}
+ if(/^Pendiente\b/i.test(message))return{key:'pending',detail:message};
+ return null;
+}
+
+function openingRpcFileErrors(cause:unknown,sources:OpeningValidationSource[]):OpeningBalanceFileValidation[]{
+ const message=cause instanceof Error?cause.message:String(cause??'').trim();if(!message)return[];
+ const prefixed=openingPrefixedRpcError(message);
+ if(prefixed){
+  const source=sources.find(candidate=>candidate.key===prefixed.key);if(!source||!source.rows.length)return[];
+  const dimension=openingDimensionFailure(prefixed.detail);
+  const field=dimension?openingSourceField(dimension,source.key):'';
+  const issue:OpeningFileError=dimension?{
+   code:'INVALID_CATALOG_REFERENCE',message:dimension.message,row:prefixed.row,rows:prefixed.row?[prefixed.row]:undefined,field,value:dimension.value,suggestion:openingSourceSuggestion(dimension,field)
+  }:{
+   code:'INVALID_OPENING_BALANCE_ROW',message:prefixed.detail,row:prefixed.row,suggestion:'Revise la fila indicada en este archivo y corrija el dato antes de volver a validar.'
+  };
+  return[{key:source.key,label:source.label,fileName:source.fileName,errors:[issue]}];
+ }
+ const dimension=openingDimensionFailure(message);if(!dimension)return[];
+ return openingDimensionFileErrors(dimension,sources.filter(source=>['gl','ar','ap','pending'].includes(source.key)));
+}
+
 export async function openingBalances(auth:string,action:string,p:Record<string,unknown>={}){
  if(action==='validate'){
   const openingDate=String(p.openingDate||'');
-  const[glRows,arRows,apRows,assets,pending,banks]=await Promise.all([
-   parseOpeningAccountingFile(p.gl,'GL',String(p.glFileName||'')),
-   parseOpeningAccountingFile(p.ar,'AR',String(p.arFileName||'')),
-   parseOpeningAccountingFile(p.ap,'AP',String(p.apFileName||'')),
-   parseOpeningFixedAssetFile(p.fa,String(p.faFileName||'')),
-   parseOpeningPendingFile(p.pending,openingDate,String(p.pendingFileName||'')),
-   parseOpeningBankFile(p.banks,openingDate,String(p.banksFileName||''))
-  ]);
+  const uploads=[
+   {key:'gl',label:'Libro Mayor',fileName:openingUploadFileName(p.gl,p.glFileName),load:()=>parseOpeningAccountingFile(p.gl,'GL',String(p.glFileName||''))},
+   {key:'ar',label:'Cuentas por Cobrar',fileName:openingUploadFileName(p.ar,p.arFileName),load:()=>parseOpeningAccountingFile(p.ar,'AR',String(p.arFileName||''))},
+   {key:'ap',label:'Cuentas por Pagar',fileName:openingUploadFileName(p.ap,p.apFileName),load:()=>parseOpeningAccountingFile(p.ap,'AP',String(p.apFileName||''))},
+   {key:'fa',label:'Auxiliar de Activos Fijos',fileName:openingUploadFileName(p.fa,p.faFileName),load:()=>parseOpeningFixedAssetFile(p.fa,String(p.faFileName||''))},
+   {key:'pending',label:'Auxiliar de Pendientes de Facturar',fileName:openingUploadFileName(p.pending,p.pendingFileName),load:()=>parseOpeningPendingFile(p.pending,openingDate,String(p.pendingFileName||''))},
+   {key:'banks',label:'Auxiliar de Bancos',fileName:openingUploadFileName(p.banks,p.banksFileName),load:()=>parseOpeningBankFile(p.banks,openingDate,String(p.banksFileName||''))}
+  ];
+  const parsed=await Promise.allSettled(uploads.map(upload=>upload.load()));
+  const invalidFiles=parsed.flatMap((result,index)=>result.status==='rejected'?[{key:uploads[index].key,label:uploads[index].label,fileName:uploads[index].fileName,errors:[openingFileError(result.reason)]}]:[]);
+  if(invalidFiles.length)throw new OpeningBalanceFilesValidationError(invalidFiles);
+  const values=parsed.map(result=>result.status==='fulfilled'?result.value:[]);
+  const glRows=values[0]as Awaited<ReturnType<typeof parseOpeningAccountingFile>>;
+  const arRows=values[1]as Awaited<ReturnType<typeof parseOpeningAccountingFile>>;
+  const apRows=values[2]as Awaited<ReturnType<typeof parseOpeningAccountingFile>>;
+  const assets=values[3]as Awaited<ReturnType<typeof parseOpeningFixedAssetFile>>;
+  const pending=values[4]as Awaited<ReturnType<typeof parseOpeningPendingFile>>;
+  const banks=values[5]as Awaited<ReturnType<typeof parseOpeningBankFile>>;
   const financialRows=[...glRows,...arRows,...apRows];
   if(!financialRows.length&&!assets.length&&!pending.length&&!banks.length)throw Error('Cargue al menos una plantilla con datos.');
-  return normalizeOpeningPreview(await rpc(auth,map.validate,{p:{expectedSubsidiaryId:p.expectedSubsidiaryId,openingDate:p.openingDate,loadType:p.loadType,transitionAccountId:p.transitionAccountId,rows:financialRows,assets,pending,banks}}));
+  const validationSources:OpeningValidationSource[]=[
+   {key:uploads[0].key,label:uploads[0].label,fileName:uploads[0].fileName,rows:glRows as unknown as Record<string,unknown>[]},
+   {key:uploads[1].key,label:uploads[1].label,fileName:uploads[1].fileName,rows:arRows as unknown as Record<string,unknown>[]},
+   {key:uploads[2].key,label:uploads[2].label,fileName:uploads[2].fileName,rows:apRows as unknown as Record<string,unknown>[]},
+   {key:uploads[3].key,label:uploads[3].label,fileName:uploads[3].fileName,rows:assets as unknown as Record<string,unknown>[]},
+   {key:uploads[4].key,label:uploads[4].label,fileName:uploads[4].fileName,rows:pending.flatMap(item=>item.lines)as unknown as Record<string,unknown>[]},
+   {key:uploads[5].key,label:uploads[5].label,fileName:uploads[5].fileName,rows:banks as unknown as Record<string,unknown>[]}
+  ];
+  try{return normalizeOpeningPreview(await rpc(auth,map.validate,{p:{expectedSubsidiaryId:p.expectedSubsidiaryId,openingDate:p.openingDate,loadType:p.loadType,transitionAccountId:p.transitionAccountId,rows:financialRows,assets,pending,banks}}));}
+  catch(cause){
+   const rpcFiles=openingRpcFileErrors(cause,validationSources);
+   if(rpcFiles.length)throw new OpeningBalanceFilesValidationError(rpcFiles);
+   throw cause;
+  }
  }
  const fn=map[action];if(!fn)throw Error('Acción inválida.');
  const result=await rpc(auth,fn,action==='preview'||action==='post'||action==='reverse'?{p_run_id:Number(p.runId)}:{});

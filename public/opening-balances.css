@@ -41,3 +41,130 @@
 .template-links{gap:7px;margin:1px 0 14px}
 .template-links a{justify-content:center;min-width:65px;padding:6px 10px;border:1px solid #c7ded5;border-radius:7px;background:#f3faf7;transition:.15s ease}
 .template-links a:hover{border-color:var(--green);background:#e7f6ef}
+
+/* Conciliación de los auxiliares de cartera contra las cuentas de control. */
+.ar-ap-information{background:#f2f6fc;border-color:#c9d7e8;border-left-color:var(--navy)}
+.ar-ap-information b{color:var(--navy)}
+.ar-ap-information span{color:#40536b}
+.ar-ap-rule{margin:0 0 10px;padding:10px 12px;border:1px solid #c9d7e8;border-radius:8px;background:#f6f9fd;color:#40536b;font-size:11px;line-height:1.45}
+.ar-ap-summary div:nth-child(2){background:#edf8f3;border-color:#b7dece}
+.ar-ap-summary div:nth-child(4){background:#fff6ea;border-color:#efd2ae}
+.balance-difference{display:flex;align-items:flex-start;gap:9px;margin:0 0 15px;padding:11px 13px;border:1px solid #efb5ba;border-left:4px solid #c52e3a;border-radius:8px;background:#fff7f8;color:#70454a;font-size:12px;line-height:1.45}
+.balance-difference[hidden]{display:none!important}
+.balance-difference b{color:#9e1d28;white-space:nowrap}
+.reconciliation-kind{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:9px;font-weight:900;white-space:nowrap}
+.reconciliation-kind.ar{background:#e3f4ed;color:#087052}
+.reconciliation-kind.ap{background:#fff0db;color:#8a4a0d}
+.rate-source{display:inline-flex!important;width:max-content;border-radius:999px;padding:3px 7px;margin-top:5px!important;font-size:9px!important;font-weight:850}
+.rate-source.declared{background:#e3f4ed;color:#087052!important}
+.rate-source.inferred{background:#fff0db;color:#8a4a0d!important}
+@media(max-width:900px){.ar-ap-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.ar-ap-summary{grid-template-columns:1fr}}
+
+/* Diagnóstico detallado de archivos de apertura. */
+.file-validation-badge[hidden],.validation-errors[hidden]{display:none!important}
+.file-validation-badge{align-self:flex-start;display:inline-flex;margin:0 34px 4px 0;padding:4px 8px;border-radius:999px;background:#fde8ea;color:#a12027;font-size:9px;font-weight:900;letter-spacing:.2px}
+.files article.has-validation-error{border-color:#e5a6ac!important;border-top-color:#c52e3a!important;box-shadow:0 0 0 2px #fde8ea,0 8px 20px #9e1d2812}
+.files article.has-validation-error .file-picker{border-color:#d7646e;background:#fff7f8;color:#9e1d28}
+.files article.has-validation-error .file-picker span{color:#9e1d28}
+.validation-errors{margin:4px 0 18px;padding:16px;border:1px solid #efb5ba;border-left:5px solid #c52e3a;border-radius:10px;background:#fff9fa;box-shadow:0 8px 24px #5c17200d;outline:none}
+.validation-errors:focus{box-shadow:0 0 0 3px #f8d8dc,0 8px 24px #5c17200d}
+.validation-errors-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:13px}
+.validation-errors-icon{display:grid;flex:0 0 28px;place-items:center;width:28px;height:28px;border-radius:50%;background:#c52e3a;color:#fff;font-size:16px;font-weight:900}
+.validation-errors-head small{display:block;margin-bottom:2px;color:#a12027;font-size:9px;font-weight:900;letter-spacing:1.2px}
+.validation-errors-head h2{margin:0;color:#6f1720;font-size:17px}
+.validation-errors-head p{margin:4px 0 0;color:#70454a;font-size:12px;font-weight:500;line-height:1.45}
+.validation-error-files{display:grid;gap:10px}
+.validation-error-file{overflow:hidden;border:1px solid #edc9cd;border-radius:9px;background:#fff}
+.validation-error-file>header{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:11px 12px;border-bottom:1px solid #f1dfe1;background:#fffafb}
+.validation-error-number{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:#fde8ea;color:#9e1d28;font-size:11px;font-weight:900}
+.validation-error-file>header div{min-width:0}
+.validation-error-file>header div>b,.validation-error-file>header div>span{display:block}
+.validation-error-file>header b{color:#4f1720;font-size:12px}
+.validation-error-file>header div>span{margin-top:2px;color:#765c60;font-size:11px;overflow-wrap:anywhere}
+.reselect-file{width:auto;margin:0;padding:7px 10px;border-color:#d9a5aa;background:#fff;color:#8f2029;font-size:10px;font-weight:850;cursor:pointer;white-space:nowrap}
+.reselect-file:hover{border-color:#b8323d;background:#fff4f5}
+.validation-error-file ol{display:grid;gap:8px;margin:0;padding:11px 14px 12px 42px}
+.validation-error-file li{padding-left:2px;color:#8f2029;font-size:11px}
+.validation-error-detail{display:grid;gap:3px;color:#26384e}
+.validation-error-detail b{font-size:11px;line-height:1.45}
+.validation-error-detail small{color:#6a747f;font-size:10px;line-height:1.45}
+.validation-error-location{justify-self:start;padding:3px 6px;border-radius:5px;background:#fff0f1;color:#9e1d28;font-size:9px;font-weight:850;text-transform:uppercase;letter-spacing:.25px}
+@media(max-width:760px){.validation-error-file>header{grid-template-columns:auto minmax(0,1fr)}.reselect-file{grid-column:1/-1;width:100%}}
+
+/* Confirmación de contabilización. */
+body.dialog-open{overflow:hidden}
+.post-confirmation-dialog{width:min(720px,calc(100vw - 32px));max-width:none;max-height:calc(100vh - 32px);margin:auto;padding:0;border:0;border-radius:16px;background:#fff;color:#142238;box-shadow:0 28px 80px #071b3440;overflow:hidden}
+.post-confirmation-dialog::backdrop{background:rgba(9,27,50,.58);backdrop-filter:blur(3px)}
+.post-confirmation-dialog[open]{animation:post-dialog-in .18s ease-out}
+.post-confirmation-shell{display:flex;max-height:calc(100vh - 32px);flex-direction:column}
+.post-confirmation-head{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:start;padding:22px 24px 20px;background-color:#042e72!important;color:#fff}
+.post-confirmation-head::after{position:absolute;right:-42px;bottom:-75px;width:190px;height:190px;border:30px solid rgba(255,255,255,.06);border-radius:50%;content:"";pointer-events:none}
+.post-confirmation-icon{display:grid;place-items:center;width:44px;height:44px;border:1px solid rgba(255,255,255,.3);border-radius:12px;background:rgba(255,255,255,.13)}
+.post-confirmation-icon svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.post-confirmation-head small{display:block;margin:1px 0 5px;color:#bfe0f5!important;font-size:9px;font-weight:900;letter-spacing:1.35px}
+.post-confirmation-head h2{margin:0;color:#fff!important;font-size:22px;line-height:1.2}
+.post-confirmation-head p{margin:6px 0 0;color:#dceaf5;font-size:12px;font-weight:500;line-height:1.45}
+.post-confirmation-close{position:relative;z-index:1;width:34px;height:34px;margin:0;padding:0;border-color:rgba(255,255,255,.25);border-radius:9px;background:rgba(255,255,255,.08);color:#fff;font-size:22px;line-height:1;cursor:pointer}
+.post-confirmation-close:hover{background:rgba(255,255,255,.18)}
+.post-confirmation-body{padding:20px 24px;overflow-y:auto}
+.post-confirmation-operation{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:11px;align-items:center;padding:11px 13px;border:1px solid #b7dece;border-radius:10px;background:#f1faf6}
+.post-confirmation-operation-mark{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#10845f;color:#fff;font-size:14px;font-weight:900}
+.post-confirmation-operation div{display:grid;gap:2px}
+.post-confirmation-operation small{color:#087052;font-size:9px;font-weight:900;letter-spacing:.8px}
+.post-confirmation-operation b{color:#284e43;font-size:12px;line-height:1.35}
+.post-confirmation-ready{padding:4px 8px;border-radius:999px;background:#dff5ec;color:#087052;font-size:9px;font-weight:900}
+.post-confirmation-dialog.auxiliary-mode .post-confirmation-operation{border-color:#c9d7e8;background:#f3f7fc}
+.post-confirmation-dialog.auxiliary-mode .post-confirmation-operation-mark{background:#063b79}
+.post-confirmation-dialog.auxiliary-mode .post-confirmation-operation small,.post-confirmation-dialog.auxiliary-mode .post-confirmation-operation b{color:#244f79}
+.post-confirmation-dialog.auxiliary-mode .post-confirmation-ready{background:#e5eef7;color:#244f79}
+.post-confirmation-context{display:grid;grid-template-columns:1.65fr 1.05fr 1.2fr .8fr .85fr;gap:0;margin:16px 0;border:1px solid #dbe4ec;border-radius:10px;background:#f9fbfd;overflow:hidden}
+.post-confirmation-context div{min-width:0;padding:11px 13px;border-right:1px solid #e3eaf0}
+.post-confirmation-context div:last-child{border-right:0}
+.post-confirmation-context dt{margin-bottom:4px;color:#718096;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.45px}
+.post-confirmation-context dd{margin:0;color:#203650;font-size:12px;font-weight:800;overflow-wrap:anywhere}
+.post-confirmation-totals{display:grid;grid-template-columns:1fr 1fr 1.15fr;gap:9px}
+.post-confirmation-totals>div{display:flex;min-width:0;align-items:center;gap:9px;padding:12px;border:1px solid #dbe4ec;border-radius:10px;background:#fff}
+.post-confirmation-totals p{display:grid;min-width:0;gap:3px;margin:0}
+.post-confirmation-totals small{color:#718096;font-size:9px;font-weight:750}
+.post-confirmation-totals b{color:#17395c;font-size:15px;white-space:nowrap}
+.total-dot{flex:0 0 9px;width:9px;height:9px;border-radius:50%}
+.total-dot.debit{background:#138a66;box-shadow:0 0 0 4px #e3f4ed}
+.total-dot.credit{background:#2a6ea6;box-shadow:0 0 0 4px #e8f1f8}
+.post-confirmation-totals .balanced{border-color:#b7dece;background:#edf8f3}
+.post-confirmation-totals .balanced>span{display:grid;flex:0 0 27px;place-items:center;width:27px;height:27px;border-radius:50%;background:#10845f;color:#fff;font-weight:900}
+.post-confirmation-totals .balanced b{color:#087052;font-size:12px;white-space:normal}
+.post-confirmation-aux-section{margin-top:18px}
+.post-confirmation-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px}
+.post-confirmation-section-head h3{margin:0;color:#17395c;font-size:12px}
+.post-confirmation-section-head span{color:#718096;font-size:9px}
+.post-confirmation-auxiliaries{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.post-confirmation-auxiliary{display:grid;gap:2px;padding:10px 11px;border:1px solid #dbe4ec;border-radius:9px;background:#fff}
+.post-confirmation-auxiliary b{color:#17395c;font-size:16px}
+.post-confirmation-auxiliary small{color:#66768a;font-size:9px;line-height:1.3}
+.post-confirmation-auxiliary.empty{opacity:.58;text-align:left}
+.post-confirmation-notice{display:flex;align-items:flex-start;gap:10px;margin-top:16px;padding:11px 12px;border:1px solid #efd2ae;border-radius:9px;background:#fff8ef;color:#6b5b4c}
+.post-confirmation-notice>span{display:grid;flex:0 0 22px;place-items:center;width:22px;height:22px;border-radius:50%;background:#f26a3d;color:#fff;font-family:Georgia,serif;font-size:13px;font-weight:900}
+.post-confirmation-notice p{display:grid;gap:2px;margin:0}
+.post-confirmation-notice b{color:#7d451b;font-size:11px}
+.post-confirmation-notice small{font-size:10px;line-height:1.4}
+.post-confirmation-dialog.auxiliary-mode .post-confirmation-notice{border-color:#c9d7e8;background:#f3f7fc;color:#40536b}
+.post-confirmation-dialog.auxiliary-mode .post-confirmation-notice>span{background:#063b79}
+.post-confirmation-dialog.auxiliary-mode .post-confirmation-notice b{color:#244f79}
+.post-confirmation-progress{display:flex;align-items:center;gap:9px;margin:14px 0 0;padding:10px 12px;border-radius:9px;background:#eef6ff;color:#244f79;font-size:11px;font-weight:800}
+.post-confirmation-progress[hidden]{display:none!important}
+.post-confirmation-progress.error{background:#fff1f2;color:#9e1d28}
+.post-confirmation-progress>span{width:15px;height:15px;border:2px solid #aac8e3;border-top-color:#063b79;border-radius:50%;animation:post-spinner .75s linear infinite}
+.post-confirmation-progress.error>span{display:none}
+.post-confirmation-actions{display:flex;justify-content:flex-end;gap:9px;padding:15px 24px;border-top:1px solid #e2e9ef;background:#f8fafc}
+.post-confirmation-actions button{width:auto;min-width:128px;margin:0;padding:10px 15px;font-weight:850;cursor:pointer}
+.post-confirmation-actions button:first-child{background:#fff;color:#40536b}
+.post-confirmation-actions button:first-child:hover{background:#f1f4f7}
+.post-confirmation-actions .primary{min-width:205px}
+.post-confirmation-dialog [disabled]{cursor:wait;opacity:.6}
+.post-confirmation-dialog button:focus-visible{outline:3px solid #f7b99f;outline-offset:2px}
+@keyframes post-dialog-in{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes post-spinner{to{transform:rotate(360deg)}}
+@media(max-width:700px){.post-confirmation-dialog{width:min(100% - 20px,720px);max-height:calc(100vh - 20px)}.post-confirmation-shell{max-height:calc(100vh - 20px)}.post-confirmation-head,.post-confirmation-body,.post-confirmation-actions{padding-left:17px;padding-right:17px}.post-confirmation-context{grid-template-columns:1fr 1fr}.post-confirmation-context div{border-bottom:1px solid #e3eaf0}.post-confirmation-context div:nth-child(even){border-right:0}.post-confirmation-context div:last-child{grid-column:1/-1;border-bottom:0}.post-confirmation-totals{grid-template-columns:1fr 1fr}.post-confirmation-totals .balanced{grid-column:1/-1}.post-confirmation-auxiliaries{grid-template-columns:1fr 1fr}}
+@media(max-width:470px){.post-confirmation-head{grid-template-columns:auto minmax(0,1fr)}.post-confirmation-close{position:absolute;top:12px;right:12px}.post-confirmation-head h2{padding-right:24px;font-size:19px}.post-confirmation-operation{grid-template-columns:auto minmax(0,1fr)}.post-confirmation-ready{display:none}.post-confirmation-context,.post-confirmation-totals,.post-confirmation-auxiliaries{grid-template-columns:1fr}.post-confirmation-context div{border-right:0;border-bottom:1px solid #e3eaf0}.post-confirmation-context div:last-child{border-bottom:0}.post-confirmation-totals .balanced{grid-column:auto}.post-confirmation-actions{flex-direction:column-reverse}.post-confirmation-actions button{width:100%}}
+@media(prefers-reduced-motion:reduce){.post-confirmation-dialog[open]{animation:none}.post-confirmation-progress>span{animation-duration:1.4s}}

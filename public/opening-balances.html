@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Carga de saldos iniciales · GENTIA</title>
-  <link rel="stylesheet" href="/opening-balances.css?v=20261021-pending-periods">
+  <link rel="stylesheet" href="/opening-balances.css?v=20261022-post-confirmation-modal">
 </head>
 <body>
 <main>
@@ -23,15 +23,17 @@
   </section>
 
   <section class="files">
-    <article class="financial-file"><div class="file-number">01</div><h2>Libro Mayor</h2><p>Saldos en moneda local y su equivalencia en moneda original, con dimensiones analíticas.</p><div class="template-links" aria-label="Plantillas de Libro Mayor"><a href="/plantilla-saldos-mayor.csv" download>↓ CSV</a><a href="/plantilla-saldos-mayor.xlsx" download>↓ Excel</a></div><label class="file-picker">Seleccionar archivo<input id="gl" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><span id="glName">Ningún archivo</span></label></article>
-    <article class="financial-file"><div class="file-number">02</div><h2>Cuentas por Cobrar</h2><p>Facturas pendientes por cliente, moneda y vencimiento.</p><div class="template-links" aria-label="Plantillas de Cuentas por Cobrar"><a href="/plantilla-saldos-cxc.csv" download>↓ CSV</a><a href="/plantilla-saldos-cxc.xlsx" download>↓ Excel</a></div><label class="file-picker">Seleccionar archivo<input id="ar" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><span id="arName">Ningún archivo</span></label></article>
-    <article class="financial-file"><div class="file-number">03</div><h2>Cuentas por Pagar</h2><p>Facturas pendientes por proveedor, moneda y vencimiento.</p><div class="template-links" aria-label="Plantillas de Cuentas por Pagar"><a href="/plantilla-saldos-cxp.csv" download>↓ CSV</a><a href="/plantilla-saldos-cxp.xlsx" download>↓ Excel</a></div><label class="file-picker">Seleccionar archivo<input id="ap" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><span id="apName">Ningún archivo</span></label></article>
-    <article class="asset-file"><div class="file-number">04</div><h2>Auxiliar de Activos Fijos</h2><p>Fichas históricas, costo, depreciación acumulada y vida útil consumida.</p><div class="template-links" aria-label="Plantillas del Auxiliar de Activos Fijos"><a href="/plantilla-saldos-activos-fijos.csv" download>↓ CSV</a><a href="/plantilla-saldos-activos-fijos.xlsx" download>↓ Excel</a></div><small id="faCatalogHint" class="catalog-hint">Consultando categorías disponibles…</small><label class="file-picker">Seleccionar archivo<input id="fa" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><span id="faName">Ningún archivo</span></label></article>
-    <article class="pending-file"><div class="file-number">05</div><h2>Auxiliar de Pendientes de Facturar</h2><p>Partidas abiertas del período actual y de períodos anteriores, conciliadas con el Mayor.</p><div class="template-links" aria-label="Plantillas del Auxiliar de Pendientes de Facturar"><a href="/plantilla-saldos-pendientes-facturar.csv" download>↓ CSV</a><a href="/plantilla-saldos-pendientes-facturar.xlsx" download>↓ Excel</a></div><small class="catalog-hint">ACTUAL: 113003 / 413001 · ANTERIOR: 113004 / 413002.</small><label class="file-picker">Seleccionar archivo<input id="pending" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><span id="pendingName">Ningún archivo</span></label></article>
-    <article class="bank-file"><div class="file-number">06</div><h2>Auxiliar de Bancos</h2><p>Saldos conciliados y partidas en tránsito por banco, cuenta y moneda.</p><div class="template-links" aria-label="Plantillas del Auxiliar de Bancos"><a href="/plantilla-saldos-bancos.csv" download>↓ CSV</a><a href="/plantilla-saldos-bancos.xlsx" download>↓ Excel</a></div><small id="bankCatalogHint" class="catalog-hint">Consultando cuentas bancarias disponibles…</small><label class="file-picker">Seleccionar archivo<input id="banks" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><span id="banksName">Ningún archivo</span></label></article>
+    <article class="financial-file" data-upload-card="gl"><div class="file-number">01</div><span class="file-validation-badge" hidden>Requiere corrección</span><h2>Libro Mayor</h2><p>Saldos en moneda local y su equivalencia en moneda original, con dimensiones analíticas.</p><div class="template-links" aria-label="Plantillas de Libro Mayor"><a href="/plantilla-saldos-mayor.csv" download>↓ CSV</a><a href="/plantilla-saldos-mayor.xlsx" download>↓ Excel</a></div><label class="file-picker">Seleccionar archivo<input id="gl" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><span id="glName">Ningún archivo</span></label></article>
+    <article class="financial-file" data-upload-card="ar"><div class="file-number">02</div><span class="file-validation-badge" hidden>Requiere corrección</span><h2>Cuentas por Cobrar</h2><p>Facturas pendientes por cliente, moneda y vencimiento.</p><div class="template-links" aria-label="Plantillas de Cuentas por Cobrar"><a href="/plantilla-saldos-cxc.csv" download>↓ CSV</a><a href="/plantilla-saldos-cxc.xlsx" download>↓ Excel</a></div><label class="file-picker">Seleccionar archivo<input id="ar" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><span id="arName">Ningún archivo</span></label></article>
+    <article class="financial-file" data-upload-card="ap"><div class="file-number">03</div><span class="file-validation-badge" hidden>Requiere corrección</span><h2>Cuentas por Pagar</h2><p>Facturas pendientes por proveedor, moneda y vencimiento.</p><div class="template-links" aria-label="Plantillas de Cuentas por Pagar"><a href="/plantilla-saldos-cxp.csv" download>↓ CSV</a><a href="/plantilla-saldos-cxp.xlsx" download>↓ Excel</a></div><label class="file-picker">Seleccionar archivo<input id="ap" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><span id="apName">Ningún archivo</span></label></article>
+    <article class="asset-file" data-upload-card="fa"><div class="file-number">04</div><span class="file-validation-badge" hidden>Requiere corrección</span><h2>Auxiliar de Activos Fijos</h2><p>Fichas históricas, costo, depreciación acumulada y vida útil consumida.</p><div class="template-links" aria-label="Plantillas del Auxiliar de Activos Fijos"><a href="/plantilla-saldos-activos-fijos.csv" download>↓ CSV</a><a href="/plantilla-saldos-activos-fijos.xlsx" download>↓ Excel</a></div><small id="faCatalogHint" class="catalog-hint">Consultando categorías disponibles…</small><label class="file-picker">Seleccionar archivo<input id="fa" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><span id="faName">Ningún archivo</span></label></article>
+    <article class="pending-file" data-upload-card="pending"><div class="file-number">05</div><span class="file-validation-badge" hidden>Requiere corrección</span><h2>Auxiliar de Pendientes de Facturar</h2><p>Partidas abiertas del período actual y de períodos anteriores, conciliadas con el Mayor.</p><div class="template-links" aria-label="Plantillas del Auxiliar de Pendientes de Facturar"><a href="/plantilla-saldos-pendientes-facturar.csv" download>↓ CSV</a><a href="/plantilla-saldos-pendientes-facturar.xlsx" download>↓ Excel</a></div><small class="catalog-hint">ACTUAL: 113003 / 413001 · ANTERIOR: 113004 / 413002.</small><label class="file-picker">Seleccionar archivo<input id="pending" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><span id="pendingName">Ningún archivo</span></label></article>
+    <article class="bank-file" data-upload-card="banks"><div class="file-number">06</div><span class="file-validation-badge" hidden>Requiere corrección</span><h2>Auxiliar de Bancos</h2><p>Saldos conciliados y partidas en tránsito por banco, cuenta y moneda.</p><div class="template-links" aria-label="Plantillas del Auxiliar de Bancos"><a href="/plantilla-saldos-bancos.csv" download>↓ CSV</a><a href="/plantilla-saldos-bancos.xlsx" download>↓ Excel</a></div><small id="bankCatalogHint" class="catalog-hint">Consultando cuentas bancarias disponibles…</small><label class="file-picker">Seleccionar archivo<input id="banks" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><span id="banksName">Ningún archivo</span></label></article>
   </section>
 
   <aside class="information fx-information"><b>Libro Mayor en dos monedas</b><span>Registre cada débito o crédito en moneda local y, cuando corresponda, su equivalencia en la moneda original. La tasa histórica se calcula con ambos importes y se conserva; las revaluaciones posteriores la usarán únicamente en cuentas marcadas para revaluación cambiaria. Departamento, centro de costos, clase, acreedor financiero y compañía relacionada son dimensiones opcionales según la cuenta. <strong>Sucursal se mantiene para uso futuro y puede dejarse vacía.</strong> Centro de costos sustituye a Proyecto.</span></aside>
+
+  <aside class="information ar-ap-information"><b>CxC y CxP sin duplicación</b><span>En cada factura registre el <strong>saldo en moneda original</strong>, su <strong>equivalente exacto en moneda local</strong> y el <strong>tipo de cambio histórico</strong>. Los auxiliares deben coincidir con las cuentas de control del Libro Mayor por cuenta y moneda. Al contabilizar, el detalle de facturas reemplaza el saldo agregado de esas cuentas; el sistema no lo suma dos veces.</span></aside>
 
   <aside class="information"><b>Auxiliar de activos fijos</b><span>Use fechas AAAA-MM-DD, importes sin separadores de miles, la moneda funcional y los códigos vigentes de categoría, ubicación y dimensiones. Puede usar punto o coma para los decimales. El archivo crea las fichas y su depreciación histórica sin volver a contabilizar esos importes. Las fichas que ya existan a la fecha de apertura se reconocen automáticamente para evitar duplicados.</span></aside>
 
@@ -42,7 +44,23 @@
   <div class="actions"><button id="validate" class="primary">Validar y previsualizar</button><button id="post" class="primary" disabled>Contabilizar saldos iniciales</button><button id="reverse" class="danger" hidden>Anular y reversar apertura</button></div>
   <p id="message" role="status"></p>
 
+  <section id="validationErrors" class="validation-errors" role="alert" aria-live="assertive" tabindex="-1" hidden>
+    <header class="validation-errors-head">
+      <span class="validation-errors-icon" aria-hidden="true">!</span>
+      <div><small>VALIDACIÓN DE ARCHIVOS</small><h2 id="validationErrorsTitle">No se pudo validar la carga</h2><p id="validationErrorsSummary"></p></div>
+    </header>
+    <div id="validationErrorFiles" class="validation-error-files"></div>
+  </section>
+
   <section id="summary" class="summary" hidden></section>
+  <aside id="balanceDifference" class="balance-difference" role="status" hidden></aside>
+
+  <section id="arApSummarySection" hidden>
+    <div class="section-title"><div><small>AUXILIARES DE CARTERA</small><h2>Conciliación Mayor vs. Cuentas por Cobrar y Pagar</h2></div><span id="arApStatus" class="badge"></span></div>
+    <p class="ar-ap-rule"><b>Control:</b> el saldo original y el equivalente local de cada cuenta y moneda deben coincidir con el Libro Mayor. Las facturas conciliadas sustituyen el saldo agregado de la cuenta al formar el asiento de apertura.</p>
+    <div id="arApSummary" class="summary ar-ap-summary"></div>
+    <div class="card table"><table><thead><tr><th>Auxiliar</th><th>Cuenta contable</th><th>Moneda</th><th class="num">Libro Mayor<br>(original / local)</th><th class="num">Auxiliar<br>(original / local)</th><th class="num">Diferencia<br>(original / local)</th><th>Estado</th></tr></thead><tbody id="arApReconciliation"></tbody></table></div>
+  </section>
 
   <section id="pendingSummarySection" hidden>
     <div class="section-title"><div><small>AUXILIAR DE PENDIENTES DE FACTURAR</small><h2>Conciliación Mayor vs. auxiliar</h2></div><span id="pendingStatus" class="badge"></span></div>
@@ -70,6 +88,60 @@
   <section class="section-title"><div><small>APERTURA CONTABLE</small><h2>Detalle del asiento</h2></div></section>
   <section class="card table"><table><thead><tr><th>Origen</th><th>Fila</th><th>Cuenta</th><th>Documento</th><th>Moneda original / tasa histórica</th><th>Dimensiones</th><th class="num">Débito local</th><th class="num">Crédito local</th><th class="num">Débito original</th><th class="num">Crédito original</th></tr></thead><tbody id="rows"></tbody></table></section>
 </main>
-<script type="module" src="/opening-balances.js?v=20261021-pending-periods"></script>
+
+<dialog id="postConfirmationDialog" class="post-confirmation-dialog" aria-labelledby="postConfirmTitle" aria-describedby="postConfirmDescription" data-testid="opening-post-dialog" tabindex="-1">
+  <div class="post-confirmation-shell">
+    <header class="post-confirmation-head">
+      <span class="post-confirmation-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false"><path d="M7 3.75h10A2.25 2.25 0 0 1 19.25 6v12A2.25 2.25 0 0 1 17 20.25H7A2.25 2.25 0 0 1 4.75 18V6A2.25 2.25 0 0 1 7 3.75Z"/><path d="M8.25 8h7.5M8.25 12h7.5M8.25 16h4.5"/></svg>
+      </span>
+      <div>
+        <small>PASO FINAL · CONTABILIZACIÓN</small>
+        <h2 id="postConfirmTitle">Contabilizar saldos iniciales</h2>
+        <p id="postConfirmDescription">Revise el lote validado antes de completar la operación.</p>
+      </div>
+      <button id="postConfirmClose" class="post-confirmation-close" type="button" aria-label="Cerrar confirmación">×</button>
+    </header>
+
+    <div class="post-confirmation-body">
+      <div class="post-confirmation-operation">
+        <span class="post-confirmation-operation-mark" aria-hidden="true">✓</span>
+        <div><small id="postConfirmOperation">APERTURA CONTABLE</small><b id="postConfirmOperationText">El lote está validado y listo para contabilizar.</b></div>
+        <span class="post-confirmation-ready">Listo</span>
+      </div>
+
+      <dl class="post-confirmation-context" aria-label="Datos del lote">
+        <div><dt>Subsidiaria</dt><dd id="postConfirmCompany">—</dd></div>
+        <div><dt>Fecha contable</dt><dd id="postConfirmDate">—</dd></div>
+        <div><dt>Tipo de carga</dt><dd id="postConfirmLoadType">—</dd></div>
+        <div><dt>Líneas contables</dt><dd id="postConfirmLines">0</dd></div>
+        <div><dt>Moneda funcional</dt><dd id="postConfirmCurrency">—</dd></div>
+      </dl>
+
+      <section class="post-confirmation-totals" aria-label="Totales del lote">
+        <div><span class="total-dot debit" aria-hidden="true"></span><p><small>Total débitos</small><b id="postConfirmDebit">0,00</b></p></div>
+        <div><span class="total-dot credit" aria-hidden="true"></span><p><small>Total créditos</small><b id="postConfirmCredit">0,00</b></p></div>
+        <div class="balanced"><span aria-hidden="true">✓</span><p><small>Estado del lote</small><b>Cuadrado y conciliado</b></p></div>
+      </section>
+
+      <section class="post-confirmation-aux-section" aria-labelledby="postConfirmAuxTitle">
+        <div class="post-confirmation-section-head"><h3 id="postConfirmAuxTitle">Auxiliares que se crearán</h3><span>Según la validación</span></div>
+        <div id="postConfirmAuxiliaries" class="post-confirmation-auxiliaries"></div>
+      </section>
+
+      <aside id="postConfirmNotice" class="post-confirmation-notice">
+        <span aria-hidden="true">i</span><p><b>Operación definitiva</b><small>Se generará el asiento de apertura y se crearán los auxiliares mostrados.</small></p>
+      </aside>
+      <p id="postConfirmProgress" class="post-confirmation-progress" role="status" aria-live="polite" data-testid="opening-post-progress" hidden><span aria-hidden="true"></span>Contabilizando la apertura y creando auxiliares…</p>
+    </div>
+
+    <footer class="post-confirmation-actions">
+      <button id="postConfirmCancel" type="button" data-testid="opening-post-cancel">Volver a revisar</button>
+      <button id="postConfirmSubmit" class="primary" type="button" data-testid="opening-post-confirm">Contabilizar definitivamente</button>
+    </footer>
+  </div>
+</dialog>
+
+<script type="module" src="/opening-balances.js?v=20261022-post-confirmation-modal"></script>
 </body>
 </html>
