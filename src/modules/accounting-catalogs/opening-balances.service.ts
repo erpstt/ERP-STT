@@ -519,10 +519,28 @@ export function parseOpeningFixedAssetFile(input:unknown,fileNameHint=''){
  return parseOpeningUpload(input,'Activos Fijos',fileNameHint,parseOpeningFixedAssetCsv,parseOpeningFixedAssetRows);
 }
 
+type OpeningRpcFailure={code?:unknown;message?:unknown};
+
+class OpeningBalanceProcessingTimeoutError extends Error{
+ readonly status=503;
+ readonly code='OPENING_BALANCE_PROCESSING_TIMEOUT';
+ constructor(name:string){
+  const operation=name==='opening_balance_post'?'La contabilizaci\u00f3n':name==='opening_balance_reverse'?'La reversi\u00f3n':name==='opening_balance_validate'?'La validaci\u00f3n':'La operaci\u00f3n';
+  super(`${operation} super\u00f3 el tiempo de procesamiento permitido en la base de datos y fue cancelada sin guardar cambios. El lote conserva su estado anterior; intente nuevamente cuando se haya revisado el rendimiento de la carga.`);
+  this.name='OpeningBalanceProcessingTimeoutError';
+ }
+}
+
+function openingRpcFailure(name:string,result:OpeningRpcFailure|null){
+ const code=String(result?.code??''),message=String(result?.message??'');
+ if(code==='57014'||/canceling statement due to statement timeout/i.test(message))return new OpeningBalanceProcessingTimeoutError(name);
+ return Error(message||'No fue posible procesar la apertura.');
+}
+
 async function rpc(auth:string,name:string,p:Record<string,unknown>={}){
  const config=getSupabaseConfig();if(!config)throw Error('Supabase no configurado.');
  const response=await fetchSupabase(new URL(`/rest/v1/rpc/${name}`,config.url),{method:'POST',headers:{apikey:config.anonKey,Authorization:auth,'Content-Type':'application/json'},body:JSON.stringify(p)}),raw=await response.text(),result=raw?JSON.parse(raw):null;
- if(!response.ok)throw Error(result?.message||'No fue posible procesar la apertura.');return result;
+ if(!response.ok)throw openingRpcFailure(name,result);return result;
 }
 
 function normalizeOpeningPreview(value:unknown){
