@@ -1,4 +1,5 @@
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
+import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { renderBankReconciliationPdf } from './accounting-reports.service.js';
 
@@ -434,7 +435,7 @@ function detailSheet(workbook: ExcelJS.Workbook, name: string, rows: TaxRow[], h
 
 export async function exportVatDeclarationReportExcel(authorization: string, filters: Json): Promise<ExportFile> {
   const report = await fullReport(authorization, filters), { header: h, summary: s } = report;
-  const workbook = new ExcelJS.Workbook(); workbook.creator = 'GENTIA ERP'; workbook.company = h.legalName || h.subsidiary || 'GENTIA'; workbook.created = new Date();
+  const workbook = await createExcelWorkbook(); workbook.creator = 'GENTIA ERP'; workbook.company = h.legalName || h.subsidiary || 'GENTIA'; workbook.created = new Date();
   const summary = workbook.addWorksheet('Resumen', { views: [{ state: 'frozen', ySplit: 10 }], pageSetup: { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
   summary.properties.tabColor = { argb: 'FF063B79' }; summary.columns = Array.from({length:12},() => ({width:18})); title(summary, `GENTIA · DECLARACIÓN ${h.taxName}`, 'L');
   summary.mergeCells('A2:G2'); summary.getCell('A2').value = h.legalName || h.subsidiary; summary.getCell('A2').font = { bold: true, size: 12, color: { argb: 'FF14233B' } };

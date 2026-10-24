@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer';
 import sanitizeHtml from 'sanitize-html';
 import { cleanBody, escapeHtml, validateTemplate } from './payment-email.js';
 import { rpc, smtpStatus } from './email-notification.service.js';
+import { pollMilliseconds, startAdaptivePoller } from '../../core/runtime/adaptive-poller.js';
 
 export const expenseApprovalEmailTags = [
   'empresa_nombre',
@@ -250,26 +251,17 @@ export function startExpenseApprovalNotifications() {
     disableFileAccess: true,
     disableUrlAccess: true
   });
-  let running = false;
-  const tick = async () => {
-    if (running) return;
-    running = true;
-    try {
-      const job = await rpc('expense_approval_email_claim', {}) as ExpenseApprovalEmailJob | null;
-      if (job) await deliverExpenseApprovalJob(job, message => transport.sendMail(message), (status, message, error) => rpc('expense_approval_email_finish', {
+  const idleMilliseconds = pollMilliseconds(process.env.NOTIFICATION_QUEUE_POLL_MS);
+  startAdaptivePoller(async () => {
+    const job = await rpc('expense_approval_email_claim', {}) as ExpenseApprovalEmailJob | null;
+    if (!job) return false;
+    await deliverExpenseApprovalJob(job, message => transport.sendMail(message), (status, message, error) => rpc('expense_approval_email_finish', {
         p_id: job.id,
         p_lease: job.lease,
         p_status: status,
         p_message_id: message,
         p_error: error
       }));
-    } catch {
-      console.error('Aprobaciones de gastos: no se pudo completar el ciclo de la cola.');
-    } finally {
-      running = false;
-    }
-  };
-  const timer = setInterval(() => void tick(), 10000);
-  timer.unref();
-  void tick();
+    return true;
+  }, {idleMilliseconds, onError: () => console.error('Aprobaciones de gastos: no se pudo completar el ciclo de la cola.')});
 }

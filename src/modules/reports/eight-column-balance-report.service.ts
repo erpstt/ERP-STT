@@ -1,4 +1,5 @@
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
+import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { renderBankReconciliationPdf } from './accounting-reports.service.js';
 
@@ -316,7 +317,7 @@ function styleNumericRow(row: ExcelJS.Row, numFmt: string) {
 
 export async function buildEightColumnBalanceExcel(report: NormalizedReport): Promise<ExportFile> {
   const { header: h, summary: s } = report;
-  const workbook = new ExcelJS.Workbook(); workbook.creator = 'GENTIA ERP'; workbook.company = h.legalName || h.subsidiary; workbook.created = new Date();
+  const workbook = await createExcelWorkbook(); workbook.creator = 'GENTIA ERP'; workbook.company = h.legalName || h.subsidiary; workbook.created = new Date();
   const sheet = workbook.addWorksheet('Balance 8 columnas', { views: [{ state: 'frozen', xSplit: 2, ySplit: 7 }], pageSetup: { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: .25, right: .25, top: .5, bottom: .5, header: .2, footer: .2 } } });
   sheet.headerFooter.oddFooter = '&LGENTIA ERP&C&P de &N&RBalance General de 8 Columnas';
   sheet.columns = [{ width: 15 }, { width: 38 }, ...Array.from({ length: 8 }, () => ({ width: 17 }))];

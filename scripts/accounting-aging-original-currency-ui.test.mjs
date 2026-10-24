@@ -12,6 +12,7 @@ try {
     window.__agingPrintCalled = false;
     window.print = () => { window.__agingPrintCalled = true; };
   });
+  await page.route('**/app.js*', route => route.fulfill({ contentType: 'application/javascript', body: '' }));
 
   const payloads = [];
   let reconciliationAvailable = true;

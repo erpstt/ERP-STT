@@ -1,4 +1,5 @@
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
+import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
 import { renderBankReconciliationPdf } from '../reports/accounting-reports.service.js';
 import { assetCategoryReport } from './asset-category.service.js';
 
@@ -114,7 +115,7 @@ function border(color = 'D8E2EC'): Partial<ExcelJS.Borders> {
 }
 
 export async function buildAssetCategoryExcel(payload: AssetCategoryExportPayload): Promise<Buffer> {
-  const workbook = new ExcelJS.Workbook();
+  const workbook = await createExcelWorkbook();
   workbook.creator = 'GENTIA ERP';
   workbook.company = payload.header.subsidiary || 'GENTIA';
   workbook.created = new Date();

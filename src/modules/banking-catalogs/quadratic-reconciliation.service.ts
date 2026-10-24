@@ -1,4 +1,5 @@
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
+import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { renderBankReconciliationPdf } from '../reports/accounting-reports.service.js';
 
@@ -430,7 +431,7 @@ export async function buildQuadraticReconciliationExcel(detail: QuadraticDetail)
   const currency = String(first(h, 'currencyCode', 'currency_code', 'currency') ?? '');
   const symbol = String(first(h, 'currencySymbol', 'currency_symbol', 'symbol') ?? currency);
   const excelSymbol = symbol.replace(/["\\]/g, '').slice(0, 12), amountFormat = `"${excelSymbol}" #,##0.00;[Red]("${excelSymbol}" #,##0.00)`;
-  const workbook = new ExcelJS.Workbook();
+  const workbook = await createExcelWorkbook();
   workbook.creator = 'GENTIA ERP';
   workbook.company = String(first(h, 'subsidiaryLegalName', 'subsidiary_legal_name', 'legalName', 'legal_name', 'subsidiaryName', 'subsidiary_name') ?? 'GENTIA');
   workbook.created = new Date();

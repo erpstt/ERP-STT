@@ -1,3 +1,5 @@
+import { createIndexedLookup } from './frontend-performance.js?v=20261023-second-pass-v3';
+
 const $=id=>document.getElementById(id);
 const token=localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo_token');
 const device=localStorage.getItem('nexo_device_token');
@@ -12,7 +14,7 @@ async function api(path,init={}){
   return payload;
 }
 
-const find=(rows,key,value)=>rows.find(row=>String(row[key])===String(value));
+const find=createIndexedLookup();
 const formatDate=value=>value?new Intl.DateTimeFormat('es-CR',{day:'2-digit',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(`${String(value).slice(0,10)}T12:00:00Z`)):'—';
 const formatMonth=value=>/^\d{4}-(0[1-9]|1[0-2])$/.test(String(value||''))?new Intl.DateTimeFormat('es-CR',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(`${value}-01T12:00:00Z`)):'—';
 const safeName=value=>String(value||'factura.pdf').replace(/[\\/:*?"<>|\r\n]/g,'-');

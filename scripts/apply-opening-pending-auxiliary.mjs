@@ -27,19 +27,37 @@ await db.connect();
 try {
   await db.query('begin');
   await db.query("set local lock_timeout='5s'; set local statement_timeout='180s'");
-  await db.query(migration);
+  const installationState = (await db.query(`select
+    to_regclass('public.opening_pending_invoice_items') is not null items,
+    to_regclass('public.opening_pending_invoice_lines') is not null lines,
+    to_regprocedure('public.opening_pending_invoice_reconciliation(bigint)') is not null reconciliation,
+    to_regprocedure('public.reverse_opening_pending_invoice(bigint,jsonb)') is not null reversal,
+    to_regprocedure('public.reverse_opening_pending_invoice_before_historical_fx_integrity(bigint,jsonb)') is not null
+      or to_regprocedure('public.reverse_opening_pending_invoice_before_support_integrity(bigint,jsonb)') is not null newer_layer
+  `)).rows[0];
+  const installed = installationState.items && installationState.lines
+    && installationState.reconciliation && installationState.reversal;
+  if (!installed && installationState.newer_layer) {
+    throw new Error('No se puede instalar el auxiliar base sobre una cadena de reversión más reciente.');
+  }
+  if (!installed) await db.query(migration);
   const verification = await db.query(`
     select
       to_regclass('public.opening_pending_invoice_items') is not null items,
       to_regclass('public.opening_pending_invoice_lines') is not null lines,
       to_regprocedure('public.opening_pending_invoice_reconciliation(bigint)') is not null reconciliation,
-      to_regprocedure('public.reverse_opening_pending_invoice(bigint,jsonb)') is not null reversal
+      to_regprocedure('public.reverse_opening_pending_invoice(bigint,jsonb)') is not null reversal,
+      (to_regprocedure('public.reverse_opening_pending_invoice_before_support_integrity(bigint,jsonb)') is null
+        or position('reverse_opening_pending_invoice_before_support_integrity' in
+          pg_get_functiondef('public.reverse_opening_pending_invoice(bigint,jsonb)'::regprocedure))>0) support_wrapper_linked
   `);
   if (!Object.values(verification.rows[0]).every(Boolean)) {
     throw new Error('La migración no creó todos los objetos requeridos.');
   }
   await db.query('commit');
-  console.log('Auxiliar de Pendientes de Facturar activado correctamente.');
+  console.log(installed
+    ? 'Auxiliar de Pendientes de Facturar ya estaba activo y fue verificado.'
+    : 'Auxiliar de Pendientes de Facturar activado correctamente.');
 } catch (error) {
   await db.query('rollback').catch(() => {});
   throw error;

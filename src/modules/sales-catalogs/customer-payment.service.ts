@@ -18,7 +18,8 @@ export async function customerPaymentOptions(authorization:string,paymentId?:num
 }
 export async function customerPaymentReport(authorization:string,filters:Record<string,unknown>){
   const [report,summaries]=await Promise.all([rpc(authorization,'customer_payment_report',{p_filters:filters}),rpc(authorization,'customer_payment_advance_summary')]);
-  return {...report,rows:(report.rows||[]).map((row:Record<string,unknown>)=>({...row,advanceTotal:summaries.find((item:Record<string,unknown>)=>String(item.paymentId)===String(row.id))?.advanceTotal||0}))};
+  const advanceByPayment=new Map<string,unknown>();for(const item of summaries as Array<Record<string,unknown>>){const paymentId=String(item.paymentId);if(!advanceByPayment.has(paymentId))advanceByPayment.set(paymentId,item.advanceTotal);}
+  return {...report,rows:(report.rows||[]).map((row:Record<string,unknown>)=>({...row,advanceTotal:advanceByPayment.get(String(row.id))||0}))};
 }
 export async function customerPaymentDetail(authorization:string,id:number){
   const [detail,advances]=await Promise.all([rpc(authorization,'customer_payment_detail',{p_payment_id:id}),rpc(authorization,'customer_payment_advance_detail',{p_payment_id:id})]);

@@ -1,4 +1,5 @@
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
+import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { renderBankReconciliationPdf } from '../reports/accounting-reports.service.js';
 
@@ -170,7 +171,7 @@ function generatedLabel(value: string) {
 
 export async function buildEntityCatalogExcel(catalog: EntityExportCatalog, payload: EntityExportPayload): Promise<Buffer> {
   const config = definition(catalog), columns = config.columns;
-  const workbook = new ExcelJS.Workbook();
+  const workbook = await createExcelWorkbook();
   workbook.creator = 'GENTIA ERP';
   workbook.company = payload.header.legalName || payload.header.subsidiary || 'GENTIA';
   workbook.created = new Date();

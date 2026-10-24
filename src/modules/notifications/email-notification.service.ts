@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
+import { pollMilliseconds, startAdaptivePoller } from '../../core/runtime/adaptive-poller.js';
 import { cleanBody, defaultBody, defaultSubject, renderPaymentEmail, validateTemplate, type PaymentSnapshot } from './payment-email.js';
 
 export function smtpStatus() {
@@ -63,10 +64,11 @@ export function startEmailNotifications() {
   if(!smtpStatus().enabled) {console.log('Notificaciones de pagos: envío SMTP desactivado.');return;}
   const port=Number(process.env.SMTP_PORT||587);
   const transport=nodemailer.createTransport({host:process.env.SMTP_HOST,port,secure:port===465,requireTLS:port!==465,auth:process.env.SMTP_USER?{user:process.env.SMTP_USER,pass:process.env.SMTP_PASSWORD}:undefined,connectionTimeout:15000,greetingTimeout:15000,socketTimeout:45000,disableFileAccess:true,disableUrlAccess:true});
-  let running=false;
-  const tick=async()=>{if(running)return;running=true;try {
+  const idleMilliseconds=pollMilliseconds(process.env.NOTIFICATION_QUEUE_POLL_MS);
+  startAdaptivePoller(async()=>{
     const job=await rpc('payment_email_claim',{}) as Job|null;
-    if(job)await deliverPaymentJob(job,m=>transport.sendMail(m),(status,message,error)=>rpc('payment_email_finish',{p_id:job.id,p_lease:job.lease,p_status:status,p_message:message,p_error:error}));
-  }catch {console.error('Notificaciones de pagos: no se pudo completar el ciclo de la cola.');}finally{running=false;}};
-  const timer=setInterval(()=>void tick(),10000);timer.unref();void tick();
+    if(!job)return false;
+    await deliverPaymentJob(job,m=>transport.sendMail(m),(status,message,error)=>rpc('payment_email_finish',{p_id:job.id,p_lease:job.lease,p_status:status,p_message:message,p_error:error}));
+    return true;
+  },{idleMilliseconds,onError:()=>console.error('Notificaciones de pagos: no se pudo completar el ciclo de la cola.')});
 }

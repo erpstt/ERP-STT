@@ -1,4 +1,5 @@
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
+import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { renderBankReconciliationPdf } from './accounting-reports.service.js';
 
@@ -370,7 +371,7 @@ function addLocalPositionsSheet(workbook: ExcelJS.Workbook, rows: LocalPosition[
 }
 
 export async function exportIntercompanyLoansExcel(authorization: string, filters: Json): Promise<ExportFile> {
-  const report = await fullReport(authorization, filters), workbook = new ExcelJS.Workbook();
+  const report = await fullReport(authorization, filters), workbook = await createExcelWorkbook();
   workbook.creator = 'GENTIA ERP'; workbook.company = report.metadata.legalName || report.metadata.subsidiary; workbook.created = new Date();
   const summary = workbook.addWorksheet('Resumen', { views: [{ state: 'frozen', ySplit: 6 }], pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
   summary.columns = [{ width: 17 }, { width: 28 }, ...Array.from({ length: 10 }, () => ({ width: 19 }))]; styleTitle(summary, 'GENTIA · PRÉSTAMOS INTERCOMPANY', 'L');

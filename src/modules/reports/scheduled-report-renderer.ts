@@ -26,8 +26,8 @@ function financialSections(report:Report):Section[]{
  const result=Math.abs(number(summary.currentPeriodResult))>.005?number(summary.currentPeriodResult):number(summary.resultExercise);
  const push=(title:string,values:[string,number][])=>sections.push({title,columns:['Concepto','Importe'],rows:values});
  if(report.kind==='balance-sheet'){
-  const sum=(category:string)=>rows.filter(r=>r.category===category&&!/resultado del ejercicio/i.test(r.account_name||'')).reduce((s,r)=>s+number(r.closing)*(category==='Activo'?1:-1),0);
-  const asset=sum('Activo'),liability=sum('Pasivo'),equity=rows.filter(r=>!['Activo','Pasivo'].includes(r.category)&&!/resultado del ejercicio/i.test(r.account_name||'')).reduce((s,r)=>s-number(r.closing),0)+result;
+  let asset=0,liability=0,equity=result;
+  for(const row of rows){if(/resultado del ejercicio/i.test(row.account_name||''))continue;const closing=number(row.closing);if(row.category==='Activo')asset+=closing;else if(row.category==='Pasivo')liability-=closing;else equity-=closing;}
   push('Situación financiera',[['Activo',asset],['Pasivo',liability],['Resultado del ejercicio',result],['Patrimonio (incluye resultado)',equity],['Pasivo y patrimonio',liability+equity],['Diferencia',asset-liability-equity]]);
  }
  if(report.kind==='income-statement'){
@@ -37,14 +37,20 @@ function financialSections(report:Report):Section[]{
   push('Resultados del período',[['Ingresos',totals.revenue],['Costos',totals.cost],['Utilidad bruta',gross],['Gastos operativos',totals.expense],['Resultado operativo',operating],['Resultado no operativo',totals.nonop],['Impuesto sobre la renta',totals.tax],['Resultado neto',operating+totals.nonop-totals.tax]]);
  }
  if(report.kind==='equity-changes'){
-  const base=rows.filter(r=>!/resultado del ejercicio/i.test(r.account_name||'')),opening=base.reduce((s,r)=>s-number(r.opening),0)+number(summary.currentPeriodResult)-number(summary.periodResult),closing=base.reduce((s,r)=>s-number(r.closing),0)+result;
+  let opening=number(summary.currentPeriodResult)-number(summary.periodResult),closing=result;
+  for(const row of rows){if(/resultado del ejercicio/i.test(row.account_name||''))continue;opening-=number(row.opening);closing-=number(row.closing);}
   push('Cambios en el patrimonio',[['Patrimonio inicial',opening],['Resultado del período',number(summary.periodResult)],['Otros movimientos',closing-opening-number(summary.periodResult)],['Patrimonio final',closing]]);
  }
  if(report.kind==='cash-flow'){
-  const sum=(predicate:(r:RecordRow)=>boolean,amount:(r:RecordRow)=>number)=>rows.filter(predicate).reduce((s,r)=>s+amount(r),0),variation=(r:RecordRow)=>number(r.opening)-number(r.closing);
-  const opening=sum(r=>r.cash_flow_activity==='EFECTIVO_EQUIVALENTE',r=>number(r.opening)),closing=sum(r=>r.cash_flow_activity==='EFECTIVO_EQUIVALENTE',r=>number(r.closing));
-  const operating=number(summary.periodResult)+sum(r=>r.cash_flow_activity==='OPERACION'&&['Ingreso','Costo','Gasto'].includes(r.category)&&/(depreci|amortiza|deterior|provisi[oó]n|venta.*activo|diferencial cambiario)/.test(String(r.account_name).toLowerCase()),r=>number(r.debit)-number(r.credit))+sum(r=>r.cash_flow_activity==='OPERACION'&&['Activo','Pasivo'].includes(r.category),variation);
-  const investing=sum(r=>r.cash_flow_activity==='INVERSION',variation),financing=sum(r=>r.cash_flow_activity==='FINANCIACION',variation);
+  let opening=0,closing=0,operating=number(summary.periodResult),investing=0,financing=0;
+  for(const row of rows){
+   const variation=number(row.opening)-number(row.closing),activity=row.cash_flow_activity;
+   if(activity==='EFECTIVO_EQUIVALENTE'){opening+=number(row.opening);closing+=number(row.closing);}
+   if(activity==='OPERACION'&&['Activo','Pasivo'].includes(row.category))operating+=variation;
+   if(activity==='OPERACION'&&['Ingreso','Costo','Gasto'].includes(row.category)&&/(depreci|amortiza|deterior|provisi[oó]n|venta.*activo|diferencial cambiario)/.test(String(row.account_name).toLowerCase()))operating+=number(row.debit)-number(row.credit);
+   if(activity==='INVERSION')investing+=variation;
+   if(activity==='FINANCIACION')financing+=variation;
+  }
   push('Flujos de efectivo · Método indirecto',[['Actividades de operación',operating],['Actividades de inversión',investing],['Actividades de financiación',financing],['Variación neta',operating+investing+financing],['Efectivo inicial',opening],['Efectivo final',closing],['Diferencia de conciliación',closing-opening-operating-investing-financing]]);
  }
  return sections;
@@ -57,9 +63,12 @@ export function reportSections(report:Report):Section[]{
    visited+=value.length;if(visited>50000)throw Error('El reporte supera el máximo de detalle. Reduzca el período.');
    if(!value.length){sections.push({title,columns:['Resultado'],rows:[['Sin movimientos para el período seleccionado.']]});return;}
    const records=value.map(v=>v&&typeof v==='object'?v:{value:v});
-   const keys=[...new Set(records.flatMap(v=>Object.keys(v)))].filter(k=>!hidden(k)&&records.some(v=>isScalar(v[k])&&v[k]!==undefined));
+   const orderedKeys=new Set<string>(),scalarKeys=new Set<string>();
+   for(const record of records)for(const[key,field]of Object.entries(record)){orderedKeys.add(key);if(field!==undefined&&isScalar(field))scalarKeys.add(key);}
+   const keys=[...orderedKeys].filter(key=>!hidden(key)&&scalarKeys.has(key));
    const priority=['journal_number','document_number','account_number','number','date','issue_date','account_name','customer','customer_name','supplier_name','entity_name','description'];
-   keys.sort((a,b)=>(priority.includes(a)?priority.indexOf(a):99)-(priority.includes(b)?priority.indexOf(b):99));
+   const priorityRank=new Map(priority.map((key,index)=>[key,index]));
+   keys.sort((a,b)=>(priorityRank.get(a)??99)-(priorityRank.get(b)??99));
    if(keys.length)sections.push({title,columns:['N.º',...keys.map(label)],rows:records.map((r,i)=>[i+1,...keys.map(k=>r[k]??null)])});
    records.forEach((r,i)=>Object.entries(r).forEach(([k,v])=>{if(!hidden(k)&&v&&!isScalar(v))visit(v,`${title} · ${r.journal_number||r.document_number||r.number||r.reference||i+1} · ${label(k)}`,depth+1);}));
   }else if(value&&typeof value==='object'){

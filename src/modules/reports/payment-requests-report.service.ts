@@ -1,4 +1,5 @@
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
+import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { renderBankReconciliationPdf } from './accounting-reports.service.js';
 
@@ -245,7 +246,13 @@ async function fullReport(authorization: string, filters: Json) {
   const total = numberValue(first, 'total');
   const pageCount = Math.ceil(total / pageSize);
   if (pageCount > 1) {
-    const remaining = await Promise.all(Array.from({ length: pageCount - 1 }, (_, index) => runPaymentRequestReport(authorization, { ...filters, page: index + 2, pageSize })));
+    const remaining: Json[] = [];
+    const concurrency = 5;
+    for (let start = 2; start <= pageCount; start += concurrency) {
+      const end = Math.min(start + concurrency - 1, pageCount);
+      const batch = await Promise.all(Array.from({ length: end - start + 1 }, (_, index) => runPaymentRequestReport(authorization, { ...filters, page: start + index, pageSize })));
+      remaining.push(...batch);
+    }
     first.rows = [
       ...(Array.isArray(first.rows) ? first.rows : []),
       ...remaining.flatMap(page => Array.isArray(page.rows) ? page.rows : [])
@@ -378,7 +385,7 @@ function dimensionSummary(rows: ReportRow[], label: string, selector: (row: Repo
 
 export async function exportPaymentRequestReportExcel(authorization: string, filters: Json): Promise<ExportFile> {
   const report = await fullReport(authorization, filters), { header: h, summary: s } = report;
-  const workbook = new ExcelJS.Workbook();
+  const workbook = await createExcelWorkbook();
   workbook.creator = 'GENTIA ERP'; workbook.company = h.legalName || h.subsidiary || 'GENTIA'; workbook.created = new Date();
   const sheet = workbook.addWorksheet('Solicitudes de pago', {
     views: [{ state: 'frozen', ySplit: 8 }],

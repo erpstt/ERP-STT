@@ -18,11 +18,27 @@ export function getSupabaseConfig(): SupabaseConfig | null {
 export async function fetchSupabase(input: URL | string, init?: RequestInit): Promise<Response> {
   const request = { ...init, headers: auditRequestHeaders(init?.headers) };
   const delays = ['GET', 'HEAD'].includes((init?.method ?? 'GET').toUpperCase()) ? [0, 300, 900, 1800] : [0];
+  const configuredTimeout=Number(process.env.SUPABASE_REQUEST_TIMEOUT_MS??20_000);
+  const timeoutMs=Number.isFinite(configuredTimeout)&&configuredTimeout>=1_000?configuredTimeout:20_000;
   let lastError: unknown;
   for (const delay of delays) {
     if (delay) await new Promise(resolve => setTimeout(resolve, delay));
-    try { return await fetch(input, request); }
-    catch (cause) { lastError = cause; }
+    if(init?.signal?.aborted)throw init.signal.reason;
+    const controller=new AbortController();
+    let timedOut=false;
+    const abortFromCaller=()=>controller.abort(init?.signal?.reason);
+    init?.signal?.addEventListener('abort',abortFromCaller,{once:true});
+    const timeout=setTimeout(()=>{timedOut=true;controller.abort(new Error(`Supabase no respondió en ${timeoutMs} ms.`));},timeoutMs);
+    timeout.unref?.();
+    try { return await fetch(input,{...request,signal:controller.signal}); }
+    catch (cause) {
+      if(init?.signal?.aborted)throw cause;
+      lastError=cause;
+      if(timedOut)break;
+    } finally {
+      clearTimeout(timeout);
+      init?.signal?.removeEventListener('abort',abortFromCaller);
+    }
   }
   throw new Error('No fue posible conectar con Supabase después de varios intentos.', { cause: lastError });
 }

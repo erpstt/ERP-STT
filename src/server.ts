@@ -11,10 +11,12 @@ import { recordActorAudit } from './modules/audit-catalogs/record-actor-audit.se
 import { withAuditExecution } from './core/database/audit-context.js';
 import { paymentRequests } from './modules/treasury-catalogs/payment-requests.service.js';
 import { paymentBatchOptions, paymentBatchCandidates, paymentBatchReport, paymentBatchDetail, generatePaymentBatch, downloadPaymentBatch, markPaymentBatchSent, cancelPaymentBatch, applyPaymentBatchReference, applyPaymentBatchResponse } from './modules/treasury-catalogs/payment-batches.service.js';
+import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { join, normalize } from 'node:path';
+import { extname, join, normalize, sep } from 'node:path';
+import { gzipSync } from 'node:zlib';
 import { authController } from './modules/auth/auth.module.js';
 import { createCountry, deleteCountry, listCountries, updateCountry } from './modules/countries/countries.module.js';
 import { createCatalogRow, deleteCatalogRow, getCoreCatalog, listCatalogRows, updateCatalogRow } from './modules/core-catalogs/core-catalogs.module.js';
@@ -60,8 +62,8 @@ import { consolidationInit, consolidationOptions, consolidationProcess, consolid
 import { createAiRow, deleteAiRow, getAiCatalog, listAiRows, updateAiRow } from './modules/ai-catalogs/ai-catalogs.module.js';
 import { listUserCompanies, selectUserCompany } from './modules/auth/services/company-access.service.js';
 import { listUserRoles, selectUserRole } from './modules/auth/services/role-access.service.js';
-import { assertActiveSession, revokeCurrentSession, SessionAuthenticationError } from './modules/auth/services/session.service.js';
-import { assertRegisteredDevice } from './modules/auth/services/device.service.js';
+import { revokeCurrentSession, SessionAuthenticationError } from './modules/auth/services/session.service.js';
+import { assertRequestAccess } from './modules/auth/services/request-access.service.js';
 import { changePassword } from './modules/auth/services/password-history.service.js';
 import { error, json } from './core/interceptors/http-response.js';
 import { turnstilePublicConfig, verifyTurnstileToken, TurnstileValidationError } from './core/security/turnstile.service.js';
@@ -106,22 +108,31 @@ try { loadEnvFile?.('.env'); } catch { /* Las variables también pueden venir de
 
 accountingCatalogs.find(c=>c.slug==='chart-accounts')?.fields.splice(8,0,{key:'cash_flow_activity',label:'Tipo de actividad de flujo',type:'text',required:true,options:['OPERACION','INVERSION','FINANCIACION','EFECTIVO_EQUIVALENTE','NO_APLICA']});
 const publicDir = join(process.cwd(), 'public');
-const vueBrowserBuild = join(process.cwd(), 'node_modules', 'vue', 'dist', 'vue.esm-browser.prod.js');
-const mime: Record<string, string> = { '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.mp4': 'video/mp4', '.csv': 'text/csv', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+const mime: Record<string, string> = { '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.mp4': 'video/mp4', '.csv': 'text/csv', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+type StaticCacheEntry = { mtimeMs:number; size:number; content:Buffer; etag:string; gzip?:Buffer };
+const staticCache = new Map<string, StaticCacheEntry>();
+const compressible = new Set(['.html','.css','.js','.json','.svg','.csv']);
 
 async function body(request: IncomingMessage): Promise<unknown> {
   const isOpeningBalanceValidation = request.url === '/api/opening-balances/validate';
   const maxBodyBytes = isOpeningBalanceValidation ? 36 * 1024 * 1024 : 8 * 1024 * 1024;
-  let raw = '';
+  const tooLarge=()=>{
+    const limitMb=Math.floor(maxBodyBytes/1024/1024);
+    const failure=new Error(`La solicitud supera el límite permitido de ${limitMb} MB.`) as Error & {status?:number};
+    failure.status=413;
+    return failure;
+  };
+  const declaredBytes=Number(request.headers['content-length']??0);
+  if(Number.isFinite(declaredBytes)&&declaredBytes>maxBodyBytes)throw tooLarge();
+  const chunks:Buffer[]=[];
+  let receivedBytes=0;
   for await (const chunk of request) {
-    raw += chunk;
-    if (Buffer.byteLength(raw, 'utf8') > maxBodyBytes) {
-      const limitMb = Math.floor(maxBodyBytes / 1024 / 1024);
-      const failure = new Error(`La solicitud supera el límite permitido de ${limitMb} MB.`) as Error & { status?: number };
-      failure.status = 413;
-      throw failure;
-    }
+    const buffer=Buffer.isBuffer(chunk)?chunk:Buffer.from(chunk);
+    receivedBytes+=buffer.byteLength;
+    if(receivedBytes>maxBodyBytes)throw tooLarge();
+    chunks.push(buffer);
   }
+  const raw=Buffer.concat(chunks,receivedBytes).toString('utf8');
   return JSON.parse(raw || '{}');
 }
 
@@ -173,36 +184,62 @@ function applySecurityHeaders(request: IncomingMessage, response: ServerResponse
   }
 }
 
-async function serveFile(pathname: string, response: ServerResponse) {
+async function serveFile(pathname: string, request: IncomingMessage, response: ServerResponse) {
   const relative = pathname === '/' ? 'index.html' : pathname === '/informes/contabilidad' ? 'accounting-reports.html' : pathname.replace(/^\/+/, '');
   const file = normalize(join(publicDir, relative));
-  if (!file.startsWith(publicDir)) return error(response, 403, 'Acceso denegado.');
+  if (file !== publicDir && !file.startsWith(`${publicDir}${sep}`)) return error(response, 403, 'Acceso denegado.');
   try {
-    await stat(file);
-    const extension = file.slice(file.lastIndexOf('.'));
-    response.writeHead(200, { 'Content-Type': `${mime[extension] ?? 'application/octet-stream'}${['.html','.css','.js','.csv'].includes(extension) ? '; charset=utf-8' : ''}`, 'Cache-Control': ['.html','.js'].includes(extension) ? 'no-store, max-age=0' : ['.mp4','.webp'].includes(extension) ? 'public, max-age=604800, immutable' : 'no-cache' });
+    const metadata=await stat(file),extension=extname(file).toLowerCase();
+    const contentType=`${mime[extension] ?? 'application/octet-stream'}${['.html','.css','.js','.json','.csv'].includes(extension) ? '; charset=utf-8' : ''}`;
+    const sourceEtag=`W/\"${metadata.size.toString(16)}-${Math.trunc(metadata.mtimeMs).toString(16)}\"`;
+    const versionedAsset=new URL(request.url??'/', 'http://localhost').searchParams.has('v');
+    const cacheControl=extension==='.html'?'no-cache, must-revalidate':versionedAsset||['.mp4','.webp','.png','.jpg','.jpeg','.svg','.woff2'].includes(extension)?'public, max-age=604800, immutable':'no-cache, must-revalidate';
+    if(extension==='.mp4'&&request.headers['if-none-match']===sourceEtag){response.writeHead(304,{'ETag':sourceEtag,'Cache-Control':cacheControl});response.end();return;}
+    if(extension==='.mp4'&&request.headers.range){
+      const match=/^bytes=(\d*)-(\d*)$/.exec(request.headers.range);
+      if(!match)return error(response,416,'Rango de archivo inválido.');
+      const suffixLength=!match[1]&&match[2]?Number(match[2]):null;
+      const start=suffixLength!==null?Math.max(metadata.size-suffixLength,0):match[1]?Number(match[1]):0;
+      const end=suffixLength!==null?metadata.size-1:match[2]?Math.min(Number(match[2]),metadata.size-1):metadata.size-1;
+      if(!Number.isSafeInteger(start)||!Number.isSafeInteger(end)||start<0||end<start||start>=metadata.size){response.writeHead(416,{'Content-Range':`bytes */${metadata.size}`});response.end();return;}
+      response.writeHead(206,{'Content-Type':contentType,'Content-Length':end-start+1,'Content-Range':`bytes ${start}-${end}/${metadata.size}`,'Accept-Ranges':'bytes','Cache-Control':cacheControl,'ETag':sourceEtag});
+      if(request.method==='HEAD'){response.end();return;}
+      createReadStream(file,{start,end}).pipe(response);return;
+    }
+    if(extension==='.mp4'){
+      response.writeHead(200,{'Content-Type':contentType,'Content-Length':metadata.size,'Accept-Ranges':'bytes','Cache-Control':cacheControl,'ETag':sourceEtag});
+      if(request.method==='HEAD'){response.end();return;}
+      createReadStream(file).pipe(response);return;
+    }
+    let cached=staticCache.get(file);
+    if(!cached||cached.mtimeMs!==metadata.mtimeMs||cached.size!==metadata.size){
+      let content=await readFile(file);
     if(extension==='.html'&&relative!=='index.html'){
-      const html=await readFile(file,'utf8');
-      const guard=`<script src="/record-audit.js"></script><style>html.inside-erp-workspace,html.inside-erp-workspace body{width:100%!important;min-width:0!important;min-height:100%!important;margin:0!important;padding:0!important}html.inside-erp-workspace body>main{box-sizing:border-box!important;width:100%!important;max-width:none!important;min-height:100vh!important;margin:0!important;border-radius:0!important;box-shadow:none!important}html.inside-erp-workspace body>.toolbar,html.inside-erp-workspace body>nav{box-sizing:border-box!important;width:100%!important;max-width:none!important;margin:0!important}</style><script>if(window===window.top){sessionStorage.setItem('nexo_workspace_redirect',JSON.stringify({path:location.pathname+location.search+location.hash,createdAt:Date.now()}));location.replace('/')}else{document.documentElement.classList.add('inside-erp-workspace')}</script>`;
+      const html=content.toString('utf8');
+      const guard=`<script defer src="/record-audit.js"></script><style>html.inside-erp-workspace,html.inside-erp-workspace body{width:100%!important;min-width:0!important;min-height:100%!important;margin:0!important;padding:0!important}html.inside-erp-workspace body>main{box-sizing:border-box!important;width:100%!important;max-width:none!important;min-height:100vh!important;margin:0!important;border-radius:0!important;box-shadow:none!important}html.inside-erp-workspace body>.toolbar,html.inside-erp-workspace body>nav{box-sizing:border-box!important;width:100%!important;max-width:none!important;margin:0!important}</style><script>if(window===window.top){sessionStorage.setItem('nexo_workspace_redirect',JSON.stringify({path:location.pathname+location.search+location.hash,createdAt:Date.now()}));location.replace('/')}else{document.documentElement.classList.add('inside-erp-workspace')}</script>`;
       const gentiaAssets='<link rel="stylesheet" href="/gentia-theme.css?v=20260930-switches"><script defer src="/gentia-brand.js?v=20260929"></script>';
       const branded=html.includes('</head>')
         ? html.replace('</head>',`${gentiaAssets}</head>`)
         : `${gentiaAssets}${html}`;
-      response.end(branded.includes('<head>')?branded.replace('<head>',`<head>${guard}`):guard+branded);
-      return;
+        content=Buffer.from(branded.includes('<head>')?branded.replace('<head>',`<head>${guard}`):guard+branded,'utf8');
+      }
+      cached={mtimeMs:metadata.mtimeMs,size:metadata.size,content,etag:`W/\"${createHash('sha256').update(content).digest('base64url').slice(0,22)}\"`};
+      staticCache.set(file,cached);
     }
-    createReadStream(file).pipe(response);
+    const etag=cached.etag;
+    if(request.headers['if-none-match']===etag){response.writeHead(304,{'ETag':etag,'Cache-Control':cacheControl,'Vary':'Accept-Encoding'});response.end();return;}
+    const acceptsGzip=cached.content.byteLength>=1024&&compressible.has(extension)&&/\bgzip\b/i.test(String(request.headers['accept-encoding']??''));
+    if(acceptsGzip&&!cached.gzip)cached.gzip=gzipSync(cached.content,{level:6});
+    const payload=acceptsGzip?cached.gzip!:cached.content;
+    response.writeHead(200,{'Content-Type':contentType,'Content-Length':payload.byteLength,'Cache-Control':cacheControl,'ETag':etag,'Vary':'Accept-Encoding',...(acceptsGzip?{'Content-Encoding':'gzip'}:{})});
+    if(request.method==='HEAD'){response.end();return;}
+    response.end(payload);
   } catch { error(response, 404, 'Recurso no encontrado.'); }
 }
 
 const server = createServer((request, response) => withAuditExecution(async () => {
   applySecurityHeaders(request, response);
   try {
-    if (request.method === 'GET' && request.url?.split('?')[0] === '/assets/vue.js') {
-      response.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=86400' });
-      createReadStream(vueBrowserBuild).pipe(response);
-      return;
-    }
     if (request.method === 'GET' && request.url === '/api/security/turnstile/config') {
       return json(response, 200, turnstilePublicConfig());
     }
@@ -228,8 +265,7 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if (request.url?.startsWith('/api/')) {
       const authorization = request.headers.authorization;
       if (!authorization?.startsWith('Bearer ')) return error(response, 401, 'Debe iniciar sesión.');
-      await assertActiveSession(authorization);
-      await assertRegisteredDevice(authorization, Array.isArray(request.headers['x-device-token']) ? request.headers['x-device-token'][0] : request.headers['x-device-token']);
+      await assertRequestAccess(authorization, Array.isArray(request.headers['x-device-token']) ? request.headers['x-device-token'][0] : request.headers['x-device-token']);
     }
     if (request.method === 'GET' && request.url?.split('?')[0] === '/api/audit/record-actor') {
       const query = new URL(request.url, 'http://localhost').searchParams;
@@ -489,7 +525,7 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(scheduledRoute&&request.method==='POST')return json(response,200,await scheduledReportsAction(request.headers.authorization!,scheduledRoute[1],await body(request)as Record<string,unknown>));
     const budgetRoute=request.url?.split('?')[0].match(/^\/api\/v1\/budget\/(options|headers|lines|action|transfers|override|check-availability|execution-report|import-excel)$/);
     if(budgetRoute){const readOnly=['options','execution-report'].includes(budgetRoute[1]);if(request.method!=='POST'&&!(readOnly&&request.method==='GET'))return json(response,405,{error:'Método no permitido.'});const input=request.method==='GET'?Object.fromEntries(new URL(request.url!,'http://localhost').searchParams):await body(request)as Record<string,unknown>;return json(response,200,await budgetAction(request.headers.authorization!,budgetRoute[1],input));}
-    if(request.url?.split('?')[0]==='/apps/budget/builder'||request.url?.split('?')[0]==='/apps/budget/dashboard')return await serveFile('/budget.html',response);
+    if(request.url?.split('?')[0]==='/apps/budget/builder'||request.url?.split('?')[0]==='/apps/budget/dashboard')return await serveFile('/budget.html',request,response);
     const notificationRoute=request.url?.match(/^\/api\/configuration\/notification-templates\/(get|save|preview)$/);
     if(notificationRoute&&request.method==='POST'){const input=await body(request)as Record<string,unknown>;const settings=input.kind==='ESTADO_CUENTA'?statementSettings:input.kind==='FACTURA_VENTA'?salesInvoiceTemplateSettings:input.kind==='SOLICITUD_GASTO_APROBACION'?expenseApprovalTemplateSettings:notificationSettings;return json(response,200,await settings(request.headers.authorization!,notificationRoute[1],input));}
     const statementRoute=request.url?.match(/^\/api\/entities\/customers\/(\d+)\/statement\/(get|send|pdf)$/);
@@ -646,11 +682,16 @@ const server = createServer((request, response) => withAuditExecution(async () =
       const input = await body(request) as { name?: string };
       return json(response, 200, await updateCountry(authorization, id, input.name?.trim() ?? ''));
     }
-    await serveFile(request.url?.split('?')[0] ?? '/', response);
+    await serveFile(request.url?.split('?')[0] ?? '/', request, response);
   } catch (cause) {
     if (cause instanceof LoginRateLimitError) response.setHeader('Retry-After', String(cause.retryAfterSeconds));
     error(response, cause instanceof SessionAuthenticationError ? 401 : (cause as {status?:number})?.status || (cause instanceof Error&&/^Saldo presupuestario/.test(cause.message)?422:400), cause instanceof Error ? cause.message : 'No fue posible procesar la solicitud.');
   }
 }));
 
-server.listen(Number(process.env.PORT ?? 3000), '0.0.0.0', () => {startEmailNotifications();startExpenseApprovalNotifications();startStatementNotifications();startScheduledReports();startTaxCalendarNotifications();console.log(`GENTIA ERP disponible en el puerto ${process.env.PORT ?? 3000}`);iniciarProgramacionTipoCambioRD();iniciarProgramacionTipoCambioCR();iniciarProgramacionTipoCambioGT();iniciarProgramacionTipoCambioJM();iniciarProgramacionTipoCambioCO();iniciarProgramacionTipoCambioAR();iniciarProgramacionTipoCambioNI();iniciarProgramacionTipoCambioPE();});
+server.listen(Number(process.env.PORT ?? 3000), '0.0.0.0', () => {
+  console.log(`GENTIA ERP disponible en el puerto ${process.env.PORT ?? 3000}`);
+  if(process.env.DISABLE_BACKGROUND_JOBS==='true')return;
+  startEmailNotifications();startExpenseApprovalNotifications();startStatementNotifications();startScheduledReports();startTaxCalendarNotifications();
+  iniciarProgramacionTipoCambioRD();iniciarProgramacionTipoCambioCR();iniciarProgramacionTipoCambioGT();iniciarProgramacionTipoCambioJM();iniciarProgramacionTipoCambioCO();iniciarProgramacionTipoCambioAR();iniciarProgramacionTipoCambioNI();iniciarProgramacionTipoCambioPE();
+});

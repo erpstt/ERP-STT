@@ -1,4 +1,5 @@
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
+import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { renderBankReconciliationPdf } from './accounting-reports.service.js';
 
@@ -430,7 +431,7 @@ function addBalanceSheet(workbook: ExcelJS.Workbook, name: string, rows: Commerc
 }
 
 export async function exportIntercompanyCommercialExcel(authorization: string, filters: Json): Promise<ExportFile> {
-  const report = await fullReport(authorization, filters), workbook = new ExcelJS.Workbook();
+  const report = await fullReport(authorization, filters), workbook = await createExcelWorkbook();
   workbook.creator = 'GENTIA ERP'; workbook.company = report.metadata.legalName || report.metadata.subsidiary; workbook.created = new Date();
   const summary = workbook.addWorksheet('Resumen', { views: [{ state: 'frozen', ySplit: 5 }] });
   summary.columns = [16, 26, ...Array.from({ length: 11 }, () => 19)].map(width => ({ width }));

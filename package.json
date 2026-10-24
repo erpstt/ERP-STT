@@ -9,8 +9,10 @@
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "test:opening-pending": "npm run build && node --test scripts/opening-pending-parser.test.mjs",
-    "test:opening-files": "npm run build && node --test scripts/opening-all-file-parser.test.mjs"
-    ,"test:security": "npm run build && node --test scripts/security-turnstile.test.mjs"
+    "test:opening-files": "npm run build && node --test scripts/opening-all-file-parser.test.mjs",
+    "test:security": "npm run build && node --test scripts/security-turnstile.test.mjs",
+    "test:static": "npm run build && node --test scripts/static-delivery.test.mjs scripts/supabase-client-timeout.test.mjs",
+    "audit:frontend": "node scripts/frontend-performance-audit.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

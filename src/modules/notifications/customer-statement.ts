@@ -3,6 +3,7 @@ import nodemailer from 'nodemailer';
 import { cleanBody, escapeHtml as esc, validateTemplate } from './payment-email.js';
 import { rpc, smtpStatus } from './email-notification.service.js';
 import { renderBankReconciliationPdf } from '../reports/accounting-reports.service.js';
+import { pollMilliseconds, startAdaptivePoller } from '../../core/runtime/adaptive-poller.js';
 
 export const statementTags=['empresa_nombre','cliente_nombre','fecha_corte','saldo_total','moneda'];
 export const statementSubject='Estado de cuenta · {{empresa_nombre}} · {{fecha_corte}}';
@@ -11,6 +12,13 @@ type Row={document_number:string;issue_date:string;due_date:string;overdue_days:
 export type Statement={empresa_nombre:string;empresa_logo_url?:string;address?:string;cliente_nombre:string;customerCode:string;email:string;fecha_corte:string;saldo_total:number;moneda:string;note?:string;rows:Row[];summary:{subledger:number;advances:number;netBalance:number}};
 const money=(v:unknown)=>Number(v||0).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const date=(v:string)=>/^\d{4}-\d{2}-\d{2}$/.test(v)?v.split('-').reverse().join('/'):v;
+let statementAssetsPromise:Promise<{template:string;css:string}>|undefined;
+function statementAssets(){
+ if(!statementAssetsPromise)statementAssetsPromise=Promise.all([readFile('public/account-statement.html','utf8'),readFile('public/account-statement.css','utf8')])
+  .then(([template,css])=>({template,css}))
+  .catch(cause=>{statementAssetsPromise=undefined;throw cause;});
+ return statementAssetsPromise;
+}
 export function renderStatementEmail(subject:string,body:string,s:Statement){
  const valid=validateTemplate(subject,body,statementTags);
  const values:Record<string,string>={empresa_nombre:s.empresa_nombre,cliente_nombre:s.cliente_nombre,fecha_corte:date(s.fecha_corte),saldo_total:money(s.saldo_total),moneda:s.moneda};
@@ -20,8 +28,9 @@ export function renderStatementEmail(subject:string,body:string,s:Statement){
  return {subject:merge(valid.subject,false).replace(/[\r\n]/g,' ').slice(0,200),html,text:`${s.empresa_nombre}\nEstado de cuenta al ${date(s.fecha_corte)}\n${s.cliente_nombre}\nSaldo pendiente: ${money(s.saldo_total)} ${s.moneda}\n${s.note||''}\nConsulte el PDF adjunto.`};
 }
 export async function statementPdf(s:Statement){
- let html=await readFile('public/account-statement.html','utf8');
- const css=await readFile('public/account-statement.css','utf8');
+ const assets=await statementAssets();
+ let html=assets.template;
+ const css=assets.css;
  const set=(id:string,value:string)=>{html=html.replace(new RegExp(`(<[^>]+id="${id}"[^>]*>)[\\s\\S]*?(</[^>]+>)`),`$1${value.replace(/\$/g,'$$$$')}$2`);};
  html=html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g,'').replace(/<nav>[\s\S]*?<\/nav>/,'').replace(/<link[^>]+>/g,`<style>${css}</style>`).replace('id="statement" hidden','id="statement"');
  // PDF generation never fetches remote assets. Embedded company logos are safe to print offline.
@@ -30,7 +39,9 @@ export async function statementPdf(s:Statement){
  const fields:Record<string,string>={company:s.empresa_nombre,companyAddress:s.address||'',footerCompany:s.empresa_nombre,statementType:'CUENTAS POR COBRAR',cutoff:`Fecha de corte: ${date(s.fecha_corte)}`,partyLabel:'Cliente',partyName:s.cliente_nombre,partyCode:`Código: ${s.customerCode}`,partyContact:s.email,partyTax:'',balance:`${money(s.saldo_total)} ${s.moneda}`,currencyLabel:`Moneda local (${s.moneda})`,documentTotal:money(s.summary.subledger),invoiceBalance:money(s.summary.subledger),advances:money(s.summary.advances),netBalance:money(s.saldo_total)};
  for(const [id,value]of Object.entries(fields))set(id,esc(value));
  const buckets:Record<string,string>={CURRENT:'Por vencer','1_30':'1–30 días','31_60':'31–60 días','61_90':'61–90 días','91_120':'91–120 días',OVER_120:'Más de 120 días'};
- set('aging',Object.entries(buckets).map(([key,label])=>`<div><small>${label}</small><strong>${money(s.rows.filter(r=>r.bucket===key).reduce((total,r)=>total+Number(r.pending),0))}</strong></div>`).join(''));
+ const agingTotals=new Map<string,number>();
+ for(const row of s.rows)agingTotals.set(row.bucket,(agingTotals.get(row.bucket)??0)+Number(row.pending));
+ set('aging',Object.entries(buckets).map(([key,label])=>`<div><small>${label}</small><strong>${money(agingTotals.get(key)??0)}</strong></div>`).join(''));
  set('documents',s.rows.map(r=>`<tr><td>${esc(r.document_number)}</td><td>${esc(date(r.issue_date))}</td><td>${esc(date(r.due_date))}</td><td class="num">${esc(r.overdue_days)}</td><td class="num">${money(r.original_amount)}</td><td class="num">${money(r.applied_amount)}</td><td class="num">${money(r.pending)}</td></tr>`).join(''));
  html=html.replace('</head>','<style>@page{size:A4;margin:14mm}thead{display:table-header-group}tr{break-inside:avoid}body{background:white}</style></head>');
  return renderBankReconciliationPdf({html,fileName:`estado_cuenta_${s.customerCode}_${s.fecha_corte}.pdf`});
@@ -64,10 +75,12 @@ export async function deliverStatement(job:any,send:(message:any)=>Promise<any>,
 export function startStatementNotifications(){
  if(!smtpStatus().enabled)return;
  const port=Number(process.env.SMTP_PORT||587),transport=nodemailer.createTransport({host:process.env.SMTP_HOST,port,secure:port===465,requireTLS:port!==465,auth:process.env.SMTP_USER?{user:process.env.SMTP_USER,pass:process.env.SMTP_PASSWORD}:undefined,connectionTimeout:15000,greetingTimeout:15000,socketTimeout:45000,disableFileAccess:true,disableUrlAccess:true});
- let busy=false,lastSchedule=0;
- const tick=async()=>{if(busy)return;busy=true;try{
+ let lastSchedule=0;
+ const idleMilliseconds=pollMilliseconds(process.env.NOTIFICATION_QUEUE_POLL_MS);
+ startAdaptivePoller(async()=>{
   if(Date.now()-lastSchedule>60000){await rpc('statement_schedule',{});lastSchedule=Date.now();}
-  const job=await rpc('statement_claim',{});if(job)await deliverStatement(job,m=>transport.sendMail(m),(status,message,error)=>rpc('payment_email_finish',{p_id:job.id,p_lease:job.lease,p_status:status,p_message:message,p_error:error}));
- }catch{console.error('Estados de cuenta: no se pudo completar el ciclo de envío.');}finally{busy=false;}};
- const timer=setInterval(()=>void tick(),10000);timer.unref();void tick();
+  const job=await rpc('statement_claim',{});if(!job)return false;
+  await deliverStatement(job,m=>transport.sendMail(m),(status,message,error)=>rpc('payment_email_finish',{p_id:job.id,p_lease:job.lease,p_status:status,p_message:message,p_error:error}));
+  return true;
+ },{idleMilliseconds,onError:()=>console.error('Estados de cuenta: no se pudo completar el ciclo de envío.')});
 }

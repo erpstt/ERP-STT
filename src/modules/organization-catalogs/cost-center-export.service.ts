@@ -1,4 +1,5 @@
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
+import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { getOrganizationCatalog, listOrganizationRows } from './organization-catalogs.module.js';
 
@@ -73,7 +74,7 @@ export function buildCostCenterCsv(rows: CostCenterExportRow[]): Buffer {
 }
 
 export async function buildCostCenterExcel(rows: CostCenterExportRow[], subsidiary: string, search = ''): Promise<Buffer> {
-  const workbook = new ExcelJS.Workbook();
+  const workbook = await createExcelWorkbook();
   workbook.creator = 'GENTIA ERP';
   workbook.company = subsidiary || 'GENTIA';
   workbook.created = new Date();

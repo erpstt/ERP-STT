@@ -28,12 +28,17 @@ export async function supplierPaymentReport(authorization: string, filters: Reco
     rpc(authorization, 'supplier_payment_report', { p_filters: filters }),
     rpc(authorization, 'supplier_payment_advance_summary')
   ]);
+  const advanceByPayment = new Map<string, unknown>();
+  for (const item of summaries as Array<Record<string, unknown>>) {
+    const paymentId = String(item.paymentId);
+    if (!advanceByPayment.has(paymentId)) advanceByPayment.set(paymentId, item.advanceTotal);
+  }
   return {
     ...report,
-    rows: (report.rows || []).map((row: Record<string, unknown>) => {
-      const summary = summaries.find((item: Record<string, unknown>) => String(item.paymentId) === String(row.id));
-      return { ...row, advanceTotal: summary?.advanceTotal || 0 };
-    })
+    rows: (report.rows || []).map((row: Record<string, unknown>) => ({
+      ...row,
+      advanceTotal: advanceByPayment.get(String(row.id)) || 0
+    }))
   };
 }
 

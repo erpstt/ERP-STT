@@ -3,6 +3,7 @@ import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabas
 import { SessionAuthenticationError } from './session.service.js';
 
 const deviceHash = (token: string) => createHash('sha256').update(token).digest('hex');
+const DEVICE_ACTIVITY_TOUCH_INTERVAL_MS = 5 * 60 * 1000;
 function authenticatedEmail(authorization: string) {
   try { return String(JSON.parse(Buffer.from(authorization.replace(/^Bearer\s+/i, '').split('.')[1], 'base64url').toString('utf8')).email ?? ''); }
   catch { throw new SessionAuthenticationError('La identidad del usuario no es válida.'); }
@@ -38,7 +39,11 @@ export async function assertRegisteredDevice(authorization: string, token: strin
   const value = validateToken(token);
   const users = await rest<Array<{ user_id: number }>>(`users?select=user_id&email=eq.${encodeURIComponent(authenticatedEmail(authorization))}&limit=1`, authorization);
   if (!users.length) throw new SessionAuthenticationError('El usuario autenticado no está registrado en el ERP.');
-  const rows = await rest<Array<{ device_id: number }>>(`devices?select=device_id&user_id=eq.${users[0].user_id}&device_token=eq.${deviceHash(value)}&limit=1`, authorization);
+  const rows = await rest<Array<{ device_id: number; last_used: string | null }>>(`devices?select=device_id,last_used&user_id=eq.${users[0].user_id}&device_token=eq.${deviceHash(value)}&limit=1`, authorization);
   if (!rows.length) throw new SessionAuthenticationError('Este dispositivo fue revocado. Inicie sesión desde un dispositivo autorizado.');
-  await rest(`devices?device_id=eq.${rows[0].device_id}`, authorization, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ last_used: new Date().toISOString() }) });
+  const now = Date.now();
+  const lastUsed = Date.parse(rows[0].last_used ?? '');
+  if (!Number.isFinite(lastUsed) || now - lastUsed >= DEVICE_ACTIVITY_TOUCH_INTERVAL_MS) {
+    await rest(`devices?device_id=eq.${rows[0].device_id}`, authorization, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ last_used: new Date(now).toISOString() }) });
+  }
 }

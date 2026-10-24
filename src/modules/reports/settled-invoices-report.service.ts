@@ -1,4 +1,4 @@
-import ExcelJS from 'exceljs';
+import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { renderBankReconciliationPdf } from './accounting-reports.service.js';
 
@@ -61,7 +61,7 @@ export async function exportSettledInvoicePdf(authorization:string,input:Record<
 function excelDate(value:string){const dateValue=new Date(`${String(value).slice(0,10)}T12:00:00`);return Number.isNaN(dateValue.valueOf())?value:dateValue;}
 function border(color='D8E2EC'){return{top:{style:'thin' as const,color:{argb:color}},left:{style:'thin' as const,color:{argb:color}},bottom:{style:'thin' as const,color:{argb:color}},right:{style:'thin' as const,color:{argb:color}}};}
 export async function buildSettledInvoiceExcel(report:Report):Promise<ExportFile>{
-  const h=report.header,s=report.summary,workbook=new ExcelJS.Workbook();
+  const h=report.header,s=report.summary,workbook=await createExcelWorkbook();
   workbook.creator='GENTIA ERP';workbook.company=String(h.legalName||h.subsidiary||'GENTIA');workbook.created=new Date();
   const sheet=workbook.addWorksheet('Facturas liquidadas',{views:[{state:'frozen',ySplit:8}],pageSetup:{orientation:'landscape',paperSize:9,fitToPage:true,fitToWidth:1,fitToHeight:0,margins:{left:.2,right:.2,top:.45,bottom:.45,header:.2,footer:.2}}});
   sheet.columns=[{width:16},{width:20},{width:26},{width:18},{width:20},{width:14},{width:16},{width:16},{width:15},{width:17},{width:16},{width:16},{width:16},{width:16},{width:16},{width:16},{width:17},{width:18},{width:11}];

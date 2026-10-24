@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { rpc, smtpStatus } from '../notifications/email-notification.service.js';
 import { escapeHtml } from '../notifications/payment-email.js';
+import { pollMilliseconds, startAdaptivePoller } from '../../core/runtime/adaptive-poller.js';
 
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 const ALLOWED_UPLOADS = new Map([
@@ -352,32 +353,23 @@ export function startTaxCalendarNotifications() {
     disableFileAccess: true,
     disableUrlAccess: true
   }) : null;
-  let busy = false;
   let lastSchedule = 0;
-  const tick = async () => {
-    if (busy) return;
-    busy = true;
-    try {
+  const idleMilliseconds = pollMilliseconds(process.env.NOTIFICATION_QUEUE_POLL_MS);
+  startAdaptivePoller(async () => {
       if (Date.now() - lastSchedule >= 60000) {
         await rpc('tax_calendar_schedule', {});
         lastSchedule = Date.now();
       }
-      if (!transport) return;
+      if (!transport) return false;
       const job = await rpc('tax_calendar_claim', {}) as TaxCalendarEmailJob | null;
-      if (job) await deliverTaxCalendarJob(
+      if (!job) return false;
+      await deliverTaxCalendarJob(
         job,
         message => transport.sendMail(message),
         () => rpc('tax_calendar_begin_send', { p_id: job.id, p_lease: job.lease }) as Promise<boolean>,
         (status, message, error) => rpc('tax_calendar_finish', { p_id: job.id, p_lease: job.lease, p_status: status, p_message: message, p_error: error })
       );
-    } catch {
-      console.error('Calendario tributario: no se pudo completar el ciclo de notificaciones.');
-    } finally {
-      busy = false;
-    }
-  };
-  const timer = setInterval(() => void tick(), 10000);
-  timer.unref();
-  void tick();
+      return true;
+    }, {idleMilliseconds, onError: () => console.error('Calendario tributario: no se pudo completar el ciclo de notificaciones.')});
   if (!smtp.enabled) console.log('Calendario tributario: recordatorios internos activos; envío SMTP desactivado.');
 }

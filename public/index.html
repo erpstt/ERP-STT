@@ -1,13 +1,16 @@
 ﻿<!doctype html>
 <html lang="es">
 <head>
-<script src="/record-audit.js"></script>
+  <script defer src="/record-audit.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GENTIA — ERP inteligente</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="modulepreload" href="/assets/vue.js?v=20261023-performance">
+  <link rel="modulepreload" href="/workspace-navigation.js?v=20261010-expense-approval">
+  <link rel="modulepreload" href="/subsidiary-approvers.js">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/turnstile-login.css">
@@ -24,7 +27,7 @@
 <div id="app">
   <div v-if="!sessionReady" class="session-loading">
 <span class="brand gentia-brand gentia-brand-loading">
-<img src="/gentia-logo.svg" alt="GENTIA. Tu gente. Tus agentes. Un solo sistema.">
+<img src="/gentia-logo.svg" width="441" height="164" alt="GENTIA. Tu gente. Tus agentes. Un solo sistema.">
 </span>
 <p>Restaurando tu sesión…</p>
 </div>
@@ -32,7 +35,7 @@
     <section class="brand-panel">
       <div class="brand-top">
 <span class="brand gentia-brand gentia-brand-hero">
-<img src="/gentia-logo-reversed.svg" alt="GENTIA. Tu gente. Tus agentes. Un solo sistema.">
+<img src="/gentia-logo-reversed.svg" width="441" height="164" alt="GENTIA. Tu gente. Tus agentes. Un solo sistema.">
 </span>
 <span class="badge">
 <span>
@@ -40,9 +43,9 @@
 </div>
       <div class="login-video" aria-hidden="true">
         <video v-if="loginVideoEnabled" autoplay muted loop playsinline preload="metadata" poster="/nexo-login-poster.webp">
-          <source src="/nexo-login.mp4" type="video/mp4">
+          <source :src="loginVideoEnabled ? '/nexo-login.mp4' : undefined" type="video/mp4">
         </video>
-        <img v-else src="/nexo-login-poster.webp" alt="">
+        <img v-else src="/nexo-login-poster.webp" width="1280" height="720" alt="">
         <div class="login-video-branding">
           <span class="login-video-label">Inteligencia operativa</span>
           <span class="login-video-live"><i></i>Datos en tiempo real</span>
@@ -61,7 +64,7 @@
     <section class="auth-panel">
 <div class="auth-wrap">
 <span class="mobile-brand gentia-brand gentia-brand-mobile">
-<img src="/gentia-wordmark.svg" alt="GENTIA">
+<img src="/gentia-wordmark.svg" width="380" height="124" alt="GENTIA">
 </span>
 <div class="heading">
 <p class="eyebrow">BIENVENIDO DE NUEVO</p>
@@ -103,7 +106,7 @@
     <section class="company-picker" aria-labelledby="company-picker-title">
       <header class="company-picker-brand">
 <span class="brand gentia-brand gentia-brand-picker">
-<img src="/gentia-wordmark.svg" alt="GENTIA">
+<img src="/gentia-wordmark.svg" width="380" height="124" alt="GENTIA">
 </span>
 <span class="company-access-badge">
 <i>
@@ -143,7 +146,7 @@
   <main v-else class="workspace">
     <aside class="sidebar" :class="{open: sidebarOpen}">
       <span class="brand gentia-brand gentia-brand-sidebar">
-<img src="/gentia-wordmark-reversed.svg" alt="GENTIA">
+<img src="/gentia-wordmark-reversed.svg" width="380" height="124" alt="GENTIA">
 </span>
       <nav>
         <p>MÓDULOS</p>
@@ -549,8 +552,8 @@
   </main>
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
-<script type="module" src="/app.js?v=20261020-entity-export">
+<script type="module" src="/app.js?v=20261023-second-pass-v2">
 </script>
-<script src="/approval-notifications.js?v=3"></script></body>
+<script src="/approval-notifications.js?v=20261023-second-pass"></script></body>
 </html>
 

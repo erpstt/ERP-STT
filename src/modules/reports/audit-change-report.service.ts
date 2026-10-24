@@ -1,4 +1,5 @@
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
+import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { assertRoleAccess } from '../security-catalogs/role-access-matrix.module.js';
 import { renderBankReconciliationPdf } from './accounting-reports.service.js';
@@ -335,7 +336,7 @@ function styleHeader(row: ExcelJS.Row, color = '063B79') {
 function styleRecord(row: ExcelJS.Row) { row.eachCell(cell => { cell.border = border(); cell.alignment = { vertical: 'top', wrapText: true }; }); }
 
 export async function exportAuditChangeReportExcel(authorization: string, filters: Json): Promise<ExportFile> {
-  const report = await fullReport(authorization, filters), workbook = new ExcelJS.Workbook();
+  const report = await fullReport(authorization, filters), workbook = await createExcelWorkbook();
   workbook.creator = 'GENTIA ERP'; workbook.company = 'GENTIA'; workbook.created = new Date();
   const summary = workbook.addWorksheet('Resumen', { views: [{ state: 'frozen', ySplit: 7 }], pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
   summary.columns = [{ width: 25 }, { width: 38 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 18 }];

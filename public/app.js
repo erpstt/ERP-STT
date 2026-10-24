@@ -1,6 +1,22 @@
-import { createApp } from '/assets/vue.js';
+import { createApp } from '/assets/vue.js?v=20261023-performance';
 import { clearPendingWorkspace, consumePendingWorkspace, getPendingWorkspace, initialWorkspace } from '/workspace-navigation.js?v=20261010-expense-approval';
 import { loadSubsidiaryApprovers } from '/subsidiary-approvers.js';
+const loginViewportQuery=window.matchMedia('(min-width: 900px)');
+const loginMotionQuery=window.matchMedia('(prefers-reduced-motion: reduce)');
+let stopLoginVideoPreferenceWatch=()=>{};
+function canPlayLoginVideo(){
+  const connection=navigator.connection;
+  const slowConnection=connection?.saveData||/^(slow-)?2g$/i.test(connection?.effectiveType||'');
+  const constrainedDevice=Number(navigator.deviceMemory||4)<=2;
+  return loginViewportQuery.matches&&!loginMotionQuery.matches&&!slowConnection&&!constrainedDevice;
+}
+function watchLoginVideoPreference(update){
+  const queries=[loginViewportQuery,loginMotionQuery];
+  for(const query of queries){if(typeof query.addEventListener==='function')query.addEventListener('change',update);else query.addListener?.(update)}
+  navigator.connection?.addEventListener?.('change',update);
+  update();
+  return()=>{for(const query of queries){if(typeof query.removeEventListener==='function')query.removeEventListener('change',update);else query.removeListener?.(update)}navigator.connection?.removeEventListener?.('change',update)};
+}
 const moneyColumnsStyle=document.createElement('link');moneyColumnsStyle.rel='stylesheet';moneyColumnsStyle.href='/money-columns.css';document.head.append(moneyColumnsStyle);
 
 const icons = {
@@ -242,8 +258,9 @@ const modules = [
 ];
 
 const app = createApp({
-  data: () => ({ loginVideoEnabled:!window.matchMedia('(prefers-reduced-motion: reduce)').matches&&!navigator.connection?.saveData,email:localStorage.getItem('nexo_remembered_email')??'', password:'', rememberMe:localStorage.getItem('nexo_remembered_email')!==null, showPassword:false, isSubmitting:false, formError:'', turnstileEnabled:false,turnstileToken:'',turnstileWidgetId:null,authenticated:false, sessionReady:false, selectingCompany:false, isSelectingCompany:false, companyError:'', companies:[], activeCompany:null, allowedCurrencyIds:[], roles:[], activeRole:null, roleAccess:{loaded:false,isAdmin:false,legacy:false,grants:{},modules:[]}, isSelectingRole:false, sidebarOpen:false, workspaceUrl:initialWorkspace(), modules, catalogs, expandedModules:[], currentModule:'CORE', currentSection:'CORE', userName:'equipo', search:'', rows:[], referenceOptions:{}, customerCostCenters:[], customerViewTab:'details', subsidiaryFormTab:'company', accountSubsidiarySearch:'', autorentAccountSearch:{active:'',passive:''}, autorentPercentInput:'', tableError:'', tableLoading:false, catalogExporting:false, costCenterExporting:'', entityExporting:'', dialogSaving:false, dialogError:'', passwordDialog:{open:false,currentPassword:'',newPassword:'',confirmation:'',error:'',saving:false}, recordDialog:{open:false,mode:'form',id:null,values:{},label:''} }),
-  mounted() { this.deviceToken();void this.initializeTurnstile();document.getElementById('app').addEventListener('click',event=>this.handleShellNavigation(event),true);window.addEventListener('nexo:open-workspace',event=>this.handleWorkspaceRequest(event));void this.restoreSession(); },
+  data: () => ({ loginVideoEnabled:canPlayLoginVideo(),email:localStorage.getItem('nexo_remembered_email')??'', password:'', rememberMe:localStorage.getItem('nexo_remembered_email')!==null, showPassword:false, isSubmitting:false, formError:'', turnstileEnabled:false,turnstileToken:'',turnstileWidgetId:null,authenticated:false, sessionReady:false, selectingCompany:false, isSelectingCompany:false, companyError:'', companies:[], activeCompany:null, allowedCurrencyIds:[], roles:[], activeRole:null, roleAccess:{loaded:false,isAdmin:false,legacy:false,grants:{},modules:[]}, isSelectingRole:false, sidebarOpen:false, workspaceUrl:initialWorkspace(), modules, catalogs, expandedModules:[], currentModule:'CORE', currentSection:'CORE', userName:'equipo', search:'', rows:[], referenceOptions:{}, customerCostCenters:[], customerViewTab:'details', subsidiaryFormTab:'company', accountSubsidiarySearch:'', autorentAccountSearch:{active:'',passive:''}, autorentPercentInput:'', tableError:'', tableLoading:false, catalogExporting:false, costCenterExporting:'', entityExporting:'', dialogSaving:false, dialogError:'', passwordDialog:{open:false,currentPassword:'',newPassword:'',confirmation:'',error:'',saving:false}, recordDialog:{open:false,mode:'form',id:null,values:{},label:''} }),
+  mounted() { stopLoginVideoPreferenceWatch=watchLoginVideoPreference(()=>{this.loginVideoEnabled=canPlayLoginVideo()});this.deviceToken();void this.initializeTurnstile();document.getElementById('app').addEventListener('click',event=>this.handleShellNavigation(event),true);window.addEventListener('nexo:open-workspace',event=>this.handleWorkspaceRequest(event));void this.restoreSession(); },
+  beforeUnmount(){stopLoginVideoPreferenceWatch();stopLoginVideoPreferenceWatch=()=>{};},
   computed: {
     activeCatalog() { const moduleRoot={Ventas:'sales',Compras:'purchasing'}[this.currentModule];const catalog=this.catalogs.find(item=>item.title===this.currentSection&&(!moduleRoot||(item.apiRoot??'core')===moduleRoot))??null;if(!catalog||!this.recordDialog.open||this.recordDialog.mode==='delete')return catalog;return{...catalog,fields:catalog.fields.filter(field=>!field.visibleWhen||this.fieldVisible(field)).map(field=>({...field,required:field.required||Boolean(field.requiredWhen&&field.requiredWhen.values.includes(this.recordDialog.values[field.requiredWhen.key]))}))}; },
     tableFields() { return (this.activeCatalog?.fields??[]).filter(field=>field.showInTable!==false); },

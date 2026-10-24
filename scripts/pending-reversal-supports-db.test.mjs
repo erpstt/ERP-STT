@@ -1,12 +1,10 @@
 import pg from 'pg';
-import { readFile } from 'node:fs/promises';
 process.loadEnvFile?.('.env');
 const reference=new URL(process.env.SUPABASE_URL).hostname.split('.')[0];
 const db=new pg.Client({host:process.env.SUPABASE_DB_HOST||'aws-0-us-east-1.pooler.supabase.com',port:Number(process.env.SUPABASE_DB_PORT||6543),database:'postgres',user:process.env.SUPABASE_DB_USER||`postgres.${reference}`,password:process.env.SUPABASE_DB_PASSWORD,ssl:{rejectUnauthorized:false}});
 await db.connect();
 try{
  await db.query('begin');
- await db.query(await readFile(new URL('../supabase/migrations/20260917120000_pending_reversal_supports.sql',import.meta.url),'utf8'));
  const context=(await db.query(`select u.email,au.id auth_id,s.session_id,s.subsidiary_id,j.journal_id,j.pending_balance_local
   from user_company_sessions s join users u using(user_id)join auth.users au on lower(au.email)=lower(u.email)join journal j on j.subsidiary_id=s.subsidiary_id
   where(j.journal_number like'ASI_PEN-%'or j.journal_type='Asientos Pendientes de Facturar')and j.status='CONTABILIZADO'and j.pending_balance_local>0
@@ -18,11 +16,11 @@ try{
  if(!date)throw Error('No existe período abierto para probar la reversión.');
  const initial=Number(context.pending_balance_local),first=Math.round(initial/2*100)/100;
  const previous=Number((await db.query('select count(*) from pending_invoice_reversal where source_journal_id=$1',[context.journal_id])).rows[0].count);
- for(const payload of [
- {type:'FACTURACION',supports:[{}]},
- {type:'ERROR_CORRECCION',supports:[{support_type:'Enlace',display_name:'Inseguro',support_url:'javascript:alert(1)'}]},
- {type:'ERROR_CORRECCION',supports:[{support_type:'Archivo',display_name:'bad.txt',file_name:'bad.txt',file_size:1,file_data:'data:text/plain;base64,UHJ1ZWJh'}]}
- ]){await db.query('savepoint invalid_support');let rejected=false;try{await db.query('select reverse_pending_invoice_journal($1,$2::jsonb)',[context.journal_id,JSON.stringify({reversalDate:date,amount:first,errorDescription:'Prueba de respaldo inv?lido',...payload})])}catch{rejected=true;await db.query('rollback to savepoint invalid_support')}if(!rejected)throw Error('Se acept? un respaldo inv?lido.');}
+ for(const {scenario,expected,payload} of [
+ {scenario:'respaldo en reversión por facturación',expected:'Solo las reversiones',payload:{type:'FACTURACION',supports:[{}]}},
+ {scenario:'enlace con protocolo inseguro',expected:'enlace de respaldo válido',payload:{type:'ERROR_CORRECCION',supports:[{support_type:'Enlace',display_name:'Inseguro',support_url:'javascript:alert(1)'}]}},
+ {scenario:'archivo cuyo tamaño declarado no coincide',expected:'tamaño del archivo',payload:{type:'ERROR_CORRECCION',supports:[{support_type:'Archivo',display_name:'bad.txt',file_name:'bad.txt',file_size:1,file_data:'data:text/plain;base64,UHJ1ZWJh'}]}}
+ ]){await db.query('savepoint invalid_support');let rejection='';try{await db.query('select reverse_pending_invoice_journal($1,$2::jsonb)',[context.journal_id,JSON.stringify({reversalDate:date,amount:first,errorDescription:'Prueba de respaldo inválido',...payload})])}catch(error){rejection=String(error.message);await db.query('rollback to savepoint invalid_support')}if(!rejection.includes(expected))throw Error(`No se rechazó correctamente ${scenario}. Respuesta: ${rejection||'aceptado'}`);}
  const one=(await db.query('select reverse_pending_invoice_journal($1,$2::jsonb)value',[context.journal_id,JSON.stringify({reversalDate:date,amount:first,type:'ERROR_CORRECCION',errorDescription:'Prueba parcial controlada de pendiente',supports:[{support_type:'Archivo',display_name:'respaldo.txt',file_name:'respaldo.txt',mime_type:'text/plain',file_size:6,file_data:'data:text/plain;base64,UHJ1ZWJh'},{support_type:'Enlace',display_name:'Documento',support_url:'https://example.com/respaldo'}]})])).rows[0].value;
  const saved=(await db.query('select * from journal_support where journal_id=$1',[one.journalId])).rows;if(saved.length!==2||saved.find(item=>item.support_type==='Enlace')?.support_url!=='https://example.com/respaldo'||saved.find(item=>item.support_type==='Archivo')?.file_data!=='data:text/plain;base64,UHJ1ZWJh')throw Error('No se guard? el respaldo en el asiento generado.');
  const parent=(await db.query('select*from pending_invoice_reversal_options($1,$2)',[context.journal_id,date])).rows[0].pending_invoice_reversal_options;

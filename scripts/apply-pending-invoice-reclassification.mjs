@@ -36,8 +36,28 @@ const verificationSql = `
       pg_get_functiondef(to_regprocedure('public.pending_invoice_reclassification_candidates(bigint,date)')) candidates,
       pg_get_functiondef(to_regprocedure('public.pending_invoice_reclassification_preview(date)')) preview,
       pg_get_functiondef(to_regprocedure('public.pending_invoice_reclassification_execute(date)')) execute,
-      pg_get_functiondef(to_regprocedure('public.reverse_pending_invoice_journal(bigint,jsonb)')) regular_reversal,
-      pg_get_functiondef(to_regprocedure('public.reverse_opening_pending_invoice(bigint,jsonb)')) opening_reversal
+      coalesce(pg_get_functiondef(to_regprocedure(
+        'public.reverse_pending_invoice_journal_before_historical_fx_integrity(bigint,jsonb)'
+      )),pg_get_functiondef(to_regprocedure(
+        'public.reverse_pending_invoice_journal(bigint,jsonb)'
+      ))) regular_reversal,
+      coalesce(pg_get_functiondef(to_regprocedure(
+        'public.reverse_opening_pending_invoice_before_historical_fx_integrity(bigint,jsonb)'
+      )),pg_get_functiondef(to_regprocedure(
+        'public.reverse_opening_pending_invoice(bigint,jsonb)'
+      ))) opening_reversal,
+      coalesce(pg_get_functiondef(to_regprocedure(
+        'public.reverse_pending_invoice_journal(bigint,jsonb)'
+      )),'') regular_public,
+      coalesce(pg_get_functiondef(to_regprocedure(
+        'public.reverse_opening_pending_invoice(bigint,jsonb)'
+      )),'') opening_public,
+      coalesce(pg_get_functiondef(to_regprocedure(
+        'public.reverse_pending_invoice_journal_before_support_integrity(bigint,jsonb)'
+      )),'') regular_support,
+      coalesce(pg_get_functiondef(to_regprocedure(
+        'public.reverse_opening_pending_invoice_before_support_integrity(bigint,jsonb)'
+      )),'') opening_support
   ), checks as (
     select * from (values
       ('run table',to_regclass('public.pending_invoice_reclassification_runs') is not null),
@@ -109,6 +129,13 @@ const verificationSql = `
         and position('bridge_account' in (select execute from definitions))>0),
       ('bridge validates local and FX',position('bridge_foreign_debits-bridge_foreign_credits' in (select execute from definitions))>0
         and position('bridge_debits-bridge_credits' in (select execute from definitions))>0),
+      ('support integrity wrappers remain linked',
+        (to_regprocedure('public.reverse_pending_invoice_journal_before_support_integrity(bigint,jsonb)') is null
+          and to_regprocedure('public.reverse_opening_pending_invoice_before_support_integrity(bigint,jsonb)') is null)
+        or(position('reverse_pending_invoice_journal_before_support_integrity' in (select regular_public from definitions))>0
+          and position('reverse_opening_pending_invoice_before_support_integrity' in (select opening_public from definitions))>0
+          and position('reverse_pending_invoice_journal_before_historical_fx_integrity' in (select regular_support from definitions))>0
+          and position('reverse_opening_pending_invoice_before_historical_fx_integrity' in (select opening_support from definitions))>0)),
       ('regular prior-period reversal',position($needle$period_value='ANTERIOR'$needle$ in (select regular_reversal from definitions))>0
         and position('prior_control' in (select regular_reversal from definitions))>0
         and position('bridge_account' in (select regular_reversal from definitions))>0),
@@ -151,14 +178,20 @@ try {
   if (apply || dryRun) {
     await db.query('begin');
     await db.query("set local lock_timeout='5s'; set local statement_timeout='180s'");
-    await db.query(migration);
+    const newerSupportLayer = (await db.query(`select
+      to_regprocedure('public.reverse_pending_invoice_journal_before_support_integrity(bigint,jsonb)') is not null
+      or to_regprocedure('public.reverse_opening_pending_invoice_before_support_integrity(bigint,jsonb)') is not null value`)).rows[0].value;
+    if (!newerSupportLayer) await db.query(migration);
     const count = await verify();
     if (dryRun) {
       await db.query('rollback');
       console.log(`Reclasificación anual validada dentro de una transacción revertida (${count} controles).`);
     } else {
       await db.query('commit');
-      console.log(`Reclasificación anual de pendientes instalada y verificada (${count} controles).`);
+      const action = newerSupportLayer
+        ? 'Reclasificación anual conservada detrás de la capa posterior y verificada'
+        : 'Reclasificación anual de pendientes instalada y verificada';
+      console.log(`${action} (${count} controles).`);
     }
   } else {
     const count = await verify();

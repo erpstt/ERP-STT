@@ -1,3 +1,5 @@
+import { indexBy } from './frontend-performance.js?v=20261023-second-pass-v3';
+
 const buckets = ['CURRENT', '1_30', '31_60', '61_90', '91_120', 'OVER_120'];
 const bucketNames = {
   CURRENT: 'Por vencer',
@@ -11,6 +13,22 @@ const bucketNames = {
 const html = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 })[character]);
+const moneyFormatter = new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const optionIndexes = new WeakMap();
+
+function indexedOptions(context) {
+  const source = context.options || {};
+  let indexes = optionIndexes.get(source);
+  if (indexes) return indexes;
+  const currencies = source.currencies || [];
+  indexes = {
+    currenciesById: indexBy(currencies, item => item.id),
+    currenciesByCode: indexBy(currencies, item => String(item.code || '').toUpperCase()),
+    subsidiariesById: indexBy(source.subsidiaries, item => item.id),
+  };
+  optionIndexes.set(source, indexes);
+  return indexes;
+}
 
 function first(source, ...keys) {
   for (const key of keys) if (source?.[key] !== undefined && source?.[key] !== null) return source[key];
@@ -24,8 +42,9 @@ function originalMode(context) {
 function currencyMeta(context, source = {}) {
   const id = first(source, 'currencyId', 'currency_id');
   const code = String(first(source, 'currencyCode', 'currency_code', 'presentationCurrency', 'presentation_currency') || '').trim();
-  const known = (context.options.currencies || []).find(item => String(item.id) === String(id)
-    || (code && String(item.code).toUpperCase() === code.toUpperCase()));
+  const indexes = indexedOptions(context);
+  const known = indexes.currenciesById.get(String(id))
+    || (code ? indexes.currenciesByCode.get(code.toUpperCase()) : undefined);
   if (originalMode(context)) return {
     id: id ?? known?.id ?? code,
     code: code || known?.code || 'MONEDA',
@@ -33,8 +52,8 @@ function currencyMeta(context, source = {}) {
     symbol: String(first(source, 'currencySymbol', 'currency_symbol') || known?.symbol || code || ''),
   };
   if (context.data.consolidated) return { id: 'USD', code: 'USD', name: 'Dólar estadounidense', symbol: 'US$' };
-  const company = (context.options.subsidiaries || []).find(item => String(item.id) === String(context.subsidiaryId));
-  const local = (context.options.currencies || []).find(item => String(item.id) === String(company?.currencyId));
+  const company = indexes.subsidiariesById.get(String(context.subsidiaryId));
+  const local = indexes.currenciesById.get(String(company?.currencyId));
   return { id: local?.id, code: local?.code || '', name: local?.name || '', symbol: local?.symbol || local?.code || '' };
 }
 
@@ -42,7 +61,7 @@ function money(context, value, source = {}) {
   const amount = Number(value || 0);
   const currency = currencyMeta(context, source);
   const prefix = currency.symbol || currency.code;
-  const number = Math.abs(amount).toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const number = moneyFormatter.format(Math.abs(amount));
   return `${amount < 0 ? '(' : ''}${prefix ? `${prefix} ` : ''}${number}${amount < 0 ? ')' : ''}`.trim();
 }
 
@@ -123,6 +142,7 @@ function showApplications(context, row) {
 
 export function renderCurrencyAwareAgingReport(context) {
   const rows = context.data.rows || [];
+  const rowsByDocument = indexBy(rows, row => row.document_id);
   const receivables = context.reportKey === 'receivables-aging';
   const original = originalMode(context);
   const groups = new Map();
@@ -164,7 +184,7 @@ export function renderCurrencyAwareAgingReport(context) {
   }
 
   document.querySelectorAll('[data-journal]').forEach(button => button.onclick = () => button.dataset.journal && context.openJournal(button.dataset.journal));
-  document.querySelectorAll('[data-aging-app]').forEach(button => button.onclick = () => showApplications(context, rows.find(row => String(row.document_id) === button.dataset.agingApp)));
+  document.querySelectorAll('[data-aging-app]').forEach(button => button.onclick = () => showApplications(context, rowsByDocument.get(String(button.dataset.agingApp))));
   renderSummary(context, receivables);
   context.renderPager();
 }

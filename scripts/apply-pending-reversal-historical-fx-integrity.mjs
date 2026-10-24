@@ -39,12 +39,22 @@ with definitions as(
     pg_get_functiondef(to_regprocedure(
       'public.pending_invoice_normalize_reversal_fx(bigint,numeric,bigint,text)'
     )) normalizer,
-    pg_get_functiondef(to_regprocedure(
+    coalesce(pg_get_functiondef(to_regprocedure(
+      'public.reverse_pending_invoice_journal_before_support_integrity(bigint,jsonb)'
+    )),pg_get_functiondef(to_regprocedure(
       'public.reverse_pending_invoice_journal(bigint,jsonb)'
-    )) regular_wrapper,
-    pg_get_functiondef(to_regprocedure(
+    ))) regular_wrapper,
+    coalesce(pg_get_functiondef(to_regprocedure(
+      'public.reverse_opening_pending_invoice_before_support_integrity(bigint,jsonb)'
+    )),pg_get_functiondef(to_regprocedure(
       'public.reverse_opening_pending_invoice(bigint,jsonb)'
-    )) opening_wrapper,
+    ))) opening_wrapper,
+    coalesce(pg_get_functiondef(to_regprocedure(
+      'public.reverse_pending_invoice_journal(bigint,jsonb)'
+    )),'') regular_public,
+    coalesce(pg_get_functiondef(to_regprocedure(
+      'public.reverse_opening_pending_invoice(bigint,jsonb)'
+    )),'') opening_public,
     pg_get_functiondef(to_regprocedure(
       'public.guard_pending_control_gl_cutoff()'
     )) cutoff_guard,
@@ -336,6 +346,13 @@ with definitions as(
         (select source_impact_guard from definitions))>0
       and position('reversal.source_journal_id=source.journal_id' in
         (select source_transaction_guard from definitions))>0),
+    ('support integrity wrappers remain linked',
+      (to_regprocedure('public.reverse_pending_invoice_journal_before_support_integrity(bigint,jsonb)') is null
+        and to_regprocedure('public.reverse_opening_pending_invoice_before_support_integrity(bigint,jsonb)') is null)
+      or(position('reverse_pending_invoice_journal_before_support_integrity' in
+          (select regular_public from definitions))>0
+        and position('reverse_opening_pending_invoice_before_support_integrity' in
+          (select opening_public from definitions))>0)),
     ('regular wrapper validates before delegate',
       position('pending_invoice_reversal_source_fx' in
         (select regular_wrapper from definitions))>0
@@ -426,14 +443,20 @@ try {
   if (apply || dryRun) {
     await db.query('begin');
     await db.query("set local lock_timeout='5s'; set local statement_timeout='180s'");
-    await db.query(migration);
+    const newerSupportLayer = (await db.query(`select
+      to_regprocedure('public.reverse_pending_invoice_journal_before_support_integrity(bigint,jsonb)') is not null
+      or to_regprocedure('public.reverse_opening_pending_invoice_before_support_integrity(bigint,jsonb)') is not null value`)).rows[0].value;
+    if (!newerSupportLayer) await db.query(migration);
     const count = await verify();
     if (dryRun) {
       await db.query('rollback');
       console.log(`Integridad FX de reversiones validada y revertida (${count} controles).`);
     } else {
       await db.query('commit');
-      console.log(`Integridad FX de reversiones instalada (${count} controles).`);
+      const action = newerSupportLayer
+        ? 'Integridad FX conservada detrás de la capa posterior y verificada'
+        : 'Integridad FX de reversiones instalada';
+      console.log(`${action} (${count} controles).`);
     }
   } else {
     const count = await verify();

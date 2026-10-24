@@ -3,6 +3,7 @@ import {rpc,smtpStatus} from '../notifications/email-notification.service.js';
 import {escapeHtml as esc} from '../notifications/payment-email.js';
 import {renderBankReconciliationPdf} from './accounting-reports.service.js';
 import {genericReportCsv,genericReportHtml} from './scheduled-report-renderer.js';
+import {pollMilliseconds,startAdaptivePoller} from '../../core/runtime/adaptive-poller.js';
 
 type Row={entity_name:string;document_number:string;issue_date:string;due_date:string;overdue_days:number;original_amount:number;applied_amount:number;pending:number};
 export type ScheduledReport={kind:string;title?:string;dateFrom?:string;data?:Record<string,unknown>;cutoff:string;company:string;currency:string;rows:Row[];summary:{subledger:number;advances:number;netBalance:number}};
@@ -51,14 +52,18 @@ export async function deliverScheduledReport(job:Job,prepare:()=>Promise<Schedul
  catch(cause){const e=cause as {responseCode?:number;command?:string};const rejected=!!e.responseCode||['CONN','AUTH','EHLO','HELO','STARTTLS','MAIL FROM','RCPT TO'].includes(e.command||'');await finish(rejected?'ERROR':'INCIERTO',null,rejected?'El servidor SMTP rechazó el envío.':'El resultado SMTP no pudo confirmarse. Revise el servidor antes de reenviar.');return;}
  await finish(result.accepted?.length?'ENVIADO':'ERROR',result.messageId||null,result.accepted?.length?null:'El servidor no aceptó al destinatario.');
 }
+export function scheduledReportPollMilliseconds(value:unknown=process.env.SCHEDULED_REPORT_POLL_MS){
+ return pollMilliseconds(value);
+}
 export function startScheduledReports(){
  if(!smtpStatus().enabled){console.log('Reportes programados: SMTP desactivado.');return;}
  const port=Number(process.env.SMTP_PORT||587),transport=nodemailer.createTransport({host:process.env.SMTP_HOST,port,secure:port===465,requireTLS:port!==465,auth:process.env.SMTP_USER?{user:process.env.SMTP_USER,pass:process.env.SMTP_PASSWORD}:undefined,connectionTimeout:15000,greetingTimeout:15000,socketTimeout:45000,disableFileAccess:true,disableUrlAccess:true});
- let busy=false,lastSchedule=0;
- const tick=async()=>{if(busy)return;busy=true;try{
+ let lastSchedule=0;
+ startAdaptivePoller(async()=>{
   if(Date.now()-lastSchedule>=60000){await rpc('scheduled_report_schedule',{});lastSchedule=Date.now();}
   const job=await rpc('scheduled_report_claim',{})as Job|null;
-  if(job)await deliverScheduledReport(job,()=>rpc('scheduled_report_snapshot_v2',{p_sid:job.subsidiary_id,p_kind:job.configuration.report_kind,p_cutoff:job.cutoff,p_owner:job.configuration.owner_id,p_options:{...job.configuration.report_options,periodMode:job.configuration.period_mode||'YEAR_TO_DATE'}}),mail=>transport.sendMail(mail),()=>rpc('scheduled_report_begin_send',{p_id:job.id,p_lease:job.lease}),(status,message,error)=>rpc('scheduled_report_finish',{p_id:job.id,p_lease:job.lease,p_status:status,p_message:message,p_error:error}));
- }catch{console.error('Reportes programados: no se pudo completar el ciclo de procesamiento.');}finally{busy=false;}};
- const timer=setInterval(()=>void tick(),10000);timer.unref();void tick();
+  if(!job)return false;
+  await deliverScheduledReport(job,()=>rpc('scheduled_report_snapshot_v2',{p_sid:job.subsidiary_id,p_kind:job.configuration.report_kind,p_cutoff:job.cutoff,p_owner:job.configuration.owner_id,p_options:{...job.configuration.report_options,periodMode:job.configuration.period_mode||'YEAR_TO_DATE'}}),mail=>transport.sendMail(mail),()=>rpc('scheduled_report_begin_send',{p_id:job.id,p_lease:job.lease}),(status,message,error)=>rpc('scheduled_report_finish',{p_id:job.id,p_lease:job.lease,p_status:status,p_message:message,p_error:error}));
+  return true;
+ },{idleMilliseconds:scheduledReportPollMilliseconds(),onError:()=>console.error('Reportes programados: no se pudo completar el ciclo de procesamiento.')});
 }
