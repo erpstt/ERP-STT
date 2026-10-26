@@ -1,0 +1,40 @@
+.bank-fee-card{margin:0 22px 18px;border:1px solid #cfe1dc;border-left:4px solid #0b8a68;border-radius:10px;background:linear-gradient(135deg,#f6fbf9,#fff);overflow:hidden}
+.bank-fee-heading{min-height:72px;padding:14px 16px;display:flex;align-items:center;gap:13px}
+.bank-fee-icon{width:38px;height:38px;flex:0 0 auto;display:grid;place-items:center;border-radius:10px;background:#e1f4ed;color:#087452;font-size:16px;font-weight:900}
+.bank-fee-heading>div{min-width:0;flex:1}
+.bank-fee-heading strong{display:block;color:#17364c;font-size:13px}
+.bank-fee-heading small{display:block;margin-top:4px;color:#65778b;font-size:11px;line-height:1.45}
+.bank-fee-switch{position:relative;min-width:max-content;display:flex;align-items:center;flex-direction:row;gap:8px;cursor:pointer;color:#26445a;font-size:11px}
+.bank-fee-switch input{position:absolute;width:1px;height:1px;opacity:0}
+.bank-fee-switch>span{width:42px;height:24px;border:1px solid #aab8c6;border-radius:999px;background:#b7c2cc;transition:.18s}
+.bank-fee-switch>span:after{content:"";display:block;width:18px;height:18px;margin:2px;border-radius:50%;background:#fff;box-shadow:0 1px 4px #1d354755;transition:.18s}
+.bank-fee-switch input:checked+span{border-color:#0b8a68;background:#0b8a68}
+.bank-fee-switch input:checked+span:after{transform:translateX(18px)}
+.bank-fee-switch input:focus-visible+span{outline:3px solid #0b8a6830;outline-offset:2px}
+.bank-fee-fields{display:grid;grid-template-columns:minmax(200px,.75fr) minmax(300px,1.3fr) minmax(185px,.65fr);gap:13px;align-items:end;border-top:1px solid #dbe9e5;padding:15px 16px 17px;background:#fbfefd}
+.bank-fee-fields label small{color:#718194;font-size:10px;font-weight:500;line-height:1.4}
+.bank-fee-fields input[readonly]{background:#f2f6f8;color:#4c6074}
+.bank-fee-preview{min-height:62px;display:flex;justify-content:center;flex-direction:column;border:1px solid #b9dfd2;border-radius:8px;background:#eaf8f3;padding:10px 13px}
+.bank-fee-preview span{color:#587267;font-size:10px}
+.bank-fee-preview b{margin-top:4px;color:#087452;font-size:18px}
+.bank-fee-preview.invalid{border-color:#e4a6aa;background:#fff0f1}
+.bank-fee-preview.invalid b{color:#b42332}
+.payment-totals .fee{padding-left:18px;border-left:1px solid #d6e0e8}
+.payment-totals .fee b{color:#b85b20}
+.bank-fee-badge{display:block;width:max-content;margin-top:4px;padding:3px 6px;border-radius:4px;background:#fff1e7;color:#9a4b18;font-size:9px;font-weight:800}
+.exchange-rate-field small{display:block;margin-top:5px;color:#617488;font-size:9px;font-weight:500;line-height:1.35}
+.exchange-rate-field input{font-weight:800;color:#17364c}
+.exchange-rate-field.rate-ready input{border-color:#9ed6c5;background:#eef9f5;color:#087452}
+.exchange-rate-field.rate-ready small{color:#087452}
+.exchange-rate-field.rate-fallback input{border-color:#efc17a;background:#fff8e8;color:#9a5a08}
+.exchange-rate-field.rate-fallback small{color:#9a5a08;font-weight:700}
+.exchange-rate-field.rate-missing input{border-color:#e5a4aa;background:#fff1f2;color:#b42332}
+.exchange-rate-field.rate-missing small{color:#b42332;font-weight:700}
+.payment-impact{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.payment-impact p{margin:0;border:1px solid #dbe4ed;border-left:3px solid #0b8a68;border-radius:8px;background:#fff;padding:12px 13px}
+.payment-impact b,.payment-impact span{display:block}
+.payment-impact b{color:#1f3c54;font-size:11px}
+.payment-impact span{margin-top:5px;color:#66788d;font-size:11px;line-height:1.4}
+#impactFee{border-left-color:#e27632;background:#fffaf6}
+@media(max-width:900px){.bank-fee-fields{grid-template-columns:1fr 1fr}.bank-fee-preview{grid-column:1/-1}.bank-fee-heading{align-items:flex-start;flex-wrap:wrap}.bank-fee-switch{margin-left:51px}.payment-impact{grid-template-columns:1fr}}
+@media(max-width:560px){.bank-fee-card{margin:0 14px 15px}.bank-fee-fields{grid-template-columns:1fr}.bank-fee-preview{grid-column:auto}.bank-fee-switch{width:100%;margin-left:0}.payment-totals .fee{padding-left:0;border-left:0}}

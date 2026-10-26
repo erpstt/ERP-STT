@@ -46,8 +46,49 @@ async function syncSupports(id){if(!id&&hasPendingSupportChanges())throw Error('
 $('saveSupports').onclick=async()=>{const button=$('saveSupports');if(!hasPendingSupportChanges()){setSupportStatus('No hay cambios de respaldos pendientes.');return}try{$('error').textContent='';button.disabled=true;button.textContent='Guardando…';setSupportStatus('Guardando respaldos…');await syncSupports(journalId);setSupportStatus('Respaldos guardados correctamente sin modificar importes, pagos ni retenciones.','success')}catch(error){$('error').textContent=error.message;setSupportStatus(`No fue posible guardar los respaldos: ${error.message}`,'error')}finally{button.textContent='Guardar respaldos';button.disabled=!hasPendingSupportChanges()}};
 function collectInvoicePayload(){const lines=[...document.querySelectorAll('#lines tr')].map(row=>Object.fromEntries([...row.querySelectorAll('[data-key]')].map(field=>[field.dataset.key,field.type==='checkbox'?field.checked:['quantity','unit_price','amount','tax_rate','tax_amount','gross_amount'].includes(field.dataset.key)?parseAmount(field.value):field.value]))).filter(line=>line.account_id||line.amount);return{invoice_number:$('invoiceNumber').value,invoice_type:$('invoiceType').value,supplier_id:$('supplier').value,payment_term_id:$('paymentTerm').value,invoice_date:$('invoiceDate').value,fiscal_period_id:$('period').value,currency_id:$('currency').value,exchange_rate:$('rate').value,memo:$('memo').value,lines}}
 function validateInvoicePayload(payload){if(!payload.invoice_number.trim())throw Error('Ingrese el número de factura.');if(!payload.supplier_id)throw Error('Seleccione el proveedor.');if(!payload.payment_term_id)throw Error('Seleccione los términos de pago.');if(!payload.fiscal_period_id)throw Error('No existe un período de Compras abierto para la fecha.');if(!payload.currency_id||!payload.exchange_rate)throw Error('Seleccione una moneda con tipo de cambio disponible.');if(!payload.lines.length||payload.lines.some(line=>!line.account_id||line.quantity<=0||line.unit_price<=0||line.amount<=0))throw Error('Cada línea debe tener una cuenta y un importe mayor que cero.')}
-$('save').onclick=async()=>{const button=$('save');try{$('error').textContent='';const payload=collectInvoicePayload(),invoiceChanged=!invoiceId||JSON.stringify(payload)!==originalInvoicePayload,supportChanged=hasPendingSupportChanges();if(invoiceId&&!invoiceChanged){if(!supportChanged){setSupportStatus('No hay cambios pendientes de guardar.');return}button.disabled=true;button.textContent='Guardando respaldos…';await syncSupports(journalId);document.querySelector('#successModal h2').textContent='Respaldos actualizados';$('successMessage').textContent=`Los respaldos de la factura ${$('invoiceNumber').value} se guardaron sin modificar sus importes, pagos ni retenciones.`;$('successModal').hidden=false;setSupportStatus('Respaldos guardados correctamente.','success');return}validateInvoicePayload(payload);button.disabled=true;button.textContent=invoiceId?'Actualizando...':'Guardando...';const saved=await api(invoiceId?`/api/purchasing/supplier-invoice-entry/${invoiceId}`:'/api/purchasing/supplier-invoice-entry',{method:invoiceId?'PUT':'POST',body:JSON.stringify(payload)});await syncSupports(saved.journalId);originalInvoicePayload=JSON.stringify(payload);document.querySelector('#successModal h2').textContent=invoiceId?'Factura actualizada exitosamente':'Factura registrada exitosamente';$('successMessage').textContent=`La factura ${$('invoiceNumber').value} fue ${invoiceId?'actualizada':'registrada'} correctamente por ${money(saved.total)}.`;$('successModal').hidden=false}catch(error){$('error').textContent=error.message}finally{button.disabled=false;button.textContent=invoiceId?'Actualizar factura':'Guardar factura'}};
-$('cancel').onclick=event=>{event.preventDefault();location.assign('/')};document.querySelector('header a').onclick=event=>{event.preventDefault();location.assign('/')};
+const supplierInvoiceCatalogRequest={url:'/',module:'Compras',section:'Facturas de proveedores',close:true,refresh:true};
+const successMoney=value=>(Number.isFinite(Number(value))?Number(value):0).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2});
+function returnToSupplierInvoices(){
+ document.body.classList.remove('supplier-success-open');
+ if(window.parent&&window.parent!==window){
+  window.parent.dispatchEvent(new CustomEvent('nexo:open-workspace',{detail:supplierInvoiceCatalogRequest}));
+  return;
+ }
+ window.location.assign('/');
+}
+function createAnotherSupplierInvoice(){
+ for(const key of['nexo_edit_supplier_invoice','nexo_view_supplier_invoice','nexo_supplier_invoice_receipt'])sessionStorage.removeItem(key);
+ window.location.replace('/supplier-invoice-entry.html');
+}
+function showSupplierSuccess({title,message,total,accountingStatus='Contabilizada',accountingMessage}){
+ const currency=data.currencies.find(item=>String(item.currency_id)===$('currency').value)?.currency_code||'';
+ $('successTitle').textContent=title;
+ $('successMessage').textContent=message;
+ $('successInvoiceNumber').textContent=$('invoiceNumber').value||'—';
+ $('successInvoiceAmount').textContent=`${currency?`${currency} `:''}${successMoney(total)}`;
+ $('successAccountingStatus').textContent=accountingStatus;
+ $('successAccountingText').textContent=accountingMessage;
+ document.body.classList.add('supplier-success-open');
+ $('successModal').hidden=false;
+ requestAnimationFrame(()=>$('successAccept').focus());
+}
+function handleSuccessDialogKeydown(event){
+ const buttons=[$('successAccept'),$('successNew')].filter(button=>!button.disabled&&!button.hidden);
+ if(event.key==='Escape'){
+  event.preventDefault();
+  returnToSupplierInvoices();
+  return;
+ }
+ if(event.key!=='Tab'||buttons.length<2)return;
+ const first=buttons[0],last=buttons.at(-1);
+ if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
+ else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
+}
+$('successModal').addEventListener('keydown',handleSuccessDialogKeydown);
+$('successAccept').onclick=returnToSupplierInvoices;
+$('successNew').onclick=createAnotherSupplierInvoice;
+$('save').onclick=async()=>{const button=$('save');try{$('error').textContent='';const payload=collectInvoicePayload(),invoiceChanged=!invoiceId||JSON.stringify(payload)!==originalInvoicePayload,supportChanged=hasPendingSupportChanges();if(invoiceId&&!invoiceChanged){if(!supportChanged){setSupportStatus('No hay cambios pendientes de guardar.');return}button.disabled=true;button.textContent='Guardando respaldos…';await syncSupports(journalId);showSupplierSuccess({title:'Respaldos actualizados',message:`Los respaldos de la factura ${$('invoiceNumber').value} se guardaron correctamente.`,total:invoiceAmounts().gross,accountingStatus:'Sin cambios',accountingMessage:'Los importes, pagos, retenciones y el asiento contable permanecen sin cambios.'});setSupportStatus('Respaldos guardados correctamente.','success');return}validateInvoicePayload(payload);button.disabled=true;button.textContent=invoiceId?'Actualizando...':'Guardando...';const saved=await api(invoiceId?`/api/purchasing/supplier-invoice-entry/${invoiceId}`:'/api/purchasing/supplier-invoice-entry',{method:invoiceId?'PUT':'POST',body:JSON.stringify(payload)});await syncSupports(saved.journalId);originalInvoicePayload=JSON.stringify(payload);showSupplierSuccess({title:invoiceId?'Factura actualizada correctamente':'Factura registrada correctamente',message:`La factura ${$('invoiceNumber').value} fue ${invoiceId?'actualizada':'registrada'} sin inconvenientes.`,total:saved.total??invoiceAmounts().gross,accountingMessage:'La cuenta por pagar y el impacto contable quedaron actualizados.'})}catch(error){$('error').textContent=error.message}finally{button.disabled=false;button.textContent=invoiceId?'Actualizar factura':'Guardar factura'}};
+$('cancel').onclick=event=>{event.preventDefault();returnToSupplierInvoices()};document.querySelector('header a').onclick=event=>{event.preventDefault();returnToSupplierInvoices()};
 await import('/supplier-invoice-receipt-prefill.js?v=20260917-quantity');
 
 const receiptId=pageParams.get('receiptId');if(receiptId&&!invoiceId){try{const stored=sessionStorage.getItem('nexo_supplier_invoice_receipt'),receipt=stored?JSON.parse(stored):await api(`/api/purchasing/workflow/${encodeURIComponent(receiptId)}`),header=receipt.header;sessionStorage.removeItem('nexo_supplier_invoice_receipt');if(header.document_type!=='RECEIPT')throw Error('El documento seleccionado no es una recepción de inventario.');$('invoiceNumber').value=header.document_number||'';$('supplier').value=String(header.supplier_id||'');$('supplier').dispatchEvent(new Event('change'));$('paymentTerm').value=String(header.payment_term_id||$('paymentTerm').value||'');$('invoiceDate').value=String(header.document_date).slice(0,10);assignPeriod();$('period').value=String(header.fiscal_period_id||$('period').value||'');$('currency').value=String(header.currency_id||'');$('rate').value=header.exchange_rate??1;$('memo').value=`Factura derivada de ${header.document_number}${header.memo?` · ${header.memo}`:''}`;$('lines').innerHTML='';receipt.lines.forEach(item=>addFilteredLine({account_id:item.account_id,quantity:item.quantity,unit_price:item.unit_cost,amount:Number(item.quantity)*Number(item.unit_cost),tax_code_id:item.tax_code_id,note:item.description||header.memo,department_id:item.department_id,cost_center_id:item.cost_center_id,class_id:item.class_id,financial_creditor_id:item.financial_creditor_id,related_company_id:item.related_company_id}));totals();document.querySelector('h1').textContent=`Nueva factura desde ${header.document_number}`;$('invoiceNumber').focus()}catch(error){sessionStorage.removeItem('nexo_supplier_invoice_receipt');$('error').textContent=`No fue posible convertir la recepción: ${error.message}`}}

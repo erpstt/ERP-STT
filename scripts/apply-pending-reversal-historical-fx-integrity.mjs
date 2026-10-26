@@ -352,7 +352,11 @@ with definitions as(
       or(position('reverse_pending_invoice_journal_before_support_integrity' in
           (select regular_public from definitions))>0
         and position('reverse_opening_pending_invoice_before_support_integrity' in
-          (select opening_public from definitions))>0)),
+          (select opening_public from definitions))>0
+        and position('reverse_pending_invoice_journal_before_historical_fx_integrity' in
+          (select regular_wrapper from definitions))>0
+        and position('reverse_opening_pending_invoice_before_historical_fx_integrity' in
+          (select opening_wrapper from definitions))>0)),
     ('regular wrapper validates before delegate',
       position('pending_invoice_reversal_source_fx' in
         (select regular_wrapper from definitions))>0

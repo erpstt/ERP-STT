@@ -63,8 +63,9 @@ try{
           'public.reverse_pending_invoice_journal_before_support_integrity(bigint,jsonb)'
         )),pg_get_functiondef('public.reverse_pending_invoice_journal(bigint,jsonb)'::regprocedure)
       ))>0) period_wrapper_linked,
-    position('already_applied' in pg_get_functiondef('public.validate_pending_reversal_invoice()'::regprocedure))>0 cumulative_guard`)).rows[0];
-  if(Object.values(check).some(value=>value!==true))throw Error('El límite por subtotal de factura no quedó instalado correctamente.');
+    (position('already_applied' in pg_get_functiondef('public.validate_pending_reversal_invoice()'::regprocedure))>0
+      or position('pending_invoice_validate_billing_limit' in pg_get_functiondef('public.validate_pending_reversal_invoice()'::regprocedure))>0) cumulative_guard`)).rows[0];
+  if(Object.values(check).some(value=>value!==true))throw Error(`El límite por subtotal de factura no quedó instalado correctamente: ${JSON.stringify(check)}`);
   await db.query('commit');
   console.log(JSON.stringify({applied:!installed,alreadyInstalled:installed,...check}));
 }catch(error){

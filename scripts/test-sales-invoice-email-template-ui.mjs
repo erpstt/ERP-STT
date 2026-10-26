@@ -10,7 +10,7 @@ try{
  await page.route('**/api/configuration/notification-templates/**',async route=>{
   const path=new URL(route.request().url()).pathname,request=route.request().postDataJSON();
   assert.equal(request.kind,'FACTURA_VENTA');
-  if(path.endsWith('/get'))return route.fulfill({json:{subsidiary:{name:'Empresa de prueba'},transport:{enabled:true},template:{asunto_template:'Factura {{numero_factura}}',cuerpo_template:'<p>Estimado {{cliente_nombre}}</p>',activo:true}}});
+  if(path.endsWith('/get'))return route.fulfill({json:{canEdit:true,subsidiary:{name:'Empresa de prueba'},transport:{enabled:true},template:{asunto_template:'Factura {{numero_factura}}',cuerpo_template:'<p>Estimado {{cliente_nombre}}</p>',activo:true}}});
   if(path.endsWith('/preview'))return route.fulfill({json:{subject:'Factura FAC-VEN-001',html:'<h1>Factura de venta</h1><p>PDF y respaldos adjuntos</p>'}});
   if(path.endsWith('/save')){saved=request;return route.fulfill({json:{template:{cuerpo_template:request.body,updated_by_email:'admin@example.invalid',updated_at:new Date().toISOString()}}});}
   return route.abort();

@@ -12,8 +12,19 @@ try{
   order by s.selected_at desc,j.journal_id limit 1`)).rows[0];
  if(!context)throw Error('No existe un ASI_PEN disponible con usuario autorizado para la prueba.');
  await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({sub:context.auth_id,email:context.email,session_id:context.session_id,role:'authenticated'})]);
+ const wrappers=(await db.query(`select
+  pg_get_functiondef('public.reverse_pending_invoice_journal(bigint,jsonb)'::regprocedure)regular,
+  pg_get_functiondef('public.reverse_opening_pending_invoice(bigint,jsonb)'::regprocedure)opening,
+  not has_function_privilege('authenticated','public.save_pending_reversal_supports(bigint,jsonb)','EXECUTE')helper_private`)).rows[0];
+ if(!wrappers.regular.includes('reverse_pending_invoice_journal_before_support_integrity')
+  ||!wrappers.opening.includes('reverse_opening_pending_invoice_before_support_integrity')
+  ||!wrappers.helper_private)throw Error('La capa pública de integridad de respaldos no protege ambas rutas de reversión.');
  const date=(await db.query("select start_date from fiscal_periods where subsidiary_id=$1 and not is_closed and not coalesce(gl_closed,false)and not coalesce(is_inactive,false)order by start_date desc limit 1",[context.subsidiary_id])).rows[0]?.start_date;
  if(!date)throw Error('No existe período abierto para probar la reversión.');
+ await db.query('savepoint invalid_opening_support');let openingDirectProtected=false;try{
+  await db.query('select reverse_opening_pending_invoice($1,$2::jsonb)',[-1,JSON.stringify({reversalDate:date,amount:1,type:'ERROR_CORRECCION',errorDescription:'Prueba directa',supports:[{support_type:'Enlace',display_name:'Inseguro',support_url:'javascript:alert(1)'}]})]);
+ }catch(error){openingDirectProtected=String(error.message).includes('enlace de respaldo válido');await db.query('rollback to savepoint invalid_opening_support')}
+ if(!openingDirectProtected)throw Error('La llamada directa de reversión de apertura no aplicó la validación de respaldos.');
  const initial=Number(context.pending_balance_local),first=Math.round(initial/2*100)/100;
  const previous=Number((await db.query('select count(*) from pending_invoice_reversal where source_journal_id=$1',[context.journal_id])).rows[0].count);
  for(const {scenario,expected,payload} of [
@@ -33,6 +44,6 @@ try{
  if(final.journal.status!=='REVERSADO_TOTAL'||Number(final.journal.balanceLocal)!==0||final.reversals.length!==previous+2)throw Error('La liquidación total no actualizó saldo, estado e historial.');
  const report=(await db.query('select run_pending_invoice_control_report($1::jsonb)value',[JSON.stringify({subsidiaryIds:[context.subsidiary_id],dateFrom:'1900-01-01',dateTo:'2099-12-31'})])).rows[0].value;
  if(!(report.rows||[]).some(row=>String(row.journal_id)===String(context.journal_id)&&row.reversals.length===previous+2))throw Error('El reporte no muestra el historial de reversiones.');
- console.log(JSON.stringify({partial:one.number,total:two.number,overReversalBlocked:true,history:2,finalStatus:final.journal.status,rollback:true}));
+ console.log(JSON.stringify({partial:one.number,total:two.number,openingDirectProtected,overReversalBlocked:true,history:2,finalStatus:final.journal.status,rollback:true}));
  await db.query('rollback');
 }catch(error){await db.query('rollback');throw error}finally{await db.end()}

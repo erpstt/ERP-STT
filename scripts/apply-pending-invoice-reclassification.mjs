@@ -136,6 +136,13 @@ const verificationSql = `
           and position('reverse_opening_pending_invoice_before_support_integrity' in (select opening_public from definitions))>0
           and position('reverse_pending_invoice_journal_before_historical_fx_integrity' in (select regular_support from definitions))>0
           and position('reverse_opening_pending_invoice_before_historical_fx_integrity' in (select opening_support from definitions))>0)),
+      ('annual wrappers remain linked',
+        (to_regprocedure('public.reverse_pending_invoice_journal_before_historical_fx_integrity(bigint,jsonb)') is null
+          and to_regprocedure('public.reverse_opening_pending_invoice_before_historical_fx_integrity(bigint,jsonb)') is null)
+        or(position('reverse_pending_invoice_journal_before_historical_fx_integrity' in
+            coalesce(nullif((select regular_support from definitions),''),(select regular_public from definitions)))>0
+          and position('reverse_opening_pending_invoice_before_historical_fx_integrity' in
+            coalesce(nullif((select opening_support from definitions),''),(select opening_public from definitions)))>0)),
       ('regular prior-period reversal',position($needle$period_value='ANTERIOR'$needle$ in (select regular_reversal from definitions))>0
         and position('prior_control' in (select regular_reversal from definitions))>0
         and position('bridge_account' in (select regular_reversal from definitions))>0),
@@ -178,17 +185,19 @@ try {
   if (apply || dryRun) {
     await db.query('begin');
     await db.query("set local lock_timeout='5s'; set local statement_timeout='180s'");
-    const newerSupportLayer = (await db.query(`select
+    const newerLayer = (await db.query(`select
       to_regprocedure('public.reverse_pending_invoice_journal_before_support_integrity(bigint,jsonb)') is not null
-      or to_regprocedure('public.reverse_opening_pending_invoice_before_support_integrity(bigint,jsonb)') is not null value`)).rows[0].value;
-    if (!newerSupportLayer) await db.query(migration);
+      or to_regprocedure('public.reverse_opening_pending_invoice_before_support_integrity(bigint,jsonb)') is not null
+      or to_regprocedure('public.reverse_pending_invoice_journal_before_historical_fx_integrity(bigint,jsonb)') is not null
+      or to_regprocedure('public.reverse_opening_pending_invoice_before_historical_fx_integrity(bigint,jsonb)') is not null value`)).rows[0].value;
+    if (!newerLayer) await db.query(migration);
     const count = await verify();
     if (dryRun) {
       await db.query('rollback');
       console.log(`Reclasificación anual validada dentro de una transacción revertida (${count} controles).`);
     } else {
       await db.query('commit');
-      const action = newerSupportLayer
+      const action = newerLayer
         ? 'Reclasificación anual conservada detrás de la capa posterior y verificada'
         : 'Reclasificación anual de pendientes instalada y verificada';
       console.log(`${action} (${count} controles).`);

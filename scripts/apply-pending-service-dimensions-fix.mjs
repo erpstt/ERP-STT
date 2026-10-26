@@ -30,6 +30,9 @@ try{
     position('service_month' in pg_get_functiondef('public.update_journal_entry(bigint,jsonb)'::regprocedure))>0 update_month,
     position('service_month' in coalesce(
       pg_get_functiondef(to_regprocedure(
+        'public.reverse_pending_invoice_journal_before_opening_pending(bigint,jsonb)'
+      )),
+      pg_get_functiondef(to_regprocedure(
         'public.reverse_pending_invoice_journal_before_invoice_subtotal_limit(bigint,jsonb)'
       )),pg_get_functiondef(to_regprocedure(
         'public.reverse_pending_invoice_journal(bigint,jsonb)'
@@ -37,12 +40,18 @@ try{
     ))>0 reversal_month,
     position('service_country_id' in coalesce(
       pg_get_functiondef(to_regprocedure(
+        'public.reverse_pending_invoice_journal_before_opening_pending(bigint,jsonb)'
+      )),
+      pg_get_functiondef(to_regprocedure(
         'public.reverse_pending_invoice_journal_before_invoice_subtotal_limit(bigint,jsonb)'
       )),pg_get_functiondef(to_regprocedure(
         'public.reverse_pending_invoice_journal(bigint,jsonb)'
       ))
     ))>0 reversal_country,
     position('reverse_pending_invoice_journal_before_service_dimensions' in coalesce(
+      pg_get_functiondef(to_regprocedure(
+        'public.reverse_pending_invoice_journal_before_opening_pending(bigint,jsonb)'
+      )),
       pg_get_functiondef(to_regprocedure(
         'public.reverse_pending_invoice_journal_before_invoice_subtotal_limit(bigint,jsonb)'
       )),pg_get_functiondef(to_regprocedure(
@@ -76,6 +85,12 @@ try{
           'public.reverse_pending_invoice_journal_before_support_integrity(bigint,jsonb)'
         )),pg_get_functiondef('public.reverse_pending_invoice_journal(bigint,jsonb)'::regprocedure)
       ))>0) subtotal_wrapper_linked,
+    (to_regprocedure('public.reverse_pending_invoice_journal_before_opening_pending(bigint,jsonb)') is null
+      or position('reverse_pending_invoice_journal_before_opening_pending' in coalesce(
+        pg_get_functiondef(to_regprocedure(
+          'public.reverse_pending_invoice_journal_before_invoice_subtotal_limit(bigint,jsonb)'
+        )),pg_get_functiondef('public.reverse_pending_invoice_journal(bigint,jsonb)'::regprocedure)
+      ))>0) opening_router_linked,
     not exists(
       select 1 from journal_line line join journal entry using(journal_id)
       where (entry.journal_type='Asientos Pendientes de Facturar' or entry.journal_number like 'ASI_PEN-%')
@@ -86,7 +101,16 @@ try{
       where entry.journal_type='Reversión de Pendiente de Facturar'
         and (line.service_month is null or line.service_country_id is null)
     ) reversal_backfill`)).rows[0];
-  if(Object.values(check).some(value=>value!==true))throw Error('No se pudo verificar completamente Mes y País de servicio.');
+  if(Object.values(check).some(value=>value!==true)){
+    const chain=(await db.query(`select proname,
+      position('service_month' in pg_get_functiondef(oid))>0 has_month,
+      position('service_country_id' in pg_get_functiondef(oid))>0 has_country,
+      position('reverse_pending_invoice_journal_before_service_dimensions' in pg_get_functiondef(oid))>0 calls_dimension_delegate
+      from pg_proc where pronamespace='public'::regnamespace
+        and proname like 'reverse_pending_invoice_journal%'
+      order by proname`)).rows;
+    throw Error(`No se pudo verificar completamente Mes y País de servicio: ${JSON.stringify({check,chain})}`);
+  }
   await db.query('commit');
   console.log(JSON.stringify({applied:!installed,alreadyInstalled:installed,...check}));
 }catch(error){

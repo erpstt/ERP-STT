@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import pg from 'pg';
 
 process.loadEnvFile?.('.env');
 
-const skipMigration = process.argv.includes('--skip-migration');
 const projectRef = new URL(process.env.SUPABASE_URL).hostname.split('.')[0];
 const db = new pg.Client({
   host: process.env.SUPABASE_DB_HOST || 'aws-0-us-east-1.pooler.supabase.com',
@@ -16,16 +14,14 @@ const db = new pg.Client({
   connectionTimeoutMillis: 15_000,
 });
 
-const migration = await readFile(
-  new URL('../supabase/migrations/20261014110000_opening_pending_invoice_auxiliary.sql', import.meta.url),
-  'utf8',
-);
-
 await db.connect();
 try {
   await db.query('begin');
   await db.query("set local lock_timeout='5s'; set local statement_timeout='180s'");
-  if (!skipMigration) await db.query(migration);
+  const chainReady = (await db.query(`select
+    to_regprocedure('public.reverse_opening_pending_invoice_before_support_integrity(bigint,jsonb)') is not null
+      and to_regprocedure('public.reverse_pending_invoice_journal_before_support_integrity(bigint,jsonb)') is not null value`)).rows[0].value;
+  assert.equal(chainReady, true, 'Instale la cadena completa de migraciones de pendientes antes de ejecutar esta prueba.');
 
   const tables = (await db.query(`
     select relname from pg_class
@@ -55,14 +51,22 @@ try {
     'opening_pending_invoice_stage',
     'opening_pending_invoice_reconciliation',
     'reverse_opening_pending_invoice',
+    'reverse_opening_pending_invoice_before_period_type',
+    'reverse_opening_pending_invoice_before_historical_fx_integrity',
+    'reverse_opening_pending_invoice_before_support_integrity',
     'run_pending_invoice_control_report_before_consolidation',
   ]])).rows.map((row) => [row.proname, row.definition]));
+  const openingReversalDefinition = definitions.reverse_opening_pending_invoice_before_period_type
+    || definitions.reverse_opening_pending_invoice_before_historical_fx_integrity
+    || definitions.reverse_opening_pending_invoice_before_support_integrity
+    || definitions.reverse_opening_pending_invoice;
   assert.match(definitions.opening_pending_invoice_stage, /113003/);
   assert.match(definitions.opening_pending_invoice_stage, /413001/);
   assert.match(definitions.opening_pending_invoice_stage, /113003 al debe y 413001 al haber/i);
-  assert.match(definitions.reverse_opening_pending_invoice, /counterpart_account,amount_value,0,foreign_value,0/i);
-  assert.match(definitions.reverse_opening_pending_invoice, /control_account,0,amount_value,0,foreign_value/i);
-  assert.match(definitions.reverse_opening_pending_invoice, /original_currency_id/i);
+  assert.match(openingReversalDefinition, /counterpart_account,amount_value,0,foreign_value,0/i);
+  assert.match(openingReversalDefinition, /control_account,0,amount_value,0,foreign_value/i);
+  assert.match(openingReversalDefinition, /original_currency_id/i);
+  assert.match(definitions.reverse_opening_pending_invoice, /reverse_opening_pending_invoice_before_support_integrity/i);
   assert.match(definitions.run_pending_invoice_control_report_before_consolidation, /'OPENING'/i);
 
   // Use existing master data but create every transactional test record inside
@@ -183,6 +187,7 @@ try {
       entityTaxId: fixture.tax_id,
       currency: foreignCurrency.currency_code,
       exchangeRate: 2.5,
+      periodType: 'ACTUAL',
       serviceMonth,
       serviceCountry: country,
       supportUrl: 'https://example.com/respaldo-prueba',
@@ -230,11 +235,26 @@ try {
   assert.equal(String(item.cost_center_id), String(fixture.cost_center_id));
 
   const reversalDate = new Date(fixture.reversal_date).toISOString().slice(0, 10);
-  const reverse = async (amount, reason) => (await db.query(
-    'select reverse_opening_pending_invoice($1,$2::jsonb)value',
-    [item.id, JSON.stringify({ reversalDate, amount, type: 'ERROR_CORRECCION', errorDescription: reason })],
+  const reverse = async (amount, reason, { unified = false, supports = [] } = {}) => (await db.query(
+    unified
+      ? 'select reverse_pending_invoice_journal($1,$2::jsonb)value'
+      : 'select reverse_opening_pending_invoice($1,$2::jsonb)value',
+    [unified ? -Number(item.id) : item.id, JSON.stringify({
+      reversalDate, amount, type: 'ERROR_CORRECCION', errorDescription: reason, supports,
+    })],
   )).rows[0].value;
-  const partial = await reverse(30, 'Prueba controlada de reversión parcial');
+  const partial = await reverse(30, 'Prueba controlada de reversión parcial', {
+    unified: true,
+    supports: [
+      { support_type: 'Archivo', display_name: 'apertura.txt', file_name: 'apertura.txt', mime_type: 'text/plain', file_size: 6, file_data: 'data:text/plain;base64,UHJ1ZWJh' },
+      { support_type: 'Enlace', display_name: 'Soporte apertura', support_url: 'https://example.com/apertura' },
+    ],
+  });
+  const partialSupports = (await db.query(`select support_type,display_name,support_url,file_data
+    from journal_support where journal_id=$1 order by support_type`, [partial.journalId])).rows;
+  assert.equal(partialSupports.length, 2, 'La ruta unificada debe guardar cada respaldo una sola vez.');
+  assert.equal(partialSupports.find((support) => support.support_type === 'Archivo')?.file_data, 'data:text/plain;base64,UHJ1ZWJh');
+  assert.equal(partialSupports.find((support) => support.support_type === 'Enlace')?.support_url, 'https://example.com/apertura');
   const journalCountBeforeBlockedGeneric = Number((await db.query('select count(*)n from journal')).rows[0].n);
   await db.query('savepoint generic_reversal_must_fail');
   await assert.rejects(
@@ -244,7 +264,11 @@ try {
   await db.query('rollback to savepoint generic_reversal_must_fail');
   assert.equal(Number((await db.query('select count(*)n from journal')).rows[0].n), journalCountBeforeBlockedGeneric);
   assert.equal((await db.query('select status from journal where journal_id=$1', [partial.journalId])).rows[0].status, 'CONTABILIZADO');
-  const final = await reverse(70, 'Prueba controlada de reversión final');
+  const final = await reverse(70, 'Prueba controlada de reversión final', {
+    supports: [{ support_type: 'Enlace', display_name: 'Cierre apertura', support_url: 'https://example.com/cierre-apertura' }],
+  });
+  const finalSupports = (await db.query('select support_type,support_url from journal_support where journal_id=$1', [final.journalId])).rows;
+  assert.deepEqual(finalSupports, [{ support_type: 'Enlace', support_url: 'https://example.com/cierre-apertura' }]);
 
   const assertReversal = async (journalId, local, foreign) => {
     const lines = (await db.query(`
@@ -259,8 +283,8 @@ try {
       debitFx: Number(line.debit_fx),
       creditFx: Number(line.credit_fx),
     })), [
-      { account: '113003', debit: 0, credit: local, debitFx: 0, creditFx: foreign },
-      { account: '413001', debit: local, credit: 0, debitFx: foreign, creditFx: 0 },
+      { account: '113003', debit: 0, credit: foreign, debitFx: 0, creditFx: foreign },
+      { account: '413001', debit: foreign, credit: 0, debitFx: foreign, creditFx: 0 },
     ]);
     assert.ok(lines.every((line) => line.service_month === serviceMonth));
     assert.ok(lines.every((line) => String(line.service_country_id) === String(fixture.country_id)));
@@ -304,7 +328,7 @@ try {
   assert.ok(report.rows.some((row) => Number(row.journal_id) === -Number(item.id) && row.source_type === 'OPENING'));
 
   console.log(JSON.stringify({
-    migration: skipMigration ? 'preinstalled' : 'transactional',
+    migration: 'preinstalled',
     reconciled: true,
     noDuplicateGl: true,
     foreignCurrencySnapshot: true,
@@ -313,6 +337,7 @@ try {
     reversalDebit: '413001',
     reversalCredit: '113003',
     serviceDimensionsPreserved: true,
+    openingSupportsPersistedOnce: true,
     controlReportIntegrated: true,
     rollback: true,
   }));

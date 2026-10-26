@@ -1,0 +1,58 @@
+.form-grid .user-invitation-field {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 18px;
+  align-items: center;
+  margin-top: 3px;
+  padding: 15px 16px;
+  border: 1px solid #b9dfd1;
+  border-radius: 9px;
+  background: linear-gradient(110deg, #f1faf6, #ffffff);
+}
+
+.form-grid .user-invitation-field > span:first-child {
+  margin: 0;
+  color: #17354b;
+  font-weight: 700;
+}
+
+.form-grid .user-invitation-field .gentia-switch-control {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.form-grid .user-invitation-field .field-help,
+.form-grid .user-invitation-field .user-invitation-warning {
+  grid-column: 1 / -1;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.form-grid .user-invitation-field .field-help {
+  color: #587166;
+}
+
+.form-grid .user-invitation-field .user-invitation-warning {
+  margin-top: 3px;
+  padding-top: 8px;
+  border-top: 1px solid #f0d4b8;
+  color: #934f12;
+}
+
+.table-message.form-success {
+  margin: 12px 18px;
+  padding: 11px 13px;
+  border: 1px solid #b9dfd1;
+  border-radius: 8px;
+  background: #effaf5;
+  color: #126b4d;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 560px) {
+  .form-grid .user-invitation-field {
+    grid-column: auto;
+  }
+}

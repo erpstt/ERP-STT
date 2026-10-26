@@ -16,12 +16,14 @@
   <link rel="stylesheet" href="/turnstile-login.css">
   <link rel="stylesheet" href="/login-refresh.css">
   <link rel="stylesheet" href="/login-position.css">
-  <link rel="stylesheet" href="/dashboard.css?v=20261020-entity-export">
+  <link rel="stylesheet" href="/password-recovery.css?v=20261026">
+  <link rel="stylesheet" href="/dashboard.css?v=20261026-sales-invoice-sorting">
   <link rel="stylesheet" href="/modal-scroll.css?v=20260911-entity-fullscreen">
   <link rel="stylesheet" href="/company-selection.css">
   <link rel="stylesheet" href="/subsidiary-branding.css?v=20260814">
   <link rel="stylesheet" href="/exchange-rate.css?v=20260814">
   <link rel="stylesheet" href="/gentia-theme.css?v=20260930-switches">
+  <link rel="stylesheet" href="/security-user-invitation.css?v=20261026">
 </head>
 <body>
 <div id="app">
@@ -66,6 +68,78 @@
 <span class="mobile-brand gentia-brand gentia-brand-mobile">
 <img src="/gentia-wordmark.svg" width="380" height="124" alt="GENTIA">
 </span>
+<template v-if="passwordRecovery.mode==='request'">
+<div v-if="!passwordRecovery.sent" class="heading recovery-heading">
+<p class="eyebrow">RECUPERACIÓN SEGURA</p>
+<h2>Recupera tu acceso.</h2>
+<p>Ingresa tu correo corporativo. Si está registrado, recibirás un enlace de un solo uso para crear una nueva contraseña.</p>
+</div>
+<div v-else class="recovery-result" role="status" aria-live="polite">
+<span class="recovery-result-icon" aria-hidden="true">✓</span>
+<p class="eyebrow">SOLICITUD RECIBIDA</p>
+<h2>Revisa tu correo.</h2>
+<p>{{ passwordRecovery.message }}</p>
+</div>
+<form v-if="!passwordRecovery.sent" @submit.prevent="submitPasswordRecoveryRequest">
+<label for="recovery-email">Correo corporativo</label>
+<div class="input-wrap">
+<span class="input-icon">@</span>
+<input id="recovery-email" v-model.trim="passwordRecovery.email" type="email" required autocomplete="email" placeholder="nombre@empresa.com">
+</div>
+<p class="recovery-note"><span aria-hidden="true">●</span> Por seguridad, siempre mostraremos la misma confirmación.</p>
+<div v-if="turnstileEnabled" class="turnstile-field">
+<div ref="turnstileContainer" aria-label="Verificación de seguridad de Cloudflare"></div>
+<small>Protección contra solicitudes automatizadas</small>
+</div>
+<p v-if="passwordRecovery.error" class="form-error recovery-error" role="alert">{{ passwordRecovery.error }}</p>
+<button class="submit" :disabled="passwordRecovery.saving || (turnstileEnabled && !turnstileToken)">
+<span>{{ passwordRecovery.saving ? 'Enviando enlace…' : 'Enviar enlace de recuperación' }}</span>
+<b>→</b>
+</button>
+</form>
+<button v-else type="button" class="submit" @click="returnToLogin"><span>Volver al inicio de sesión</span><b>→</b></button>
+<button v-if="!passwordRecovery.sent" type="button" class="recovery-back" @click="returnToLogin">← Volver al inicio de sesión</button>
+</template>
+<template v-else-if="passwordRecovery.mode==='complete'">
+<div class="heading recovery-heading">
+<p class="eyebrow">{{ passwordRecovery.flow==='invitation' ? 'INVITACIÓN VERIFICADA' : 'ENLACE VERIFICADO' }}</p>
+<h2>{{ passwordRecovery.flow==='invitation' ? 'Crea tu contraseña.' : 'Crea una nueva contraseña.' }}</h2>
+<p>{{ passwordRecovery.flow==='invitation' ? 'Define una contraseña segura para activar tu acceso a GENTIA.' : 'Elige una contraseña segura que no hayas utilizado recientemente.' }}</p>
+</div>
+<form @submit.prevent="submitPasswordRecoveryCompletion">
+<label for="recovery-new-password">Nueva contraseña</label>
+<div class="input-wrap">
+<span class="input-icon lock">⌁</span>
+<input id="recovery-new-password" v-model="passwordRecovery.newPassword" :type="passwordRecovery.showPassword ? 'text' : 'password'" required minlength="15" maxlength="128" autocomplete="new-password" placeholder="Mínimo 15 caracteres">
+<button class="toggle-pass" type="button" :aria-label="passwordRecovery.showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'" @click="passwordRecovery.showPassword=!passwordRecovery.showPassword">{{ passwordRecovery.showPassword ? '◌' : '◉' }}</button>
+</div>
+<label class="recovery-confirm-label" for="recovery-confirmation">Confirmar nueva contraseña</label>
+<div class="input-wrap">
+<span class="input-icon lock">⌁</span>
+<input id="recovery-confirmation" v-model="passwordRecovery.confirmation" :type="passwordRecovery.showPassword ? 'text' : 'password'" required minlength="15" maxlength="128" autocomplete="new-password" placeholder="Repite la nueva contraseña">
+</div>
+<div class="password-requirements" aria-label="Requisitos de contraseña">
+<strong>Requisitos de seguridad</strong>
+<span :class="{valid:passwordRecovery.newPassword.length>=15}">Al menos 15 caracteres</span>
+<span>No reutilizar una de las últimas 6 contraseñas</span>
+</div>
+<p v-if="passwordRecovery.error" class="form-error recovery-error" role="alert">{{ passwordRecovery.error }}</p>
+<button class="submit" :disabled="passwordRecovery.saving">
+<span>{{ passwordRecovery.saving ? 'Protegiendo tu acceso…' : (passwordRecovery.flow==='invitation' ? 'Crear contraseña y activar acceso' : 'Guardar nueva contraseña') }}</span>
+<b>→</b>
+</button>
+</form>
+</template>
+<template v-else-if="passwordRecovery.mode==='success'">
+<div class="recovery-result" role="status" aria-live="polite">
+<span class="recovery-result-icon" aria-hidden="true">✓</span>
+<p class="eyebrow">{{ passwordRecovery.flow==='invitation' ? 'CUENTA ACTIVADA' : 'CONTRASEÑA ACTUALIZADA' }}</p>
+<h2>{{ passwordRecovery.flow==='invitation' ? 'Tu acceso está listo.' : 'Tu acceso está protegido.' }}</h2>
+<p>{{ passwordRecovery.flow==='invitation' ? 'La contraseña se creó correctamente. Ya puedes ingresar a GENTIA con tu correo corporativo.' : 'La contraseña se actualizó correctamente. Todas las sesiones anteriores fueron cerradas.' }}</p>
+</div>
+<button type="button" class="submit" @click="returnToLogin"><span>Iniciar sesión</span><b>→</b></button>
+</template>
+<template v-else>
 <div class="heading">
 <p class="eyebrow">BIENVENIDO DE NUEVO</p>
 <h2>Ingresa a tu espacio.</h2>
@@ -98,6 +172,7 @@
 <b>→</b>
 </button>
 </form>
+</template>
 </div>
 </section>
   </main>
@@ -315,14 +390,21 @@
 </div>
 <span class="record-count">{{ filteredRows.length }} {{ filteredRows.length === 1 ? 'registro' : 'registros' }}</span>
 </div>
+<p v-if="tableNotice" class="table-message form-success" role="status">{{ tableNotice }}</p>
             <p v-if="tableLoading" class="table-message">Cargando registros…</p>
-<p v-else-if="tableError" class="table-message form-error">{{ tableError }}</p>
+<p v-else-if="tableError" class="table-message form-error" role="alert">{{ tableError }}</p>
             <div v-else class="table-scroll">
 <table :class="{'wide-table':tableFields.length >= 6}" :style="{minWidth: Math.max(700,(tableFields.length + 2) * 125) + 'px'}">
 <thead>
 <tr>
-<th>ID interno</th>
-<th v-for="field in tableFields" :key="field.key" :class="'field-'+field.key">{{ field.label }}</th>
+<th :aria-sort="invoiceCatalogSortingEnabled ? catalogSortAria(activeCatalog.primaryKey) : null">
+<button v-if="invoiceCatalogSortingEnabled" type="button" class="catalog-sort-button" :class="{'is-sorted':catalogSortDirection(activeCatalog.primaryKey)}" :data-sort-key="activeCatalog.primaryKey" :aria-label="catalogSortLabel('ID interno',activeCatalog.primaryKey)" :title="catalogSortLabel('ID interno',activeCatalog.primaryKey)" @click="sortCatalog(activeCatalog.primaryKey)"><span>ID interno</span><span class="catalog-sort-icon" aria-hidden="true">{{ catalogSortIcon(activeCatalog.primaryKey) }}</span></button>
+<span v-else>ID interno</span>
+</th>
+<th v-for="field in tableFields" :key="field.key" :class="'field-'+field.key" :aria-sort="invoiceCatalogSortingEnabled ? catalogSortAria(field.key) : null">
+<button v-if="invoiceCatalogSortingEnabled" type="button" class="catalog-sort-button" :class="{'is-sorted':catalogSortDirection(field.key)}" :data-sort-key="field.key" :aria-label="catalogSortLabel(field.label,field.key)" :title="catalogSortLabel(field.label,field.key)" @click="sortCatalog(field.key)"><span>{{ field.label }}</span><span class="catalog-sort-icon" aria-hidden="true">{{ catalogSortIcon(field.key) }}</span></button>
+<span v-else>{{ field.label }}</span>
+</th>
 <th class="actions-heading">Acciones</th>
 </tr>
 </thead>
@@ -450,7 +532,7 @@
 </section>
 <div v-show="activeCatalog.slug!=='subsidiaries' || subsidiaryFormTab!=='tax'" class="form-grid" :class="{'subsidiary-tab-grid':activeCatalog.slug==='subsidiaries'}">
 <template v-for="field in formFields" :key="field.key"><div v-if="activeCatalog.slug==='customers' &amp;&amp; field.key==='envio_estado_cuenta_auto'" class="approver-section"><h3>Crédito y Cobro</h3></div>
-<label v-show="activeCatalog.slug!=='subsidiaries' || subsidiaryFieldTab(field.key)===subsidiaryFormTab" :data-field-key="field.key" :class="{'toggle-field':field.type==='boolean','multi-field':field.type==='multi-reference','subsidiary-field-wide':activeCatalog.slug==='subsidiaries' && ['logo_url','address','secondary_currency_ids'].includes(field.key)}">
+<label v-show="activeCatalog.slug!=='subsidiaries' || subsidiaryFieldTab(field.key)===subsidiaryFormTab" :data-field-key="field.key" :class="{'toggle-field':field.type==='boolean','multi-field':field.type==='multi-reference','subsidiary-field-wide':activeCatalog.slug==='subsidiaries' && ['logo_url','address','secondary_currency_ids'].includes(field.key),'user-invitation-field':activeCatalog.slug==='users' && field.key==='notify_user'}">
 <span>{{ field.label }}<b v-if="field.required"> *</b>
 </span>
 <select v-if="field.options" v-model="recordDialog.values[field.key]" :required="fieldRequired(field)" @change="handleFieldChange(field)">
@@ -484,6 +566,8 @@
 </span>
 <small v-if="activeCatalog.slug==='chart-accounts' &amp;&amp; field.key==='subsidiary_ids'" class="account-subsidiary-help">Las cuentas nuevas se habilitan inicialmente para todas las subsidiarias. Puede ajustar esta selección al editar la cuenta.</small>
 <small v-if="activeCatalog.slug==='chart-accounts' &amp;&amp; field.key==='pending_fx_revaluation'">Heredado del grupo de cuentas. Modifique esta opción en el grupo.</small>
+<small v-if="field.help" class="field-help">{{ field.help }}</small>
+<small v-if="activeCatalog.slug==='users' &amp;&amp; field.key==='notify_user' &amp;&amp; !recordDialog.values.notify_user" class="user-invitation-warning">Sin correo automático: el usuario deberá utilizar «¿Olvidaste tu contraseña?» o recibir una invitación posteriormente.</small>
 </label>
 </template>
 </div>
@@ -552,7 +636,7 @@
   </main>
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
-<script type="module" src="/app.js?v=20261023-second-pass-v2">
+<script type="module" src="/app.js?v=20261026-supplier-invoice-sorting">
 </script>
 <script src="/approval-notifications.js?v=20261023-second-pass"></script></body>
 </html>

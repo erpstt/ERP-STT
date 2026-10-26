@@ -5,6 +5,7 @@ import { notificationSettings, paymentNotifications, startEmailNotifications } f
 import { salesInvoiceTemplateSettings } from './modules/notifications/sales-invoice-email.js';
 import { downloadSalesInvoicePdf, sendSalesInvoiceEmail } from './modules/notifications/sales-invoice-delivery.service.js';
 import { expenseApprovalTemplateSettings, startExpenseApprovalNotifications } from './modules/notifications/expense-approval-email.js';
+import { userInvitationTemplateSettings } from './modules/notifications/user-invitation-email.js';
 import { startTaxCalendarNotifications, taxCalendarAction, taxCalendarDocument } from './modules/tax-calendar/tax-calendar.service.js';
 import { taxObligationCatalogAction } from './modules/tax-calendar/tax-obligation-catalog.service.js';
 import { recordActorAudit } from './modules/audit-catalogs/record-actor-audit.service.js';
@@ -36,6 +37,7 @@ import { saveSupplierNote } from './modules/purchasing-catalogs/supplier-note.se
 import { saveSalesInvoice, setSalesInvoicePdfLineUnification } from './modules/sales-catalogs/sales-invoice.service.js';
 import { salesWorkflowOptions, salesDocuments, salesDocumentDetail, saveSalesDocument, deleteSalesDocument } from './modules/sales-catalogs/sales-workflow.service.js';
 import { customerPaymentOptions, customerPaymentReport, customerPaymentDetail, saveCustomerPayment, deleteCustomerPayment } from './modules/sales-catalogs/customer-payment.service.js';
+import { downloadCustomerPaymentPdf } from './modules/sales-catalogs/customer-payment-pdf.service.js';
 import { saveSalesNote } from './modules/sales-catalogs/sales-note.service.js';
 import { createBankingRow, deleteBankingRow, getBankingCatalog, listBankingRows, updateBankingRow } from './modules/banking-catalogs/banking-catalogs.module.js';
 import { createTreasuryRow, deleteTreasuryRow, getTreasuryCatalog, listTreasuryRows, updateTreasuryRow } from './modules/treasury-catalogs/treasury-catalogs.module.js';
@@ -65,6 +67,8 @@ import { listUserRoles, selectUserRole } from './modules/auth/services/role-acce
 import { revokeCurrentSession, SessionAuthenticationError } from './modules/auth/services/session.service.js';
 import { assertRequestAccess } from './modules/auth/services/request-access.service.js';
 import { changePassword } from './modules/auth/services/password-history.service.js';
+import { completePasswordRecovery, PasswordRecoveryError, requestPasswordRecovery } from './modules/auth/services/password-recovery.service.js';
+import { completePasswordInvitation, createSecurityUser, UserProvisioningError } from './modules/auth/services/user-provisioning.service.js';
 import { error, json } from './core/interceptors/http-response.js';
 import { turnstilePublicConfig, verifyTurnstileToken, TurnstileValidationError } from './core/security/turnstile.service.js';
 import { assertLoginAllowed, clearLoginFailures, LoginRateLimitError, recordLoginFailure } from './core/security/login-rate-limit.js';
@@ -262,6 +266,19 @@ const server = createServer((request, response) => withAuditExecution(async () =
       if (authorization?.startsWith('Bearer ')) await revokeCurrentSession(authorization);
       return json(response, 200, { success: true });
     }
+    if (request.method === 'POST' && request.url === '/api/auth/request-password-recovery') {
+      const input = await body(request) as { email?: string; turnstileToken?: string };
+      await verifyTurnstileToken(input.turnstileToken, clientIp(request));
+      return json(response, 200, await requestPasswordRecovery(input, clientIp(request)));
+    }
+    if (request.method === 'POST' && request.url === '/api/auth/complete-password-recovery') {
+      const input = await body(request) as { state?: string; accessToken?: string; recoveryType?: string; newPassword?: string; confirmation?: string };
+      return json(response, 200, await completePasswordRecovery(request.headers.authorization, input, clientIp(request)));
+    }
+    if (request.method === 'POST' && request.url === '/api/auth/complete-password-invitation') {
+      const input = await body(request) as { state?: string; accessToken?: string; invitationType?: string; newPassword?: string; confirmation?: string };
+      return json(response, 200, await completePasswordInvitation(request.headers.authorization, input, clientIp(request)));
+    }
     if (request.url?.startsWith('/api/')) {
       const authorization = request.headers.authorization;
       if (!authorization?.startsWith('Bearer ')) return error(response, 401, 'Debe iniciar sesión.');
@@ -438,7 +455,13 @@ const server = createServer((request, response) => withAuditExecution(async () =
       const catalog = getSecurityCatalog(securityRoute[1]);
       const id = securityRoute[2] ? Number(securityRoute[2]) : null;
       if (request.method === 'GET' && id === null) return json(response, 200, await listSecurityRows(catalog, authorization));
-      if (request.method === 'POST' && id === null) return json(response, 201, await createSecurityRow(catalog, authorization, await body(request) as Record<string, unknown>));
+      if (request.method === 'POST' && id === null) {
+        const input=await body(request) as Record<string,unknown>;
+        if(catalog.slug==='users'){
+          return json(response,201,await createSecurityUser(authorization,input));
+        }
+        return json(response, 201, await createSecurityRow(catalog, authorization, input));
+      }
       if (request.method === 'PATCH' && id !== null) return json(response, 200, await updateSecurityRow(catalog, authorization, id, await body(request) as Record<string, unknown>));
       if (request.method === 'DELETE' && id !== null) { await deleteSecurityRow(catalog, authorization, id); return json(response, 200, { success: true }); }
     }
@@ -527,7 +550,19 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(budgetRoute){const readOnly=['options','execution-report'].includes(budgetRoute[1]);if(request.method!=='POST'&&!(readOnly&&request.method==='GET'))return json(response,405,{error:'Método no permitido.'});const input=request.method==='GET'?Object.fromEntries(new URL(request.url!,'http://localhost').searchParams):await body(request)as Record<string,unknown>;return json(response,200,await budgetAction(request.headers.authorization!,budgetRoute[1],input));}
     if(request.url?.split('?')[0]==='/apps/budget/builder'||request.url?.split('?')[0]==='/apps/budget/dashboard')return await serveFile('/budget.html',request,response);
     const notificationRoute=request.url?.match(/^\/api\/configuration\/notification-templates\/(get|save|preview)$/);
-    if(notificationRoute&&request.method==='POST'){const input=await body(request)as Record<string,unknown>;const settings=input.kind==='ESTADO_CUENTA'?statementSettings:input.kind==='FACTURA_VENTA'?salesInvoiceTemplateSettings:input.kind==='SOLICITUD_GASTO_APROBACION'?expenseApprovalTemplateSettings:notificationSettings;return json(response,200,await settings(request.headers.authorization!,notificationRoute[1],input));}
+    if(notificationRoute&&request.method==='POST'){
+      const authorization=request.headers.authorization!;
+      const action=notificationRoute[1];
+      const resourceKey='configuration:notification-templates';
+      await assertRoleAccess(authorization,resourceKey,action==='save'?'edit':'view');
+      const input=await body(request)as Record<string,unknown>;
+      const settings=input.kind==='ESTADO_CUENTA'?statementSettings:input.kind==='FACTURA_VENTA'?salesInvoiceTemplateSettings:input.kind==='SOLICITUD_GASTO_APROBACION'?expenseApprovalTemplateSettings:input.kind==='USUARIO_INVITACION'?userInvitationTemplateSettings:notificationSettings;
+      const result=await settings(authorization,action,input);
+      if(action!=='get'||typeof result!=='object'||result===null)return json(response,200,result);
+      const roleAccess=await myRoleAccess(authorization);
+      const canEdit=roleAccess.isAdmin||roleAccess.grants.some(grant=>grant.resourceKey==='legacy:all'||(grant.resourceKey===resourceKey&&grant.canEdit));
+      return json(response,200,{...(result as Record<string,unknown>),canEdit});
+    }
     const statementRoute=request.url?.match(/^\/api\/entities\/customers\/(\d+)\/statement\/(get|send|pdf)$/);
     if(statementRoute&&request.method==='POST')return json(response,200,await customerStatement(request.headers.authorization!,Number(statementRoute[1]),statementRoute[2],await body(request)as Record<string,unknown>));
     const paymentNotificationRoute=request.url?.match(/^\/api\/purchasing\/supplier-payments\/(\d+)\/notifications\/(history|resend)$/);
@@ -593,6 +628,13 @@ const server = createServer((request, response) => withAuditExecution(async () =
     }
     if(request.method==='POST'&&request.url==='/api/sales/customer-payments/report')return json(response,200,await customerPaymentReport(request.headers.authorization!,await body(request)as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/sales/customer-payments/save')return json(response,201,await saveCustomerPayment(request.headers.authorization!,await body(request)as Record<string,unknown>));
+    const customerPaymentPdfRoute=request.url?.split('?')[0].match(/^\/api\/sales\/customer-payments\/(\d+)\/pdf$/);
+    if(customerPaymentPdfRoute){
+      if(request.method!=='GET')return error(response,405,'Método no permitido.');
+      const file=await downloadCustomerPaymentPdf(request.headers.authorization!,Number(customerPaymentPdfRoute[1])),bytes=Buffer.from(file.base64,'base64');
+      response.writeHead(200,{'Content-Type':'application/pdf','Content-Length':bytes.length,'Content-Disposition':`attachment; filename*=UTF-8''${encodeURIComponent(file.fileName)}`,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'});
+      response.end(bytes);return;
+    }
     const customerPaymentRoute=request.url?.match(/^\/api\/sales\/customer-payments\/(\d+)$/);if(customerPaymentRoute){const id=Number(customerPaymentRoute[1]);if(request.method==='GET')return json(response,200,await customerPaymentDetail(request.headers.authorization!,id));if(request.method==='PUT')return json(response,200,await saveCustomerPayment(request.headers.authorization!,await body(request)as Record<string,unknown>,id));if(request.method==='DELETE')return json(response,200,await deleteCustomerPayment(request.headers.authorization!,id));}
     const salesWorkflowRoute=request.url?.match(/^\/api\/sales\/workflow\/(\d+)$/);if(salesWorkflowRoute){const id=Number(salesWorkflowRoute[1]);if(request.method==='GET')return json(response,200,await salesDocumentDetail(request.headers.authorization!,id));if(request.method==='PUT')return json(response,200,await saveSalesDocument(request.headers.authorization!,await body(request)as Record<string,unknown>,id));if(request.method==='DELETE')return json(response,200,await deleteSalesDocument(request.headers.authorization!,id));}
     const salesNoteEntry=request.url?.match(/^\/api\/sales\/note-entry\/(CREDIT|DEBIT)(?:\/(\d+))?$/);if(salesNoteEntry&&['POST','PUT'].includes(request.method||'')){const authorization=request.headers.authorization!;return json(response,request.method==='POST'?201:200,await saveSalesNote(authorization,salesNoteEntry[1],await body(request)as Record<string,unknown>,salesNoteEntry[2]?Number(salesNoteEntry[2]):null));}
@@ -685,6 +727,8 @@ const server = createServer((request, response) => withAuditExecution(async () =
     await serveFile(request.url?.split('?')[0] ?? '/', request, response);
   } catch (cause) {
     if (cause instanceof LoginRateLimitError) response.setHeader('Retry-After', String(cause.retryAfterSeconds));
+    if (cause instanceof PasswordRecoveryError && cause.retryAfterSeconds) response.setHeader('Retry-After', String(cause.retryAfterSeconds));
+    if (cause instanceof UserProvisioningError && cause.retryAfterSeconds) response.setHeader('Retry-After', String(cause.retryAfterSeconds));
     error(response, cause instanceof SessionAuthenticationError ? 401 : (cause as {status?:number})?.status || (cause instanceof Error&&/^Saldo presupuestario/.test(cause.message)?422:400), cause instanceof Error ? cause.message : 'No fue posible procesar la solicitud.');
   }
 }));

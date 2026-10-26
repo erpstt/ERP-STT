@@ -68,8 +68,9 @@ test('configuración pagina agencias y conserva todas sus subsidiarias', async (
 test('reportes de cobros y pagos unen anticipos por id sin alterar el contrato', async () => {
   globalThis.fetch = async input => {
     const rpc = new URL(String(input)).pathname.split('/').at(-1);
-    if (rpc === 'customer_payment_report' || rpc === 'supplier_payment_report') return Response.json({ rows: [{ id: 2 }, { id: 1 }, { id: 99 }] });
+    if (rpc === 'customer_payment_report' || rpc === 'supplier_payment_report') return Response.json({ rows: [{ id: 2,amount:100 }, { id: 1,amount:200 }, { id: 99,amount:300 }] });
     if (rpc === 'customer_payment_advance_summary' || rpc === 'supplier_payment_advance_summary') return Response.json([{ paymentId: 1, advanceTotal: 25 }, { paymentId: 2, advanceTotal: 10 }, { paymentId: 1, advanceTotal: 999 }]);
+    if (rpc === 'customer_payment_bank_fee_summary') return Response.json([{ paymentId: 2, amount: 2.5, expenseAccountNumber: '629001', expenseAccountName: 'Comisiones bancarias' }]);
     throw new Error(`RPC inesperado: ${rpc}`);
   };
   const [customer, supplier] = await Promise.all([
@@ -77,6 +78,8 @@ test('reportes de cobros y pagos unen anticipos por id sin alterar el contrato',
     supplierPaymentReport('Bearer test', {})
   ]);
   assert.deepEqual(customer.rows.map(row => row.advanceTotal), [10, 25, 0]);
+  assert.deepEqual(customer.rows.map(row => row.bankFeeTotal), [2.5, 0, 0]);
+  assert.deepEqual(customer.rows.map(row => row.cashNet), [87.5, 175, 300]);
   assert.deepEqual(supplier.rows.map(row => row.advanceTotal), [10, 25, 0]);
 });
 

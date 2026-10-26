@@ -38,6 +38,17 @@ const kinds={
   preview:'Ejemplo de una solicitud de gasto pendiente. Esta vista no envía correos ni aprueba transacciones.',
   schedule:'Envío automático: se genera al enviar la solicitud a aprobación y en cada nuevo nivel aplicable.',
   transport:'SMTP activado. Las nuevas solicitudes de gasto se notificarán al aprobador correspondiente.'
+ },
+ USUARIO_INVITACION:{
+  title:'Invitación y activación de usuarios',
+  tags:['empresa_nombre','usuario_nombre','usuario_correo','enlace_activacion','fecha_expiracion'],
+  bodyOnlyTags:['enlace_activacion'],
+  active:'Habilitar correos de invitación para esta subsidiaria',
+  activeHelp:'Se envía al crear un usuario con la opción de notificación activa. El mensaje nunca incluye una contraseña; contiene un enlace personal y de un solo uso.',
+  automatic:'El logotipo, el botón seguro de activación, el enlace alternativo y las recomendaciones de seguridad se agregan automáticamente.',
+  preview:'Ejemplo de una invitación de usuario. Esta vista no crea usuarios ni envía correos.',
+  schedule:'Envío inmediato: se genera al crear un usuario desde Seguridad con la opción de notificación activa.',
+  transport:'SMTP activado. Las nuevas invitaciones utilizarán esta plantilla y un enlace de activación de un solo uso.'
  }
 };
 const requested=new URLSearchParams(location.search).get('kind');
@@ -56,7 +67,18 @@ const headers={Authorization:`Bearer ${token}`,'X-Device-Token':localStorage.get
 async function api(action,payload={}){const response=await fetch(`/api/configuration/notification-templates/${action}`,{method:'POST',headers,body:JSON.stringify({...payload,kind})});const data=await response.json();if(!response.ok)throw Error(data?.error?.message||'No fue posible cargar la configuración.');return data;}
 function report(text,error=false){$('message').textContent=text;$('message').dataset.error=String(error);}
 const payload=()=>({subject:$('subject').value,body:$('editor').innerHTML,active:$('active').checked,...(kind==='ESTADO_CUENTA'?{day:Number($('sendDay').value),time:$('sendTime').value}:{})});
-let target=$('editor'),range;
+let target=$('editor'),range,templateCanEdit=false;
+function applyEditAccess(allowed){
+ templateCanEdit=allowed===true;
+ $('subject').readOnly=!templateCanEdit;
+ $('editor').contentEditable=String(templateCanEdit);
+ $('editor').setAttribute('aria-readonly',String(!templateCanEdit));
+ $('active').disabled=!templateCanEdit;
+ $('sendDay').disabled=!templateCanEdit;
+ $('sendTime').disabled=!templateCanEdit;
+ document.querySelectorAll('[data-command],#addLink,#variables button').forEach(button=>button.disabled=!templateCanEdit);
+ $('save').disabled=!templateCanEdit;
+}
 $('subject').addEventListener('focus',()=>target=$('subject'));
 $('editor').addEventListener('focus',()=>target=$('editor'));
 document.addEventListener('selectionchange',()=>{const selection=getSelection();if(selection.rangeCount&&$('editor').contains(selection.anchorNode))range=selection.getRangeAt(0).cloneRange();});
@@ -64,10 +86,10 @@ function restore(){$('editor').focus();if(range){const selection=getSelection();
 document.querySelectorAll('[data-command]').forEach(button=>button.addEventListener('click',()=>{restore();document.execCommand(button.dataset.command,false);}));
 $('addLink').addEventListener('click',()=>{const url=prompt('Dirección del enlace (https://…)');if(!url)return;if(!/^https?:\/\//i.test(url)){report('Ingrese un enlace http o https.',true);return;}restore();document.execCommand('createLink',false,url);});
 $('editor').addEventListener('paste',event=>{event.preventDefault();document.execCommand('insertText',false,event.clipboardData.getData('text/plain'));});
-for(const tag of settings.tags){const button=document.createElement('button');button.type='button';button.textContent=`{{${tag}}}`;button.addEventListener('click',()=>{if(target===$('subject')){$('subject').setRangeText(button.textContent,$('subject').selectionStart,$('subject').selectionEnd,'end');$('subject').focus();}else{restore();document.execCommand('insertText',false,button.textContent);}});$('variables').append(button);}
+for(const tag of settings.tags){const button=document.createElement('button'),bodyOnly=settings.bodyOnlyTags?.includes(tag);button.type='button';button.disabled=!templateCanEdit;button.textContent=`{{${tag}}}`;if(bodyOnly)button.title='Disponible únicamente en el mensaje';button.addEventListener('click',()=>{if(bodyOnly&&target===$('subject')){target=$('editor');report('El enlace de activación se insertó en el mensaje porque no puede exponerse en el asunto.');}if(target===$('subject')){$('subject').setRangeText(button.textContent,$('subject').selectionStart,$('subject').selectionEnd,'end');$('subject').focus();}else{restore();document.execCommand('insertText',false,button.textContent);}});$('variables').append(button);}
 async function preview(){const data=await api('preview',payload());$('previewSubject').textContent=data.subject;$('preview').srcdoc=data.html;}
 $('previewButton').addEventListener('click',async()=>{try{await preview();report('Vista previa actualizada.');}catch(error){report(error.message,true);}});
-$('form').addEventListener('submit',async event=>{event.preventDefault();$('save').disabled=true;try{const data=await api('save',payload());$('editor').innerHTML=data.template.cuerpo_template;$('audit').textContent=`Última edición: ${data.template.updated_by_email||'sistema'} · ${new Date(data.template.updated_at).toLocaleString('es-CR')}`;await preview();report('Plantilla guardada.');}catch(error){report(error.message,true);}finally{$('save').disabled=false;}});
+$('form').addEventListener('submit',async event=>{event.preventDefault();if(!templateCanEdit){report('Su rol permite consultar la plantilla, pero no modificarla.',true);return;}$('save').disabled=true;try{const data=await api('save',payload());$('editor').innerHTML=data.template.cuerpo_template;$('audit').textContent=`Última edición: ${data.template.updated_by_email||'sistema'} · ${new Date(data.template.updated_at).toLocaleString('es-CR')}`;await preview();report('Plantilla guardada.');}catch(error){report(error.message,true);}finally{$('save').disabled=!templateCanEdit;}});
 try{
  const data=await api('get');
  $('company').textContent=data.subsidiary?.name||'';
@@ -78,6 +100,7 @@ try{
  $('editor').innerHTML=data.template?.cuerpo_template||data.defaults.body;
  $('active').checked=!!data.template?.activo;
  $('transport').textContent=data.transport.enabled?settings.transport:'Envío desactivado. Puede preparar y guardar la plantilla; faltan la configuración SMTP y su activación en el servidor.';
- $('save').disabled=false;
+ applyEditAccess(data.canEdit===true);
  await preview();
+ if(!templateCanEdit)report('Modo de solo lectura: su rol puede consultar esta plantilla, pero no modificarla.');
 }catch(error){report(error.message,true);$('transport').textContent='No fue posible consultar la configuración.';}

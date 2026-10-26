@@ -31,16 +31,35 @@ export class SupabaseAuthRepository implements AuthRepository {
     if (typeof user !== 'object' || user === null || !('email' in user)) throw new Error('No fue posible obtener el usuario autenticado.');
     const accessToken=String(payload.access_token);
     const email=String(user.email);
-    const authId='id' in user?String(user.id):email;
-    const metadata='user_metadata' in user&&typeof user.user_metadata==='object'&&user.user_metadata!==null?user.user_metadata as Record<string,unknown>:{};
+    const authUserId='id'in user&&typeof user.id==='string'?user.id:'';
+    const serviceKey=process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+    const revokeAuthSession=()=>fetchSupabase(new URL('/auth/v1/logout?scope=global',config.url),{method:'POST',headers:{apikey:config.anonKey,Authorization:`Bearer ${accessToken}`}}).catch(()=>undefined);
+    if(!serviceKey||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(authUserId)){
+      await revokeAuthSession();
+      throw new Error('No fue posible validar la identidad del usuario en el ERP. Contacte al administrador.');
+    }
+    let erpUsers:Array<{user_id:number;is_active:boolean;auth_user_id:string|null}>;
+    try{
+      const profileResponse=await fetchSupabase(new URL(`/rest/v1/users?select=user_id,is_active,auth_user_id&email=eq.${encodeURIComponent(email.trim().toLowerCase())}&limit=1`,config.url),{headers:{apikey:serviceKey,Authorization:`Bearer ${serviceKey}`}}),profileText=await profileResponse.text(),profileValue:unknown=profileText?JSON.parse(profileText):[];
+      if(!profileResponse.ok||!Array.isArray(profileValue))throw new Error('Invalid ERP profile response.');
+      erpUsers=profileValue as Array<{user_id:number;is_active:boolean;auth_user_id:string|null}>;
+    }catch{
+      await revokeAuthSession();
+      throw new Error('No fue posible validar la identidad del usuario en el ERP. Contacte al administrador.');
+    }
+    const erpUser=erpUsers[0];
+    if(!erpUser||erpUser.auth_user_id!==authUserId){
+      await revokeAuthSession();
+      throw new Error('El usuario no está aprovisionado correctamente en el ERP. Contacte al administrador.');
+    }
     const request=async<T>(path:string,init:RequestInit={}):Promise<T>=>{const result=await fetchSupabase(new URL(`/rest/v1/${path}`,config.url),{...init,headers:{apikey:config.anonKey,Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json',...(init.headers??{})}});const text=await result.text();const value:unknown=text?JSON.parse(text):null;if(!result.ok)throw new Error(typeof value==='object'&&value&&'message'in value?String(value.message):'No fue posible registrar el usuario en el ERP.');return value as T;};
-    let erpUsers=await request<Array<{user_id:number}>>(`users?select=user_id&email=eq.${encodeURIComponent(email)}&limit=1`);
-    if(!erpUsers.length){const firstName=String(metadata.first_name??metadata.full_name??email.split('@')[0]);const inserted=await request<Array<{user_id:number}>>('users',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({email,password_hash:`auth:${authId}`,first_name:firstName,last_name:String(metadata.last_name??''),is_active:true})});erpUsers=inserted;}
-    const erpUserId=erpUsers[0].user_id;
+    if(!erpUser.is_active){
+      await revokeAuthSession();
+      throw new Error('El usuario está inactivo. Contacte al administrador.');
+    }
+    const erpUserId=erpUser.user_id;
     const passwordHistory=await request<Array<{history_id:number}>>(`password_history?select=history_id&user_id=eq.${erpUserId}&limit=1`);
     if(!passwordHistory.length){const{hashPassword}=await import('../../../shared/services/password.service.js');await request('password_history',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({user_id:erpUserId,password_hash:await hashPassword(input.password)})});}
-    const links=await request<Array<{id:number}>>(`user_subsidiaries?select=id&user_id=eq.${erpUserId}&limit=1`);
-    if(!links.length&&email.toLowerCase()==='demo@nexo.com'){const companies=await request<Array<{subsidiary_id:number}>>('subsidiaries?select=subsidiary_id&is_active=eq.true');if(companies.length)await request('user_subsidiaries',{method:'POST',body:JSON.stringify(companies.map(company=>({user_id:erpUserId,subsidiary_id:company.subsidiary_id})))});}
     const { registerDevice } = await import('../services/device.service.js');
     await registerDevice(`Bearer ${accessToken}`, erpUserId, input.deviceToken, input.deviceName);
     const { registerSession } = await import('../services/session.service.js');

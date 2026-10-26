@@ -5,7 +5,7 @@ try{
  const page=await browser.newPage({viewport:{width:1400,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.addInitScript(()=>{if(location.origin==='http://localhost:3000')localStorage.setItem('nexo_token','test')});
  let sent,settings,enabled=false;
  await page.route('**/api/**',async route=>{const path=new URL(route.request().url()).pathname;
-  if(path.endsWith('/notification-templates/get'))return route.fulfill({json:{subsidiary:{name:'Empresa'},transport:{enabled:false},defaults:{subject:'Estado {{cliente_nombre}}',body:'<p>Saldo {{saldo_total}}</p>'}}});
+  if(path.endsWith('/notification-templates/get'))return route.fulfill({json:{canEdit:true,subsidiary:{name:'Empresa'},transport:{enabled:false},defaults:{subject:'Estado {{cliente_nombre}}',body:'<p>Saldo {{saldo_total}}</p>'}}});
   if(path.endsWith('/notification-templates/preview'))return route.fulfill({json:{subject:'Estado de cuenta',html:'<p>Estado PDF adjunto</p>'}});
   if(path.endsWith('/notification-templates/save')){settings=route.request().postDataJSON();return route.fulfill({json:{template:{cuerpo_template:settings.body,updated_by_email:'admin@example.invalid',updated_at:new Date().toISOString()}}});}
   if(path.endsWith('/statement/get'))return route.fulfill({json:{statement:{cliente_nombre:'Cliente de prueba',fecha_corte:'2026-08-31',saldo_total:1000,moneda:'USD',email:'cliente@example.invalid'},history:sent?[{estado:'PENDIENTE',fecha_corte:'2026-08-31',created_at:new Date().toISOString(),destinatario:'cliente@example.invalid'}]:[],transport:{enabled}}});

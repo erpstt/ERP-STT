@@ -1,3 +1,86 @@
-﻿<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Cobro a cliente</title><link rel="stylesheet" href="/purchase-document-view.css"></head><body><div class="toolbar"><button class="print" onclick="window.print()">Imprimir / PDF</button><button onclick="if(window.history.length>1){window.history.back()}else{window.location.assign('/customer-payments.html')}">Cerrar</button></div><main><p class="eyebrow">VENTAS · COB_CLI</p><h1>Cobro a cliente</h1><h2 id="number"></h2><div class="rule"></div><section id="header"></section><h2>Facturas aplicadas</h2><table><thead><tr><th>Factura</th><th>Total factura</th><th>Importe aplicado</th></tr></thead><tbody id="applications"></tbody></table><section id="advanceSection" hidden><h2>Anticipos de clientes aplicados</h2><table><thead><tr><th>Asiento origen</th><th>Fecha</th><th>Cuenta</th><th>Importe aplicado</th></tr></thead><tbody id="advances"></tbody></table></section><h2>Impacto contable</h2><table><thead><tr><th>Cuenta</th><th>Nombre</th><th>Débito</th><th>Crédito</th></tr></thead><tbody id="impact"></tbody></table></main><script type="module" src="/customer-payment-view.js?v=20260909-advances"></script></body></html>
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Comprobante de cobro · GENTIA</title>
+  <link rel="stylesheet" href="/customer-payment-view.css?v=20261026-professional-pdf">
+</head>
+<body>
+  <div class="toolbar">
+    <div class="toolbar-context">
+      <span class="toolbar-kicker">VENTAS · COBRO A CLIENTE</span>
+      <strong id="toolbarNumber">Comprobante de cobro</strong>
+    </div>
+    <p id="actionMessage" class="action-message" role="status" aria-live="polite" hidden></p>
+    <div class="toolbar-actions">
+      <button id="downloadPdf" class="download" type="button"><span aria-hidden="true">↓</span> Descargar PDF</button>
+      <button id="close" type="button">Cerrar</button>
+    </div>
+  </div>
 
+  <main>
+    <div id="loading" class="loading-card"><span></span><b>Preparando el comprobante…</b></div>
+    <p id="error" class="error-message" role="alert"></p>
 
+    <article id="document" class="document-shell" hidden>
+      <header class="receipt-hero">
+        <div class="company-identity">
+          <span class="brand-monogram" data-preserve-background-image aria-hidden="true">G</span>
+          <div>
+            <p class="eyebrow">COMPROBANTE OFICIAL</p>
+            <h1 id="companyName">Subsidiaria</h1>
+            <p id="locationName" class="company-location"></p>
+          </div>
+        </div>
+        <div class="document-identity">
+          <p>COBRO A CLIENTE</p>
+          <h2 id="number"></h2>
+          <span id="status" class="status-pill">CONTABILIZADO</span>
+        </div>
+      </header>
+
+      <section class="overview-grid">
+        <div class="customer-card">
+          <p class="section-label">RECIBIDO DE</p>
+          <strong id="customerName"></strong>
+          <span id="customerCaption">Cliente asociado al comprobante</span>
+        </div>
+        <dl class="receipt-facts">
+          <div><dt>Fecha del cobro</dt><dd id="paymentDate"></dd></div>
+          <div><dt>Referencia bancaria</dt><dd id="bankReference"></dd></div>
+          <div><dt>Banco / cuenta</dt><dd id="bankAccount"></dd></div>
+          <div><dt>Moneda / tipo de cambio</dt><dd id="currencyRate"></dd></div>
+        </dl>
+      </section>
+
+      <section class="summary-grid" aria-label="Resumen financiero del cobro">
+        <div class="summary-card primary"><small>Total aplicado a facturas</small><strong id="applicationTotal"></strong><span>Importe liquidado</span></div>
+        <div id="withholdingCard" class="summary-card" hidden><small>Retenciones aplicadas</small><strong id="withholdingTotal"></strong><span>Descuento del cobro</span></div>
+        <div id="advanceCard" class="summary-card" hidden><small>Anticipos utilizados</small><strong id="advanceTotal"></strong><span>Crédito previamente registrado</span></div>
+        <div id="feeCard" class="summary-card fee" hidden><small>Comisión bancaria</small><strong id="bankFeeTotal"></strong><span id="bankFeeAccount"></span></div>
+        <div class="summary-card net"><small>Ingreso bancario neto</small><strong id="bankNet"></strong><span>Importe recibido en banco</span></div>
+      </section>
+
+      <section class="content-section">
+        <div class="section-heading"><div><p class="section-label">APLICACIÓN DEL COBRO</p><h3>Facturas aplicadas</h3></div><span id="applicationCount" class="count-pill"></span></div>
+        <div class="table-wrap"><table><thead><tr><th>Factura</th><th class="num">Total de la factura</th><th class="num">Importe aplicado</th></tr></thead><tbody id="applications"></tbody><tfoot><tr><td>Total aplicado</td><td></td><td id="applicationTableTotal" class="num"></td></tr></tfoot></table></div>
+      </section>
+
+      <section id="advanceSection" class="content-section" hidden>
+        <div class="section-heading"><div><p class="section-label">COMPENSACIONES</p><h3>Anticipos de clientes aplicados</h3></div><span id="advanceCount" class="count-pill"></span></div>
+        <div class="table-wrap"><table><thead><tr><th>Asiento origen</th><th>Fecha</th><th>Cuenta</th><th class="num">Importe aplicado</th></tr></thead><tbody id="advances"></tbody></table></div>
+      </section>
+
+      <section class="content-section accounting-section">
+        <div class="section-heading"><div><p class="section-label">TRAZABILIDAD</p><h3>Impacto contable</h3></div><span id="balanceStatus" class="balance-pill"></span></div>
+        <div class="table-wrap"><table><thead><tr><th>Cuenta</th><th>Nombre</th><th class="num">Débito</th><th class="num">Crédito</th></tr></thead><tbody id="impact"></tbody><tfoot><tr><td colspan="2">Totales del asiento</td><td id="impactDebit" class="num"></td><td id="impactCredit" class="num"></td></tr></tfoot></table></div>
+      </section>
+
+      <section class="note-card"><div><p class="section-label">NOTA DEL COBRO</p><p id="memo"></p></div><div class="verification"><span aria-hidden="true">✓</span><p><b>Registro contabilizado</b><small>Documento generado desde GENTIA ERP.</small></p></div></section>
+      <footer class="document-footer"><span id="footerCompany"></span><span id="generatedAt"></span></footer>
+    </article>
+  </main>
+  <script type="module" src="/customer-payment-view.js?v=20261026-professional-pdf"></script>
+</body>
+</html>

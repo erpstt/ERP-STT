@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test:opening-pending": "npm run build && node --test scripts/opening-pending-parser.test.mjs",
     "test:opening-files": "npm run build && node --test scripts/opening-all-file-parser.test.mjs",
-    "test:security": "npm run build && node --test scripts/security-turnstile.test.mjs",
+    "test:security": "npm run build && node --test scripts/security-turnstile.test.mjs scripts/password-recovery.test.mjs scripts/password-recovery-ui.test.mjs scripts/user-invitation-email.test.mjs scripts/user-invitation-ui.test.mjs scripts/user-provisioning.test.mjs scripts/security-user-api.test.mjs scripts/auth-repository-provisioning.test.mjs scripts/record-actor-audit-service.test.mjs",
     "test:static": "npm run build && node --test scripts/static-delivery.test.mjs scripts/supabase-client-timeout.test.mjs",
     "audit:frontend": "node scripts/frontend-performance-audit.mjs"
   },

@@ -7,7 +7,7 @@ try{
  let saved,resent,enabled=false;
  await page.route('**/api/**',async route=>{
   const path=new URL(route.request().url()).pathname;
-  if(path.endsWith('/notification-templates/get'))return route.fulfill({json:{subsidiary:{name:'Empresa de prueba'},transport:{enabled:false},defaults:{subject:'Pago {{referencia_pago}}',body:'<p>Estimado {{proveedor_nombre}}</p>'}}});
+  if(path.endsWith('/notification-templates/get'))return route.fulfill({json:{canEdit:true,subsidiary:{name:'Empresa de prueba'},transport:{enabled:false},defaults:{subject:'Pago {{referencia_pago}}',body:'<p>Estimado {{proveedor_nombre}}</p>'}}});
   if(path.endsWith('/notification-templates/preview'))return route.fulfill({json:{subject:'Pago TRF-001',html:'<h1>Notificación de Pago Realizado</h1><p>Total 980,00 USD</p>'}});
   if(path.endsWith('/notification-templates/save')){saved=route.request().postDataJSON();return route.fulfill({json:{template:{cuerpo_template:saved.body,updated_by_email:'admin@example.invalid',updated_at:new Date().toISOString()}}});}
   if(path.endsWith('/notifications/history'))return route.fulfill({json:{transport:{enabled},logs:[{id:'1',estado:resent?'PENDIENTE':'ERROR_SIN_CORREO',destinatario:'',created_at:new Date().toISOString(),ultimo_error:'Sin correo',history:[]}]}});

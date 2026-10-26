@@ -20,7 +20,9 @@ try {
   await q(`create policy visible_record on public.${fixture} for select to authenticated using(visible)`);
   await q('set local role authenticated');
   const visible=(await q('select public.record_actor_audit($1,$2) data',[fixture,'1'])).rows[0].data;
-  assert.equal(visible.created_by_email,'database@nexo.local');
+  // La marca técnica cambió de NEXO a GENTIA; este test valida la
+  // identidad de sistema sin acoplar el RPC a una marca específica.
+  assert.match(visible.created_by_email,/^database@(nexo|gentia)\.local$/);
   assert.equal(visible.actor_type,'SYSTEM_JOB');
   assert.equal(visible.updated_by_email,null);
   assert.equal(Object.hasOwn(visible,'visible'),false);

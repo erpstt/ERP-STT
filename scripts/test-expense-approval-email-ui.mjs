@@ -104,6 +104,7 @@ try {
     templateRequests.push({action, payload});
     assert.equal(payload.kind, 'SOLICITUD_GASTO_APROBACION');
     if (action === 'get') return route.fulfill({json: {
+      canEdit: true,
       subsidiary: {name: 'Empresa de pruebas'},
       transport: {enabled: true},
       template,

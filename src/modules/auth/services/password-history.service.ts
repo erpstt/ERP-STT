@@ -28,14 +28,14 @@ export async function changePassword(authorization: string, input: ChangePasswor
   const config = getSupabaseConfig();
   if (!config) throw new Error('Supabase no está configurado.');
   const email = emailFromToken(authorization);
-  const reauth = await fetch(new URL('/auth/v1/token?grant_type=password', config.url), { method: 'POST', headers: { apikey: config.anonKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: currentPassword }) });
+  const reauth = await fetchSupabase(new URL('/auth/v1/token?grant_type=password', config.url), { method: 'POST', headers: { apikey: config.anonKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: currentPassword }) });
   if (!reauth.ok) throw new Error('La contraseña actual no es correcta.');
   const users = await rest<Array<{ user_id: number }>>(`users?select=user_id&email=eq.${encodeURIComponent(email)}&limit=1`, authorization);
   if (!users.length) throw new Error('El usuario no está registrado en el ERP.');
   const userId = users[0].user_id;
   const history = await rest<Array<{ password_hash: string }>>(`password_history?select=password_hash&user_id=eq.${userId}&order=created_at.desc&limit=6`, authorization);
   for (const item of history) if (await verifyPassword(newPassword, item.password_hash)) throw new Error('No puede reutilizar ninguna de sus últimas 6 contraseñas.');
-  const update = await fetch(new URL('/auth/v1/user', config.url), { method: 'PUT', headers: { apikey: config.anonKey, Authorization: authorization, 'Content-Type': 'application/json' }, body: JSON.stringify({ password: newPassword }) });
+  const update = await fetchSupabase(new URL('/auth/v1/user', config.url), { method: 'PUT', headers: { apikey: config.anonKey, Authorization: authorization, 'Content-Type': 'application/json' }, body: JSON.stringify({ password: newPassword }) });
   if (!update.ok) { const payload = await update.json().catch(() => null) as { message?: string } | null; throw new Error(payload?.message ?? 'Supabase rechazó la nueva contraseña.'); }
   if (!history.length) await rest('password_history', authorization, { method: 'POST', body: JSON.stringify({ user_id: userId, password_hash: await hashPassword(currentPassword) }) });
   await rest('password_history', authorization, { method: 'POST', body: JSON.stringify({ user_id: userId, password_hash: await hashPassword(newPassword) }) });

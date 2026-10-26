@@ -1,0 +1,210 @@
+import nodemailer from 'nodemailer';
+import sanitizeHtml from 'sanitize-html';
+import { cleanBody, escapeHtml, validateTemplate } from './payment-email.js';
+import { rpc, smtpStatus } from './email-notification.service.js';
+
+export const userInvitationEmailTags = [
+  'empresa_nombre',
+  'usuario_nombre',
+  'usuario_correo',
+  'enlace_activacion',
+  'fecha_expiracion'
+];
+
+export const userInvitationEmailSubject = 'Activa tu acceso a GENTIA ERP · {{empresa_nombre}}';
+export const userInvitationEmailBody = '<p>Hola <strong>{{usuario_nombre}}</strong>,</p><p>Se creó una cuenta para ti en GENTIA ERP con el correo <strong>{{usuario_correo}}</strong>.</p><p>Utiliza el botón de activación para establecer tu contraseña personal. El enlace es confidencial, de un solo uso y vence el {{fecha_expiracion}}.</p>';
+
+export type UserInvitationEmailSnapshot = {
+  empresa_nombre: string;
+  empresa_logo_url?: string | null;
+  usuario_nombre: string;
+  usuario_correo: string;
+  enlace_activacion: string;
+  fecha_expiracion: string;
+};
+
+type InvitationTemplateSettings = {
+  template?: {
+    asunto_template?: string;
+    cuerpo_template?: string;
+    activo?: boolean;
+  } | null;
+  subsidiary?: {name?: string;logo?: string | null} | null;
+  canEdit?: boolean;
+};
+
+type MailResult = {accepted?: unknown[];messageId?: string};
+
+function validEmail(value: unknown) {
+  const email = String(value ?? '').trim().toLowerCase();
+  if (!/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(email) || email.length > 254) {
+    throw new Error('El usuario no tiene un correo electrónico válido.');
+  }
+  return email;
+}
+
+function safeActivationLink(value: unknown) {
+  const raw = String(value ?? '').trim();
+  if (!raw || raw.length > 8192) throw new Error('El enlace de activación no es válido.');
+  let url: URL;
+  try { url = new URL(raw); }
+  catch { throw new Error('El enlace de activación no es válido.'); }
+  const local = ['localhost', '127.0.0.1', '::1'].includes(url.hostname.toLowerCase());
+  if (url.protocol !== 'https:' && !(local && url.protocol === 'http:')) {
+    throw new Error('El enlace de activación debe utilizar HTTPS.');
+  }
+  if (url.username || url.password) throw new Error('El enlace de activación no es válido.');
+  return url.toString();
+}
+
+function displayExpiration(value: string) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return value || 'según lo indicado en el enlace';
+  return new Intl.DateTimeFormat('es-CR', {
+    dateStyle: 'long',
+    timeStyle: 'short',
+    timeZone: 'America/Costa_Rica'
+  }).format(date);
+}
+
+function mergeTemplate(template: string, values: Record<string, string>, html: boolean) {
+  return template.replace(/{{\s*(\w+)\s*}}/g, (_match, key: string) => html
+    ? escapeHtml(values[key] ?? '')
+    : values[key] ?? '');
+}
+
+function validateInvitationSubject(subject: string) {
+  if (/\{\{\s*enlace_activacion\s*\}\}/i.test(subject)) {
+    throw new Error('La variable {{enlace_activacion}} solo puede utilizarse en el cuerpo del correo.');
+  }
+}
+
+export function renderUserInvitationEmail(
+  subject: string,
+  body: string,
+  snapshot: UserInvitationEmailSnapshot
+) {
+  validateInvitationSubject(subject);
+  const template = validateTemplate(subject, body, userInvitationEmailTags);
+  const activationLink = safeActivationLink(snapshot.enlace_activacion);
+  const recipientEmail = validEmail(snapshot.usuario_correo);
+  const values: Record<string, string> = {
+    empresa_nombre: snapshot.empresa_nombre || 'GENTIA ERP',
+    usuario_nombre: snapshot.usuario_nombre || recipientEmail,
+    usuario_correo: recipientEmail,
+    enlace_activacion: activationLink,
+    fecha_expiracion: displayExpiration(snapshot.fecha_expiracion)
+  };
+  const renderedSubject = mergeTemplate(template.subject, values, false).replace(/[\r\n]/g, ' ').slice(0, 200);
+  const introduction = cleanBody(mergeTemplate(template.body, values, true));
+  const logo = snapshot.empresa_logo_url && /^https:\/\/[^\s]+$/i.test(snapshot.empresa_logo_url)
+    ? `<img src="${escapeHtml(snapshot.empresa_logo_url)}" alt="${escapeHtml(values.empresa_nombre)}" style="max-width:180px;max-height:64px;margin-bottom:14px">`
+    : '';
+  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:#f1f5f9;font-family:Arial,sans-serif;color:#334155"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center" style="padding:24px 10px"><table role="presentation" width="640" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;background:#fff;border:1px solid #dbe3ec;border-radius:12px;overflow:hidden"><tr><td style="padding:28px;background:#042e72;color:#fff;text-align:center">${logo}<div style="font-size:12px;letter-spacing:1.2px;font-weight:700;color:#9fe1cf">INVITACIÓN SEGURA</div><h1 style="font-size:24px;line-height:1.25;margin:10px 0 5px">Activa tu cuenta</h1><div style="font-size:14px">${escapeHtml(values.empresa_nombre)}</div></td></tr><tr><td style="padding:30px;line-height:1.6">${introduction}<p style="margin:28px 0 18px;text-align:center"><a href="${escapeHtml(activationLink)}" style="display:inline-block;background:#078464;color:#fff;text-decoration:none;padding:13px 24px;border-radius:8px;font-weight:700">Activar mi cuenta</a></p><div style="margin:20px 0;padding:16px 18px;border-radius:8px;background:#f4f8fb;border:1px solid #dbe5ee;font-size:13px;line-height:1.65"><strong style="color:#172033">Pasos para ingresar</strong><ol style="margin:8px 0 0;padding-left:20px"><li>Selecciona <strong>Activar mi cuenta</strong> y crea tu contraseña personal.</li><li>Inicia sesión con el correo <strong>${escapeHtml(recipientEmail)}</strong>.</li><li>Dentro de GENTIA puedes actualizarla desde el menú lateral, en <strong>Cambiar contraseña</strong>. Si la olvidas, utiliza <strong>¿Olvidaste tu contraseña?</strong> en la pantalla de acceso.</li></ol></div><div style="padding:15px 17px;border-radius:8px;background:#f8fafc;border-left:4px solid #f26938;color:#475569;font-size:13px;line-height:1.55"><strong style="color:#172033">Protege tu acceso</strong><br>Este enlace es personal y de un solo uso. No lo reenvíes ni compartas. GENTIA nunca solicitará tu contraseña por correo.</div><p style="margin-top:22px;font-size:12px;color:#64748b">Si el botón no funciona, copia este enlace en tu navegador:<br><a href="${escapeHtml(activationLink)}" style="color:#0759a5;word-break:break-all">${escapeHtml(activationLink)}</a></p><p style="font-size:12px;color:#64748b">Si no esperabas esta invitación, ignora este mensaje y no abras el enlace.</p></td></tr><tr><td style="padding:16px 26px;background:#f8fafc;color:#64748b;font-size:12px;text-align:center">Mensaje automático de ${escapeHtml(values.empresa_nombre)}. No contiene ni comunica contraseñas.</td></tr></table></td></tr></table></body></html>`;
+  const text = sanitizeHtml(
+    html.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|tr|h1|div)>/gi, '\n').replace(/<\/t[dh]>/gi, ' | '),
+    {allowedTags: [], allowedAttributes: {}}
+  ).replace(/\n\s*\n\s*\n+/g, '\n\n').trim();
+  return {subject: renderedSubject, html, text};
+}
+
+export async function userInvitationTemplateSettings(
+  authorization: string,
+  action: string,
+  payload: Record<string, unknown>
+) {
+  if (action === 'save') {
+    validateInvitationSubject(String(payload.subject || ''));
+    const template = validateTemplate(
+      String(payload.subject || ''),
+      String(payload.body || ''),
+      userInvitationEmailTags
+    );
+    return rpc('user_invitation_email_settings', {
+      p_action: 'save',
+      p_payload: {...template, active: payload.active === true}
+    }, authorization);
+  }
+  const data = await rpc('user_invitation_email_settings', {
+    p_action: 'get',
+    p_payload: {}
+  }, authorization) as InvitationTemplateSettings;
+  if (data.template?.cuerpo_template) {
+    data.template.cuerpo_template = cleanBody(String(data.template.cuerpo_template));
+  }
+  if (action === 'preview') {
+    return renderUserInvitationEmail(
+      String(payload.subject || userInvitationEmailSubject),
+      String(payload.body || userInvitationEmailBody),
+      {
+        empresa_nombre: data.subsidiary?.name || 'Empresa de ejemplo',
+        empresa_logo_url: data.subsidiary?.logo,
+        usuario_nombre: 'María González',
+        usuario_correo: 'maria.gonzalez@example.com',
+        enlace_activacion: 'https://app.example.com/activar-cuenta?token=enlace-de-ejemplo',
+        fecha_expiracion: '2026-10-27T18:00:00-06:00'
+      }
+    );
+  }
+  if (action !== 'get') throw new Error('Acción inválida.');
+  return {
+    ...data,
+    transport: smtpStatus(),
+    defaults: {subject: userInvitationEmailSubject, body: userInvitationEmailBody}
+  };
+}
+
+export async function sendUserInvitationEmail(
+  authorization: string,
+  snapshot: UserInvitationEmailSnapshot
+) {
+  const settings = await rpc('user_invitation_email_settings', {
+    p_action: 'delivery',
+    p_payload: {}
+  }, authorization) as InvitationTemplateSettings;
+  if (!settings.template?.activo) {
+    throw new Error('Active la plantilla de invitación en Configuración > Plantillas de Notificación.');
+  }
+  if (!smtpStatus().enabled) throw new Error('El envío SMTP todavía no está activado en el servidor.');
+  const effectiveSnapshot: UserInvitationEmailSnapshot = {
+    ...snapshot,
+    empresa_nombre: snapshot.empresa_nombre || settings.subsidiary?.name || 'GENTIA ERP',
+    empresa_logo_url: snapshot.empresa_logo_url || settings.subsidiary?.logo || null
+  };
+  const message = renderUserInvitationEmail(
+    String(settings.template.asunto_template || userInvitationEmailSubject),
+    String(settings.template.cuerpo_template || userInvitationEmailBody),
+    effectiveSnapshot
+  );
+  const port = Number(process.env.SMTP_PORT || 587);
+  const transport = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port,
+    secure: port === 465,
+    requireTLS: port !== 465,
+    auth: process.env.SMTP_USER
+      ? {user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD}
+      : undefined,
+    connectionTimeout: 15_000,
+    greetingTimeout: 15_000,
+    socketTimeout: 45_000,
+    disableFileAccess: true,
+    disableUrlAccess: true
+  });
+  let result: MailResult;
+  try {
+    result = await transport.sendMail({
+      from: process.env.SMTP_FROM,
+      to: validEmail(effectiveSnapshot.usuario_correo),
+      ...message,
+      disableFileAccess: true,
+      disableUrlAccess: true
+    });
+  } catch {
+    throw new Error('No fue posible enviar la invitación. Verifique la configuración SMTP e intente nuevamente.');
+  } finally {
+    transport.close();
+  }
+  if (!result.accepted?.length) throw new Error('El servidor SMTP no aceptó al destinatario de la invitación.');
+  return {success: true, messageId: result.messageId ?? null};
+}
