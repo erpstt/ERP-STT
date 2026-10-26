@@ -19,14 +19,23 @@ try {
   await client.query('begin');
   await client.query(await readFile(new URL('../supabase/migrations/20260908120000_import_journal_csv.sql', import.meta.url),'utf8'));
   await client.query(await readFile(new URL('../supabase/migrations/20260908130000_journal_csv_dimensions.sql', import.meta.url),'utf8'));
-  const context = (await client.query('select u.email,ucs.session_id from user_company_sessions ucs join users u using(user_id) order by selected_at desc limit 1')).rows[0];
+  await client.query(await readFile(new URL('../supabase/migrations/20261026180000_journal_csv_template_exchange_rate.sql', import.meta.url),'utf8'));
+  const context = (await client.query(local
+    ? 'select u.email,ucs.session_id from user_company_sessions ucs join users u using(user_id) order by selected_at desc limit 1'
+    : `select u.email,u.auth_user_id::text sub,ucs.session_id
+       from user_company_sessions ucs
+       join users u using(user_id)
+       join user_subsidiaries access using(user_id,subsidiary_id)
+       where u.is_active and u.auth_user_id is not null
+       order by ucs.selected_at desc limit 1`)).rows[0];
   assert.ok(context, 'Se requiere una sesión de prueba con subsidiaria activa.');
   await client.query("select set_config('request.jwt.claims',$1,true)", [JSON.stringify(context)]);
   const { sid, currency } = (await client.query('select s.subsidiary_id sid,c.currency_code currency from subsidiaries s join currencies c using(currency_id) where s.subsidiary_id=active_subsidiary_id()')).rows[0];
   const accounts = (await client.query('select a.account_number from chart_accounts a join account_subsidiaries s using(account_id) where s.subsidiary_id=$1 and s.is_active and not coalesce(a.is_inactive,false) and coalesce(a.accepts_entries,true) order by a.account_id limit 2',[sid])).rows;
   const { date } = (await client.query("select to_char(start_date,'YYYY-MM-DD') date from fiscal_periods where subsidiary_id=$1 and not coalesce(is_inactive,false) order by start_date desc limit 1",[sid])).rows[0];
   assert.equal(accounts.length,2);
-  const base = { asiento_referencia: `TEST-${Date.now()}`, tipo_asiento:'ASI_DIA', fecha:date, moneda:currency, tipo_cambio:'1', nota_asiento:'Prueba reversible CSV', numero_cuenta:accounts[0].account_number, debito:'10.00', credito:'0.00', nota_linea:'Prueba', mes_servicio:'' };
+  const templateRate='987.654321';
+  const base = { asiento_referencia: `TEST-${Date.now()}`, tipo_asiento:'ASI_DIA', fecha:date, moneda:currency, tipo_cambio:templateRate, nota_asiento:'Prueba reversible CSV', numero_cuenta:accounts[0].account_number, debito:'10.00', credito:'0.00', nota_linea:'Prueba', mes_servicio:'' };
   const rows = [base,{...base,numero_cuenta:accounts[1].account_number,debito:'0.00',credito:'10.00'}];
   const call = async (input, preview=true, company=sid) => (await client.query('select import_journal_csv($1::jsonb,$2,$3) result',[JSON.stringify(input),preview,company])).rows[0].result;
   const count = async () => Number((await client.query('select count(*) total from journal')).rows[0].total);
@@ -46,6 +55,13 @@ try {
   }
   await client.query('set local role authenticated');
   assert.equal((await call(rows)).valid,true);
+  for (const invalidRate of ['', 'abc', '0', '-1']) {
+    const invalidReference=`INVALID-RATE-${invalidRate||'EMPTY'}`;
+    const invalidRows=rows.map(row=>({...row,asiento_referencia:invalidReference,tipo_cambio:invalidRate}));
+    const result=await call(invalidRows);
+    assert.equal(result.valid,false,`La tasa ${JSON.stringify(invalidRate)} debe ser rechazada.`);
+    assert.ok(result.errors.some(item=>/tipo de cambio/i.test(String(item.message))),JSON.stringify(result.errors));
+  }
   for (const patch of [{credito:'9'},{numero_cuenta:'NO-SUCH-ACCOUNT'},{fecha:'2026-02-30'},{tipo_cambio:'0'},{debito:'-1'},{debito:'NaN'},{debito:'1,00'},{moneda:'INVALID'},{mes_servicio:'2026-13'},{nota_asiento:'Different'},{debito:'1',credito:'1'}]) {
     const bad = [{...base,asiento_referencia:'INVALID'},{...rows[1],asiento_referencia:'INVALID',...patch}];
     const result = await call([...rows,...bad],false);
@@ -72,6 +88,9 @@ try {
   assert.equal(await count(),before+2);
   const stored = (await client.query('select count(*)::int total,sum(debit) debit,sum(credit) credit from journal_line where journal_id=$1',[saved.entries[0].journalId])).rows[0];
   assert.equal(stored.total,2); assert.equal(Number(stored.debit),10); assert.equal(Number(stored.credit),10);
+  const storedHeader=(await client.query('select currency_id,exchange_rate from journal where journal_id=$1',[saved.entries[0].journalId])).rows[0];
+  assert.equal(String(storedHeader.currency_id),String((await client.query('select currency_id from currencies where currency_code=$1',[currency])).rows[0].currency_id));
+  assert.equal(Number(storedHeader.exchange_rate),Number(templateRate),'El asiento debe conservar exactamente la tasa indicada en el CSV.');
   if (!local) {
     const label=`CSV-TEST-${Date.now()}`;
     const dept=(await client.query("insert into departments(name,type) values($1,'Cliente') returning department_id",[label])).rows[0];

@@ -2,6 +2,7 @@ import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.c
 
 export const journalCsvOptionalHeaders = ['pais_servicio','entidad','nombre','departamento','centro_costos','clase','acreedor_financiero','compania_relacionada'];
 export const journalCsvHeaders = ['asiento_referencia','tipo_asiento','fecha','moneda','tipo_cambio','nota_asiento','numero_cuenta','debito','credito','nota_linea','mes_servicio', ...journalCsvOptionalHeaders];
+const automaticServiceDimensionJournalTypes = new Set(['ASI_DIA','ASI_NOM','ASI_LIQ']);
 
 // Quoted fields may contain delimiters, escaped quotes and line breaks (RFC 4180).
 export function parseJournalCsv(source: string): Record<string, string>[] {
@@ -34,9 +35,24 @@ export function parseJournalCsv(source: string): Record<string, string>[] {
   });
 }
 
+export function normalizeJournalServiceDimensions(rows: Record<string, string>[]) {
+  return rows.map(row => {
+    if (!automaticServiceDimensionJournalTypes.has(row.tipo_asiento)) return row;
+    const normalized: Record<string, string> = { ...row, mes_servicio: '' };
+    delete normalized.pais_servicio;
+    return normalized;
+  });
+}
+
+// Compatibility for consumers introduced with the automatic service-month
+// rule. Both service-only fields are now normalized together.
+export function normalizeJournalServiceMonths(rows: Record<string, string>[]) {
+  return normalizeJournalServiceDimensions(rows);
+}
+
 export async function importJournalCsv(authorization: string, input: Record<string, unknown>) {
   if (typeof input.csv !== 'string' || typeof input.preview !== 'boolean' || !Number.isSafeInteger(input.subsidiaryId) || Number(input.subsidiaryId) <= 0) throw Error('Seleccione un CSV y una subsidiaria válida.');
-  const rows = parseJournalCsv(input.csv);
+  const rows = normalizeJournalServiceDimensions(parseJournalCsv(input.csv));
   const config = getSupabaseConfig();
   if (!config) throw Error('Supabase no está configurado.');
   const response = await fetchSupabase(new URL('/rest/v1/rpc/import_journal_csv', config.url), {

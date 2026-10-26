@@ -13,10 +13,10 @@ function setup(responses) {
   ids.file.files=[{name:'asientos.csv',size:10,arrayBuffer:async()=>new TextEncoder().encode('csv-test').buffer}];
   return {ids,calls};
 }
-const preview={valid:true,created:0,entries:[{reference:'A',date:'2026-09-08',currency:'CRC',lines:2,debit:10,credit:10}],errors:[]};
+const preview={valid:true,created:0,entries:[{reference:'A',date:'2026-09-08',currency:'CRC',exchangeRate:987.654321,lines:2,debit:10,credit:10}],errors:[]};
 test('preview precedes import, then records are shown and import is disabled',async()=>{
   const {ids,calls}=setup([preview,{valid:true,created:1,entries:[{reference:'A',journalNumber:'ASI-001'}],errors:[]}]);
-  await ids.validate.onclick(); assert.equal(ids.import.disabled,false); assert.equal(ids.rows.children.length,1);
+  await ids.validate.onclick(); assert.equal(ids.import.disabled,false); assert.equal(ids.rows.children.length,1); assert.equal(ids.rows.children[0].children[3].textContent,'987,654321');
   await ids.import.onclick(); assert.equal(calls[0].preview,true); assert.equal(calls[1].preview,false); assert.equal(calls[1].csv,calls[0].csv);
   assert.equal(ids.import.disabled,true); assert.equal(ids.result.hidden,false); assert.match(ids.message.textContent,/1 asientos registrados/);
 });

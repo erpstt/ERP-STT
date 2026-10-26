@@ -18,13 +18,13 @@
 <tr><td>tipo_asiento</td><td>ASI_DIA (diario), ASI_PEN (facturas pendientes), ASI_NOM (nómina) o ASI_LIQ (liquidación).</td></tr>
 <tr><td>fecha</td><td>AAAA-MM-DD. Debe corresponder a un período contable activo.</td></tr>
 <tr><td>moneda</td><td>Código de moneda permitido para la subsidiaria, por ejemplo CRC o USD.</td></tr>
-<tr><td>tipo_cambio</td><td>Valor positivo en moneda local por unidad de la moneda del asiento; 1 para moneda local. Debe corresponder al tipo de cambio configurado.</td></tr>
+<tr><td>tipo_cambio</td><td>Valor positivo en moneda local por unidad de la moneda del asiento. El sistema utiliza exactamente la tasa indicada en el archivo y no la compara con las tasas configuradas para la fecha.</td></tr>
 <tr><td>nota_asiento</td><td>Descripción general del asiento.</td></tr>
 <tr><td>numero_cuenta</td><td>Número de la cuenta contable, no su identificador interno.</td></tr>
 <tr><td>debito / credito</td><td>Importes sin impuestos en la moneda del asiento, por ejemplo 25000.00. Estos ejemplos no incluyen impuestos.</td></tr>
 <tr><td>nota_linea</td><td>Descripción de la línea.</td></tr>
-<tr><td>mes_servicio</td><td>Mes en formato AAAA-MM para facturas pendientes (ASI_PEN). Dejar vacío para los demás tipos.</td></tr>
-<tr><td>pais_servicio</td><td>País donde se presta el servicio. Es obligatorio para ASI_PEN y debe coincidir con el nombre, código ISO de 2 o 3 letras, o ID:123 de un país del catálogo CORE. Déjelo vacío para los demás tipos.</td></tr>
+<tr><td>mes_servicio</td><td>Para ASI_PEN, indique el mes de cada línea en formato AAAA-MM cuando corresponda. Para ASI_DIA, ASI_NOM y ASI_LIQ déjelo vacío: el sistema lo asigna automáticamente a partir de la fecha del asiento.</td></tr>
+<tr><td>pais_servicio</td><td>País donde se presta el servicio. Es obligatorio para ASI_PEN y debe coincidir con el nombre, código ISO de 2 o 3 letras, o ID:123 de un país del catálogo CORE. Para ASI_DIA, ASI_NOM y ASI_LIQ no aplica; cualquier valor se ignora automáticamente.</td></tr>
 <tr><td>entidad</td><td>Opcional: Cliente, Proveedor, Empleado o Ninguna. Corresponde al tipo de entidad de la línea.</td></tr>
 <tr><td>nombre</td><td>Nombre exacto del cliente o proveedor; para empleados, nombre y apellidos. Obligatorio si selecciona una entidad. Si hay nombres repetidos, use ID:123 con el identificador del registro en su catálogo.</td></tr>
 <tr><td>departamento</td><td>Nombre exacto o ID:123 de un departamento activo de la subsidiaria. Para clientes se asigna el departamento del cliente si deja la columna vacía; si lo completa, debe coincidir. Para empleados debe ser de tipo Interno.</td></tr>

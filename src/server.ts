@@ -25,6 +25,7 @@ import { createSecurityRow, deleteSecurityRow, getSecurityCatalog, listSecurityR
 import { assertRoleAccess, isRoleAccessResource, myRoleAccess, roleAccessMatrix, saveRoleAccessMatrix } from './modules/security-catalogs/role-access-matrix.module.js';
 import { listSubsidiaryApprovers, createOrganizationRow, deleteOrganizationRow, getOrganizationCatalog, listOrganizationRows, updateOrganizationRow } from './modules/organization-catalogs/organization-catalogs.module.js';
 import { exportCostCenters } from './modules/organization-catalogs/cost-center-export.service.js';
+import { exportOrganizationCatalog } from './modules/organization-catalogs/organization-catalog-export.service.js';
 import { listCostCentersByUpApprover, reassignCostCenterUpApprover, upApproverOptions, upApproverSelectorOptions } from './modules/organization-catalogs/up-approvers.service.js';
 import { assertExchangeRateAccess, createConfigurationRow, deleteConfigurationRow, getConfigurationCatalog, listConfigurationRows, suggestConsolidatedExchangeRate, updateConfigurationRow } from './modules/configuration-catalogs/configuration-catalogs.module.js';
 import { accountingCatalogs, createAccountingRow, deleteAccountingRow, getAccountingCatalog, listAccountingRows, updateAccountingRow } from './modules/accounting-catalogs/accounting-catalogs.module.js';
@@ -477,7 +478,15 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(request.method==='GET'&&upApproverUrl.pathname==='/api/organization/cost-centers/export'){
       const authorization=request.headers.authorization;
       if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para descargar los centros de costos.');
+      await assertRoleAccess(authorization,'organization:cost-centers','view');
       return download(response,await exportCostCenters(authorization,upApproverUrl.searchParams.get('format')||'',upApproverUrl.searchParams.get('search')||''));
+    }
+    const organizationExportRoute=upApproverUrl.pathname.match(/^\/api\/organization\/([a-z-]+)\/export$/);
+    if(request.method==='GET'&&organizationExportRoute){
+      const authorization=request.headers.authorization;
+      if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para descargar catálogos de Organización.');
+      await assertRoleAccess(authorization,`organization:${organizationExportRoute[1]}`,'view');
+      return download(response,await exportOrganizationCatalog(authorization,organizationExportRoute[1],upApproverUrl.searchParams.get('format')||'',upApproverUrl.searchParams.get('search')||''));
     }
     const organizationRoute = request.url?.match(/^\/api\/organization\/([a-z-]+)(?:\/(\d+))?$/);
     if (organizationRoute) {

@@ -350,9 +350,9 @@
 <p class="dashboard-copy">{{ activeCatalog.description }}</p>
 </div>
 <div class="records-head-actions">
-<div v-if="activeCatalog.slug==='cost-centers'" class="catalog-export-actions" role="group" aria-label="Descargar centros de costos">
-<button type="button" class="new-record catalog-export-button" :disabled="tableLoading || Boolean(costCenterExporting)" @click="downloadCostCenters('csv')"><span>↓</span> {{ costCenterExporting==='csv' ? 'Preparando…' : 'CSV' }}</button>
-<button type="button" class="new-record catalog-export-button" :disabled="tableLoading || Boolean(costCenterExporting)" @click="downloadCostCenters('xlsx')"><span>↓</span> {{ costCenterExporting==='xlsx' ? 'Preparando…' : 'Excel' }}</button>
+<div v-if="organizationCatalogExportEnabled" class="catalog-export-actions" role="group" :aria-label="'Descargar '+activeCatalog.title+' de la subsidiaria activa'">
+<button type="button" class="new-record catalog-export-button" :disabled="tableLoading || Boolean(costCenterExporting)" :title="'Descargar '+activeCatalog.title+' en CSV'" @click="downloadOrganizationCatalog('csv')"><span>↓</span> {{ costCenterExporting==='csv' ? 'Preparando…' : 'CSV' }}</button>
+<button type="button" class="new-record catalog-export-button" :disabled="tableLoading || Boolean(costCenterExporting)" :title="'Descargar '+activeCatalog.title+' en Excel'" @click="downloadOrganizationCatalog('xlsx')"><span>↓</span> {{ costCenterExporting==='xlsx' ? 'Preparando…' : 'Excel' }}</button>
 </div>
 <div v-if="['customers','suppliers','employees','entity-subsidiaries'].includes(activeCatalog.slug)" class="catalog-export-actions" role="group" :aria-label="'Descargar '+activeCatalog.title+' de la subsidiaria activa'">
 <button type="button" class="new-record catalog-export-button" :disabled="tableLoading || Boolean(entityExporting)" :title="'Descargar '+activeCatalog.title+' en CSV para '+(activeCompany?.name || 'la subsidiaria activa')" @click="downloadEntityCatalog('csv')"><span>↓</span> {{ entityExporting==='csv' ? 'Preparando…' : 'CSV' }}</button>
@@ -636,7 +636,7 @@
   </main>
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
-<script type="module" src="/app.js?v=20261026-supplier-invoice-sorting">
+<script type="module" src="/app.js?v=20261026-organization-exports">
 </script>
 <script src="/approval-notifications.js?v=20261023-second-pass"></script></body>
 </html>

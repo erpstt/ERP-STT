@@ -277,6 +277,7 @@ const app = createApp({
     tableFields() { return (this.activeCatalog?.fields??[]).filter(field=>field.showInTable!==false); },
     formFields(){const fields=(this.activeCatalog?.fields??[]).filter(field=>!field.hiddenForm&&(!field.createOnly||!this.recordDialog.id));if(this.activeCatalog?.slug!=='accounting-periods')return fields;return this.recordDialog.id?fields.filter(field=>field.key!=='subsidiary_ids'):fields.filter(field=>['fiscal_year_id','subsidiary_ids'].includes(field.key));},
     exchangeRateActions(){const actions=[{country:'Argentina',code:'AR',currency:'ARS',endpoint:'ar'},{country:'Colombia',code:'CO',currency:'COP',endpoint:'co'},{country:'Costa Rica',code:'CR',currency:'CRC',endpoint:'cr'},{country:'Guatemala',code:'GT',currency:'GTQ',endpoint:'gt'},{country:'Jamaica',code:'JM',currency:'JMD',endpoint:'jm'},{country:'Nicaragua',code:'NI',currency:'NIO',endpoint:'ni'},{country:'Perú',code:'PE',currency:'PEN',endpoint:'pe'},{country:'República Dominicana',code:'RD',currency:'DOP',endpoint:'rd'}];return this.activeRole?.name?.trim().toLocaleLowerCase('es')==='administrador'?actions:actions.filter(action=>action.currency===this.activeCompany?.currencyCode);},
+    organizationCatalogExportEnabled(){return this.currentModule==='Organización'&&this.activeCatalog?.apiRoot==='organization';},
     invoiceCatalogSortingEnabled(){return(this.currentModule==='Ventas'&&this.activeCatalog?.slug==='invoices')||(this.currentModule==='Compras'&&this.activeCatalog?.slug==='supplier-invoices');},
     filteredRows() { const term=this.search.trim().toLocaleLowerCase('es'),filtered=term?this.rows.filter(row=>Object.values(row).some(value=>String(value??'').toLocaleLowerCase('es').includes(term))||(this.invoiceCatalogSortingEnabled&&this.tableFields.some(field=>String(this.displayValue(field,row[field.key])??'').toLocaleLowerCase('es').includes(term)))):this.rows;if(!this.invoiceCatalogSortingEnabled||!this.catalogSort.key)return filtered;const direction=this.catalogSort.direction==='desc'?-1:1;return filtered.map((row,index)=>({row,index})).sort((left,right)=>this.compareCatalogRows(left.row,right.row,this.catalogSort.key,direction)||left.index-right.index).map(item=>item.row); },
     userInitial() { return this.userName.charAt(0).toUpperCase(); },
@@ -443,6 +444,20 @@ const app = createApp({
         const fileName=encoded?decodeURIComponent(encoded[1]):plain?.[1]||fallback,url=URL.createObjectURL(blob),link=document.createElement('a');
         link.href=url;link.download=fileName;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
       }catch(cause){this.tableError=cause instanceof Error?cause.message:'No fue posible descargar los centros de costos.';}finally{this.costCenterExporting='';}
+    },
+    async downloadOrganizationCatalog(format){
+      if(this.costCenterExporting)return;
+      const catalog=this.activeCatalog,allowedFormats=['csv','xlsx'];
+      if(!this.organizationCatalogExportEnabled||!catalog||!allowedFormats.includes(format)){this.tableError='Seleccione un catálogo y un formato de descarga válidos.';return;}
+      this.costCenterExporting=format;this.tableError='';
+      try{
+        const query=new URLSearchParams({format,search:this.search.trim()});
+        const response=await fetch(`/api/organization/${encodeURIComponent(catalog.slug)}/export?${query}`,{headers:{Authorization:`Bearer ${this.token()}`,'X-Device-Token':this.deviceToken()}});
+        if(!response.ok){let payload={};try{payload=await response.json();}catch{}if(response.status===401)await this.logout();throw new Error(payload.error?.message||`No fue posible descargar ${catalog.title.toLocaleLowerCase('es')}.`);}
+        const blob=await response.blob(),disposition=response.headers.get('content-disposition')||'',encoded=disposition.match(/filename\*=UTF-8''([^;]+)/i),plain=disposition.match(/filename="?([^";]+)"?/i),fallback=`${catalog.slug}-${new Date().toISOString().slice(0,10)}.${format}`;
+        const fileName=encoded?decodeURIComponent(encoded[1]):plain?.[1]||fallback,url=URL.createObjectURL(blob),link=document.createElement('a');
+        link.href=url;link.download=fileName;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+      }catch(cause){this.tableError=cause instanceof Error?cause.message:`No fue posible descargar ${catalog.title.toLocaleLowerCase('es')}.`;}finally{this.costCenterExporting='';}
     },
     async downloadEntityCatalog(format){
       if(this.entityExporting)return;

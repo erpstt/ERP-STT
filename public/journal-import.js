@@ -41,7 +41,7 @@ async function processFile(preview) {
       $('message').textContent = result.alreadyImported ? 'Este archivo ya fue importado. No se crearon duplicados.' : `Importación completada: ${result.created} asientos registrados.`;
     } else {
       $('preview').hidden = false;
-      $('rows').replaceChildren(...result.entries.map(entry => tableRow([entry.reference, entry.date, entry.currency, entry.lines, money(entry.debit), money(entry.credit)])));
+      $('rows').replaceChildren(...result.entries.map(entry => tableRow([entry.reference, entry.date, entry.currency, entry.exchangeRate == null ? '—' : money(entry.exchangeRate), entry.lines, money(entry.debit), money(entry.credit)])));
       for (const error of result.errors) { const li = document.createElement('li'); li.textContent = `Registro ${error.row} · ${error.reference}: ${error.message}`; $('errors').append(li); }
       if (result.valid) { phase('review', 'success'); validatedCsv = csv; $('message').textContent = `${result.entries.length} asientos validados. Revise la vista previa y pulse Importar asientos.`; }
       else $('message').textContent = 'No se guardó ningún asiento. Corrija los errores y vuelva a validar el archivo.';

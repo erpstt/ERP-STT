@@ -1,7 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { journalCsvHeaders, parseJournalCsv } from '../dist/modules/accounting-catalogs/journal-import.service.js';
+import {
+  journalCsvHeaders,
+  normalizeJournalServiceDimensions,
+  normalizeJournalServiceMonths,
+  parseJournalCsv
+} from '../dist/modules/accounting-catalogs/journal-import.service.js';
 const header = journalCsvHeaders.slice(0,11).join(',');
 const line = 'A,ASI_DIA,2026-09-08,CRC,1,Nota,001,10.00,0.00,Detalle,';
 test('the downloadable template has two balanced journals and preserves account codes', () => {
@@ -34,4 +39,20 @@ test('additional dimensions are retained and blank optional columns preserve old
   assert.equal(expanded.departamento,'Servicios'); assert.equal(expanded.centro_costos,'Proyecto');
   assert.equal(expanded.clase,'Consultoria'); assert.equal(expanded.acreedor_financiero,'Banco'); assert.equal(expanded.compania_relacionada,'Relacionada');
   assert.deepEqual(parseJournalCsv(`${fullHeader}\n${line},,,,,,,,`),parseJournalCsv(`${header}\n${line}`));
+});
+test('service dimensions are ignored only for journal types derived from the posting date',()=>{
+  const source=[
+    {tipo_asiento:'ASI_DIA',fecha:'2026-10-02',mes_servicio:'1999-01',pais_servicio:'Jamaica'},
+    {tipo_asiento:'ASI_NOM',fecha:'2026-10-15',mes_servicio:'2030-12',pais_servicio:'CRI'},
+    {tipo_asiento:'ASI_LIQ',fecha:'2026-10-31',mes_servicio:'invalid',pais_servicio:'ID:1'},
+    {tipo_asiento:'ASI_PEN',fecha:'2026-10-31',mes_servicio:'2026-09',pais_servicio:'Jamaica'}
+  ];
+  const monthCompatible=normalizeJournalServiceMonths(source);
+  const normalized=normalizeJournalServiceDimensions(source);
+  assert.deepEqual(monthCompatible.map(row=>row.mes_servicio),['','','','2026-09']);
+  assert.deepEqual(normalized.map(row=>row.mes_servicio),['','','','2026-09']);
+  assert.deepEqual(normalized.map(row=>row.pais_servicio),[undefined,undefined,undefined,'Jamaica']);
+  assert.ok(normalized.slice(0,3).every(row=>!Object.hasOwn(row,'pais_servicio')));
+  assert.deepEqual(source.map(row=>row.mes_servicio),['1999-01','2030-12','invalid','2026-09']);
+  assert.deepEqual(source.map(row=>row.pais_servicio),['Jamaica','CRI','ID:1','Jamaica']);
 });

@@ -8,7 +8,7 @@ create table fiscal_periods(fiscal_period_id bigint,subsidiary_id bigint,start_d
 create table exchange_rates(exchange_rate_id bigint,from_currency_id bigint,to_currency_id bigint,effective_date date,spot_rate numeric);
 create table chart_accounts(account_id bigint,account_number text,is_inactive boolean,accepts_entries boolean);
 create table account_subsidiaries(account_id bigint,subsidiary_id bigint,is_active boolean);
-create table journal(journal_id bigint generated always as identity primary key,journal_number text,memo text);
+create table journal(journal_id bigint generated always as identity primary key,journal_number text,memo text,currency_id bigint,exchange_rate numeric);
 create table journal_line(journal_id bigint,debit numeric,credit numeric);
 create table users(user_id bigint,email text);
 create table user_company_sessions(user_id bigint,session_id text,selected_at timestamptz);
@@ -24,7 +24,7 @@ create function active_subsidiary_id() returns bigint language sql as $$select 1
 create function create_journal_entry(payload jsonb) returns bigint language plpgsql as $$
 declare jid bigint;
 begin
-  insert into journal(memo) values(payload->>'memo') returning journal_id into jid;
+  insert into journal(memo,currency_id,exchange_rate) values(payload->>'memo',(payload->>'currency_id')::bigint,(payload->>'exchange_rate')::numeric) returning journal_id into jid;
   update journal set journal_number='TEST-'||jid where journal_id=jid;
   insert into journal_line select jid,(r->>'debit')::numeric,(r->>'credit')::numeric from jsonb_array_elements(payload->'lines')r;
   return jid;

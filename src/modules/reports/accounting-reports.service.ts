@@ -31,15 +31,16 @@ async function rpc<T>(authorization:string,name:string,input:Record<string,unkno
 export async function accountingReportOptions(authorization:string){const [base,dimensionLinks,journalOptions,pendingInvoiceOptions,agingOptions,bankOptions]=await Promise.all([rpc<Record<string,unknown>>(authorization,'accounting_report_options'),rpc<Record<string,unknown>>(authorization,'income_statement_dimension_links'),rpc<Record<string,unknown>>(authorization,'general_journal_options'),rpc<Record<string,unknown>>(authorization,'pending_invoice_control_options'),rpc<Record<string,unknown>>(authorization,'aging_report_options'),rpc<Record<string,unknown>>(authorization,'bank_reconciliation_options')]);return{...base,...dimensionLinks,journalOptions,pendingInvoiceOptions,agingOptions,bankOptions};}
 export function runAccountingReport(authorization:string,report:string,filters:Record<string,unknown>){
   if(!reports.has(report))throw new Error('El reporte solicitado no existe.');
-  if(report==='income-statement'&&filters.columnView&&filters.columnView!=='TOTAL')return rpc<Record<string,unknown>>(authorization,'run_income_statement_matrix',{p_filters:filters});
-  if(report==='pending-invoice-control')return rpc<Record<string,unknown>>(authorization,'run_pending_invoice_control_report',{p_filters:filters});
-  if(report==='journal')return rpc<Record<string,unknown>>(authorization,'run_general_journal_report',{p_filters:filters});
-  if(report==='receivables-aging'||report==='payables-aging')return rpc<Record<string,unknown>>(authorization,'run_aging_report',{p_kind:report==='receivables-aging'?'AR':'AP',p_filters:filters});
-  if(report==='bank-reconciliation')return rpc<Record<string,unknown>>(authorization,'run_bank_reconciliation_report',{p_filters:filters});
-  if(report==='bank-balances')return rpc<Record<string,unknown>>(authorization,'run_bank_balance_period_report',{p_filters:filters});
-  if(report==='sales-transactions')return rpc<Record<string,unknown>>(authorization,'run_sales_transaction_report',{p_filters:filters});
-  if(report==='purchase-transactions')return rpc<Record<string,unknown>>(authorization,'run_purchase_transaction_report',{p_filters:filters});
-  return rpc<Record<string,unknown>>(authorization,'run_accounting_report',{p_report:report,p_filters:filters});
+  const scopedFilters=report==='income-statement'?{...filters,accountId:null}:filters;
+  if(report==='income-statement'&&scopedFilters.columnView&&scopedFilters.columnView!=='TOTAL')return rpc<Record<string,unknown>>(authorization,'run_income_statement_matrix',{p_filters:scopedFilters});
+  if(report==='pending-invoice-control')return rpc<Record<string,unknown>>(authorization,'run_pending_invoice_control_report',{p_filters:scopedFilters});
+  if(report==='journal')return rpc<Record<string,unknown>>(authorization,'run_general_journal_report',{p_filters:scopedFilters});
+  if(report==='receivables-aging'||report==='payables-aging')return rpc<Record<string,unknown>>(authorization,'run_aging_report',{p_kind:report==='receivables-aging'?'AR':'AP',p_filters:scopedFilters});
+  if(report==='bank-reconciliation')return rpc<Record<string,unknown>>(authorization,'run_bank_reconciliation_report',{p_filters:scopedFilters});
+  if(report==='bank-balances')return rpc<Record<string,unknown>>(authorization,'run_bank_balance_period_report',{p_filters:scopedFilters});
+  if(report==='sales-transactions')return rpc<Record<string,unknown>>(authorization,'run_sales_transaction_report',{p_filters:scopedFilters});
+  if(report==='purchase-transactions')return rpc<Record<string,unknown>>(authorization,'run_purchase_transaction_report',{p_filters:scopedFilters});
+  return rpc<Record<string,unknown>>(authorization,'run_accounting_report',{p_report:report,p_filters:scopedFilters});
 }
 export function purchaseTransactionSupport(authorization:string,supportId:number){
   if(!Number.isSafeInteger(supportId)||supportId<=0)throw new Error('El respaldo solicitado no es válido.');
