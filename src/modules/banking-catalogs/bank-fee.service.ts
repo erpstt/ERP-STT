@@ -7,3 +7,4 @@ export const bankFeeReport=(a:string,p:Record<string,unknown>)=>rpc(a,'bank_fee_
 export const bankFeeDetail=(a:string,id:number)=>rpc(a,'bank_fee_detail',{p_fee_id:id});
 export const updateBankFee=(a:string,id:number,p:Record<string,unknown>)=>rpc(a,'update_bank_fee',{p_fee_id:id,p_payload:p});
 export const deleteBankFee=(a:string,id:number)=>rpc(a,'delete_bank_fee',{p_fee_id:id});
+export const registerStatementBankFees=(a:string,p:Record<string,unknown>)=>rpc(a,'register_bank_statement_fees',p);

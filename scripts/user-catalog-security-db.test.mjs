@@ -17,7 +17,8 @@ const db = new pg.Client({
 
 const migrations = await Promise.all([
   '20261026110000_secure_user_auth_invitations.sql',
-  '20261026112000_harden_user_catalog_rls.sql'
+  '20261026112000_harden_user_catalog_rls.sql',
+  '20261027170000_bulk_user_subsidiary_assignments.sql'
 ].map(file => readFile(new URL(`../supabase/migrations/${file}`, import.meta.url), 'utf8')));
 
 async function assume(email, subject, sessionId) {
@@ -142,7 +143,10 @@ try {
     not has_column_privilege('authenticated','public.users','password_hash','select') password_hidden,
     not has_column_privilege('authenticated','public.users','password_hash','update') password_immutable,
     not has_column_privilege('authenticated','public.users','auth_user_id','select') auth_identity_hidden,
-    not has_column_privilege('authenticated','public.users','auth_user_id','update') auth_identity_immutable
+    not has_column_privilege('authenticated','public.users','auth_user_id','update') auth_identity_immutable,
+    not has_table_privilege('authenticated','public.user_subsidiaries','insert') subsidiary_direct_insert_denied,
+    not has_table_privilege('authenticated','public.user_subsidiaries','update') subsidiary_direct_update_denied,
+    not has_table_privilege('authenticated','public.user_subsidiaries','delete') subsidiary_direct_delete_denied
   `)).rows[0];
   assert.ok(Object.values(privileges).every(Boolean));
   assert.equal((await db.query(`
@@ -245,10 +249,15 @@ try {
     'insert into public.user_subsidiaries(user_id,subsidiary_id) values($1,$2)',
     [actor.user_id,subsidiary.subsidiary_id]
   );
-  assert.equal((await db.query(
-    'insert into public.user_subsidiaries(user_id,subsidiary_id) values($1,$2) returning id',
+  await expectDenied(
+    'insert into public.user_subsidiaries(user_id,subsidiary_id) values($1,$2)',
     [target.user_id,subsidiary.subsidiary_id]
-  )).rowCount,1);
+  );
+  const delegatedAssignment=(await db.query(
+    'select public.security_sync_user_subsidiaries($1,$2::bigint[]) value',
+    [target.user_id,[subsidiary.subsidiary_id]]
+  )).rows[0].value;
+  assert.deepEqual(delegatedAssignment.subsidiary_ids.map(Number),[Number(subsidiary.subsidiary_id)]);
 
   // Las selecciones antiguas dejan de conceder acceso al retirar la asignacion.
   await db.query('reset role');

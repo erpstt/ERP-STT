@@ -203,6 +203,37 @@ td{padding:15px 18px;border-top:1px solid #edf0f3;color:#344054;font-size:12px}
 .form-grid select{width:100%;height:41px;border:1px solid #dfe4ea;border-radius:7px;padding:0 36px 0 11px;font:13px inherit;outline:0;background:#fff;color:#344054;cursor:pointer}
 .form-grid select:focus{border-color:#51aa88;box-shadow:0 0 0 3px #51aa8818}
 
+.modal.bank-statement-modal:has(.form-grid){width:min(720px,100%);border:1px solid #d9e3ef;border-radius:16px;box-shadow:0 30px 80px #0b244229}
+.bank-statement-modal .modal-head{padding:24px 26px 20px;background:linear-gradient(135deg,#f8fbff 0%,#f2f8f6 100%);border-bottom-color:#dce6ef}
+.bank-statement-modal .modal-icon{width:40px;height:40px;border-radius:10px;background:#e3f4ee;color:#087758;font-size:18px;box-shadow:inset 0 0 0 1px #c7e9dc}
+.bank-statement-modal .modal-head p{color:#076c52;letter-spacing:1.2px}
+.bank-statement-modal .modal-head h2{color:#10233f;font-size:20px}
+.bank-statement-modal form{padding:0 26px 24px}
+.bank-statement-form-overview{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;margin:0 -26px 22px;padding:15px 26px;border-bottom:1px solid #e5ebf1;background:#fbfcfe;color:#233650}
+.bank-statement-form-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:9px;background:#e9f0fb;color:#0b397c;font-size:17px;font-weight:800}
+.bank-statement-form-overview div{min-width:0;display:grid;gap:3px}
+.bank-statement-form-overview strong{font-size:13px;color:#102d52}
+.bank-statement-form-overview small{font-size:11px;line-height:1.4;color:#64748b}
+.bank-statement-company{max-width:190px;padding:6px 9px;border:1px solid #cfe7dd;border-radius:999px;background:#eef9f5;color:#087758;font-size:10px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bank-statement-form-grid{grid-template-columns:minmax(190px,.8fr) minmax(300px,1.2fr);gap:18px 14px}
+.bank-statement-form-grid label>span:first-child{color:#33445c;font-weight:700}
+.bank-statement-form-grid select,.bank-statement-form-grid>label>input{height:44px;border-color:#d3dee9;border-radius:9px;background:#fff}
+.bank-statement-form-grid select:hover,.bank-statement-form-grid>label>input:hover{border-color:#afbfce}
+.bank-statement-money-input{display:grid;grid-template-columns:auto minmax(0,1fr);height:44px;overflow:hidden;border:1px solid #d3dee9;border-radius:9px;background:#fff;transition:border-color .15s,box-shadow .15s}
+.bank-statement-money-input:focus-within{border-color:#51aa88;box-shadow:0 0 0 3px #51aa8818}
+.bank-statement-money-input>span{display:flex;align-items:center;margin:0!important;padding:0 11px;border-right:1px solid #e0e7ef;background:#f4f7fa;color:#52657d;font-size:11px;font-weight:800;letter-spacing:.35px}
+.form-grid .bank-statement-money-input>input{width:100%;height:42px;border:0;border-radius:0;padding:0 12px;text-align:right;font:700 14px Manrope,DM Sans,sans-serif;color:#102d52;font-variant-numeric:tabular-nums;outline:0;box-shadow:none}
+.form-grid .bank-statement-money-input>input:focus{border:0;box-shadow:none}
+.bank-statement-modal .modal-actions{margin-top:26px;padding-top:18px;border-top:1px solid #e7edf3}
+.bank-statement-modal .button-primary{min-width:126px;padding:10px 16px;border-radius:8px;background:#0b3a7c;border-color:#0b3a7c;box-shadow:0 7px 18px #0b3a7c24}
+.bank-statement-table-card .field-statement_date{min-width:130px}
+.bank-statement-table-card .field-bank_account_id{min-width:270px}
+.bank-statement-table-card .field-opening_balance,.bank-statement-table-card .field-closing_balance{min-width:145px;text-align:right}
+.bank-statement-account{color:#1f3b63;font-weight:650}
+.bank-statement-amount{display:inline-block;min-width:96px;color:#102d52;font:750 13px Manrope,DM Sans,sans-serif;font-variant-numeric:tabular-nums;text-align:right}
+
+@media(max-width:680px){.bank-statement-form-overview{grid-template-columns:auto 1fr}.bank-statement-company{grid-column:2;max-width:100%;justify-self:start}.bank-statement-form-grid{grid-template-columns:1fr}.bank-statement-modal form{padding-right:20px;padding-left:20px}.bank-statement-form-overview{margin-right:-20px;margin-left:-20px;padding-right:20px;padding-left:20px}}
+
 .table-scroll{width:100%;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#b8c2ce #f1f4f6}
 .table-scroll::-webkit-scrollbar{height:9px}
 .table-scroll::-webkit-scrollbar-track{background:#f1f4f6}
@@ -228,8 +259,8 @@ td{padding:15px 18px;border-top:1px solid #edf0f3;color:#344054;font-size:12px}
 .multi-option input{width:17px!important;height:17px!important;accent-color:#18835f;flex:0 0 auto}
 .multi-select small{display:block;color:#8793a2;padding:12px;text-align:center}
 
-.modal.account-master-modal:has(.form-grid){width:min(780px,100%)}
-.account-master-modal .multi-select{max-height:310px;padding:9px;border-color:#cfdad6;background:#fbfdfc}
+.modal.account-master-modal:has(.form-grid),.modal.user-company-access-modal:has(.form-grid){width:min(780px,100%)}
+.account-master-modal .multi-select,.user-company-access-modal .multi-select{max-height:310px;padding:9px;border-color:#cfdad6;background:#fbfdfc}
 .account-subsidiary-summary{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 9px;padding:11px 12px;border-radius:8px;background:linear-gradient(135deg,#eaf7f2,#f5faf8);border:1px solid #cfe8df}
 .account-subsidiary-summary div{display:flex;align-items:baseline;gap:7px}
 .account-subsidiary-summary strong{color:#0f6f54;font:800 16px Manrope,sans-serif}
@@ -238,9 +269,13 @@ td{padding:15px 18px;border-top:1px solid #edf0f3;color:#344054;font-size:12px}
 .account-subsidiary-search{position:relative;margin-bottom:7px}
 .account-subsidiary-search>span{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#708079;font-size:16px;pointer-events:none}
 .form-grid .account-subsidiary-search input{height:38px;padding-left:32px;background:#fff}
-.account-master-modal .multi-option{border-bottom:1px solid #edf2f0;border-radius:0}
-.account-master-modal .multi-option:last-of-type{border-bottom:0}
+.account-master-modal .multi-option,.user-company-access-modal .multi-option{border-bottom:1px solid #edf2f0;border-radius:0}
+.account-master-modal .multi-option:last-of-type,.user-company-access-modal .multi-option:last-of-type{border-bottom:0}
 .account-subsidiary-help{display:block;margin-top:7px;color:#65766f;font-size:11px;line-height:1.45}
+.user-company-access-modal .modal-head{background:linear-gradient(135deg,#f4f8ff 0%,#f7fcfa 100%)}
+.user-company-access-modal .form-grid{padding-top:22px}
+.user-company-access-modal [data-field-key="user_id"]{grid-column:1/-1}
+.user-company-access-modal [data-field-key="user_id"] select:disabled{color:#344054;background:#f3f6f8;opacity:1;cursor:not-allowed}
 
 
 

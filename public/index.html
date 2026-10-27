@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="/login-refresh.css">
   <link rel="stylesheet" href="/login-position.css">
   <link rel="stylesheet" href="/password-recovery.css?v=20261026">
-  <link rel="stylesheet" href="/dashboard.css?v=20261026-sales-invoice-sorting">
+  <link rel="stylesheet" href="/dashboard.css?v=20261027-bank-statement-format">
   <link rel="stylesheet" href="/modal-scroll.css?v=20260911-entity-fullscreen">
   <link rel="stylesheet" href="/company-selection.css">
   <link rel="stylesheet" href="/subsidiary-branding.css?v=20260814">
@@ -378,11 +378,12 @@
 <a v-if="canCurrentAction('create')&&activeCatalog.slug==='invoices'&&currentModule==='Ventas'" class="new-record" href="/sales-invoice-entry.html"><span>＋</span> Crear factura</a>
 <a v-if="canCurrentAction('create')&&activeCatalog.slug==='supplier-debit-notes'" class="new-record" href="/supplier-note-entry.html?kind=DEBIT"><span>＋</span> Crear nota de débito</a>
 <a v-if="canCurrentAction('create')&&activeCatalog.slug==='debit-notes'" class="new-record" href="/sales-note-entry.html?kind=DEBIT"><span>＋</span> Crear nota de débito</a>
-<button v-if="canCurrentAction('create')&&activeCatalog.allowCreate !== false && !['credit-notes','debit-notes','supplier-credit-notes','supplier-debit-notes','invoices'].includes(activeCatalog.slug)" class="new-record" @click="openRecordForm()">
+<button v-if="activeCatalog.slug==='user-subsidiaries' && canCurrentAction('edit')" class="new-record" @click="openRecordForm()"><span>＋</span> Asignar empresas</button>
+<button v-if="canCurrentAction('create')&&activeCatalog.allowCreate !== false && activeCatalog.slug!=='user-subsidiaries' && !['credit-notes','debit-notes','supplier-credit-notes','supplier-debit-notes','invoices'].includes(activeCatalog.slug)" class="new-record" @click="openRecordForm()">
 <span>＋</span> Crear {{ activeCatalog.singular }}</button>
 </div>
 </div>
-          <div class="table-card">
+          <div class="table-card" :class="{'bank-statement-table-card':activeCatalog.slug==='bank-statements'}">
             <div class="table-tools">
 <div class="search-box">
 <span>⌕</span>
@@ -415,7 +416,7 @@
 </td>
 <td v-for="field in tableFields" :key="field.key" :class="'field-'+field.key">
 <strong v-if="field.key === 'name'" class="country-name">{{ displayValue(field,row[field.key]) }}</strong>
-<span v-else>{{ displayValue(field,row[field.key]) }}</span>
+<span v-else :class="{'bank-statement-amount':activeCatalog.slug==='bank-statements' &amp;&amp; field.numberFormat==='money','bank-statement-account':activeCatalog.slug==='bank-statements' &amp;&amp; field.key==='bank_account_id'}">{{ displayValue(field,row[field.key]) }}</span>
 </td>
 <td class="row-actions">
 <button v-if="activeCatalog.slug==='journals'" class="icon-action" title="Ver comprobante" aria-label="Ver asiento" @click="viewJournal(row)">
@@ -448,7 +449,7 @@
 <span>✎</span>
 <b>Editar</b>
 </button>
-<button class="icon-action view" title="Ver quién creó o modificó este registro" @click="openRecordAudit(row)"><b>Autoría</b></button>
+<button v-if="activeCatalog.allowAudit !== false" class="icon-action view" title="Ver quién creó o modificó este registro" @click="openRecordAudit(row)"><b>Autoría</b></button>
 <button v-if="canCurrentAction('delete')&&activeCatalog.allowDelete !== false" class="icon-action delete" :title="activeCatalog.slug === 'sessions' ? 'Revocar' : 'Eliminar'" @click="requestDelete(row)">
 <span>⌫</span>
 <b>{{ activeCatalog.slug === 'sessions' ? 'Revocar' : 'Eliminar' }}</b>
@@ -508,19 +509,19 @@
 </div>
 
     <div v-if="recordDialog.open" class="modal-backdrop" @click.self="closeRecordDialog">
-      <section class="modal" :class="{'entity-master-modal':['customers','suppliers'].includes(activeCatalog.slug),'subsidiary-master-modal':activeCatalog.slug==='subsidiaries','account-master-modal':activeCatalog.slug==='chart-accounts'}" role="dialog" aria-modal="true" aria-labelledby="country-modal-title">
+      <section class="modal" :class="{'entity-master-modal':['customers','suppliers'].includes(activeCatalog.slug),'subsidiary-master-modal':activeCatalog.slug==='subsidiaries','account-master-modal':activeCatalog.slug==='chart-accounts','user-company-access-modal':activeCatalog.slug==='user-subsidiaries','bank-statement-modal':activeCatalog.slug==='bank-statements'}" role="dialog" aria-modal="true" aria-labelledby="country-modal-title">
         <div class="modal-head">
 <div>
 <span class="modal-icon">{{ recordDialog.mode === 'audit' ? '◉' : recordDialog.mode === 'delete' ? '!' : (recordDialog.mode === 'view' ? '◉' : (recordDialog.id ? '✎' : '+')) }}</span>
 <div>
-<p>{{ recordDialog.mode === 'audit' ? 'CONTROL DEL REGISTRO' : recordDialog.mode === 'delete' ? 'CONFIRMAR ACCIÓN' : (activeCatalog.slug==='subsidiaries' ? 'CONFIGURACIÓN ORGANIZACIONAL' : 'CATÁLOGO DE CORE') }}</p>
-<h2 id="country-modal-title">{{ recordDialog.mode === 'audit' ? `Autoría: ${recordDialog.label}` : recordDialog.mode === 'delete' ? `Eliminar ${activeCatalog.singular}` : (recordDialog.mode === 'view' ? `Ver ${activeCatalog.singular}` : (recordDialog.id ? `Editar ${activeCatalog.singular}` : `Crear ${activeCatalog.singular}`)) }}</h2>
+<p>{{ recordDialog.mode === 'audit' ? 'CONTROL DEL REGISTRO' : recordDialog.mode === 'delete' ? 'CONFIRMAR ACCIÓN' : (activeCatalog.slug==='user-subsidiaries' ? 'SEGURIDAD · ACCESO POR EMPRESA' : (activeCatalog.slug==='subsidiaries' ? 'CONFIGURACIÓN ORGANIZACIONAL' : (activeCatalog.slug==='bank-statements' ? 'BANCOS · CONTROL DE EXTRACTOS' : 'CATÁLOGO DE CORE'))) }}</p>
+<h2 id="country-modal-title">{{ recordDialog.mode === 'audit' ? `Autoría: ${recordDialog.label}` : recordDialog.mode === 'delete' ? `Eliminar ${activeCatalog.singular}` : (recordDialog.mode === 'view' ? `Ver ${activeCatalog.singular}` : (activeCatalog.slug==='user-subsidiaries' ? (recordDialog.id ? 'Editar empresas autorizadas' : 'Asignar empresas a un usuario') : (recordDialog.id ? `Editar ${activeCatalog.singular}` : `Crear ${activeCatalog.singular}`))) }}</h2>
 </div>
 <div v-if="recordDialog.mode==='view'&&activeCatalog.slug==='customers'" class="customer-view-tabs"><button :class="{active:customerViewTab==='details'}" @click="customerViewTab='details'">Ver cliente</button><button :class="{active:customerViewTab==='costCenters'}" @click="customerViewTab='costCenters'">Ver centros de costos</button><button :class="{active:customerViewTab==='communications'}" @click="customerViewTab='communications'">Historial de Comunicaciones</button><button @click="openCustomerStatement(recordDialog.id)">Enviar Estado de Cuenta</button></div>
 </div>
 <button class="modal-close" @click="closeRecordDialog" aria-label="Cerrar">×</button>
 </div>
-        <record-audit v-if="recordDialog.mode !== 'delete'" :table="activeCatalog.table" :record-id="recordDialog.id"></record-audit>
+        <record-audit v-if="recordDialog.mode !== 'delete' && activeCatalog.allowAudit !== false" :table="activeCatalog.table" :record-id="recordDialog.id"></record-audit>
         <form v-if="recordDialog.mode === 'form'" :novalidate="activeCatalog.slug==='subsidiaries'" @submit.prevent="submitRecord">
 <nav v-if="activeCatalog.slug==='subsidiaries'" class="subsidiary-form-tabs" role="tablist" aria-label="Apartados de la subsidiaria">
 <button v-for="tab in subsidiaryTabs()" :id="`subsidiary-tab-${tab.id}`" :key="tab.id" type="button" role="tab" :aria-selected="subsidiaryFormTab===tab.id" :aria-controls="`subsidiary-panel-${tab.id}`" :class="{active:subsidiaryFormTab===tab.id}" @click="selectSubsidiaryTab(tab.id)">
@@ -530,7 +531,12 @@
 <section v-if="activeCatalog.slug==='subsidiaries'" :id="`subsidiary-panel-${subsidiaryFormTab}`" class="subsidiary-tab-heading" role="tabpanel" :aria-labelledby="`subsidiary-tab-${subsidiaryFormTab}`">
 <span>{{ subsidiaryActiveTab().eyebrow }}</span><h3>{{ subsidiaryActiveTab().title }}</h3><p>{{ subsidiaryActiveTab().description }}</p>
 </section>
-<div v-show="activeCatalog.slug!=='subsidiaries' || subsidiaryFormTab!=='tax'" class="form-grid" :class="{'subsidiary-tab-grid':activeCatalog.slug==='subsidiaries'}">
+<section v-if="activeCatalog.slug==='bank-statements'" class="bank-statement-form-overview">
+<span class="bank-statement-form-icon" aria-hidden="true">▤</span>
+<div><strong>Saldos del extracto bancario</strong><small>Seleccione la cuenta y registre los saldos oficiales de apertura y cierre.</small></div>
+<span class="bank-statement-company">{{ activeCompany?.name }}</span>
+</section>
+<div v-show="activeCatalog.slug!=='subsidiaries' || subsidiaryFormTab!=='tax'" class="form-grid" :class="{'subsidiary-tab-grid':activeCatalog.slug==='subsidiaries','bank-statement-form-grid':activeCatalog.slug==='bank-statements'}">
 <template v-for="field in formFields" :key="field.key"><div v-if="activeCatalog.slug==='customers' &amp;&amp; field.key==='envio_estado_cuenta_auto'" class="approver-section"><h3>Crédito y Cobro</h3></div>
 <label v-show="activeCatalog.slug!=='subsidiaries' || subsidiaryFieldTab(field.key)===subsidiaryFormTab" :data-field-key="field.key" :class="{'toggle-field':field.type==='boolean','multi-field':field.type==='multi-reference','subsidiary-field-wide':activeCatalog.slug==='subsidiaries' && ['logo_url','address','secondary_currency_ids'].includes(field.key),'user-invitation-field':activeCatalog.slug==='users' && field.key==='notify_user'}">
 <span>{{ field.label }}<b v-if="field.required"> *</b>
@@ -540,25 +546,29 @@
 <option v-for="option in field.options" :key="option" :value="option">{{ option }}</option>
 </select>
 <div v-else-if="field.type==='multi-reference'" class="multi-select">
-<div v-if="activeCatalog.slug==='chart-accounts' &amp;&amp; field.key==='subsidiary_ids'" class="account-subsidiary-summary">
-<div><strong>{{ selectedReferenceCount(field) }} de {{ filteredReferenceOptions(field).length }}</strong><span>subsidiarias habilitadas</span></div>
-<span v-if="allReferenceSelected(field)" class="account-subsidiary-status">Cobertura completa</span>
+<div v-if="['chart-accounts','user-subsidiaries'].includes(activeCatalog.slug) &amp;&amp; field.key==='subsidiary_ids'" class="account-subsidiary-summary">
+<div><strong>{{ selectedReferenceCount(field) }} de {{ filteredReferenceOptions(field).length }}</strong><span>{{ activeCatalog.slug==='user-subsidiaries' ? 'filiales asignadas' : 'subsidiarias habilitadas' }}</span></div>
+<span v-if="allReferenceSelected(field)" class="account-subsidiary-status">{{ activeCatalog.slug==='user-subsidiaries' ? 'Acceso completo' : 'Cobertura completa' }}</span>
 </div>
-<div v-if="activeCatalog.slug==='chart-accounts' &amp;&amp; field.key==='subsidiary_ids'" class="account-subsidiary-search">
+<div v-if="['chart-accounts','user-subsidiaries'].includes(activeCatalog.slug) &amp;&amp; field.key==='subsidiary_ids'" class="account-subsidiary-search">
 <span aria-hidden="true">⌕</span><input v-model.trim="accountSubsidiarySearch" type="search" placeholder="Buscar subsidiaria" aria-label="Buscar subsidiaria">
 </div>
 <button type="button" class="multi-all" @click="toggleAllReferences(field)">
 <span :class="{checked:allReferenceSelected(field)}">✓</span>{{ allReferenceSelected(field) ? 'Todas seleccionadas' : 'Seleccionar todas' }}</button>
 <label v-for="option in displayedReferenceOptions(field)" :key="referenceId(field.reference,option)" class="multi-option">
 <input v-model="recordDialog.values[field.key]" type="checkbox" :value="referenceId(field.reference,option)" @change="handleFieldChange(field)">
-<span>{{ referenceLabel(option) }}</span>
+<span>{{ referenceChoiceLabel(field,option) }}</span>
 </label>
 <small v-if="!displayedReferenceOptions(field).length">{{ accountSubsidiarySearch ? 'No hay subsidiarias que coincidan con la búsqueda.' : 'No hay opciones disponibles.' }}</small>
 </div>
-<select v-else-if="field.reference" v-model="recordDialog.values[field.key]" :required="fieldRequired(field)" :disabled="field.readOnly" @change="handleFieldChange(field)">
+<select v-else-if="field.reference" v-model="recordDialog.values[field.key]" :required="fieldRequired(field)" :disabled="field.readOnly || (field.readOnlyOnEdit &amp;&amp; recordDialog.id)" @change="handleReferenceFieldChange(field)">
 <option value="">{{ field.required ? 'Selecciona una opción' : 'Sin asignar' }}</option>
-<option v-for="option in filteredReferenceOptions(field)" :key="referenceId(field.reference,option)" :value="referenceId(field.reference,option)" :disabled="(field.reference==='organization/approver-options' && !option.is_active) || chartAccountUnavailable(field,option)">{{ referenceLabel(option) }}{{ field.reference==='organization/approver-options' && !option.is_active ? ' (Inactivo)' : chartAccountUnavailable(field,option) ? ' (No disponible para la subsidiaria)' : '' }}</option>
+<option v-for="option in filteredReferenceOptions(field)" :key="referenceId(field.reference,option)" :value="referenceId(field.reference,option)" :disabled="(field.reference==='organization/approver-options' && !option.is_active) || chartAccountUnavailable(field,option)">{{ referenceChoiceLabel(field,option) }}{{ field.reference==='organization/approver-options' && !option.is_active ? ' (Inactivo)' : chartAccountUnavailable(field,option) ? ' (No disponible para la subsidiaria)' : '' }}</option>
 </select>
+<div v-else-if="field.numberFormat==='money'" class="bank-statement-money-input">
+<span>{{ bankStatementCurrencyCode() }}</span>
+<input v-model="recordDialog.values[field.key]" type="text" inputmode="decimal" autocomplete="off" :required="fieldRequired(field)" :readonly="field.readOnly" placeholder="0,00" @focus="$event.target.select()" @blur="formatBankStatementMoneyField(field.key)">
+</div>
 <input v-else-if="field.type !== 'boolean'" v-model="recordDialog.values[field.key]" :type="field.type" :required="fieldRequired(field)" :readonly="field.readOnly" :placeholder="field.readOnly && !recordDialog.id ? 'Se asignará automáticamente' : ''">
 <span v-else class="gentia-switch-control">
 <input v-model="recordDialog.values[field.key]" class="gentia-switch-input" type="checkbox" role="switch" :disabled="field.readOnly || (activeCatalog.slug==='users' &amp;&amp; field.key==='notify_user' &amp;&amp; !recordDialog.values.is_active)">
@@ -615,7 +625,7 @@
 <p v-if="dialogError" class="dialog-error">{{ dialogError }}</p>
 <div class="modal-actions">
 <button type="button" class="button-secondary" @click="closeRecordDialog">Cancelar</button>
-<button v-if="activeCatalog.slug==='consolidated-exchange-rates'" type="button" class="button-secondary" :disabled="dialogSaving" @click="calculateConsolidatedRates">Calcular desde tasas diarias</button><button class="button-primary" :disabled="dialogSaving">{{ dialogSaving ? 'Guardando…' : (recordDialog.id ? 'Guardar cambios' : 'Crear registro') }}</button>
+<button v-if="activeCatalog.slug==='consolidated-exchange-rates'" type="button" class="button-secondary" :disabled="dialogSaving" @click="calculateConsolidatedRates">Calcular desde tasas diarias</button><button class="button-primary" :disabled="dialogSaving">{{ dialogSaving ? 'Guardando…' : (activeCatalog.slug==='user-subsidiaries' ? 'Guardar asignación' : (activeCatalog.slug==='bank-statements' ? (recordDialog.id ? 'Guardar extracto' : 'Crear extracto') : (recordDialog.id ? 'Guardar cambios' : 'Crear registro'))) }}</button>
 </div>
 </form>
         <div v-else-if="recordDialog.mode === 'audit'" class="modal-actions" style="padding:16px 24px"><button type="button" class="button-secondary" @click="closeRecordDialog">Cerrar</button></div>
@@ -637,7 +647,7 @@
   </main>
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
-<script type="module" src="/app.js?v=20261027-cost-center-department-user-password-link">
+<script type="module" src="/app.js?v=20261027-bank-statement-format">
 </script>
 <script src="/approval-notifications.js?v=20261023-second-pass"></script></body>
 </html>

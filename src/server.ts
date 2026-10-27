@@ -21,7 +21,7 @@ import { gzipSync } from 'node:zlib';
 import { authController } from './modules/auth/auth.module.js';
 import { createCountry, deleteCountry, listCountries, updateCountry } from './modules/countries/countries.module.js';
 import { createCatalogRow, deleteCatalogRow, getCoreCatalog, listCatalogRows, updateCatalogRow } from './modules/core-catalogs/core-catalogs.module.js';
-import { createSecurityRow, deleteSecurityRow, getSecurityCatalog, listSecurityRows, updateSecurityRow } from './modules/security-catalogs/security-catalogs.module.js';
+import { createSecurityRow, deleteSecurityRow, getSecurityCatalog, listSecurityRows, listUserSubsidiaryOptions, updateSecurityRow } from './modules/security-catalogs/security-catalogs.module.js';
 import { assertRoleAccess, isRoleAccessResource, myRoleAccess, roleAccessMatrix, saveRoleAccessMatrix } from './modules/security-catalogs/role-access-matrix.module.js';
 import { listSubsidiaryApprovers, createOrganizationRow, deleteOrganizationRow, getOrganizationCatalog, listOrganizationRows, updateOrganizationRow } from './modules/organization-catalogs/organization-catalogs.module.js';
 import { exportCostCenters } from './modules/organization-catalogs/cost-center-export.service.js';
@@ -40,7 +40,7 @@ import { salesWorkflowOptions, salesDocuments, salesDocumentDetail, saveSalesDoc
 import { customerPaymentOptions, customerPaymentReport, customerPaymentDetail, saveCustomerPayment, deleteCustomerPayment } from './modules/sales-catalogs/customer-payment.service.js';
 import { downloadCustomerPaymentPdf } from './modules/sales-catalogs/customer-payment-pdf.service.js';
 import { saveSalesNote } from './modules/sales-catalogs/sales-note.service.js';
-import { createBankingRow, deleteBankingRow, getBankingCatalog, listBankingRows, updateBankingRow } from './modules/banking-catalogs/banking-catalogs.module.js';
+import { createBankingRow, deleteBankingRow, getBankingCatalog, listBankingRows, listBankStatementAccountOptions, updateBankingRow } from './modules/banking-catalogs/banking-catalogs.module.js';
 import { createTreasuryRow, deleteTreasuryRow, getTreasuryCatalog, listTreasuryRows, updateTreasuryRow } from './modules/treasury-catalogs/treasury-catalogs.module.js';
 import { treasuryWorkspace, saveTreasuryOperation, saveTreasurySchedule, deleteTreasurySchedule } from './modules/treasury-catalogs/treasury-workspace.service.js';
 import { createEntityRow, deleteEntityRow, getEntityCatalog, listEntityRows, updateEntityRow } from './modules/entity-catalogs/entity-catalogs.module.js';
@@ -103,7 +103,7 @@ import { bankTransferJournal, bankTransferOptions, createBankTransfer, runBankTr
 import { bankDepositOptions, saveBankDeposit, listBankDeposits, bankDepositDetail, updateBankDeposit, deleteBankDeposit } from './modules/banking-catalogs/bank-deposit.service.js';
 import { bankCheckOptions, saveBankCheck, bankCheckReport, bankCheckDetail, deleteBankCheck } from './modules/banking-catalogs/bank-check.service.js';
 import { bankCheckPeriods } from './modules/banking-catalogs/bank-check-period.service.js';
-import { bankFeeOptions, saveBankFee, importBankFees, bankFeeReport, bankFeeDetail, updateBankFee, deleteBankFee } from './modules/banking-catalogs/bank-fee.service.js';
+import { bankFeeOptions, saveBankFee, importBankFees, bankFeeReport, bankFeeDetail, updateBankFee, deleteBankFee, registerStatementBankFees } from './modules/banking-catalogs/bank-fee.service.js';
 import { autoMatchQuadraticReconciliation, deleteQuadraticReconciliationItem, exportQuadraticReconciliationExcel, exportQuadraticReconciliationPdf, getQuadraticReconciliation, getQuadraticReconciliationMatrix, listQuadraticReconciliations, matchQuadraticReconciliation, quadraticReconciliationOptions, saveQuadraticReconciliation, saveQuadraticReconciliationItem, transitionQuadraticReconciliation, unmatchQuadraticReconciliation } from './modules/banking-catalogs/quadratic-reconciliation.service.js';
 import { purchaseWorkflowOptions, purchaseDocuments, purchaseDocumentDetail, savePurchaseDocument, deletePurchaseDocument } from './modules/purchasing-catalogs/purchase-workflow.service.js';
 import { supplierPaymentOptions, supplierPaymentReport, supplierPaymentDetail, saveSupplierPayment, deleteSupplierPayment } from './modules/purchasing-catalogs/supplier-payment.service.js';
@@ -398,6 +398,12 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(request.method==='POST'&&request.url==='/api/banking/transfers/report'){return json(response,200,await runBankTransferReport(request.headers.authorization!,await body(request) as Record<string,unknown>));}
     const transferJournalRoute=request.url?.match(/^\/api\/banking\/transfers\/(\d+)\/journal$/);if(request.method==='GET'&&transferJournalRoute){return json(response,200,await bankTransferJournal(request.headers.authorization!,Number(transferJournalRoute[1])));}
     if(request.method==='POST'&&['/api/reports/accounting/bank-reconciliation/pdf','/api/reports/accounting/pending-invoice-control/pdf'].includes(request.url??'')){return json(response,200,await renderBankReconciliationPdf(await body(request) as Record<string,unknown>));}
+    if(request.method==='POST'&&request.url==='/api/reports/accounting/bank-reconciliation/bank-fees'){
+      const authorization=request.headers.authorization;
+      if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');
+      await assertRoleAccess(authorization,'banking:bank-fees','create');
+      return json(response,201,{result:await registerStatementBankFees(authorization,await body(request) as Record<string,unknown>)});
+    }
     const bankActionRoute=request.url?.match(/^\/api\/reports\/accounting\/bank-reconciliation\/(import|auto|match|close|close-report)$/);
     if(request.method==='POST'&&bankActionRoute){return json(response,200,{result:await bankReconciliationAction(request.headers.authorization!,bankActionRoute[1],await body(request) as Record<string,unknown>)});}
      const journalReverseRoute=request.url?.match(/^\/api\/reports\/accounting\/journal\/(\d+)\/reverse$/);
@@ -433,7 +439,7 @@ const server = createServer((request, response) => withAuditExecution(async () =
       return json(response,200,await sendExistingUserPasswordLink(authorization,Number(userPasswordLinkRoute[1])));
     }
     const accessUrl=new URL(request.url??'/',`http://${request.headers.host??'localhost'}`),accessRoute=accessUrl.pathname.match(/^\/api\/(core|security|organization|configuration|accounting|banking|treasury|entities|inventory|sales|transaction-engine|purchasing|expenses|fixed-assets|workflow|documents|audit|consolidation|ai)\/([a-z-]+)(?:\/\d+)?$/);
-    if(accessRoute){const resourceKey=`${accessRoute[1]}:${accessRoute[2]}`;if(isRoleAccessResource(resourceKey)){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');await assertRoleAccess(authorization,resourceKey,request.method==='GET'?'view':request.method==='POST'?'create':request.method==='PATCH'?'edit':'delete');}}
+    if(accessRoute){const resourceKey=`${accessRoute[1]}:${accessRoute[2]}`;if(isRoleAccessResource(resourceKey)){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const accessAction=request.method==='GET'?'view':request.method==='PATCH'||(request.method==='POST'&&resourceKey==='security:user-subsidiaries')?'edit':request.method==='POST'?'create':'delete';await assertRoleAccess(authorization,resourceKey,accessAction);}}
     const coreRoute = request.url?.match(/^\/api\/core\/([a-z-]+)(?:\/(\d+))?$/);
     if (coreRoute) {
       const authorization = request.headers.authorization;
@@ -454,6 +460,12 @@ const server = createServer((request, response) => withAuditExecution(async () =
       const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para administrar Seguridad.');
       if(request.method==='GET')return json(response,200,await roleAccessMatrix(authorization,Number(securityAccessUrl.searchParams.get('roleId')||0)));
       if(request.method==='POST')return json(response,200,await saveRoleAccessMatrix(authorization,await body(request)as Record<string,unknown>));
+    }
+    if(securityAccessUrl.pathname==='/api/security/user-subsidiaries/options'&&request.method==='GET'){
+      const authorization=request.headers.authorization;
+      if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para administrar Seguridad.');
+      await assertRoleAccess(authorization,'security:user-subsidiaries','view');
+      return json(response,200,await listUserSubsidiaryOptions(authorization));
     }
     const securityRoute = request.url?.match(/^\/api\/security\/([a-z-]+)(?:\/(\d+))?$/);
     if (securityRoute) {
@@ -670,6 +682,7 @@ const server = createServer((request, response) => withAuditExecution(async () =
       }
     }
     const accountingRoute=request.url?.match(/^\/api\/accounting\/([a-z-]+)(?:\/(\d+))?$/);if(accountingRoute){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para administrar Contabilidad.');const catalog=getAccountingCatalog(accountingRoute[1]);const id=accountingRoute[2]?Number(accountingRoute[2]):null;if(request.method==='GET'&&id===null)return json(response,200,await listAccountingRows(catalog,authorization));if(request.method==='POST'&&id===null)return json(response,201,await createAccountingRow(catalog,authorization,await body(request)as Record<string,unknown>));if(request.method==='PATCH'&&id!==null)return json(response,200,await updateAccountingRow(catalog,authorization,id,await body(request)as Record<string,unknown>));if(request.method==='DELETE'&&id!==null){await deleteAccountingRow(catalog,authorization,id);return json(response,200,{success:true});}}
+    if(request.method==='GET'&&request.url==='/api/banking/bank-statements/account-options'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para consultar las cuentas de extractos bancarios.');return json(response,200,await listBankStatementAccountOptions(authorization));}
     const bankingRoute=request.url?.match(/^\/api\/banking\/([a-z-]+)(?:\/(\d+))?$/);if(bankingRoute){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para administrar Bancos.');const catalog=getBankingCatalog(bankingRoute[1]);const id=bankingRoute[2]?Number(bankingRoute[2]):null;if(request.method==='GET'&&id===null)return json(response,200,await listBankingRows(catalog,authorization));if(request.method==='POST'&&id===null)return json(response,201,await createBankingRow(catalog,authorization,await body(request)as Record<string,unknown>));if(request.method==='PATCH'&&id!==null)return json(response,200,await updateBankingRow(catalog,authorization,id,await body(request)as Record<string,unknown>));if(request.method==='DELETE'&&id!==null){await deleteBankingRow(catalog,authorization,id);return json(response,200,{success:true});}}
     const treasuryRoute=request.url?.match(/^\/api\/treasury\/([a-z-]+)(?:\/(\d+))?$/);if(treasuryRoute){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para administrar Tesorería.');const catalog=getTreasuryCatalog(treasuryRoute[1]);const id=treasuryRoute[2]?Number(treasuryRoute[2]):null;if(request.method==='GET'&&id===null)return json(response,200,await listTreasuryRows(catalog,authorization));if(request.method==='POST'&&id===null)return json(response,201,await createTreasuryRow(catalog,authorization,await body(request)as Record<string,unknown>));if(request.method==='PATCH'&&id!==null)return json(response,200,await updateTreasuryRow(catalog,authorization,id,await body(request)as Record<string,unknown>));if(request.method==='DELETE'&&id!==null){await deleteTreasuryRow(catalog,authorization,id);return json(response,200,{success:true});}}
     const entityExportUrl=new URL(request.url??'/','http://localhost'),entityExportRoute=entityExportUrl.pathname.match(/^\/api\/entities\/([a-z-]+)\/export$/);

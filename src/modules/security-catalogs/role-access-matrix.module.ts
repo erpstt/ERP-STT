@@ -28,10 +28,11 @@ const viewOnly = new Set([
   'permissions','sessions','devices','login-history','password-history','gl-impacts','audit-logs','system-logs',
   'consolidated-trial-balances','consolidated-financial-statements'
 ]);
+const viewAndEditOnly = new Set(['user-subsidiaries']);
 const noDelete = new Set(['users','roles','menus','journals','invoices','supplier-invoices','credit-notes','debit-notes','supplier-credit-notes','supplier-debit-notes']);
 const catalogs = (moduleKey:string,moduleName:string,items:Catalog[]) => items.map(item => ({
   key:`${moduleKey}:${item.slug}`, moduleKey, moduleName, optionName:item.title,
-  actions:(viewOnly.has(item.slug)?['view']:noDelete.has(item.slug)?['view','create','edit']:['view','create','edit','delete']) as Action[]
+  actions:(viewOnly.has(item.slug)?['view']:viewAndEditOnly.has(item.slug)?['view','edit']:noDelete.has(item.slug)?['view','create','edit']:['view','create','edit','delete']) as Action[]
 }));
 const custom = (moduleKey:string,moduleName:string,optionName:string,key:string,actions:Action[]=['view']) => ({key:`${moduleKey}:${key}`,moduleKey,moduleName,optionName,actions});
 

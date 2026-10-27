@@ -19,6 +19,10 @@ const migration = await readFile(
   new URL('../supabase/migrations/20261026115000_bank_statement_active_subsidiary_rls.sql', import.meta.url),
   'utf8'
 );
+const optionsMigration = await readFile(
+  new URL('../supabase/migrations/20261027180000_bank_statement_account_options.sql', import.meta.url),
+  'utf8'
+);
 
 async function assume(identity, sessionId) {
   await db.query('reset role');
@@ -68,6 +72,7 @@ try {
   await db.query('begin');
   await db.query("set local lock_timeout='5s'; set local statement_timeout='90s'");
   await db.query(migration);
+  await db.query(optionsMigration);
 
   const nonce = crypto.randomUUID().replaceAll('-', '');
   const subsidiaries = (await db.query(`
@@ -195,6 +200,24 @@ try {
   await assume(administrator, adminSessionA);
   assert.deepEqual(
     (await db.query(`
+      select bank_account_id,subsidiary_id,bank_name,account_number,currency_code
+      from public.bank_statement_account_options()
+      where bank_account_id=any($1::bigint[])
+    `, [[bankAccountA.bank_account_id, bankAccountB.bank_account_id]])).rows.map(row => ({
+      ...row,
+      bank_account_id: Number(row.bank_account_id),
+      subsidiary_id: Number(row.subsidiary_id)
+    })),
+    [{
+      bank_account_id: Number(bankAccountA.bank_account_id),
+      subsidiary_id: Number(subsidiaryA.subsidiary_id),
+      bank_name: `Banco aislamiento 1 ${nonce.slice(0, 8)}`,
+      account_number: `TEST-1-${nonce.slice(0, 16)}`,
+      currency_code: (await db.query('select currency_code from public.currencies where currency_id=$1',[subsidiaryA.currency_id])).rows[0].currency_code
+    }]
+  );
+  assert.deepEqual(
+    (await db.query(`
       select statement_id from public.bank_statement
       where statement_id=any($1::bigint[])
       order by statement_id
@@ -241,6 +264,13 @@ try {
   `, [disposable.statement_id])).rowCount, 1);
 
   await assume(administrator, adminSessionB);
+  assert.deepEqual(
+    (await db.query(`
+      select bank_account_id from public.bank_statement_account_options()
+      where bank_account_id=any($1::bigint[])
+    `, [[bankAccountA.bank_account_id, bankAccountB.bank_account_id]])).rows,
+    [{ bank_account_id: bankAccountB.bank_account_id }]
+  );
   assert.deepEqual(
     (await db.query(`
       select statement_id from public.bank_statement
@@ -294,6 +324,7 @@ try {
   console.log(JSON.stringify({
     administratorScopedToActiveSubsidiary: true,
     companySwitchChangesVisibility: true,
+    accountOptionsScopedToActiveSubsidiary: true,
     statementLinesScopedWithHeader: true,
     roleActionsRechecked: true,
     crossSubsidiaryWritesBlocked: true,
