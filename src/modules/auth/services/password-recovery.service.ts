@@ -17,6 +17,13 @@ type RecoveryGrant = {
   created_at: string;
 };
 
+type RecoveryUser = {
+  user_id: number;
+  email: string;
+  auth_user_id: string | null;
+  is_active: boolean;
+};
+
 type AttemptBucket = { timestamps: number[] };
 
 const REQUEST_WINDOW_MS = 60 * 60 * 1_000;
@@ -47,6 +54,14 @@ function normalizeEmail(value: unknown) {
     throw new PasswordRecoveryError('Ingrese un correo electrónico válido.');
   }
   return email;
+}
+
+function authUserId(value: unknown) {
+  const id = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(id)) {
+    throw new PasswordRecoveryError('El enlace de recuperación no es válido o ya expiró.', 401);
+  }
+  return id;
 }
 
 function safeHexEqual(left: string, right: string) {
@@ -237,9 +252,10 @@ export async function completePasswordRecovery(
   const userResponse = await fetchSupabase(new URL('/auth/v1/user', config.url), {
     headers: { apikey: config.anonKey, Authorization: `Bearer ${token}` }
   });
-  const userPayload = await payload(userResponse) as { email?: unknown } | null;
+  const userPayload = await payload(userResponse) as { id?: unknown; email?: unknown } | null;
   const email = userResponse.ok && typeof userPayload?.email === 'string' ? userPayload.email.trim().toLowerCase() : '';
   if (!email) throw new PasswordRecoveryError('El enlace de recuperación no es válido o ya expiró.', 401);
+  const identityId = authUserId(userPayload?.id);
 
   const stateHash = sha256(state);
   const grants = await serviceRest<RecoveryGrant[]>(
@@ -252,21 +268,29 @@ export async function completePasswordRecovery(
     throw new PasswordRecoveryError('El enlace de recuperación no es válido o ya expiró.', 401);
   }
 
-  const users = await serviceRest<Array<{ user_id: number; is_active: boolean }>>(
-    `users?select=user_id,is_active&email=eq.${encodeURIComponent(email)}&limit=1`
+  const users = await serviceRest<RecoveryUser[]>(
+    `users?select=user_id,email,auth_user_id,is_active&email=eq.${encodeURIComponent(email)}&auth_user_id=eq.${encodeURIComponent(identityId)}&limit=1`
   );
-  if (users[0] && !users[0].is_active) {
+  const recoveryUser = users[0];
+  const erpEmail = typeof recoveryUser?.email === 'string' ? recoveryUser.email.trim().toLowerCase() : '';
+  const erpAuthUserId = typeof recoveryUser?.auth_user_id === 'string' ? recoveryUser.auth_user_id.trim().toLowerCase() : '';
+  const userId = Number(recoveryUser?.user_id);
+  if (
+    !recoveryUser?.is_active ||
+    erpEmail !== email ||
+    erpAuthUserId !== identityId ||
+    !Number.isSafeInteger(userId) ||
+    userId <= 0
+  ) {
     throw new PasswordRecoveryError('El enlace de recuperación no es válido o ya expiró.', 401);
   }
-  const userId = users[0]?.user_id;
-  if (userId) {
-    const history = await serviceRest<Array<{ password_hash: string }>>(
-      `password_history?select=password_hash&user_id=eq.${userId}&order=created_at.desc&limit=6`
-    );
-    for (const item of history) {
-      if (await verifyPassword(newPassword, item.password_hash)) {
-        throw new PasswordRecoveryError('No puede reutilizar ninguna de sus últimas 6 contraseñas.');
-      }
+
+  const history = await serviceRest<Array<{ password_hash: string }>>(
+    `password_history?select=password_hash&user_id=eq.${userId}&order=created_at.desc&limit=6`
+  );
+  for (const item of history) {
+    if (await verifyPassword(newPassword, item.password_hash)) {
+      throw new PasswordRecoveryError('No puede reutilizar ninguna de sus últimas 6 contraseñas.');
     }
   }
 
@@ -285,19 +309,17 @@ export async function completePasswordRecovery(
     throw new PasswordRecoveryError('No fue posible actualizar la contraseña. Solicite un nuevo enlace e intente nuevamente.', 400);
   }
 
-  if (userId) {
-    let maintenanceFailure = false;
-    try {
-      await serviceRest('password_history', {
-        method: 'POST',
-        headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify({ user_id: userId, password_hash: await hashPassword(newPassword) })
-      });
-    } catch { maintenanceFailure = true; }
-    try { await serviceRest(`sessions?user_id=eq.${userId}`, { method: 'DELETE' }); }
-    catch { maintenanceFailure = true; }
-    if (maintenanceFailure) console.error('[PasswordRecovery] La contraseña cambió, pero falló el mantenimiento del historial o las sesiones.');
-  }
+  let maintenanceFailure = false;
+  try {
+    await serviceRest('password_history', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ user_id: userId, password_hash: await hashPassword(newPassword) })
+    });
+  } catch { maintenanceFailure = true; }
+  try { await serviceRest(`sessions?user_id=eq.${userId}`, { method: 'DELETE' }); }
+  catch { maintenanceFailure = true; }
+  if (maintenanceFailure) console.error('[PasswordRecovery] La contraseña cambió, pero falló el mantenimiento del historial o las sesiones.');
   await fetchSupabase(new URL('/auth/v1/logout?scope=global', config.url), {
     method: 'POST',
     headers: { apikey: config.anonKey, Authorization: `Bearer ${token}` }

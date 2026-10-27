@@ -1,15 +1,16 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
+import nodemailer from 'nodemailer';
 
 const provisioning=await import('../dist/modules/auth/services/user-provisioning.service.js');
-const originalFetch=globalThis.fetch,originalEnvironment={...process.env};
+const originalFetch=globalThis.fetch,originalEnvironment={...process.env},originalCreateTransport=nodemailer.createTransport;
 const authId='123e4567-e89b-42d3-a456-426614174000';
 const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
 const hash=value=>createHash('sha256').update(value).digest('hex');
 function configure(){process.env.SUPABASE_URL='https://project.example.test';process.env.SUPABASE_ANON_KEY='anon';process.env.SUPABASE_SERVICE_ROLE_KEY='service';process.env.GENTIA_APP_URL='https://erp.example.test';delete process.env.SMTP_HOST;delete process.env.SMTP_FROM;}
 function jwt(method='otp',issuedAt=Math.floor(Date.now()/1000)){const enc=value=>Buffer.from(JSON.stringify(value)).toString('base64url');return`${enc({alg:'none'})}.${enc({iat:issuedAt,exp:issuedAt+3600,role:'authenticated',aud:'authenticated',amr:[{method,timestamp:issuedAt}]})}.signature`;}
-test.beforeEach(configure);test.afterEach(()=>{globalThis.fetch=originalFetch;process.env={...originalEnvironment};});
+test.beforeEach(configure);test.afterEach(()=>{globalThis.fetch=originalFetch;process.env={...originalEnvironment};nodemailer.createTransport=originalCreateTransport;});
 
 test('crea Auth y ERP, genera un enlace seguro y habilita recuperación si SMTP falla',async()=>{
   let authBody,grantBody,erpBody,fallbackBody,authDeleted=false,grantDeletes=0,createAuthorization='';const usersAuthorizations=[];
@@ -58,6 +59,54 @@ test('compensa la cuenta Auth si falla la creación del usuario ERP',async()=>{
 test('reporta intervención si no puede compensar un alta incompleta',async()=>{
   globalThis.fetch=async(input,init={})=>{const url=new URL(String(input));if(url.pathname==='/rest/v1/users'&&(init.method??'GET')==='GET')return json([]);if(url.pathname==='/auth/v1/admin/users'&&init.method==='POST')return json({id:authId,email:'huerfano@example.com'});if(url.pathname==='/rest/v1/rpc/security_create_user'&&init.method==='POST')return json({message:'fallo ERP'},500);if(url.pathname===`/auth/v1/admin/users/${authId}`&&init.method==='DELETE')return json({message:'fallo compensación'},500);throw new Error(`Solicitud inesperada: ${url.pathname}`);};
   await assert.rejects(()=>provisioning.createSecurityUser('Bearer actor',{email:'huerfano@example.com',first_name:'Alta',last_name:'Incompleta',notify_user:false}),error=>error?.status===500&&/intervención administrativa/i.test(error.message));
+});
+
+test('autoriza actor, subsidiaria y objetivo antes de usar service role para recuperar acceso',async()=>{
+  const calls=[];
+  globalThis.fetch=async(input,init={})=>{const url=new URL(String(input));calls.push(`${init.method??'GET'} ${url.pathname}`);assert.equal(url.pathname,'/rest/v1/rpc/security_prepare_user_password_recovery');assert.equal(new Headers(init.headers).get('authorization'),'Bearer actor');return json({message:'El usuario no está disponible para recuperar su acceso.'},403);};
+  await assert.rejects(()=>provisioning.sendExistingUserPasswordLink('Bearer actor',30),error=>error?.status===403);
+  assert.deepEqual(calls,['POST /rest/v1/rpc/security_prepare_user_password_recovery']);
+});
+
+test('edición envía recovery de un solo uso, conserva enlaces concurrentes hasta el consumo y no devuelve secretos',async()=>{
+  process.env.SMTP_HOST='smtp.example.test';process.env.SMTP_FROM='seguridad@example.test';process.env.SMTP_PORT='587';process.env.EMAIL_NOTIFICATIONS_ENABLED='true';
+  let generatedBody,grantBody,mailMessage,concurrentGrantsDeleted=false,audited=false;
+  nodemailer.createTransport=()=>({sendMail:async message=>{mailMessage=message;return{accepted:['persona@example.com'],messageId:'mail-1'};},close(){}});
+  globalThis.fetch=async(input,init={})=>{
+    const url=new URL(String(input)),method=init.method??'GET';
+    if(url.pathname==='/rest/v1/rpc/security_prepare_user_password_recovery'){assert.equal(new Headers(init.headers).get('authorization'),'Bearer actor');return json({actor_user_id:7,subsidiary_id:4,user_id:21,email:'persona@example.com',first_name:'María',last_name:'Pérez'});}
+    if(url.pathname==='/rest/v1/users'&&method==='GET')return json([{user_id:21,email:'persona@example.com',auth_user_id:authId,is_active:true}]);
+    if(url.pathname==='/rest/v1/password_recovery_grants'&&method==='DELETE'&&url.searchParams.has('expires_at'))return new Response(null,{status:204});
+    if(url.pathname==='/rest/v1/password_recovery_grants'&&method==='POST'){grantBody=JSON.parse(String(init.body));return new Response(null,{status:201});}
+    if(url.pathname==='/auth/v1/admin/generate_link'){generatedBody=JSON.parse(String(init.body));return json({user:{id:authId,email:'persona@example.com'},properties:{action_link:`https://project.example.test/auth/v1/verify?token=admin-secret&type=recovery&redirect_to=${encodeURIComponent(generatedBody.redirect_to)}`,redirect_to:generatedBody.redirect_to}});}
+    if(url.pathname==='/rest/v1/rpc/user_password_recovery_email_settings'){assert.deepEqual(JSON.parse(String(init.body)),{p_action:'delivery',p_payload:{}});return json({template:{activo:true,asunto_template:'Recupera tu acceso a {{empresa_nombre}}',cuerpo_template:'<p>Hola {{usuario_nombre}}, define tu nueva clave.</p>'},subsidiary:{name:'Empresa',logo:null}});}
+    if(url.pathname==='/rest/v1/password_recovery_grants'&&method==='DELETE'){concurrentGrantsDeleted=true;return new Response(null,{status:204});}
+    if(url.pathname==='/rest/v1/rpc/security_audit_user_password_notification'){audited=true;assert.equal(new Headers(init.headers).get('authorization'),'Bearer service');assert.deepEqual(JSON.parse(String(init.body)),{p_actor_user_id:7,p_target_user_id:21,p_subsidiary_id:4,p_result:'ENVIADO'});return json(true);}
+    throw new Error(`Solicitud inesperada: ${method} ${url.pathname}${url.search}`);
+  };
+  const result=await provisioning.sendExistingUserPasswordLink('Bearer actor',21);
+  assert.equal(generatedBody.type,'recovery');assert.match(generatedBody.redirect_to,/password_recovery=1/);assert.match(generatedBody.redirect_to,/state=/);
+  const state=new URL(generatedBody.redirect_to).searchParams.get('state');assert.equal(grantBody.state_hash,hash(state));assert.equal(grantBody.email_hash,hash('persona@example.com'));
+  assert.equal(concurrentGrantsDeleted,false);assert.equal(audited,true);assert.match(mailMessage.html,/RECUPERACIÓN SEGURA/);assert.match(mailMessage.html,/contraseña actual no se conoce/);
+  assert.equal(result.status,'RECUPERACION_ENVIADA');assert.equal(JSON.stringify(result).includes('admin-secret'),false);assert.equal(JSON.stringify(result).includes(state),false);assert.equal(JSON.stringify(result).toLowerCase().includes('password'),false);
+});
+
+test('si el SMTP aceptó el correo conserva el grant y reporta una advertencia si falla la auditoría',async()=>{
+  process.env.SMTP_HOST='smtp.example.test';process.env.SMTP_FROM='seguridad@example.test';process.env.SMTP_PORT='587';process.env.EMAIL_NOTIFICATIONS_ENABLED='true';
+  let generatedBody,newStateHash='',newGrantDeleted=false,mailAccepted=false;
+  nodemailer.createTransport=()=>({sendMail:async()=>{mailAccepted=true;return{accepted:['mantenimiento@example.com'],messageId:'mail-maintenance'};},close(){}});
+  globalThis.fetch=async(input,init={})=>{const url=new URL(String(input)),method=init.method??'GET';if(url.pathname==='/rest/v1/rpc/security_prepare_user_password_recovery')return json({actor_user_id:7,subsidiary_id:4,user_id:23,email:'mantenimiento@example.com',first_name:'Enlace',last_name:'Vigente'});if(url.pathname==='/rest/v1/users'&&method==='GET')return json([{user_id:23,email:'mantenimiento@example.com',auth_user_id:authId,is_active:true}]);if(url.pathname==='/rest/v1/password_recovery_grants'&&method==='DELETE'&&url.searchParams.has('expires_at'))return new Response(null,{status:204});if(url.pathname==='/rest/v1/password_recovery_grants'&&method==='POST'){newStateHash=JSON.parse(String(init.body)).state_hash;return new Response(null,{status:201});}if(url.pathname==='/auth/v1/admin/generate_link'){generatedBody=JSON.parse(String(init.body));return json({user:{id:authId,email:'mantenimiento@example.com'},action_link:`https://project.example.test/auth/v1/verify?token=secret&type=recovery&redirect_to=${encodeURIComponent(generatedBody.redirect_to)}`,redirect_to:generatedBody.redirect_to});}if(url.pathname==='/rest/v1/rpc/user_password_recovery_email_settings')return json({template:{activo:true,asunto_template:'Recupera {{empresa_nombre}}',cuerpo_template:'<p>Hola {{usuario_nombre}}</p>'},subsidiary:{name:'Empresa'}});if(url.pathname==='/rest/v1/password_recovery_grants'&&method==='DELETE'&&url.searchParams.get('state_hash')===`eq.${newStateHash}`){newGrantDeleted=true;return new Response(null,{status:204});}if(url.pathname==='/rest/v1/rpc/security_audit_user_password_notification')return json({message:'auditoría no disponible'},500);throw new Error(`Solicitud inesperada: ${method} ${url.pathname}${url.search}`);};
+  const result=await provisioning.sendExistingUserPasswordLink('Bearer actor',23);
+  assert.equal(mailAccepted,true);assert.equal(newGrantDeleted,false);assert.equal(result.sent,true);assert.equal(result.status,'RECUPERACION_ENVIADA_MANTENIMIENTO_PENDIENTE');assert.match(result.message,/auditoría requiere revisión/i);
+});
+
+test('si SMTP falla elimina solo el grant nuevo y conserva enlaces anteriores',async()=>{
+  process.env.SMTP_HOST='smtp.example.test';process.env.SMTP_FROM='seguridad@example.test';process.env.SMTP_PORT='587';process.env.EMAIL_NOTIFICATIONS_ENABLED='true';
+  let generatedBody,newStateHash='',newGrantDeleted=false,olderGrantsDeleted=false;
+  nodemailer.createTransport=()=>({sendMail:async()=>{throw new Error('SMTP caído');},close(){}});
+  globalThis.fetch=async(input,init={})=>{const url=new URL(String(input)),method=init.method??'GET';if(url.pathname==='/rest/v1/rpc/security_prepare_user_password_recovery')return json({actor_user_id:7,subsidiary_id:4,user_id:22,email:'fallo-correo@example.com',first_name:'Correo',last_name:'Fallido'});if(url.pathname==='/rest/v1/users'&&method==='GET')return json([{user_id:22,email:'fallo-correo@example.com',auth_user_id:authId,is_active:true}]);if(url.pathname==='/rest/v1/password_recovery_grants'&&method==='DELETE'&&url.searchParams.has('expires_at'))return new Response(null,{status:204});if(url.pathname==='/rest/v1/password_recovery_grants'&&method==='POST'){newStateHash=JSON.parse(String(init.body)).state_hash;return new Response(null,{status:201});}if(url.pathname==='/auth/v1/admin/generate_link'){generatedBody=JSON.parse(String(init.body));return json({user:{id:authId,email:'fallo-correo@example.com'},action_link:`https://project.example.test/auth/v1/verify?token=secret&type=recovery&redirect_to=${encodeURIComponent(generatedBody.redirect_to)}`,redirect_to:generatedBody.redirect_to});}if(url.pathname==='/rest/v1/rpc/user_password_recovery_email_settings')return json({template:{activo:true,asunto_template:'Recupera tu acceso a {{empresa_nombre}}',cuerpo_template:'<p>Hola {{usuario_nombre}}</p>'},subsidiary:{name:'Empresa'}});if(url.pathname==='/rest/v1/password_recovery_grants'&&method==='DELETE'){if(url.searchParams.get('state_hash')===`eq.${newStateHash}`)newGrantDeleted=true;else olderGrantsDeleted=true;return new Response(null,{status:204});}if(url.pathname==='/rest/v1/rpc/security_audit_user_password_notification'){assert.deepEqual(JSON.parse(String(init.body)),{p_actor_user_id:7,p_target_user_id:22,p_subsidiary_id:4,p_result:'ERROR'});return json(true);}throw new Error(`Solicitud inesperada: ${method} ${url.pathname}${url.search}`);};
+  await assert.rejects(()=>provisioning.sendExistingUserPasswordLink('Bearer actor',22),error=>error?.status===503&&/No fue posible enviar el enlace/i.test(error.message));
+  assert.equal(newGrantDeleted,true);assert.equal(olderGrantsDeleted,false);
 });
 
 test('completa una invitación de un solo uso y registra la contraseña',async()=>{

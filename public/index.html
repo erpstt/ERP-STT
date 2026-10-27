@@ -561,13 +561,14 @@
 </select>
 <input v-else-if="field.type !== 'boolean'" v-model="recordDialog.values[field.key]" :type="field.type" :required="fieldRequired(field)" :readonly="field.readOnly" :placeholder="field.readOnly && !recordDialog.id ? 'Se asignará automáticamente' : ''">
 <span v-else class="gentia-switch-control">
-<input v-model="recordDialog.values[field.key]" class="gentia-switch-input" type="checkbox" role="switch" :disabled="field.readOnly">
+<input v-model="recordDialog.values[field.key]" class="gentia-switch-input" type="checkbox" role="switch" :disabled="field.readOnly || (activeCatalog.slug==='users' &amp;&amp; field.key==='notify_user' &amp;&amp; !recordDialog.values.is_active)">
 <span class="gentia-switch-track" aria-hidden="true"></span>
 </span>
 <small v-if="activeCatalog.slug==='chart-accounts' &amp;&amp; field.key==='subsidiary_ids'" class="account-subsidiary-help">Las cuentas nuevas se habilitan inicialmente para todas las subsidiarias. Puede ajustar esta selección al editar la cuenta.</small>
 <small v-if="activeCatalog.slug==='chart-accounts' &amp;&amp; field.key==='pending_fx_revaluation'">Heredado del grupo de cuentas. Modifique esta opción en el grupo.</small>
 <small v-if="field.help" class="field-help">{{ field.help }}</small>
-<small v-if="activeCatalog.slug==='users' &amp;&amp; field.key==='notify_user' &amp;&amp; !recordDialog.values.notify_user" class="user-invitation-warning">Sin correo automático: el usuario deberá utilizar «¿Olvidaste tu contraseña?» o recibir una invitación posteriormente.</small>
+<small v-if="activeCatalog.slug==='users' &amp;&amp; field.key==='notify_user' &amp;&amp; recordDialog.values.is_active &amp;&amp; !recordDialog.values.notify_user" class="user-invitation-warning">{{ recordDialog.id ? 'No se enviará ningún correo. El usuario también puede recuperar su acceso con «¿Olvidaste tu contraseña?».' : 'Sin correo automático: el usuario deberá utilizar «¿Olvidaste tu contraseña?» o recibir una invitación posteriormente.' }}</small>
+<small v-if="activeCatalog.slug==='users' &amp;&amp; field.key==='notify_user' &amp;&amp; !recordDialog.values.is_active" class="user-invitation-warning">Active el usuario antes de enviarle un enlace de recuperación.</small>
 </label>
 </template>
 </div>
@@ -636,7 +637,7 @@
   </main>
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
-<script type="module" src="/app.js?v=20261026-organization-exports">
+<script type="module" src="/app.js?v=20261027-cost-center-department-user-password-link">
 </script>
 <script src="/approval-notifications.js?v=20261023-second-pass"></script></body>
 </html>

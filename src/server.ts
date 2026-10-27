@@ -5,7 +5,7 @@ import { notificationSettings, paymentNotifications, startEmailNotifications } f
 import { salesInvoiceTemplateSettings } from './modules/notifications/sales-invoice-email.js';
 import { downloadSalesInvoicePdf, sendSalesInvoiceEmail } from './modules/notifications/sales-invoice-delivery.service.js';
 import { expenseApprovalTemplateSettings, startExpenseApprovalNotifications } from './modules/notifications/expense-approval-email.js';
-import { userInvitationTemplateSettings } from './modules/notifications/user-invitation-email.js';
+import { userInvitationTemplateSettings, userPasswordRecoveryTemplateSettings } from './modules/notifications/user-invitation-email.js';
 import { startTaxCalendarNotifications, taxCalendarAction, taxCalendarDocument } from './modules/tax-calendar/tax-calendar.service.js';
 import { taxObligationCatalogAction } from './modules/tax-calendar/tax-obligation-catalog.service.js';
 import { recordActorAudit } from './modules/audit-catalogs/record-actor-audit.service.js';
@@ -69,7 +69,7 @@ import { revokeCurrentSession, SessionAuthenticationError } from './modules/auth
 import { assertRequestAccess } from './modules/auth/services/request-access.service.js';
 import { changePassword } from './modules/auth/services/password-history.service.js';
 import { completePasswordRecovery, PasswordRecoveryError, requestPasswordRecovery } from './modules/auth/services/password-recovery.service.js';
-import { completePasswordInvitation, createSecurityUser, UserProvisioningError } from './modules/auth/services/user-provisioning.service.js';
+import { completePasswordInvitation, createSecurityUser, sendExistingUserPasswordLink, UserProvisioningError } from './modules/auth/services/user-provisioning.service.js';
 import { error, json } from './core/interceptors/http-response.js';
 import { turnstilePublicConfig, verifyTurnstileToken, TurnstileValidationError } from './core/security/turnstile.service.js';
 import { assertLoginAllowed, clearLoginFailures, LoginRateLimitError, recordLoginFailure } from './core/security/login-rate-limit.js';
@@ -425,6 +425,13 @@ const server = createServer((request, response) => withAuditExecution(async () =
      if(request.method==='GET'&&purchaseTransactionSupportRoute){return json(response,200,await purchaseTransactionSupport(request.headers.authorization!,Number(purchaseTransactionSupportRoute[1])));}
     const accountingReportRoute=request.url?.match(/^\/api\/reports\/accounting\/([a-z-]+)$/);
     if(request.method==='POST'&&accountingReportRoute){return json(response,200,await runAccountingReport(request.headers.authorization!,accountingReportRoute[1],await body(request) as Record<string,unknown>));}
+    const userPasswordLinkRoute=request.url?.match(/^\/api\/security\/users\/(\d+)\/send-password-link$/);
+    if(request.method==='POST'&&userPasswordLinkRoute){
+      const authorization=request.headers.authorization;
+      if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para administrar Seguridad.');
+      await assertRoleAccess(authorization,'security:users','edit');
+      return json(response,200,await sendExistingUserPasswordLink(authorization,Number(userPasswordLinkRoute[1])));
+    }
     const accessUrl=new URL(request.url??'/',`http://${request.headers.host??'localhost'}`),accessRoute=accessUrl.pathname.match(/^\/api\/(core|security|organization|configuration|accounting|banking|treasury|entities|inventory|sales|transaction-engine|purchasing|expenses|fixed-assets|workflow|documents|audit|consolidation|ai)\/([a-z-]+)(?:\/\d+)?$/);
     if(accessRoute){const resourceKey=`${accessRoute[1]}:${accessRoute[2]}`;if(isRoleAccessResource(resourceKey)){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');await assertRoleAccess(authorization,resourceKey,request.method==='GET'?'view':request.method==='POST'?'create':request.method==='PATCH'?'edit':'delete');}}
     const coreRoute = request.url?.match(/^\/api\/core\/([a-z-]+)(?:\/(\d+))?$/);
@@ -565,7 +572,7 @@ const server = createServer((request, response) => withAuditExecution(async () =
       const resourceKey='configuration:notification-templates';
       await assertRoleAccess(authorization,resourceKey,action==='save'?'edit':'view');
       const input=await body(request)as Record<string,unknown>;
-      const settings=input.kind==='ESTADO_CUENTA'?statementSettings:input.kind==='FACTURA_VENTA'?salesInvoiceTemplateSettings:input.kind==='SOLICITUD_GASTO_APROBACION'?expenseApprovalTemplateSettings:input.kind==='USUARIO_INVITACION'?userInvitationTemplateSettings:notificationSettings;
+      const settings=input.kind==='ESTADO_CUENTA'?statementSettings:input.kind==='FACTURA_VENTA'?salesInvoiceTemplateSettings:input.kind==='SOLICITUD_GASTO_APROBACION'?expenseApprovalTemplateSettings:input.kind==='USUARIO_INVITACION'?userInvitationTemplateSettings:input.kind==='USUARIO_RECUPERACION'?userPasswordRecoveryTemplateSettings:notificationSettings;
       const result=await settings(authorization,action,input);
       if(action!=='get'||typeof result!=='object'||result===null)return json(response,200,result);
       const roleAccess=await myRoleAccess(authorization);

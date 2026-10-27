@@ -9,7 +9,7 @@ test('la edición de usuario nunca devuelve hashes ni identificadores internos d
   process.env.SUPABASE_URL='https://project.example.test';process.env.SUPABASE_ANON_KEY='anon';
   const catalog=security.getSecurityCatalog('users');let patchUrl;
   globalThis.fetch=async(input,init={})=>{const url=new URL(String(input));if((init.method??'GET')==='GET')return new Response(JSON.stringify([{email:'persona@example.com'}]),{status:200});if(init.method==='PATCH'){patchUrl=url;const body=JSON.parse(String(init.body));assert.equal(JSON.stringify(body).includes('password'),false);assert.equal('email'in body,false);assert.deepEqual(Object.keys(body).sort(),['first_name','is_active','last_name','timezone_id']);return new Response(JSON.stringify([{user_id:5,email:'persona@example.com',first_name:'Persona',last_name:'Segura',timezone_id:null,is_active:true}]),{status:200});}throw new Error('Solicitud inesperada.');};
-  const result=await security.updateSecurityRow(catalog,'Bearer actor',5,{email:'persona@example.com',first_name:'Persona',last_name:'Segura',timezone_id:null,is_active:true,password_hash:'no-debe-usarse'});
+  const result=await security.updateSecurityRow(catalog,'Bearer actor',5,{email:'persona@example.com',first_name:'Persona',last_name:'Segura',timezone_id:null,is_active:true,notify_user:true,password_hash:'no-debe-usarse'});
   assert.match(patchUrl.searchParams.get('select'),/^user_id,email,first_name,last_name,timezone_id,is_active$/);assert.equal('password_hash'in result,false);assert.equal('auth_user_id'in result,false);
 });
 

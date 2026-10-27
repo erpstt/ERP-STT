@@ -1,7 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
 import { hashPassword, validateNewPassword, verifyPassword } from '../../../shared/services/password.service.js';
-import { sendUserInvitationEmail } from '../../notifications/user-invitation-email.js';
+import { sendUserInvitationEmail, sendUserPasswordRecoveryEmail } from '../../notifications/user-invitation-email.js';
 
 type CreateUserInput = {
   email?: unknown; first_name?: unknown; last_name?: unknown; timezone_id?: unknown;
@@ -11,6 +11,8 @@ type CreateUserInput = {
 type CompleteInvitationInput = {state?:string;invitationType?:string;accessToken?:string;newPassword?:string;confirmation?:string};
 type AuthUser = {id?:unknown;email?:unknown};
 type InvitationGrant = {invitation_id:number;email_hash:string;auth_user_id:string;created_at:string};
+type PasswordNotificationTarget = {actor_user_id:number;subsidiary_id:number;user_id:number;email:string;first_name:string|null;last_name:string|null};
+type PasswordNotificationIdentity = {user_id:number;email:string;auth_user_id:string|null;is_active:boolean};
 
 export class UserProvisioningError extends Error {
   constructor(message:string,readonly status=400,readonly retryAfterSeconds?:number){super(message);this.name='UserProvisioningError';}
@@ -18,8 +20,10 @@ export class UserProvisioningError extends Error {
 
 const sha256=(value:string)=>createHash('sha256').update(value).digest('hex');
 const invitationAttempts=new Map<string,number[]>();
+const passwordNotificationAttempts=new Map<string,number[]>();
 function limitInvitationAttempts(ip:string|null|undefined,now=Date.now()){const key=ip||'unknown',windowMs=15*60*1_000,recent=(invitationAttempts.get(key)||[]).filter(value=>now-value<windowMs);if(recent.length>=10){const retry=Math.max(1,Math.ceil((recent[0]+windowMs-now)/1_000));throw new UserProvisioningError(`Demasiados intentos de activación. Intente nuevamente en ${Math.ceil(retry/60)} minuto(s).`,429,retry);}recent.push(now);invitationAttempts.set(key,recent);if(invitationAttempts.size>5_000)for(const[entry,values]of invitationAttempts)if(!values.some(value=>now-value<windowMs))invitationAttempts.delete(entry);}
 function safeHexEqual(left:string,right:string){return /^[a-f0-9]{64}$/i.test(left)&&/^[a-f0-9]{64}$/i.test(right)&&timingSafeEqual(Buffer.from(left,'hex'),Buffer.from(right,'hex'));}
+function limitPasswordNotificationAttempts(actorUserId:number,userId:number,now=Date.now()){const key=`${actorUserId}|${userId}`,windowMs=15*60*1_000,recent=(passwordNotificationAttempts.get(key)||[]).filter(value=>now-value<windowMs);if(recent.length>=3){const retry=Math.max(1,Math.ceil((recent[0]+windowMs-now)/1_000));throw new UserProvisioningError(`Se enviaron demasiados enlaces. Intente nuevamente en ${Math.ceil(retry/60)} minuto(s).`,429,retry);}recent.push(now);passwordNotificationAttempts.set(key,recent);if(passwordNotificationAttempts.size>5_000)for(const[entry,values]of passwordNotificationAttempts)if(!values.some(value=>now-value<windowMs))passwordNotificationAttempts.delete(entry);}
 function emailValue(value:unknown){const email=typeof value==='string'?value.trim().toLowerCase():'';if(!email||email.length>254||!/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(email))throw new UserProvisioningError('Ingrese un correo electrónico válido.');return email;}
 function nameValue(value:unknown,label:string){const name=typeof value==='string'?value.trim().replace(/\s+/g,' '):'';if(!name)throw new UserProvisioningError(`${label} es obligatorio.`);if(name.length>120)throw new UserProvisioningError(`${label} no puede exceder 120 caracteres.`);return name;}
 function timezoneValue(value:unknown){if(value===undefined||value===null||value==='')return null;const id=Number(value);if(!Number.isSafeInteger(id)||id<=0)throw new UserProvisioningError('La zona horaria no es válida.');return id;}
@@ -65,6 +69,63 @@ export async function createSecurityUser(authorization:string,input:CreateUserIn
     }else if(requestedNotification&&!isActive)notification={requested:true,sent:false,status:'OMITIDA_USUARIO_INACTIVO'};
     return{...user,notification,message:notification.sent?'Usuario creado e invitación enviada.':notification.status==='ENVIO_FALLIDO_RECUPERACION_DISPONIBLE'?'Usuario creado, pero el correo no pudo enviarse. La cuenta quedó habilitada para utilizar Recuperar contraseña.':notification.status==='REQUIERE_INTERVENCION'?'Usuario creado, pero la invitación requiere intervención administrativa antes de que pueda acceder.':isActive?'Usuario creado sin notificación. Puede utilizar Recuperar contraseña para definir su acceso.':'Usuario inactivo creado sin enviar invitación.'};
   }catch(cause){const authRemoved=identity?await deleteAuthUser(identity.id):true,grantRemoved=stateHash?await deleteGrant(stateHash):true;if(!authRemoved||!grantRemoved){console.error('[UserProvisioning] Falló la compensación de un alta incompleta.');throw new UserProvisioningError('No fue posible completar el alta y la compensación requiere intervención administrativa.',500);}throw cause;}
+}
+
+async function auditPasswordNotification(target:PasswordNotificationTarget,result:'ENVIADO'|'ENVIADO_CON_ADVERTENCIA'|'ERROR'){
+  try{
+    await serviceRest('rpc/security_audit_user_password_notification',{method:'POST',body:JSON.stringify({
+      p_actor_user_id:Number(target.actor_user_id),
+      p_target_user_id:Number(target.user_id),
+      p_subsidiary_id:Number(target.subsidiary_id),
+      p_result:result
+    })});
+    return true;
+  }catch{
+    console.error('[UserProvisioning] No fue posible registrar la auditoría del correo de recuperación.');
+    return false;
+  }
+}
+
+export async function sendExistingUserPasswordLink(authorization:string,userId:number){
+  if(!Number.isSafeInteger(userId)||userId<=0)throw new UserProvisioningError('El usuario indicado no es válido.');
+
+  // This actor-scoped RPC runs before every service-role operation. It checks
+  // security:users:edit, the active subsidiary and the target membership.
+  const target=await actorRpc<PasswordNotificationTarget>(authorization,'security_prepare_user_password_recovery',{p_user_id:userId});
+  if(!target||Number(target.user_id)!==userId||!Number.isSafeInteger(Number(target.actor_user_id))||Number(target.actor_user_id)<=0||!Number.isSafeInteger(Number(target.subsidiary_id))||Number(target.subsidiary_id)<=0)throw new UserProvisioningError('El usuario no está disponible para recuperar su acceso.',404);
+  try{limitPasswordNotificationAttempts(Number(target.actor_user_id),userId);}
+  catch(cause){await auditPasswordNotification(target,'ERROR');throw cause;}
+
+  let email:string,account:PasswordNotificationIdentity|undefined;
+  try{email=emailValue(target.email);account=(await serviceRest<PasswordNotificationIdentity[]>(`users?select=user_id,email,auth_user_id,is_active&user_id=eq.${userId}&limit=1`))[0];}
+  catch(cause){await auditPasswordNotification(target,'ERROR');throw cause;}
+  const authUserId=typeof account?.auth_user_id==='string'?account.auth_user_id:'';
+  if(!account?.is_active||account.user_id!==userId||account.email.trim().toLowerCase()!==email||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(authUserId)){await auditPasswordNotification(target,'ERROR');throw new UserProvisioningError('El usuario no está disponible para recuperar su acceso.',409);}
+
+  const state=randomBytes(32).toString('base64url'),stateHash=sha256(state),emailHash=sha256(email),expiresAt=new Date(Date.now()+30*60*1_000).toISOString(),redirect=appUrl();
+  redirect.searchParams.set('password_recovery','1');
+  redirect.searchParams.set('state',state);
+  await serviceRest(`password_recovery_grants?expires_at=lt.${encodeURIComponent(new Date().toISOString())}`,{method:'DELETE'}).catch(()=>undefined);
+  try{await serviceRest('password_recovery_grants',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({state_hash:stateHash,email_hash:emailHash,expires_at:expiresAt})});}
+  catch(cause){await auditPasswordNotification(target,'ERROR');throw cause;}
+
+  try{
+    const generated=await authAdmin('admin/generate_link',{method:'POST',body:JSON.stringify({type:'recovery',email,redirect_to:redirect.toString()})}),identity=authIdentity(generated),recoveryLink=actionLink(generated);
+    if(identity.id!==authUserId||identity.email!==email||!recoveryLink)throw new UserProvisioningError('No fue posible vincular el enlace con la cuenta solicitada.',502);
+    let returnedRedirect:URL;try{returnedRedirect=new URL(generatedRedirect(generated,recoveryLink));}catch{throw new UserProvisioningError('Supabase no conservó la URL de recuperación configurada.',503);}
+    if(returnedRedirect.toString()!==redirect.toString())throw new UserProvisioningError('La URL de recuperación no está autorizada en Supabase Auth. Agréguela a Redirect URLs.',503);
+    await sendUserPasswordRecoveryEmail(authorization,{empresa_nombre:'',empresa_logo_url:null,usuario_nombre:`${target.first_name??''} ${target.last_name??''}`.trim()||email,usuario_correo:email,enlace_activacion:recoveryLink,fecha_expiracion:expiresAt,access_mode:'RECOVERY'});
+    // Keep concurrent links until the first one is used. The database consume
+    // RPC serializes by email and consumes every open link atomically, so two
+    // simultaneous email deliveries cannot invalidate one another.
+    const audited=await auditPasswordNotification(target,'ENVIADO');
+    return{success:true,sent:true,status:audited?'RECUPERACION_ENVIADA':'RECUPERACION_ENVIADA_MANTENIMIENTO_PENDIENTE',message:audited?'Se envió un enlace seguro y de un solo uso para definir una nueva contraseña.':'Se envió el enlace seguro, pero la auditoría requiere revisión administrativa.'};
+  }catch(cause){
+    await serviceRest(`password_recovery_grants?state_hash=eq.${stateHash}`,{method:'DELETE'}).catch(()=>undefined);
+    await auditPasswordNotification(target,'ERROR');
+    if(cause instanceof UserProvisioningError)throw cause;
+    throw new UserProvisioningError('No fue posible enviar el enlace de recuperación. El usuario puede utilizar «¿Olvidaste tu contraseña?» e intentarlo nuevamente.',503);
+  }
 }
 
 function bearer(authorization:string|undefined,fallback:unknown){const header=authorization?.replace(/^Bearer\s+/i,'').trim()??'',body=typeof fallback==='string'?fallback.trim():'',token=header||body;if(!token||token.length>8192)throw new UserProvisioningError('La invitación no es válida o ya expiró.',401);return token;}

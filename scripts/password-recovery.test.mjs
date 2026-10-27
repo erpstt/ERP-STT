@@ -6,6 +6,7 @@ const recovery = await import('../dist/modules/auth/services/password-recovery.s
 const passwords = await import('../dist/shared/services/password.service.js');
 const originalFetch = globalThis.fetch;
 const originalEnvironment = { ...process.env };
+const authUserId = '123e4567-e89b-42d3-a456-426614174000';
 
 const json = (value, status = 200) => new Response(JSON.stringify(value), {
   status,
@@ -95,14 +96,14 @@ test('completa la recuperación, registra el historial y revoca sesiones', async
   globalThis.fetch = async (input, init = {}) => {
     const url = new URL(String(input));
     calls.push({ url, init });
-    if (url.pathname === '/auth/v1/user' && (init.method ?? 'GET') === 'GET') return json({ id: 'auth-user', email });
+    if (url.pathname === '/auth/v1/user' && (init.method ?? 'GET') === 'GET') return json({ id: authUserId, email });
     if (url.pathname === '/rest/v1/password_recovery_grants' && (init.method ?? 'GET') === 'GET') {
       return json([{ recovery_id: 7, email_hash: hash(email), created_at: new Date((issuedAt - 10) * 1_000).toISOString() }]);
     }
-    if (url.pathname === '/rest/v1/users') return json([{ user_id: 42, is_active: true }]);
+    if (url.pathname === '/rest/v1/users') return json([{ user_id: 42, email, auth_user_id: authUserId, is_active: true }]);
     if (url.pathname === '/rest/v1/password_history' && (init.method ?? 'GET') === 'GET') return json([]);
     if (url.pathname === '/rest/v1/rpc/consume_password_recovery_grant') return json(true);
-    if (url.pathname === '/auth/v1/user' && init.method === 'PUT') return json({ id: 'auth-user', email });
+    if (url.pathname === '/auth/v1/user' && init.method === 'PUT') return json({ id: authUserId, email });
     if (url.pathname === '/rest/v1/password_history' && init.method === 'POST') return new Response(null, { status: 201 });
     if (url.pathname === '/rest/v1/sessions' && init.method === 'DELETE') return new Response(null, { status: 204 });
     if (url.pathname === '/auth/v1/logout' && init.method === 'POST') return new Response(null, { status: 204 });
@@ -125,6 +126,9 @@ test('completa la recuperación, registra el historial y revoca sesiones', async
   assert.ok(calls.some(call => call.url.pathname === '/rest/v1/password_history' && call.init.method === 'POST'));
   assert.ok(calls.some(call => call.url.pathname === '/rest/v1/sessions' && call.init.method === 'DELETE'));
   assert.ok(calls.some(call => call.url.pathname === '/auth/v1/logout' && call.url.searchParams.get('scope') === 'global'));
+  const erpLookup = calls.find(call => call.url.pathname === '/rest/v1/users');
+  assert.equal(erpLookup.url.searchParams.get('auth_user_id'), `eq.${authUserId}`);
+  assert.equal(erpLookup.url.searchParams.get('email'), `eq.${email}`);
 });
 
 test('rechaza un token normal aunque sea un JWT autenticado vigente', async () => {
@@ -144,6 +148,33 @@ test('rechaza un token normal aunque sea un JWT autenticado vigente', async () =
   );
 });
 
+test('rechaza una respuesta de Auth sin un identificador UUID válido', async () => {
+  let queriedGrant = false;
+  globalThis.fetch = async (input, init = {}) => {
+    const url = new URL(String(input));
+    if (url.pathname === '/auth/v1/user' && (init.method ?? 'GET') === 'GET') {
+      return json({id:'identidad-no-uuid',email:'persona@example.com'});
+    }
+    if (url.pathname === '/rest/v1/password_recovery_grants') queriedGrant = true;
+    throw new Error(`Solicitud inesperada: ${url.pathname}`);
+  };
+
+  await assert.rejects(
+    () => recovery.completePasswordRecovery(
+      `Bearer ${token('recovery')}`,
+      {
+        state: 'F'.repeat(43),
+        recoveryType: 'recovery',
+        newPassword: 'Clave segura UUID 2026!',
+        confirmation: 'Clave segura UUID 2026!'
+      },
+      `invalid-uuid-${crypto.randomUUID()}`
+    ),
+    error => error?.status === 401 && /no es válido|expiró/.test(error.message)
+  );
+  assert.equal(queriedGrant, false);
+});
+
 test('impide reutilizar una de las últimas seis contraseñas antes de consumir el enlace', async () => {
   const email = 'history@example.com';
   const state = 'C'.repeat(43);
@@ -152,11 +183,11 @@ test('impide reutilizar una de las últimas seis contraseñas antes de consumir 
   let consumed = false;
   globalThis.fetch = async (input, init = {}) => {
     const url = new URL(String(input));
-    if (url.pathname === '/auth/v1/user' && (init.method ?? 'GET') === 'GET') return json({ id: 'auth-user', email });
+    if (url.pathname === '/auth/v1/user' && (init.method ?? 'GET') === 'GET') return json({ id: authUserId, email });
     if (url.pathname === '/rest/v1/password_recovery_grants') {
       return json([{ recovery_id: 8, email_hash: hash(email), created_at: new Date((issuedAt - 10) * 1_000).toISOString() }]);
     }
-    if (url.pathname === '/rest/v1/users') return json([{ user_id: 52, is_active: true }]);
+    if (url.pathname === '/rest/v1/users') return json([{ user_id: 52, email, auth_user_id: authUserId, is_active: true }]);
     if (url.pathname === '/rest/v1/password_history') return json([{ password_hash: previousHash }]);
     if (url.pathname === '/rest/v1/rpc/consume_password_recovery_grant') { consumed = true; return json(true); }
     throw new Error(`Solicitud inesperada: ${url.pathname}`);
@@ -175,5 +206,68 @@ test('impide reutilizar una de las últimas seis contraseñas antes de consumir 
     /No puede reutilizar/
   );
   assert.equal(consumed, false);
+});
+
+test('rechaza una identidad de Auth que no está vinculada a un usuario ERP', async () => {
+  const email = 'huerfano@example.com';
+  const state = 'D'.repeat(43);
+  const issuedAt = Math.floor(Date.now() / 1_000);
+  let consumed = false;
+  let passwordUpdated = false;
+  globalThis.fetch = async (input, init = {}) => {
+    const url = new URL(String(input));
+    if (url.pathname === '/auth/v1/user' && (init.method ?? 'GET') === 'GET') return json({ id: authUserId, email });
+    if (url.pathname === '/rest/v1/password_recovery_grants') {
+      return json([{ recovery_id: 9, email_hash: hash(email), created_at: new Date((issuedAt - 10) * 1_000).toISOString() }]);
+    }
+    if (url.pathname === '/rest/v1/users') return json([]);
+    if (url.pathname === '/rest/v1/rpc/consume_password_recovery_grant') { consumed = true; return json(true); }
+    if (url.pathname === '/auth/v1/user' && init.method === 'PUT') { passwordUpdated = true; return json({ id: authUserId, email }); }
+    throw new Error(`Solicitud inesperada: ${url.pathname}`);
+  };
+
+  await assert.rejects(
+    () => recovery.completePasswordRecovery(
+      `Bearer ${token('recovery', issuedAt)}`,
+      {state,recoveryType:'recovery',newPassword:'Clave segura huerfana 2026!',confirmation:'Clave segura huerfana 2026!'},
+      `orphan-${crypto.randomUUID()}`
+    ),
+    error => error?.status === 401 && /no es válido|expiró/.test(error.message)
+  );
+  assert.equal(consumed, false);
+  assert.equal(passwordUpdated, false);
+});
+
+test('rechaza un usuario ERP cuyo auth_user_id no coincide con el token de recuperación', async () => {
+  const email = 'cruzado@example.com';
+  const state = 'E'.repeat(43);
+  const issuedAt = Math.floor(Date.now() / 1_000);
+  const otherAuthUserId = '123e4567-e89b-42d3-a456-426614174099';
+  let consumed = false;
+  let passwordUpdated = false;
+  globalThis.fetch = async (input, init = {}) => {
+    const url = new URL(String(input));
+    if (url.pathname === '/auth/v1/user' && (init.method ?? 'GET') === 'GET') return json({ id: authUserId, email });
+    if (url.pathname === '/rest/v1/password_recovery_grants') {
+      return json([{ recovery_id: 10, email_hash: hash(email), created_at: new Date((issuedAt - 10) * 1_000).toISOString() }]);
+    }
+    if (url.pathname === '/rest/v1/users') {
+      return json([{user_id:62,email,auth_user_id:otherAuthUserId,is_active:true}]);
+    }
+    if (url.pathname === '/rest/v1/rpc/consume_password_recovery_grant') { consumed = true; return json(true); }
+    if (url.pathname === '/auth/v1/user' && init.method === 'PUT') { passwordUpdated = true; return json({ id: authUserId, email }); }
+    throw new Error(`Solicitud inesperada: ${url.pathname}`);
+  };
+
+  await assert.rejects(
+    () => recovery.completePasswordRecovery(
+      `Bearer ${token('recovery', issuedAt)}`,
+      {state,recoveryType:'recovery',newPassword:'Clave segura cruzada 2026!',confirmation:'Clave segura cruzada 2026!'},
+      `mismatch-${crypto.randomUUID()}`
+    ),
+    error => error?.status === 401 && /no es válido|expiró/.test(error.message)
+  );
+  assert.equal(consumed, false);
+  assert.equal(passwordUpdated, false);
 });
 

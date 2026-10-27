@@ -49,6 +49,17 @@ const kinds={
   preview:'Ejemplo de una invitación de usuario. Esta vista no crea usuarios ni envía correos.',
   schedule:'Envío inmediato: se genera al crear un usuario desde Seguridad con la opción de notificación activa.',
   transport:'SMTP activado. Las nuevas invitaciones utilizarán esta plantilla y un enlace de activación de un solo uso.'
+ },
+ USUARIO_RECUPERACION:{
+  title:'Recuperación de acceso de usuarios',
+  tags:['empresa_nombre','usuario_nombre','usuario_correo','enlace_recuperacion','fecha_expiracion'],
+  bodyOnlyTags:['enlace_recuperacion'],
+  active:'Habilitar correos de recuperación para esta subsidiaria',
+  activeHelp:'Se envía al guardar un usuario existente con la opción Notificar usuario por correo. Nunca incluye ni revela la contraseña actual.',
+  automatic:'El logotipo, el botón seguro, el enlace alternativo y las recomendaciones de seguridad se agregan automáticamente.',
+  preview:'Ejemplo de recuperación administrativa. Esta vista no modifica usuarios ni envía correos.',
+  schedule:'Envío manual: un usuario con permiso para editar Usuarios solicita el enlace desde Seguridad > Usuarios.',
+  transport:'SMTP activado. Los enlaces de recuperación se enviarán con esta plantilla y vencerán en 30 minutos.'
  }
 };
 const requested=new URLSearchParams(location.search).get('kind');
@@ -86,7 +97,7 @@ function restore(){$('editor').focus();if(range){const selection=getSelection();
 document.querySelectorAll('[data-command]').forEach(button=>button.addEventListener('click',()=>{restore();document.execCommand(button.dataset.command,false);}));
 $('addLink').addEventListener('click',()=>{const url=prompt('Dirección del enlace (https://…)');if(!url)return;if(!/^https?:\/\//i.test(url)){report('Ingrese un enlace http o https.',true);return;}restore();document.execCommand('createLink',false,url);});
 $('editor').addEventListener('paste',event=>{event.preventDefault();document.execCommand('insertText',false,event.clipboardData.getData('text/plain'));});
-for(const tag of settings.tags){const button=document.createElement('button'),bodyOnly=settings.bodyOnlyTags?.includes(tag);button.type='button';button.disabled=!templateCanEdit;button.textContent=`{{${tag}}}`;if(bodyOnly)button.title='Disponible únicamente en el mensaje';button.addEventListener('click',()=>{if(bodyOnly&&target===$('subject')){target=$('editor');report('El enlace de activación se insertó en el mensaje porque no puede exponerse en el asunto.');}if(target===$('subject')){$('subject').setRangeText(button.textContent,$('subject').selectionStart,$('subject').selectionEnd,'end');$('subject').focus();}else{restore();document.execCommand('insertText',false,button.textContent);}});$('variables').append(button);}
+for(const tag of settings.tags){const button=document.createElement('button'),bodyOnly=settings.bodyOnlyTags?.includes(tag);button.type='button';button.disabled=!templateCanEdit;button.textContent=`{{${tag}}}`;if(bodyOnly)button.title='Disponible únicamente en el mensaje';button.addEventListener('click',()=>{if(bodyOnly&&target===$('subject')){target=$('editor');report(`El enlace de ${tag==='enlace_recuperacion'?'recuperación':'activación'} se insertó en el mensaje porque no puede exponerse en el asunto.`);}if(target===$('subject')){$('subject').setRangeText(button.textContent,$('subject').selectionStart,$('subject').selectionEnd,'end');$('subject').focus();}else{restore();document.execCommand('insertText',false,button.textContent);}});$('variables').append(button);}
 async function preview(){const data=await api('preview',payload());$('previewSubject').textContent=data.subject;$('preview').srcdoc=data.html;}
 $('previewButton').addEventListener('click',async()=>{try{await preview();report('Vista previa actualizada.');}catch(error){report(error.message,true);}});
 $('form').addEventListener('submit',async event=>{event.preventDefault();if(!templateCanEdit){report('Su rol permite consultar la plantilla, pero no modificarla.',true);return;}$('save').disabled=true;try{const data=await api('save',payload());$('editor').innerHTML=data.template.cuerpo_template;$('audit').textContent=`Última edición: ${data.template.updated_by_email||'sistema'} · ${new Date(data.template.updated_at).toLocaleString('es-CR')}`;await preview();report('Plantilla guardada.');}catch(error){report(error.message,true);}finally{$('save').disabled=!templateCanEdit;}});

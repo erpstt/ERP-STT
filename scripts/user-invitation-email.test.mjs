@@ -29,6 +29,22 @@ test('renderiza una invitación profesional sin contraseña en claro', () => {
   assert.doesNotMatch(result.html, /contraseña\s*[:=]/i);
 });
 
+test('el modo recuperación explica que no revela la contraseña actual', () => {
+  const result = invitation.renderUserInvitationEmail(
+    invitation.userPasswordRecoveryEmailSubject,
+    invitation.userPasswordRecoveryEmailBody,
+    {...snapshot, access_mode: 'RECOVERY'}
+  );
+  assert.equal(result.subject, 'Recupera tu acceso a GENTIA ERP · Empresa de Pruebas');
+  assert.match(result.html, /RECUPERACIÓN SEGURA/);
+  assert.match(result.html, /Restablece tu contraseña/);
+  assert.match(result.html, /Definir nueva contraseña/);
+  assert.match(result.html, /solicitó la recuperación de tu acceso/);
+  assert.doesNotMatch(result.html, /Se creó una cuenta para ti/);
+  assert.match(result.html, /contraseña actual no se conoce, no se muestra y no se envía por correo/);
+  assert.doesNotMatch(result.html, /contraseña actual\s*[:=]/i);
+});
+
 test('rechaza variables no autorizadas y enlaces inseguros', () => {
   assert.throws(
     () => invitation.renderUserInvitationEmail(
