@@ -21,15 +21,18 @@ function configure() {
   process.env.GENTIA_APP_URL = 'https://erp.example.test';
 }
 
-function token(method = 'recovery', issuedAt = Math.floor(Date.now() / 1_000)) {
+function tokenWithAmr(amr, issuedAt = Math.floor(Date.now() / 1_000)) {
   const encode = value => Buffer.from(JSON.stringify(value)).toString('base64url');
   return `${encode({ alg: 'none' })}.${encode({
     iat: issuedAt,
     exp: issuedAt + 3_600,
     role: 'authenticated',
     aud: 'authenticated',
-    amr: [{ method, timestamp: issuedAt }]
+    amr
   })}.signature`;
+}
+function token(method = 'recovery', issuedAt = Math.floor(Date.now() / 1_000)) {
+  return tokenWithAmr([{ method, timestamp: issuedAt }], issuedAt);
 }
 
 test.beforeEach(configure);
@@ -131,6 +134,101 @@ test('completa la recuperación, registra el historial y revoca sesiones', async
   assert.equal(erpLookup.url.searchParams.get('email'), `eq.${email}`);
 });
 
+test('acepta recovery string y otp objeto reciente cuando el grant está vigente', async () => {
+  const email = 'amr-compatible@example.com';
+  const issuedAt = Math.floor(Date.now() / 1_000);
+  let consumed = 0;
+  let updated = 0;
+  globalThis.fetch = async (input, init = {}) => {
+    const url = new URL(String(input));
+    if (url.pathname === '/auth/v1/user' && (init.method ?? 'GET') === 'GET') return json({ id: authUserId, email });
+    if (url.pathname === '/rest/v1/password_recovery_grants' && (init.method ?? 'GET') === 'GET') return json([{ recovery_id: 11, email_hash: hash(email), created_at: new Date((issuedAt - 10) * 1_000).toISOString() }]);
+    if (url.pathname === '/rest/v1/users') return json([{ user_id: 72, email, auth_user_id: authUserId, is_active: true }]);
+    if (url.pathname === '/rest/v1/password_history' && (init.method ?? 'GET') === 'GET') return json([]);
+    if (url.pathname === '/rest/v1/rpc/consume_password_recovery_grant') { consumed++; return json(true); }
+    if (url.pathname === '/auth/v1/user' && init.method === 'PUT') { updated++; return json({ id: authUserId, email }); }
+    if (url.pathname === '/rest/v1/password_history' && init.method === 'POST') return new Response(null, { status: 201 });
+    if (url.pathname === '/rest/v1/sessions' && init.method === 'DELETE') return new Response(null, { status: 204 });
+    if (url.pathname === '/auth/v1/logout' && init.method === 'POST') return new Response(null, { status: 204 });
+    throw new Error(`Solicitud inesperada: ${url.pathname}`);
+  };
+  const variants = [['recovery'], [{ method: 'otp', timestamp: issuedAt }]];
+  for (const [index, amr] of variants.entries()) {
+    const password = `Clave compatible AMR ${index + 1} 2026!`;
+    const result = await recovery.completePasswordRecovery(
+      `Bearer ${tokenWithAmr(amr, issuedAt)}`,
+      { state: String.fromCharCode(75 + index).repeat(43), recoveryType: 'recovery', newPassword: password, confirmation: password },
+      `amr-compatible-${index}-${crypto.randomUUID()}`
+    );
+    assert.equal(result.success, true);
+  }
+  assert.equal(consumed, variants.length);
+  assert.equal(updated, variants.length);
+});
+
+test('rechaza otp objeto antiguo aunque el JWT tenga un iat reciente', async () => {
+  const email = 'otp-antiguo@example.com';
+  const issuedAt = Math.floor(Date.now() / 1_000);
+  let queriedGrant = false;
+  let consumed = false;
+  globalThis.fetch = async (input, init = {}) => {
+    const url = new URL(String(input));
+    if (url.pathname === '/auth/v1/user' && (init.method ?? 'GET') === 'GET') return json({ id: authUserId, email });
+    if (url.pathname === '/rest/v1/password_recovery_grants') { queriedGrant = true; return json([{ recovery_id: 12, email_hash: hash(email), created_at: new Date((issuedAt - 10) * 1_000).toISOString() }]); }
+    if (url.pathname === '/rest/v1/rpc/consume_password_recovery_grant') { consumed = true; return json(true); }
+    throw new Error(`Solicitud inesperada: ${url.pathname}`);
+  };
+  await assert.rejects(
+    () => recovery.completePasswordRecovery(
+      `Bearer ${tokenWithAmr([{ method: 'otp', timestamp: issuedAt - 3_600 }], issuedAt)}`,
+      { state: 'P'.repeat(43), recoveryType: 'recovery', newPassword: 'Clave OTP antigua 2026!', confirmation: 'Clave OTP antigua 2026!' },
+      `old-otp-${crypto.randomUUID()}`
+    ),
+    error => error?.status === 401 && /no es válido|expiró/.test(error.message)
+  );
+  assert.equal(queriedGrant, true);
+  assert.equal(consumed, false);
+});
+
+test('rechaza otp string y AMR objeto sin timestamp antes de consultar Supabase', async () => {
+  let fetchCalls = 0;
+  globalThis.fetch = async () => { fetchCalls++; throw new Error('No debe consultar Supabase.'); };
+  for (const [index, amr] of [['otp'], [{ method: 'otp' }]].entries()) {
+    await assert.rejects(
+      () => recovery.completePasswordRecovery(
+        `Bearer ${tokenWithAmr(amr)}`,
+        { state: String.fromCharCode(81 + index).repeat(43), recoveryType: 'recovery', newPassword: 'Clave AMR inválida 2026!', confirmation: 'Clave AMR inválida 2026!' },
+        `invalid-amr-${index}-${crypto.randomUUID()}`
+      ),
+      error => error?.status === 401 && /no es válido|expiró/.test(error.message)
+    );
+  }
+  assert.equal(fetchCalls, 0);
+});
+
+test('un token otp sin grant vigente no puede completar la recuperación', async () => {
+  const email = 'otp-sin-grant@example.com';
+  let queriedGrant = false;
+  let consumed = false;
+  globalThis.fetch = async (input, init = {}) => {
+    const url = new URL(String(input));
+    if (url.pathname === '/auth/v1/user' && (init.method ?? 'GET') === 'GET') return json({ id: authUserId, email });
+    if (url.pathname === '/rest/v1/password_recovery_grants') { queriedGrant = true; return json([]); }
+    if (url.pathname === '/rest/v1/rpc/consume_password_recovery_grant') { consumed = true; return json(true); }
+    throw new Error(`Solicitud inesperada: ${url.pathname}`);
+  };
+  await assert.rejects(
+    () => recovery.completePasswordRecovery(
+      `Bearer ${tokenWithAmr([{ method: 'otp', timestamp: Math.floor(Date.now() / 1_000) }])}`,
+      { state: 'N'.repeat(43), recoveryType: 'recovery', newPassword: 'Clave OTP sin grant 2026!', confirmation: 'Clave OTP sin grant 2026!' },
+      `otp-without-grant-${crypto.randomUUID()}`
+    ),
+    error => error?.status === 401 && /no es válido|expiró/.test(error.message)
+  );
+  assert.equal(queriedGrant, true);
+  assert.equal(consumed, false);
+});
+
 test('rechaza un token normal aunque sea un JWT autenticado vigente', async () => {
   globalThis.fetch = async () => { throw new Error('No debe consultar Supabase con un token regular.'); };
   await assert.rejects(
@@ -146,6 +244,20 @@ test('rechaza un token normal aunque sea un JWT autenticado vigente', async () =
     ),
     error => error?.status === 401 && /no es válido|expiró/.test(error.message)
   );
+});
+
+test('rechaza AMR token_refresh aunque se represente como string', async () => {
+  let fetchCalls = 0;
+  globalThis.fetch = async () => { fetchCalls++; throw new Error('No debe consultar Supabase con token_refresh.'); };
+  await assert.rejects(
+    () => recovery.completePasswordRecovery(
+      `Bearer ${tokenWithAmr(['token_refresh'])}`,
+      { state: 'O'.repeat(43), recoveryType: 'recovery', newPassword: 'Clave refresh rechazada 2026!', confirmation: 'Clave refresh rechazada 2026!' },
+      `token-refresh-${crypto.randomUUID()}`
+    ),
+    error => error?.status === 401 && /no es válido|expiró/.test(error.message)
+  );
+  assert.equal(fetchCalls, 0);
 });
 
 test('rechaza una respuesta de Auth sin un identificador UUID válido', async () => {

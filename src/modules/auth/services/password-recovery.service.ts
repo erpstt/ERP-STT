@@ -147,7 +147,7 @@ function bearer(authorization: string | undefined, fallback: unknown) {
   return token;
 }
 
-function recoveryJwtIssuedAt(token: string) {
+function recoveryAuthenticationAt(token: string) {
   try {
     const encoded = token.split('.')[1];
     if (!encoded) return null;
@@ -156,13 +156,26 @@ function recoveryJwtIssuedAt(token: string) {
       exp?: number;
       role?: string;
       aud?: string | string[];
-      amr?: Array<{ method?: string }>;
+      amr?: Array<string | { method?: string; timestamp?: number }>;
     };
     if (!Number.isFinite(claims.iat) || !Number.isFinite(claims.exp) || Number(claims.exp) * 1_000 <= Date.now()) return null;
     const audience = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
     if (claims.role !== 'authenticated' || !audience.includes('authenticated')) return null;
-    if (!Array.isArray(claims.amr) || !claims.amr.some(item => item?.method === 'recovery')) return null;
-    return Number(claims.iat) * 1_000;
+    if (!Array.isArray(claims.amr)) return null;
+    const allowedObjectMethods = new Set(['recovery', 'otp']);
+    let exactStringMethod = false;
+    let latestObjectAuthentication = Number.NEGATIVE_INFINITY;
+    for (const item of claims.amr) {
+      if (typeof item === 'string') {
+        if (item === 'recovery') exactStringMethod = true;
+        continue;
+      }
+      if (!allowedObjectMethods.has(item?.method ?? '')) continue;
+      if (!Number.isFinite(item.timestamp) || Number(item.timestamp) <= 0 || Number(item.timestamp) > Number(claims.exp)) return null;
+      latestObjectAuthentication = Math.max(latestObjectAuthentication, Number(item.timestamp) * 1_000);
+    }
+    if (exactStringMethod) return Number(claims.iat) * 1_000;
+    return Number.isFinite(latestObjectAuthentication) ? latestObjectAuthentication : null;
   } catch { return null; }
 }
 
@@ -242,8 +255,8 @@ export async function completePasswordRecovery(
   if (newPassword !== input.confirmation) throw new PasswordRecoveryError('La confirmación de la nueva contraseña no coincide.');
   validateNewPassword(newPassword);
   const token = bearer(authorization, input.accessToken);
-  const issuedAt = recoveryJwtIssuedAt(token);
-  if (!issuedAt) throw new PasswordRecoveryError('El enlace de recuperación no es válido o ya expiró.', 401);
+  const authenticationAt = recoveryAuthenticationAt(token);
+  if (!authenticationAt) throw new PasswordRecoveryError('El enlace de recuperación no es válido o ya expiró.', 401);
   const config = serviceConfiguration();
 
   const userResponse = await fetchSupabase(new URL('/auth/v1/user', config.url), {
@@ -261,7 +274,7 @@ export async function completePasswordRecovery(
   const grant = grants[0];
   const emailHash = sha256(email);
   const grantCreatedAt = grant ? Date.parse(grant.created_at) : Number.NaN;
-  if (!grant || !safeHexEqual(grant.email_hash, emailHash) || !Number.isFinite(grantCreatedAt) || issuedAt < grantCreatedAt - 120_000) {
+  if (!grant || !safeHexEqual(grant.email_hash, emailHash) || !Number.isFinite(grantCreatedAt) || authenticationAt < grantCreatedAt - 120_000) {
     throw new PasswordRecoveryError('El enlace de recuperación no es válido o ya expiró.', 401);
   }
 
