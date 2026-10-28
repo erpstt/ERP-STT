@@ -4,6 +4,7 @@
   <script defer src="/record-audit.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
   <title>GENTIA — ERP inteligente</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -68,7 +69,23 @@
 <span class="mobile-brand gentia-brand gentia-brand-mobile">
 <img src="/gentia-wordmark.svg" width="380" height="124" alt="GENTIA">
 </span>
-<template v-if="passwordRecovery.mode==='request'">
+<template v-if="passwordRecovery.mode==='continue'">
+<div class="heading recovery-heading">
+<p class="eyebrow">VERIFICACIÓN SEGURA</p>
+<h2>{{ passwordRecovery.flow==='invitation' ? 'Confirma tu invitación.' : 'Confirma la recuperación.' }}</h2>
+<p>Por seguridad, el enlace todavía no se ha utilizado. Continúa solo si solicitaste esta operación.</p>
+</div>
+<form @submit.prevent="continuePasswordAccess">
+<p class="recovery-note"><span aria-hidden="true">●</span> Esta confirmación evita que los verificadores automáticos de correo consuman el enlace antes que tú.</p>
+<p v-if="passwordRecovery.error" class="form-error recovery-error" role="alert">{{ passwordRecovery.error }}</p>
+<button class="submit" :disabled="passwordRecovery.saving">
+<span>{{ passwordRecovery.saving ? 'Verificando…' : (passwordRecovery.flow==='invitation' ? 'Continuar con la activación' : 'Continuar con la recuperación') }}</span>
+<b>→</b>
+</button>
+</form>
+<button type="button" class="recovery-back" @click="returnToLogin">← Volver al inicio de sesión</button>
+</template>
+<template v-else-if="passwordRecovery.mode==='request'">
 <div v-if="!passwordRecovery.sent" class="heading recovery-heading">
 <p class="eyebrow">RECUPERACIÓN SEGURA</p>
 <h2>Recupera tu acceso.</h2>
@@ -648,7 +665,7 @@
   </main>
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
-<script type="module" src="/app.js?v=20261027-user-notification-warning">
+<script type="module" src="/app.js?v=20261028-password-link-confirmation">
 </script>
 <script src="/approval-notifications.js?v=20261023-second-pass"></script></body>
 </html>

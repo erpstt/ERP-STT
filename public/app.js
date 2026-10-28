@@ -19,7 +19,7 @@ function watchLoginVideoPreference(update){
   return()=>{for(const query of queries){if(typeof query.removeEventListener==='function')query.removeEventListener('change',update);else query.removeListener?.(update)}navigator.connection?.removeEventListener?.('change',update)};
 }
 function createPasswordRecoveryState(email=''){
-  return {mode:'login',flow:'recovery',email:String(email||''),accessToken:'',state:'',newPassword:'',confirmation:'',showPassword:false,saving:false,sent:false,error:'',message:''};
+  return {mode:'login',flow:'recovery',email:String(email||''),confirmationUrl:'',accessToken:'',state:'',newPassword:'',confirmation:'',showPassword:false,saving:false,sent:false,error:'',message:''};
 }
 const moneyColumnsStyle=document.createElement('link');moneyColumnsStyle.rel='stylesheet';moneyColumnsStyle.href='/money-columns.css?v=20261027-bank-statement-format';document.head.append(moneyColumnsStyle);
 
@@ -344,6 +344,18 @@ const app = createApp({
     async signIn() { this.closeWorkspace(false);this.currentModule='CORE';this.currentSection='CORE';this.formError=''; this.companyError=''; this.isSubmitting=true; this.selectingCompany=false; this.activeCompany=null; try { const response=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:this.email,password:this.password,deviceToken:this.deviceToken(),deviceName:this.deviceName(),turnstileToken:this.turnstileToken})}); const data=await response.json(); if(!response.ok) throw new Error(data.error?.message||'No fue posible iniciar sesión.'); const storage=this.rememberMe?localStorage:sessionStorage,otherStorage=this.rememberMe?sessionStorage:localStorage;storage.setItem('nexo_token',data.accessToken);otherStorage.removeItem('nexo_token');if(this.rememberMe)localStorage.setItem('nexo_remembered_email',this.email);else localStorage.removeItem('nexo_remembered_email'); localStorage.removeItem('nexo_company'); sessionStorage.removeItem('nexo_company'); this.userName=data.user.name; this.authenticated=true; this.roles=await this.api('/api/auth/roles'); if(!this.roles.length)throw new Error('El usuario no tiene roles asignados.');const initialRole=this.roles.find(role=>role.name.toLowerCase()==='administrador')??this.roles[0];await this.selectRole(initialRole,false);this.companies=await this.api('/api/auth/companies'); if(!this.companies.length)throw new Error('El usuario no tiene empresas asignadas.');await this.selectInitialCompany(); } catch(cause){this.authenticated=false;localStorage.removeItem('nexo_token');sessionStorage.removeItem('nexo_token');this.formError=cause instanceof Error?cause.message:'No fue posible iniciar sesión.';this.resetTurnstile();} finally{this.isSubmitting=false;this.sessionReady=true;} },
     initializePasswordRecovery(){
       const url=new URL(window.location.href),fragment=new URLSearchParams(url.hash.replace(/^#/,''));
+      const continuationFlow=url.searchParams.get('password_access')||'',continuationRequested=continuationFlow==='invitation'||continuationFlow==='recovery';
+      if(continuationRequested){
+        const confirmationUrl=fragment.get('confirmation_url')||'';
+        for(const storage of[localStorage,sessionStorage])for(const key of['nexo_token','nexo_company','nexo_role'])storage.removeItem(key);
+        url.searchParams.delete('password_access');
+        url.hash='';
+        const cleanSearch=url.searchParams.toString();
+        history.replaceState(null,document.title,`${url.pathname}${cleanSearch?`?${cleanSearch}`:''}`);
+        const invalidMessage=continuationFlow==='invitation'?'La invitación no es válida. Solicita al administrador una nueva invitación.':'El enlace de recuperación no es válido. Solicita uno nuevo.';
+        this.passwordRecovery={...createPasswordRecoveryState(this.email),mode:confirmationUrl?'continue':'request',flow:continuationFlow,confirmationUrl,error:confirmationUrl?'':invalidMessage};
+        return true;
+      }
       const fragmentType=fragment.get('type')||'',invitationRequested=url.searchParams.get('password_invitation')==='1'||fragmentType==='invite';
       const recoveryRequested=!invitationRequested&&(url.searchParams.get('password_recovery')==='1'||fragmentType==='recovery');
       const accessFlow=invitationRequested?'invitation':recoveryRequested?'recovery':'';
@@ -387,6 +399,22 @@ const app = createApp({
         this.passwordRecovery.error=cause instanceof Error?cause.message:'No fue posible solicitar la recuperación. Intenta nuevamente.';
         this.resetTurnstile();
       }finally{this.passwordRecovery.saving=false;}
+    },
+    async continuePasswordAccess(){
+      if(this.passwordRecovery.saving)return;
+      const confirmationUrl=this.passwordRecovery.confirmationUrl;
+      if(!confirmationUrl){this.passwordRecovery.error='El enlace de acceso no es válido. Solicita uno nuevo.';return;}
+      this.passwordRecovery.saving=true;this.passwordRecovery.error='';
+      try{
+        const response=await fetch('/api/auth/continue-password-access',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({confirmationUrl,flow:this.passwordRecovery.flow}),cache:'no-store',referrerPolicy:'no-referrer'});
+        const data=await response.json().catch(()=>null);
+        if(!response.ok)throw new Error(data?.error?.message||'El enlace de acceso no es válido o ya expiró. Solicita uno nuevo.');
+        this.passwordRecovery.confirmationUrl='';
+        window.location.replace(confirmationUrl);
+      }catch(cause){
+        this.passwordRecovery.error=cause instanceof Error?cause.message:'El enlace de acceso no es válido o ya expiró. Solicita uno nuevo.';
+        this.passwordRecovery.saving=false;
+      }
     },
     async submitPasswordRecoveryCompletion(){
       if(this.passwordRecovery.saving)return;

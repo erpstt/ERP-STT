@@ -10,6 +10,9 @@ type CreateUserInput = {
   password_hash?: unknown; // Legacy: accepted but deliberately ignored.
 };
 type CompleteInvitationInput = {state?:string;invitationType?:string;accessToken?:string;newPassword?:string;confirmation?:string};
+type PasswordAccessFlow = 'invitation'|'recovery';
+type PasswordAccessContinuationInput = {confirmationUrl?:unknown;flow?:unknown};
+type ParsedPasswordAccessContinuation = {flow:PasswordAccessFlow;state:string};
 type AuthUser = {id?:unknown;email?:unknown};
 type InvitationGrant = {invitation_id:number;email_hash:string;auth_user_id:string;created_at:string};
 type PasswordNotificationTarget = {actor_user_id:number;subsidiary_id:number;user_id:number;email:string;first_name:string|null;last_name:string|null};
@@ -22,9 +25,11 @@ export class UserProvisioningError extends Error {
 const sha256=(value:string)=>createHash('sha256').update(value).digest('hex');
 const invitationAttempts=new Map<string,number[]>();
 const passwordNotificationAttempts=new Map<string,number[]>();
+const passwordAccessContinuationAttempts=new Map<string,number[]>();
 function limitInvitationAttempts(ip:string|null|undefined,now=Date.now()){const key=ip||'unknown',windowMs=15*60*1_000,recent=(invitationAttempts.get(key)||[]).filter(value=>now-value<windowMs);if(recent.length>=10){const retry=Math.max(1,Math.ceil((recent[0]+windowMs-now)/1_000));throw new UserProvisioningError(`Demasiados intentos de activación. Intente nuevamente en ${Math.ceil(retry/60)} minuto(s).`,429,retry);}recent.push(now);invitationAttempts.set(key,recent);if(invitationAttempts.size>5_000)for(const[entry,values]of invitationAttempts)if(!values.some(value=>now-value<windowMs))invitationAttempts.delete(entry);}
 function safeHexEqual(left:string,right:string){return /^[a-f0-9]{64}$/i.test(left)&&/^[a-f0-9]{64}$/i.test(right)&&timingSafeEqual(Buffer.from(left,'hex'),Buffer.from(right,'hex'));}
 function limitPasswordNotificationAttempts(actorUserId:number,userId:number,now=Date.now()){const key=`${actorUserId}|${userId}`,windowMs=15*60*1_000,recent=(passwordNotificationAttempts.get(key)||[]).filter(value=>now-value<windowMs);if(recent.length>=3){const retry=Math.max(1,Math.ceil((recent[0]+windowMs-now)/1_000));throw new UserProvisioningError(`Se enviaron demasiados enlaces. Intente nuevamente en ${Math.ceil(retry/60)} minuto(s).`,429,retry);}recent.push(now);passwordNotificationAttempts.set(key,recent);if(passwordNotificationAttempts.size>5_000)for(const[entry,values]of passwordNotificationAttempts)if(!values.some(value=>now-value<windowMs))passwordNotificationAttempts.delete(entry);}
+function limitPasswordAccessContinuationAttempts(ip:string|null|undefined,now=Date.now()){const key=ip||'unknown',windowMs=15*60*1_000,recent=(passwordAccessContinuationAttempts.get(key)||[]).filter(value=>now-value<windowMs);if(recent.length>=20){const retry=Math.max(1,Math.ceil((recent[0]+windowMs-now)/1_000));throw new UserProvisioningError('Demasiados intentos de verificación. Solicite un enlace nuevo e inténtelo más tarde.',429,retry);}recent.push(now);passwordAccessContinuationAttempts.set(key,recent);if(passwordAccessContinuationAttempts.size>5_000)for(const[entry,values]of passwordAccessContinuationAttempts)if(!values.some(value=>now-value<windowMs))passwordAccessContinuationAttempts.delete(entry);}
 function emailValue(value:unknown){const email=typeof value==='string'?value.trim().toLowerCase():'';if(!email||email.length>254||!/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(email))throw new UserProvisioningError('Ingrese un correo electrónico válido.');return email;}
 function nameValue(value:unknown,label:string){const name=typeof value==='string'?value.trim().replace(/\s+/g,' '):'';if(!name)throw new UserProvisioningError(`${label} es obligatorio.`);if(name.length>120)throw new UserProvisioningError(`${label} no puede exceder 120 caracteres.`);return name;}
 function timezoneValue(value:unknown){if(value===undefined||value===null||value==='')return null;const id=Number(value);if(!Number.isSafeInteger(id)||id<=0)throw new UserProvisioningError('La zona horaria no es válida.');return id;}
@@ -44,6 +49,26 @@ function config(){
   return{...base,serviceKey};
 }
 function appUrl(){try{return publicAppUrl({allowLocalHttp:true,rootOnly:true});}catch(cause){if(cause instanceof PublicAppUrlConfigurationError){if(cause.issue==='MISSING')throw new UserProvisioningError('La URL pública de la aplicación no está configurada.',503);if(cause.issue==='INSECURE')throw new UserProvisioningError('La URL de invitación debe utilizar HTTPS.',503);throw new UserProvisioningError('La URL pública de la aplicación no es válida.',503);}throw cause;}}
+function passwordAccessFlow(value:unknown):PasswordAccessFlow{if(value==='invitation'||value==='recovery')return value;throw new UserProvisioningError('El enlace de acceso no es válido o ya expiró.',400);}
+function hasDuplicateSearchParameters(parameters:URLSearchParams){const keys=new Set<string>();for(const[key]of parameters){if(keys.has(key))return true;keys.add(key);}return false;}
+function parsePasswordAccessContinuation(input:PasswordAccessContinuationInput):ParsedPasswordAccessContinuation{
+  const flow=passwordAccessFlow(input.flow),raw=typeof input.confirmationUrl==='string'?input.confirmationUrl.trim():'';
+  if(!raw||raw.length>8192)throw new UserProvisioningError('El enlace de acceso no es válido o ya expiró.',400);
+  let confirmation:URL,redirect:URL;
+  try{confirmation=new URL(raw);redirect=new URL(confirmation.searchParams.get('redirect_to')||'');}catch{throw new UserProvisioningError('El enlace de acceso no es válido o ya expiró.',400);}
+  const supabase=getSupabaseConfig(),application=appUrl(),expectedType=flow==='invitation'?'invite':'recovery',expectedFlag=flow==='invitation'?'password_invitation':'password_recovery',token=confirmation.searchParams.get('token')||confirmation.searchParams.get('token_hash')||'',state=redirect.searchParams.get('state')||'';
+  const tokenParameterCount=confirmation.searchParams.getAll('token').length+confirmation.searchParams.getAll('token_hash').length,redirectKeys=[...redirect.searchParams.keys()],oppositeFlag=flow==='invitation'?'password_recovery':'password_invitation';
+  if(!supabase||confirmation.protocol!=='https:'||confirmation.username||confirmation.password||confirmation.hash||hasDuplicateSearchParameters(confirmation.searchParams)||confirmation.origin!==new URL(supabase.url).origin||confirmation.pathname!=='/auth/v1/verify'||confirmation.searchParams.getAll('type').length!==1||confirmation.searchParams.get('type')!==expectedType||confirmation.searchParams.getAll('redirect_to').length!==1||tokenParameterCount!==1||!token||token.length>4096||redirect.protocol!=='https:'||redirect.username||redirect.password||redirect.hash||hasDuplicateSearchParameters(redirect.searchParams)||redirect.origin!==application.origin||redirect.pathname!=='/'||redirectKeys.length!==2||redirect.searchParams.getAll(expectedFlag).length!==1||redirect.searchParams.get(expectedFlag)!=='1'||redirect.searchParams.has(oppositeFlag)||redirect.searchParams.getAll('state').length!==1||!/^[A-Za-z0-9_-]{43}$/.test(state))throw new UserProvisioningError('El enlace de acceso no es válido o ya expiró.',400);
+  return{flow,state};
+}
+function passwordAccessEntryLink(confirmationUrl:string,flow:PasswordAccessFlow){parsePasswordAccessContinuation({confirmationUrl,flow});const entry=appUrl();entry.searchParams.set('password_access',flow);entry.hash=new URLSearchParams({confirmation_url:confirmationUrl}).toString();return entry.toString();}
+export async function validatePasswordAccessContinuation(input:PasswordAccessContinuationInput,ipAddress?:string|null){
+  limitPasswordAccessContinuationAttempts(ipAddress);
+  const{flow,state}=parsePasswordAccessContinuation(input),stateHash=sha256(state),table=flow==='invitation'?'user_invitation_grants':'password_recovery_grants',idField=flow==='invitation'?'invitation_id':'recovery_id';
+  const grants=await serviceRest<Array<Record<string,unknown>>>(`${table}?select=${idField}&state_hash=eq.${stateHash}&consumed_at=is.null&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&limit=1`);
+  if(!Array.isArray(grants)||grants.length!==1)throw new UserProvisioningError('El enlace de acceso no es válido o ya expiró.',400);
+  return{success:true};
+}
 async function payload(response:Response){const text=response.status===204?'':await response.text();if(!text)return null;try{return JSON.parse(text)as unknown;}catch{return null;}}
 function apiMessage(value:unknown,fallback:string){if(typeof value!=='object'||value===null)return fallback;for(const key of['message','msg','error_description']){const item=(value as Record<string,unknown>)[key];if(typeof item==='string'&&item.trim())return item;}return fallback;}
 
@@ -77,7 +102,7 @@ export async function createSecurityUser(authorization:string,input:CreateUserIn
     let notification:{requested:boolean;sent:boolean;status:string;error?:string}={requested:requestedNotification,sent:false,status:shouldNotify?'PENDIENTE':'NO_SOLICITADA'};
     if(shouldNotify){
       try{
-        await sendUserInvitationEmail(authorization,{empresa_nombre:'',empresa_logo_url:null,usuario_nombre:`${firstName} ${lastName}`.trim(),usuario_correo:email,enlace_activacion:activationLink,fecha_expiracion:expiresAt});notification={requested:true,sent:true,status:'INVITACION_ENVIADA'};const userId=Number(user.user_id);if(Number.isSafeInteger(userId)&&userId>0)await actorRpc(authorization,'security_mark_user_invitation_sent',{p_user_id:userId}).catch(()=>undefined);
+        await sendUserInvitationEmail(authorization,{empresa_nombre:'',empresa_logo_url:null,usuario_nombre:`${firstName} ${lastName}`.trim(),usuario_correo:email,enlace_activacion:passwordAccessEntryLink(activationLink,'invitation'),fecha_expiracion:expiresAt});notification={requested:true,sent:true,status:'INVITACION_ENVIADA'};const userId=Number(user.user_id);if(Number.isSafeInteger(userId)&&userId>0)await actorRpc(authorization,'security_mark_user_invitation_sent',{p_user_id:userId}).catch(()=>undefined);
       }catch(cause){const mailError=cause instanceof Error?cause.message:'No fue posible enviar la invitación.',fallbackPassword=randomBytes(48).toString('base64url');let recoveryReady=false;try{await authAdmin(`admin/users/${encodeURIComponent(identity.id)}`,{method:'PUT',body:JSON.stringify({password:fallbackPassword,email_confirm:true})});recoveryReady=true;}catch{}const grantRemoved=await deleteGrant(stateHash);notification={requested:true,sent:false,status:recoveryReady&&grantRemoved?'ENVIO_FALLIDO_RECUPERACION_DISPONIBLE':'REQUIERE_INTERVENCION',error:mailError};}
     }else if(requestedNotification&&!isActive)notification={requested:true,sent:false,status:'OMITIDA_USUARIO_INACTIVO'};
     return{...user,notification,message:notification.sent?'Usuario creado e invitación enviada.':notification.status==='ENVIO_FALLIDO_RECUPERACION_DISPONIBLE'?'Usuario creado, pero el correo no pudo enviarse. La cuenta quedó habilitada para utilizar Recuperar contraseña.':notification.status==='REQUIERE_INTERVENCION'?'Usuario creado, pero la invitación requiere intervención administrativa antes de que pueda acceder.':isActive?'Usuario creado sin notificación. Puede utilizar Recuperar contraseña para definir su acceso.':'Usuario inactivo creado sin enviar invitación.'};
@@ -127,7 +152,7 @@ export async function sendExistingUserPasswordLink(authorization:string,userId:n
     if(identity.id!==authUserId||identity.email!==email||!recoveryLink)throw new UserProvisioningError('No fue posible vincular el enlace con la cuenta solicitada.',502);
     let returnedRedirect:URL;try{returnedRedirect=new URL(generatedRedirect(generated,recoveryLink));}catch{throw new UserProvisioningError('Supabase no conservó la URL de recuperación configurada.',503);}
     if(returnedRedirect.toString()!==redirect.toString())throw new UserProvisioningError('La URL de recuperación no está autorizada en Supabase Auth. Agréguela a Redirect URLs.',503);
-    await sendUserPasswordRecoveryEmail(authorization,{empresa_nombre:'',empresa_logo_url:null,usuario_nombre:`${target.first_name??''} ${target.last_name??''}`.trim()||email,usuario_correo:email,enlace_activacion:recoveryLink,fecha_expiracion:expiresAt,access_mode:'RECOVERY'});
+    await sendUserPasswordRecoveryEmail(authorization,{empresa_nombre:'',empresa_logo_url:null,usuario_nombre:`${target.first_name??''} ${target.last_name??''}`.trim()||email,usuario_correo:email,enlace_activacion:passwordAccessEntryLink(recoveryLink,'recovery'),fecha_expiracion:expiresAt,access_mode:'RECOVERY'});
     // Keep concurrent links until the first one is used. The database consume
     // RPC serializes by email and consumes every open link atomically, so two
     // simultaneous email deliveries cannot invalidate one another.

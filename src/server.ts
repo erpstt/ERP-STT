@@ -69,7 +69,7 @@ import { revokeCurrentSession, SessionAuthenticationError } from './modules/auth
 import { assertRequestAccess } from './modules/auth/services/request-access.service.js';
 import { changePassword } from './modules/auth/services/password-history.service.js';
 import { completePasswordRecovery, PasswordRecoveryError, requestPasswordRecovery } from './modules/auth/services/password-recovery.service.js';
-import { completePasswordInvitation, createSecurityUser, sendExistingUserPasswordLink, UserProvisioningError } from './modules/auth/services/user-provisioning.service.js';
+import { completePasswordInvitation, createSecurityUser, sendExistingUserPasswordLink, UserProvisioningError, validatePasswordAccessContinuation } from './modules/auth/services/user-provisioning.service.js';
 import { error, json } from './core/interceptors/http-response.js';
 import { turnstilePublicConfig, verifyTurnstileToken, TurnstileValidationError } from './core/security/turnstile.service.js';
 import { assertLoginAllowed, clearLoginFailures, LoginRateLimitError, recordLoginFailure } from './core/security/login-rate-limit.js';
@@ -120,10 +120,11 @@ const compressible = new Set(['.html','.css','.js','.json','.svg','.csv']);
 
 async function body(request: IncomingMessage): Promise<unknown> {
   const isOpeningBalanceValidation = request.url === '/api/opening-balances/validate';
-  const maxBodyBytes = isOpeningBalanceValidation ? 36 * 1024 * 1024 : 8 * 1024 * 1024;
+  const isPasswordAccessContinuation = request.url === '/api/auth/continue-password-access';
+  const maxBodyBytes = isOpeningBalanceValidation ? 36 * 1024 * 1024 : isPasswordAccessContinuation ? 16 * 1024 : 8 * 1024 * 1024;
   const tooLarge=()=>{
-    const limitMb=Math.floor(maxBodyBytes/1024/1024);
-    const failure=new Error(`La solicitud supera el límite permitido de ${limitMb} MB.`) as Error & {status?:number};
+    const limit=maxBodyBytes<1024*1024?`${Math.floor(maxBodyBytes/1024)} KB`:`${Math.floor(maxBodyBytes/1024/1024)} MB`;
+    const failure=new Error(`La solicitud supera el límite permitido de ${limit}.`) as Error & {status?:number};
     failure.status=413;
     return failure;
   };
@@ -164,7 +165,7 @@ function clientIp(request: IncomingMessage) {
 function applySecurityHeaders(request: IncomingMessage, response: ServerResponse) {
   response.setHeader('X-Content-Type-Options', 'nosniff');
   response.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  response.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.setHeader('Referrer-Policy', 'no-referrer');
   response.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()');
   response.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   response.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
@@ -271,6 +272,10 @@ const server = createServer((request, response) => withAuditExecution(async () =
       const input = await body(request) as { email?: string; turnstileToken?: string };
       await verifyTurnstileToken(input.turnstileToken, clientIp(request));
       return json(response, 200, await requestPasswordRecovery(input, clientIp(request)));
+    }
+    if (request.method === 'POST' && request.url === '/api/auth/continue-password-access') {
+      const input = await body(request) as { confirmationUrl?: unknown; flow?: unknown };
+      return json(response, 200, await validatePasswordAccessContinuation(input, clientIp(request)));
     }
     if (request.method === 'POST' && request.url === '/api/auth/complete-password-recovery') {
       const input = await body(request) as { state?: string; accessToken?: string; recoveryType?: string; newPassword?: string; confirmation?: string };

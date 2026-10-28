@@ -10,7 +10,43 @@ const json=(value,status=200)=>new Response(JSON.stringify(value),{status,header
 const hash=value=>createHash('sha256').update(value).digest('hex');
 function configure(){process.env.SUPABASE_URL='https://project.example.test';process.env.SUPABASE_ANON_KEY='anon';process.env.SUPABASE_SERVICE_ROLE_KEY='service';process.env.GENTIA_APP_URL='https://erp.example.test';delete process.env.RAILWAY_PUBLIC_DOMAIN;delete process.env.SMTP_HOST;delete process.env.SMTP_FROM;}
 function jwt(method='otp',issuedAt=Math.floor(Date.now()/1000)){const enc=value=>Buffer.from(JSON.stringify(value)).toString('base64url');return`${enc({alg:'none'})}.${enc({iat:issuedAt,exp:issuedAt+3600,role:'authenticated',aud:'authenticated',amr:[{method,timestamp:issuedAt}]})}.signature`;}
+function continuationLink(flow='recovery',state='A'.repeat(43),redirectOverride=''){const type=flow==='invitation'?'invite':'recovery',flag=flow==='invitation'?'password_invitation':'password_recovery',redirect=redirectOverride||`https://erp.example.test/?${flag}=1&state=${state}`;return`https://project.example.test/auth/v1/verify?token=secret&type=${type}&redirect_to=${encodeURIComponent(redirect)}`;}
 test.beforeEach(configure);test.afterEach(()=>{globalThis.fetch=originalFetch;process.env={...originalEnvironment};nodemailer.createTransport=originalCreateTransport;});
+
+test('acepta únicamente una continuación con grant vigente y del flujo correspondiente',async()=>{
+  const cases=[{flow:'recovery',state:'A'.repeat(43),table:'/rest/v1/password_recovery_grants',id:'recovery_id'},{flow:'invitation',state:'B'.repeat(43),table:'/rest/v1/user_invitation_grants',id:'invitation_id'}];
+  for(const item of cases){
+    globalThis.fetch=async(input,init={})=>{const url=new URL(String(input));assert.equal(url.pathname,item.table);assert.equal(init.method??'GET','GET');assert.equal(url.searchParams.get('select'),item.id);assert.equal(url.searchParams.get('state_hash'),`eq.${hash(item.state)}`);assert.equal(url.searchParams.get('consumed_at'),'is.null');assert.match(url.searchParams.get('expires_at')||'',/^gt\./);assert.equal(url.searchParams.get('limit'),'1');return json([{[item.id]:1}]);};
+    assert.deepEqual(await provisioning.validatePasswordAccessContinuation({confirmationUrl:continuationLink(item.flow,item.state),flow:item.flow},`198.51.100.${item.flow==='recovery'?10:11}`),{success:true});
+  }
+});
+
+test('rechaza de forma indistinguible grants vencidos, consumidos o inexistentes',async()=>{
+  const cases=[['vencido','C'.repeat(43)],['consumido','D'.repeat(43)],['inexistente','E'.repeat(43)]];
+  for(const[index,[label,state]]of cases.entries()){
+    let queried=false;
+    globalThis.fetch=async input=>{const url=new URL(String(input));queried=true;assert.equal(url.pathname,'/rest/v1/password_recovery_grants');assert.equal(url.searchParams.get('state_hash'),`eq.${hash(state)}`);assert.equal(url.searchParams.get('consumed_at'),'is.null');assert.match(url.searchParams.get('expires_at')||'',/^gt\./);return json([]);};
+    await assert.rejects(()=>provisioning.validatePasswordAccessContinuation({confirmationUrl:continuationLink('recovery',state),flow:'recovery'},`198.51.100.${20+index}`),error=>error?.status===400&&error.message==='El enlace de acceso no es válido o ya expiró.',label);
+    assert.equal(queried,true);
+  }
+});
+
+test('rechaza orígenes, fragmentos, parámetros duplicados y flags cruzadas antes de consultar grants',async()=>{
+  const state='F'.repeat(43),valid=continuationLink('recovery',state),duplicateState=`https://erp.example.test/?password_recovery=1&state=${state}&state=${'G'.repeat(43)}`,crossed=`https://erp.example.test/?password_recovery=1&password_invitation=1&state=${state}`;
+  const invalid=[
+    {url:valid,flow:'invitation'},
+    {url:valid.replace('project.example.test','attacker.example.test'),flow:'recovery'},
+    {url:valid.replace('erp.example.test','attacker.example.test'),flow:'recovery'},
+    {url:`${valid}#fragmento`,flow:'recovery'},
+    {url:`${valid}&type=recovery`,flow:'recovery'},
+    {url:`${valid}&token_hash=otro`,flow:'recovery'},
+    {url:continuationLink('recovery',state,duplicateState),flow:'recovery'},
+    {url:continuationLink('recovery',state,crossed),flow:'recovery'}
+  ];
+  let fetchCalls=0;globalThis.fetch=async()=>{fetchCalls++;return json([{recovery_id:1}]);};
+  for(const[index,item]of invalid.entries())await assert.rejects(()=>provisioning.validatePasswordAccessContinuation({confirmationUrl:item.url,flow:item.flow},`203.0.113.${index+1}`),error=>error?.status===400);
+  assert.equal(fetchCalls,0);
+});
 
 test('crea Auth y ERP, genera un enlace seguro y habilita recuperación si SMTP falla',async()=>{
   let authBody,grantBody,erpBody,fallbackBody,authDeleted=false,grantDeletes=0,createAuthorization='';const usersAuthorizations=[];
@@ -104,6 +140,8 @@ test('edición envía recovery de un solo uso, conserva enlaces concurrentes has
   assert.equal(new URL(generatedBody.redirect_to).origin,'https://erp-stt-production.up.railway.app');
   const state=new URL(generatedBody.redirect_to).searchParams.get('state');assert.equal(grantBody.state_hash,hash(state));assert.equal(grantBody.email_hash,hash('persona@example.com'));
   assert.equal(concurrentGrantsDeleted,false);assert.equal(audited,true);assert.match(mailMessage.html,/RECUPERACIÓN SEGURA/);assert.match(mailMessage.html,/contraseña actual no se conoce/);
+  assert.match(mailMessage.html,/https:\/\/erp-stt-production\.up\.railway\.app\/\?password_access=recovery#confirmation_url=/);
+  assert.doesNotMatch(mailMessage.html,/href="https:\/\/project\.example\.test\/auth\/v1\/verify/);
   assert.equal(result.status,'RECUPERACION_ENVIADA');assert.equal(JSON.stringify(result).includes('admin-secret'),false);assert.equal(JSON.stringify(result).includes(state),false);assert.equal(JSON.stringify(result).toLowerCase().includes('password'),false);
 });
 
