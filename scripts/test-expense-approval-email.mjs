@@ -6,7 +6,13 @@ import {
   renderExpenseApprovalEmail
 } from '../dist/modules/notifications/expense-approval-email.js';
 
-const oldBase=process.env.APP_BASE_URL;
+const oldUrls={
+  GENTIA_APP_URL:process.env.GENTIA_APP_URL,
+  APP_BASE_URL:process.env.APP_BASE_URL,
+  NEXO_APP_URL:process.env.NEXO_APP_URL
+};
+delete process.env.GENTIA_APP_URL;
+delete process.env.NEXO_APP_URL;
 process.env.APP_BASE_URL='https://erp.example.test';
 const payload={
   empresa_nombre:'Empresa <Prueba>',
@@ -84,5 +90,5 @@ completion=undefined;
 await deliverExpenseApprovalJob({...job,id:'job-6'},async()=>{const error=new Error('timeout desconocido');error.code='ETIMEDOUT';error.command='DATA';throw error},async(status,message,error)=>{completion={status,message,error}});
 assert.equal(completion.status,'INCIERTO');
 
-if(oldBase===undefined)delete process.env.APP_BASE_URL;else process.env.APP_BASE_URL=oldBase;
+for(const[key,value]of Object.entries(oldUrls)){if(value===undefined)delete process.env[key];else process.env[key]=value;}
 console.log(JSON.stringify({render:true,databaseSnapshot:true,databaseJobShape:true,lineDetails:true,escaped:true,approvalLink:true,localhostLinkOmitted:true,instructions:true,mockDelivery:true,invalidRecipient:true,smtpRejection:true,transientRetry:true,unknownOutcome:true,realEmailsSent:0}));

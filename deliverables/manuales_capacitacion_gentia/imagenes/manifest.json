@@ -1,0 +1,675 @@
+{
+  "validation": {
+    "generatedAt": "2026-10-28T14:22:30.494Z",
+    "origin": "http://localhost:3000",
+    "safeSyntheticFixtures": true,
+    "expectedTopics": 19,
+    "coveredTopics": 19,
+    "totalImages": 39,
+    "failures": []
+  },
+  "topics": [
+    {
+      "code": "CAP-01",
+      "name": "Ingreso y espacio de trabajo",
+      "files": [
+        "CAP-01-01-login.png",
+        "CAP-01-02-workspace.png"
+      ]
+    },
+    {
+      "code": "CAP-02",
+      "name": "Seguridad, usuarios, roles y permisos",
+      "files": [
+        "CAP-02-01-permisos-por-rol.png",
+        "CAP-02-02-acciones-especiales.png"
+      ]
+    },
+    {
+      "code": "CAP-03",
+      "name": "Organización y catálogos maestros",
+      "files": [
+        "CAP-03-01-departamentos.png",
+        "CAP-03-02-centros-costos.png"
+      ]
+    },
+    {
+      "code": "CAP-04",
+      "name": "Contabilidad y asientos de diario",
+      "files": [
+        "CAP-04-01-asiento-diario.png",
+        "CAP-04-02-importar-asientos.png"
+      ]
+    },
+    {
+      "code": "CAP-05",
+      "name": "Carga de saldos iniciales",
+      "files": [
+        "CAP-05-01-saldos-iniciales.png",
+        "CAP-05-02-confirmar-apertura.png"
+      ]
+    },
+    {
+      "code": "CAP-06",
+      "name": "Ventas, facturación y cobros",
+      "files": [
+        "CAP-06-01-factura-venta.png",
+        "CAP-06-02-cobro-comision-bancaria.png"
+      ]
+    },
+    {
+      "code": "CAP-07",
+      "name": "Compras y cuentas por pagar",
+      "files": [
+        "CAP-07-01-factura-proveedor.png",
+        "CAP-07-02-pagos-proveedores.png"
+      ]
+    },
+    {
+      "code": "CAP-08",
+      "name": "Solicitudes de pago",
+      "files": [
+        "CAP-08-01-lista-solicitudes-pago.png",
+        "CAP-08-02-solicitud-imputacion-directa.png"
+      ]
+    },
+    {
+      "code": "CAP-09",
+      "name": "Aprobaciones y flujos de trabajo",
+      "files": [
+        "CAP-09-01-bandeja-aprobaciones.png",
+        "CAP-09-02-flujos-aprobacion.png"
+      ]
+    },
+    {
+      "code": "CAP-10",
+      "name": "Bancos y conciliación bancaria",
+      "files": [
+        "CAP-10-01-auxiliar-bancario.png",
+        "CAP-10-02-hoja-conciliacion.png"
+      ]
+    },
+    {
+      "code": "CAP-11",
+      "name": "Tesorería y lotes de pago",
+      "files": [
+        "CAP-11-01-posicion-tesoreria.png",
+        "CAP-11-02-lotes-pago.png"
+      ]
+    },
+    {
+      "code": "CAP-12",
+      "name": "Activos fijos",
+      "files": [
+        "CAP-12-01-activos-fijos.png",
+        "CAP-12-02-categorias-activos.png"
+      ]
+    },
+    {
+      "code": "CAP-13",
+      "name": "Inventario y productos",
+      "files": [
+        "CAP-13-01-productos.png",
+        "CAP-13-02-tipos-articulos.png"
+      ]
+    },
+    {
+      "code": "CAP-14",
+      "name": "Fiscal, calendario e IVA/GCT",
+      "files": [
+        "CAP-14-01-obligaciones-tributarias.png",
+        "CAP-14-02-calendario-tributario.png",
+        "CAP-14-03-declaracion-iva-gct.png"
+      ]
+    },
+    {
+      "code": "CAP-15",
+      "name": "Consolidación financiera",
+      "files": [
+        "CAP-15-01-iniciar-consolidacion.png",
+        "CAP-15-02-hoja-consolidacion.png"
+      ]
+    },
+    {
+      "code": "CAP-16",
+      "name": "Reportes contables y operativos",
+      "files": [
+        "CAP-16-01-catalogo-reportes.png",
+        "CAP-16-02-libro-diario.png"
+      ]
+    },
+    {
+      "code": "CAP-17",
+      "name": "Auditoría y control de calidad",
+      "files": [
+        "CAP-17-01-reporte-auditoria.png",
+        "CAP-17-02-detalle-cambio.png"
+      ]
+    },
+    {
+      "code": "CAP-18",
+      "name": "Documentos y comunicaciones",
+      "files": [
+        "CAP-18-01-plantillas-pdf.png",
+        "CAP-18-02-plantilla-notificacion.png"
+      ]
+    },
+    {
+      "code": "CAP-19",
+      "name": "Soporte, recuperación y continuidad",
+      "files": [
+        "CAP-19-01-recuperar-contrasena.png",
+        "CAP-19-02-reportes-programados.png"
+      ]
+    }
+  ],
+  "images": [
+    {
+      "topicCode": "CAP-01",
+      "topic": "Ingreso y espacio de trabajo",
+      "file": "CAP-01-01-login.png",
+      "title": "Inicio de sesión seguro",
+      "source": "/",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 290563,
+      "sha256": "ee2ccba6b4134a97f12f0118238c5f8dcb3a2c512d7482cf867cfc6ff2c0e6cc",
+      "generatedAt": "2026-10-28T14:21:28.092Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-01",
+      "topic": "Ingreso y espacio de trabajo",
+      "file": "CAP-01-02-workspace.png",
+      "title": "Espacio de trabajo GENTIA",
+      "source": "/",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 65242,
+      "sha256": "7b656fb015d9e72c6ba3d267f5f4941d883b731f1d462305f3115d095c554e48",
+      "generatedAt": "2026-10-28T14:21:35.360Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-02",
+      "topic": "Seguridad, usuarios, roles y permisos",
+      "file": "CAP-02-01-permisos-por-rol.png",
+      "title": "Matriz de permisos por rol",
+      "source": "/role-access-matrix.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 76716,
+      "sha256": "9f1f490524df5927409144ef25c39efa971d81b2b310e17d0d7b70cde5f802de",
+      "generatedAt": "2026-10-28T14:21:36.990Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-02",
+      "topic": "Seguridad, usuarios, roles y permisos",
+      "file": "CAP-02-02-acciones-especiales.png",
+      "title": "Acciones especiales de seguridad",
+      "source": "/role-access-matrix.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 80131,
+      "sha256": "92e5e5e766ce922b10816c871f593d4160811f25b6a166b90abda231c16c45db",
+      "generatedAt": "2026-10-28T14:21:38.429Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-03",
+      "topic": "Organización y catálogos maestros",
+      "file": "CAP-03-01-departamentos.png",
+      "title": "Catálogo de departamentos",
+      "source": "/",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 97653,
+      "sha256": "95939622c350429cb01529cfb3fede70b3f15717a5b7c2f7fa0a3d62f4e09c30",
+      "generatedAt": "2026-10-28T14:21:39.950Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-03",
+      "topic": "Organización y catálogos maestros",
+      "file": "CAP-03-02-centros-costos.png",
+      "title": "Catálogo de centros de costos",
+      "source": "/",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 97828,
+      "sha256": "5b8e7bb66aed2467eba278587eaa19bf9dd052931087515d79a38b7a933cb07a",
+      "generatedAt": "2026-10-28T14:21:41.531Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-04",
+      "topic": "Contabilidad y asientos de diario",
+      "file": "CAP-04-01-asiento-diario.png",
+      "title": "Registro de asiento de diario",
+      "source": "/journal-entry.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 64410,
+      "sha256": "0d6a85c55174ad12d61a528234056dafa9ae9e72d1d2cc846f78a2d1904ae9f1",
+      "generatedAt": "2026-10-28T14:21:42.890Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-04",
+      "topic": "Contabilidad y asientos de diario",
+      "file": "CAP-04-02-importar-asientos.png",
+      "title": "Importación masiva de asientos",
+      "source": "/journal-import.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 75433,
+      "sha256": "66831272c9d7f8819dac5f2781e5d56c0e4f5bce9e49ce78636f2319f92daec7",
+      "generatedAt": "2026-10-28T14:21:44.117Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-05",
+      "topic": "Carga de saldos iniciales",
+      "file": "CAP-05-01-saldos-iniciales.png",
+      "title": "Carga y validación de saldos iniciales",
+      "source": "/opening-balances.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 77976,
+      "sha256": "11bb72b9ea57c85c7e3950d32a42a3b9b37e6ce520c4121b3972c66323d1dbef",
+      "generatedAt": "2026-10-28T14:21:45.472Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-05",
+      "topic": "Carga de saldos iniciales",
+      "file": "CAP-05-02-confirmar-apertura.png",
+      "title": "Confirmación profesional de la apertura",
+      "source": "/opening-balances.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 202086,
+      "sha256": "181b9bb4e760fdc04873f1428d0ae705e9c7f598b4973cb3e64f354a4b298cb1",
+      "generatedAt": "2026-10-28T14:21:46.929Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-06",
+      "topic": "Ventas, facturación y cobros",
+      "file": "CAP-06-01-factura-venta.png",
+      "title": "Creación de factura de venta",
+      "source": "/sales-invoice-entry.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 83664,
+      "sha256": "49d6b046a8c3b90d591564376b90080e0bd00cfa0b9633d00428c82bd75ddc66",
+      "generatedAt": "2026-10-28T14:21:48.293Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-06",
+      "topic": "Ventas, facturación y cobros",
+      "file": "CAP-06-02-cobro-comision-bancaria.png",
+      "title": "Cobro a cliente con comisión bancaria",
+      "source": "/customer-payments.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 89924,
+      "sha256": "ad7866723cd4a61fc4d215b88318a732ef95267be6a2e2b5f9e6bd30997b8d36",
+      "generatedAt": "2026-10-28T14:21:49.812Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-07",
+      "topic": "Compras y cuentas por pagar",
+      "file": "CAP-07-01-factura-proveedor.png",
+      "title": "Creación de factura de proveedor",
+      "source": "/supplier-invoice-entry.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 76898,
+      "sha256": "222d6111ba897c52c9d1114505aba49f1b7eec6899b60a380f00852feddb28ff",
+      "generatedAt": "2026-10-28T14:21:51.168Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-07",
+      "topic": "Compras y cuentas por pagar",
+      "file": "CAP-07-02-pagos-proveedores.png",
+      "title": "Pagos a proveedores y cuentas por pagar",
+      "source": "/supplier-payments.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 50439,
+      "sha256": "ad010a2044fb158604da123e5f3fb9ab95bb82c0041ee966b03781060f1c1803",
+      "generatedAt": "2026-10-28T14:21:52.448Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-08",
+      "topic": "Solicitudes de pago",
+      "file": "CAP-08-01-lista-solicitudes-pago.png",
+      "title": "Seguimiento de solicitudes de pago",
+      "source": "/payment-requests.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 68929,
+      "sha256": "7a7241ccedfcda4a523e447f37d22b8e9a7efd09316fd3b3eca40150f1feee86",
+      "generatedAt": "2026-10-28T14:21:53.644Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-08",
+      "topic": "Solicitudes de pago",
+      "file": "CAP-08-02-solicitud-imputacion-directa.png",
+      "title": "Solicitud de pago por imputación directa",
+      "source": "/payment-requests.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 60089,
+      "sha256": "5f29cfd6c088c035fddc004484f2f6f759905c4ff9030fee42091aa7c740cecd",
+      "generatedAt": "2026-10-28T14:21:55.109Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-09",
+      "topic": "Aprobaciones y flujos de trabajo",
+      "file": "CAP-09-01-bandeja-aprobaciones.png",
+      "title": "Bandeja central de aprobaciones",
+      "source": "/approval-inbox.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 51349,
+      "sha256": "e57d293b6b27f02fc7945dd168b362c320fc783e22e28ebc3454c31953f15da2",
+      "generatedAt": "2026-10-28T14:21:56.317Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-09",
+      "topic": "Aprobaciones y flujos de trabajo",
+      "file": "CAP-09-02-flujos-aprobacion.png",
+      "title": "Configuración de flujos de aprobación",
+      "source": "/approval-workflows.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 32781,
+      "sha256": "c8ebc8eb2034080a7846bcd61749debd38aca139cbc10e6d618dc97fcccf0328",
+      "generatedAt": "2026-10-28T14:21:57.585Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-10",
+      "topic": "Bancos y conciliación bancaria",
+      "file": "CAP-10-01-auxiliar-bancario.png",
+      "title": "Auxiliar de bancos",
+      "source": "/accounting-reports.html?reporte=bank-reconciliation",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 80154,
+      "sha256": "69f43f4bb54ffb65c145de3c28b8feb11d1722c51c5e3179c82831692744e261",
+      "generatedAt": "2026-10-28T14:21:58.788Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-10",
+      "topic": "Bancos y conciliación bancaria",
+      "file": "CAP-10-02-hoja-conciliacion.png",
+      "title": "Hoja de conciliación y comisiones del extracto",
+      "source": "/accounting-reports.html?reporte=bank-reconciliation",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 106495,
+      "sha256": "a82396f43341e16e771f4d04e623d416a7a6ddccd297cb2cf1772f2f2c541589",
+      "generatedAt": "2026-10-28T14:22:00.157Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-11",
+      "topic": "Tesorería y lotes de pago",
+      "file": "CAP-11-01-posicion-tesoreria.png",
+      "title": "Posición de tesorería y proyección",
+      "source": "/treasury.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 59244,
+      "sha256": "885bb9d03cf6eb61504c0b5a4493e9bfc033ac3a43e4654b117e0da92ff8bea5",
+      "generatedAt": "2026-10-28T14:22:01.437Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-11",
+      "topic": "Tesorería y lotes de pago",
+      "file": "CAP-11-02-lotes-pago.png",
+      "title": "Generador de archivos de pago masivo",
+      "source": "/payment-batches.html?view=generator",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 107031,
+      "sha256": "f406a011915c4a3d90da91afcb56742a351a94f3b0af93ba04ddc41e8e25482c",
+      "generatedAt": "2026-10-28T14:22:02.789Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-12",
+      "topic": "Activos fijos",
+      "file": "CAP-12-01-activos-fijos.png",
+      "title": "Auxiliar y control de activos fijos",
+      "source": "/fixed-assets.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 63052,
+      "sha256": "4e0d9359e8b877b55d837fdd3551b5d5c2545ce886547d5bf8cc4e6fcb16de1c",
+      "generatedAt": "2026-10-28T14:22:03.982Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-12",
+      "topic": "Activos fijos",
+      "file": "CAP-12-02-categorias-activos.png",
+      "title": "Categorías de activos fijos",
+      "source": "/asset-categories.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 58053,
+      "sha256": "ba02fdf6a54771752b2b144aafec5dd3d82819616ed37139f0c75e32729d05e5",
+      "generatedAt": "2026-10-28T14:22:05.220Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-13",
+      "topic": "Inventario y productos",
+      "file": "CAP-13-01-productos.png",
+      "title": "Catálogo maestro de productos",
+      "source": "/",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 92228,
+      "sha256": "079d9bb614c60effee12ca079abca3c85e9c40e487b2e86df28b0084fc62281c",
+      "generatedAt": "2026-10-28T14:22:06.753Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-13",
+      "topic": "Inventario y productos",
+      "file": "CAP-13-02-tipos-articulos.png",
+      "title": "Tipos de artículos y servicios",
+      "source": "/",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 80379,
+      "sha256": "306d405d72a4977c2f7ef98233afe5b6b1c027592e41834d7971f41d414040a5",
+      "generatedAt": "2026-10-28T14:22:08.288Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-14",
+      "topic": "Fiscal, calendario e IVA/GCT",
+      "file": "CAP-14-01-obligaciones-tributarias.png",
+      "title": "Catálogo de obligaciones tributarias",
+      "source": "/tax-obligations.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 57749,
+      "sha256": "1aab3c66c20616dff149d645b10d862a242c1328e063616491438216a22d21bc",
+      "generatedAt": "2026-10-28T14:22:09.483Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-14",
+      "topic": "Fiscal, calendario e IVA/GCT",
+      "file": "CAP-14-02-calendario-tributario.png",
+      "title": "Calendario tributario y alertas",
+      "source": "/tax-calendar.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 52238,
+      "sha256": "b6be3f2b76c06af30bfbf95d7db1b800870d2bb31e3649bbf6dee247b2067f4a",
+      "generatedAt": "2026-10-28T14:22:10.709Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-14",
+      "topic": "Fiscal, calendario e IVA/GCT",
+      "file": "CAP-14-03-declaracion-iva-gct.png",
+      "title": "Declaración de IVA/GCT por tarifa",
+      "source": "/vat-declaration-report.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 136504,
+      "sha256": "49165cbdaeb6ed59e290c1145b61dfd5f0b47cc6c9bfbe36dc41140a1304a8c8",
+      "generatedAt": "2026-10-28T14:22:11.958Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-15",
+      "topic": "Consolidación financiera",
+      "file": "CAP-15-01-iniciar-consolidacion.png",
+      "title": "Parámetros de consolidación financiera",
+      "source": "/consolidation.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 52072,
+      "sha256": "31eb5e5f3afac86dc3d386dcf01a2698c91f3e86aa3da126aad0f3f9cbf31217",
+      "generatedAt": "2026-10-28T14:22:13.121Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-15",
+      "topic": "Consolidación financiera",
+      "file": "CAP-15-02-hoja-consolidacion.png",
+      "title": "Conversión, eliminaciones y hoja consolidada",
+      "source": "/consolidation.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 72455,
+      "sha256": "9c3fbff267d47a363e454d48df4eed10b2bd02fc66177d142634e63c9acc0e33",
+      "generatedAt": "2026-10-28T14:22:14.505Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-16",
+      "topic": "Reportes contables y operativos",
+      "file": "CAP-16-01-catalogo-reportes.png",
+      "title": "Catálogo de reportes contables",
+      "source": "/accounting-reports.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 82318,
+      "sha256": "3882ee0a5ed6122607e45a81a5a20a2a437655b8207c61046af48afe6a9f8d1a",
+      "generatedAt": "2026-10-28T14:22:15.699Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-16",
+      "topic": "Reportes contables y operativos",
+      "file": "CAP-16-02-libro-diario.png",
+      "title": "Libro Diario cuadrado y auditable",
+      "source": "/accounting-reports.html?reporte=journal",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 88523,
+      "sha256": "1db2911284e6e8d8756227bf456806b2f8e07c38285994eab5d4c877cad4e38f",
+      "generatedAt": "2026-10-28T14:22:16.995Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-17",
+      "topic": "Auditoría y control de calidad",
+      "file": "CAP-17-01-reporte-auditoria.png",
+      "title": "Reporte de registros modificados y eliminados",
+      "source": "/audit-change-report.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 106532,
+      "sha256": "be5fdcbce51e957cf322c3f190671b63deeac6dfcdc91c8c7aee8d17edbb4954",
+      "generatedAt": "2026-10-28T14:22:18.238Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-17",
+      "topic": "Auditoría y control de calidad",
+      "file": "CAP-17-02-detalle-cambio.png",
+      "title": "Detalle de valores anteriores y nuevos",
+      "source": "/audit-change-report.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 97393,
+      "sha256": "c25f5d97490a4ef7d777851b1b175802f895c8e1d4fb38d0f00612126bbf3600",
+      "generatedAt": "2026-10-28T14:22:19.539Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-18",
+      "topic": "Documentos y comunicaciones",
+      "file": "CAP-18-01-plantillas-pdf.png",
+      "title": "Plantillas profesionales de PDF",
+      "source": "/pdf-templates.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 55882,
+      "sha256": "ac56a16489c44a353edeb584be7a6c5d031b6929829091d21d2b053b3eb94f39",
+      "generatedAt": "2026-10-28T14:22:20.889Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-18",
+      "topic": "Documentos y comunicaciones",
+      "file": "CAP-18-02-plantilla-notificacion.png",
+      "title": "Plantilla editable de correo de aprobación",
+      "source": "/notification-templates.html?kind=SOLICITUD_GASTO_APROBACION",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 90950,
+      "sha256": "a72a0e3ce7e661b53b7468776b155e045c2b0e68381906779037be2a3b0c71c3",
+      "generatedAt": "2026-10-28T14:22:22.109Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-19",
+      "topic": "Soporte, recuperación y continuidad",
+      "file": "CAP-19-01-recuperar-contrasena.png",
+      "title": "Recuperación segura de contraseña",
+      "source": "/",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 291891,
+      "sha256": "ac599005397be40d9b6a4e99ab2a81b70ac634af354189bd9c82c69d3f5db13c",
+      "generatedAt": "2026-10-28T14:22:29.303Z",
+      "syntheticData": true
+    },
+    {
+      "topicCode": "CAP-19",
+      "topic": "Soporte, recuperación y continuidad",
+      "file": "CAP-19-02-reportes-programados.png",
+      "title": "Programación y continuidad de reportes",
+      "source": "/scheduled-reports.html",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 66947,
+      "sha256": "1e1ab65c44ba1986354e0aa9c4c897a8edf5b9402c4b1f1095005484919cf79b",
+      "generatedAt": "2026-10-28T14:22:30.488Z",
+      "syntheticData": true
+    }
+  ]
+}

@@ -3,6 +3,7 @@ import sanitizeHtml from 'sanitize-html';
 import { cleanBody, escapeHtml, validateTemplate } from './payment-email.js';
 import { rpc, smtpStatus } from './email-notification.service.js';
 import { pollMilliseconds, startAdaptivePoller } from '../../core/runtime/adaptive-poller.js';
+import { tryPublicAppUrl } from '../../shared/services/public-app-url.js';
 
 export const expenseApprovalEmailTags = [
   'empresa_nombre',
@@ -95,15 +96,7 @@ const displayDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value)
 const money = (value: number) => Number(value || 0).toLocaleString('es-CR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
 function appBaseUrl() {
-  const configured = String(process.env.APP_BASE_URL ?? process.env.GENTIA_APP_URL ?? process.env.NEXO_APP_URL ?? '').trim().replace(/\/$/, '');
-  if (!/^https:\/\/[^\s]+$/i.test(configured)) return '';
-  try {
-    const hostname = new URL(configured).hostname.toLowerCase();
-    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return '';
-  } catch {
-    return '';
-  }
-  return configured;
+  return tryPublicAppUrl({disallowLocalhost: true})?.toString().replace(/\/$/, '') ?? '';
 }
 
 function safeApprovalLink(snapshot: ExpenseApprovalSnapshot) {

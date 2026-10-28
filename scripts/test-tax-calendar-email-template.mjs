@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { renderTaxCalendarEmail } from '../dist/modules/tax-calendar/tax-calendar.service.js';
 
+const originalEnvironment={...process.env};
+process.env.GENTIA_APP_URL='https://erp.example.test';
+delete process.env.APP_BASE_URL;
+delete process.env.NEXO_APP_URL;
+
 const rendered = renderTaxCalendarEmail({
   id: 'test-job',
   lease: 'test-lease',
@@ -25,6 +30,7 @@ assert.equal(rendered.subject, 'Aviso · Declaración mensual de IVA · Empresa 
 assert.match(rendered.text, /Hola Ana Contadora\./);
 assert.match(rendered.text, /IVA_MENSUAL del período 2026-09/);
 assert.doesNotMatch(rendered.html, /<script>/i);
+assert.match(rendered.html, /https:\/\/erp\.example\.test\/tax-calendar\.html\?event=demo/);
 assert.match(rendered.html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/i);
 assert.match(rendered.html, /Declaración mensual de IVA/);
 
@@ -35,4 +41,5 @@ const fallback = renderTaxCalendarEmail({
 assert.match(fallback.subject, /^URGENTE/);
 assert.match(fallback.html, /PRIORIDAD ALTA/);
 
+process.env={...originalEnvironment};
 console.log(JSON.stringify({templateSubstitution:true,plainTextEscaping:true,professionalWrapper:true,legacyFallback:true}));

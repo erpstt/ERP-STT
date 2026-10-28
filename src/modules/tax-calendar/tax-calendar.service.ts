@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { tryPublicAppUrl } from '../../shared/services/public-app-url.js';
 import { randomUUID } from 'node:crypto';
 import { getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { rpc, smtpStatus } from '../notifications/email-notification.service.js';
@@ -251,8 +252,8 @@ function safeLink(payload: TaxCalendarEmailPayload) {
   const raw = stringValue(payload, 'deepLink', 'deep_link');
   if (/^https:\/\/[^\s]+$/i.test(raw)) return raw;
   if (!/^\/(?!\/)[^\s]*$/.test(raw)) return '';
-  const base = String(process.env.APP_BASE_URL ?? process.env.GENTIA_APP_URL ?? process.env.NEXO_APP_URL ?? '').replace(/\/$/, '');
-  return /^https?:\/\/[^\s]+$/i.test(base) ? base + raw : '';
+  const base = tryPublicAppUrl({disallowLocalhost: true})?.toString().replace(/\/$/, '') ?? '';
+  return base ? base + raw : '';
 }
 
 function applyEmailTemplate(template: string, values: Record<string, string>) {

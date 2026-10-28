@@ -44,6 +44,17 @@ test('el mensaje de invitación no reemplaza ni oculta la tabla', () => {
   assert.match(html, /v-else-if="tableError"[^>]*form-error/);
 });
 
+test('si la notificación falla después de editar, conserva el guardado y muestra una advertencia', () => {
+  const submitRecord = app.slice(app.indexOf('async submitRecord()'), app.indexOf('async deleteRecord('));
+  assert.match(app, /tableWarning:''/);
+  assert.match(submitRecord, /catch\(cause\)\{userWarning=/);
+  assert.doesNotMatch(submitRecord, /catch\(cause\)\{throw new Error\(`Los cambios del usuario se guardaron/);
+  assert.match(submitRecord, /this\.recordDialog\.open=false;[\s\S]*await this\.loadCatalog\(\)/);
+  assert.match(submitRecord, /this\.tableWarning=/);
+  assert.match(html, /v-if="tableWarning"[^>]*form-warning/);
+  assert.match(styles, /\.table-message\.form-warning/);
+});
+
 test('la invitación permite definir contraseña sin persistir el token', () => {
   assert.match(app, /password_invitation/);
   assert.match(app, /fragmentType==='invite'/);

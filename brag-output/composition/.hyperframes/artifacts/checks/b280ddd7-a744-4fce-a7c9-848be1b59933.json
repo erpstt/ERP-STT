@@ -1,0 +1,2979 @@
+{
+  "ok": false,
+  "strict": false,
+  "browserSkipped": false,
+  "lint": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 7,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "duplicate_media_discovery_risk",
+        "severity": "warning",
+        "message": "Detected 3 matching img entries with the same source/start/duration.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\danny.valderrama\\Documents\\ERP STT\\brag-output\\composition\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Avoid duplicated media nodes that can be discovered twice during compilation."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"intro\"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#intro",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\danny.valderrama\\Documents\\ERP STT\\brag-output\\composition\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"intro\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"dashboard\"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#dashboard",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\danny.valderrama\\Documents\\ERP STT\\brag-output\\composition\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"dashboard\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"request\"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#request",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\danny.valderrama\\Documents\\ERP STT\\brag-output\\composition\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"request\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"bank\"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#bank",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\danny.valderrama\\Documents\\ERP STT\\brag-output\\composition\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"bank\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"reports\"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#reports",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\danny.valderrama\\Documents\\ERP STT\\brag-output\\composition\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"reports\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"outro\"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#outro",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\danny.valderrama\\Documents\\ERP STT\\brag-output\\composition\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"outro\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      }
+    ],
+    "filesScanned": 1
+  },
+  "runtime": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": []
+  },
+  "layout": {
+    "ok": false,
+    "errorCount": 7,
+    "warningCount": 3,
+    "infoCount": 10,
+    "findings": [
+      {
+        "code": "content_overlap",
+        "severity": "error",
+        "time": 3.822,
+        "selector": "div.company > b:nth-of-type(1)",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 1665.08,
+          "top": 163,
+          "right": 1677.05,
+          "bottom": 184,
+          "width": 11.97,
+          "height": 21
+        },
+        "containerSelector": "div.pick-row > span:nth-of-type(1) > strong:nth-of-type(1)",
+        "text": "N",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1665.08,
+          "y": 163,
+          "width": 11.97,
+          "height": 21
+        },
+        "firstSeen": 3.822,
+        "lastSeen": 5.508,
+        "occurrences": 15,
+        "heldMs": 1686,
+        "times": [
+          3.822,
+          3.843,
+          3.971,
+          4.099,
+          4.227,
+          4.355,
+          4.484,
+          4.612,
+          4.74,
+          4.868,
+          4.996,
+          5.124,
+          5.252,
+          5.38,
+          5.508
+        ]
+      },
+      {
+        "code": "text_not_painted",
+        "severity": "error",
+        "time": 11.465,
+        "selector": "#match1 > span:nth-of-type(1)",
+        "message": "Text paints with an effectively transparent fill (-webkit-text-fill-color / color), so its glyphs are invisible.",
+        "rect": {
+          "left": 118.7,
+          "top": 567,
+          "right": 129.3,
+          "bottom": 583,
+          "width": 10.59,
+          "height": 16
+        },
+        "text": "✓",
+        "fixHint": "Set an explicit, opaque `color` on the text — and an explicit `-webkit-text-fill-color` if an ancestor makes the fill transparent. If the transparency is intentional gradient text, add `background-clip: text`.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 118.7,
+          "y": 567,
+          "width": 10.59,
+          "height": 16
+        },
+        "firstSeen": 11.465,
+        "lastSeen": 11.465,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          11.465
+        ]
+      },
+      {
+        "code": "text_not_painted",
+        "severity": "error",
+        "time": 11.465,
+        "selector": "#match1 > span:nth-of-type(4)",
+        "message": "Text paints with an effectively transparent fill (-webkit-text-fill-color / color), so its glyphs are invisible.",
+        "rect": {
+          "left": 966.7,
+          "top": 567,
+          "right": 977.3,
+          "bottom": 583,
+          "width": 10.59,
+          "height": 16
+        },
+        "text": "✓",
+        "fixHint": "Set an explicit, opaque `color` on the text — and an explicit `-webkit-text-fill-color` if an ancestor makes the fill transparent. If the transparency is intentional gradient text, add `background-clip: text`.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 966.7,
+          "y": 567,
+          "width": 10.59,
+          "height": 16
+        },
+        "firstSeen": 11.465,
+        "lastSeen": 11.465,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          11.465
+        ]
+      },
+      {
+        "code": "text_not_painted",
+        "severity": "error",
+        "time": 11.465,
+        "selector": "#match2 > span:nth-of-type(1)",
+        "message": "Text paints with an effectively transparent fill (-webkit-text-fill-color / color), so its glyphs are invisible.",
+        "rect": {
+          "left": 118.7,
+          "top": 634,
+          "right": 129.3,
+          "bottom": 650,
+          "width": 10.59,
+          "height": 16
+        },
+        "text": "✓",
+        "fixHint": "Set an explicit, opaque `color` on the text — and an explicit `-webkit-text-fill-color` if an ancestor makes the fill transparent. If the transparency is intentional gradient text, add `background-clip: text`.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 118.7,
+          "y": 634,
+          "width": 10.59,
+          "height": 16
+        },
+        "firstSeen": 11.465,
+        "lastSeen": 11.465,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          11.465
+        ]
+      },
+      {
+        "code": "text_not_painted",
+        "severity": "error",
+        "time": 11.465,
+        "selector": "#match2 > span:nth-of-type(4)",
+        "message": "Text paints with an effectively transparent fill (-webkit-text-fill-color / color), so its glyphs are invisible.",
+        "rect": {
+          "left": 966.7,
+          "top": 634,
+          "right": 977.3,
+          "bottom": 650,
+          "width": 10.59,
+          "height": 16
+        },
+        "text": "✓",
+        "fixHint": "Set an explicit, opaque `color` on the text — and an explicit `-webkit-text-fill-color` if an ancestor makes the fill transparent. If the transparency is intentional gradient text, add `background-clip: text`.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 966.7,
+          "y": 634,
+          "width": 10.59,
+          "height": 16
+        },
+        "firstSeen": 11.465,
+        "lastSeen": 11.465,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          11.465
+        ]
+      },
+      {
+        "code": "text_not_painted",
+        "severity": "error",
+        "time": 11.465,
+        "selector": "#match3 > span:nth-of-type(1)",
+        "message": "Text paints with an effectively transparent fill (-webkit-text-fill-color / color), so its glyphs are invisible.",
+        "rect": {
+          "left": 118.7,
+          "top": 701.5,
+          "right": 129.3,
+          "bottom": 717.5,
+          "width": 10.59,
+          "height": 16
+        },
+        "text": "✓",
+        "fixHint": "Set an explicit, opaque `color` on the text — and an explicit `-webkit-text-fill-color` if an ancestor makes the fill transparent. If the transparency is intentional gradient text, add `background-clip: text`.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 118.7,
+          "y": 701.5,
+          "width": 10.59,
+          "height": 16
+        },
+        "firstSeen": 11.465,
+        "lastSeen": 11.465,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          11.465
+        ]
+      },
+      {
+        "code": "text_not_painted",
+        "severity": "error",
+        "time": 11.465,
+        "selector": "#match3 > span:nth-of-type(4)",
+        "message": "Text paints with an effectively transparent fill (-webkit-text-fill-color / color), so its glyphs are invisible.",
+        "rect": {
+          "left": 966.7,
+          "top": 701.5,
+          "right": 977.3,
+          "bottom": 717.5,
+          "width": 10.59,
+          "height": 16
+        },
+        "text": "✓",
+        "fixHint": "Set an explicit, opaque `color` on the text — and an explicit `-webkit-text-fill-color` if an ancestor makes the fill transparent. If the transparency is intentional gradient text, add `background-clip: text`.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 966.7,
+          "y": 701.5,
+          "width": 10.59,
+          "height": 16
+        },
+        "firstSeen": 11.465,
+        "lastSeen": 11.465,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          11.465
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "warning",
+        "time": 3.822,
+        "selector": "div.company > span:nth-of-type(1) > strong:nth-of-type(1)",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 1695.56,
+          "top": 171.5,
+          "right": 1810,
+          "bottom": 187.5,
+          "width": 114.44,
+          "height": 16
+        },
+        "containerSelector": "div.pick-row > em:nth-of-type(1)",
+        "text": "NOVA SERVICIOS S.A.",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1695.56,
+          "y": 171.5,
+          "width": 114.44,
+          "height": 16
+        },
+        "firstSeen": 3.822,
+        "lastSeen": 3.843,
+        "occurrences": 2,
+        "heldMs": 20.999999999999908,
+        "times": [
+          3.822,
+          3.843
+        ]
+      },
+      {
+        "code": "container_overflow",
+        "severity": "warning",
+        "time": 6.369,
+        "selector": "#request > div:nth-of-type(1)",
+        "message": "Element extends outside a clipping layout container.",
+        "rect": {
+          "left": -310,
+          "top": 470,
+          "right": 450,
+          "bottom": 1230,
+          "width": 760,
+          "height": 760
+        },
+        "containerSelector": "#request",
+        "fixHint": "Resize/reposition the child or container, or mark intentional overflow with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "overflow": {
+          "left": 310,
+          "bottom": 150
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": -310,
+          "y": 470,
+          "width": 760,
+          "height": 760
+        },
+        "firstSeen": 6.369,
+        "lastSeen": 8.917,
+        "occurrences": 2,
+        "heldMs": 0,
+        "times": [
+          6.369,
+          8.917
+        ]
+      },
+      {
+        "code": "panel_out_of_canvas",
+        "severity": "warning",
+        "time": 6.369,
+        "selector": "#request > div:nth-of-type(1)",
+        "message": "Painted panel extends outside the composition canvas.",
+        "rect": {
+          "left": -310,
+          "top": 470,
+          "right": 450,
+          "bottom": 1230,
+          "width": 760,
+          "height": 760
+        },
+        "containerSelector": "#root",
+        "text": "",
+        "fixHint": "Move the panel inward, or mark intentional off-canvas animation with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "overflow": {
+          "left": 310,
+          "bottom": 150
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": -310,
+          "y": 470,
+          "width": 760,
+          "height": 760
+        },
+        "firstSeen": 6.369,
+        "lastSeen": 8.917,
+        "occurrences": 2,
+        "heldMs": 0,
+        "times": [
+          6.369,
+          8.917
+        ]
+      },
+      {
+        "code": "container_overflow",
+        "severity": "info",
+        "time": 1.274,
+        "selector": "#intro > div:nth-of-type(1)",
+        "message": "Element extends outside a clipping layout container.",
+        "rect": {
+          "left": 1370,
+          "top": -250,
+          "right": 2130,
+          "bottom": 510,
+          "width": 760,
+          "height": 760
+        },
+        "containerSelector": "#intro",
+        "fixHint": "Resize/reposition the child or container, or mark intentional overflow with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "overflow": {
+          "right": 210,
+          "top": 250
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1370,
+          "y": -250,
+          "width": 760,
+          "height": 760
+        },
+        "firstSeen": 1.274,
+        "lastSeen": 1.274,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          1.274
+        ]
+      },
+      {
+        "code": "panel_out_of_canvas",
+        "severity": "info",
+        "time": 1.274,
+        "selector": "#intro > div:nth-of-type(1)",
+        "message": "Painted panel extends outside the composition canvas.",
+        "rect": {
+          "left": 1370,
+          "top": -250,
+          "right": 2130,
+          "bottom": 510,
+          "width": 760,
+          "height": 760
+        },
+        "containerSelector": "#root",
+        "text": "",
+        "fixHint": "Move the panel inward, or mark intentional off-canvas animation with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "overflow": {
+          "right": 210,
+          "top": 250
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1370,
+          "y": -250,
+          "width": 760,
+          "height": 760
+        },
+        "firstSeen": 1.274,
+        "lastSeen": 1.274,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          1.274
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 3.822,
+        "selector": "div.company > b:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 1665.08,
+          "top": 163,
+          "right": 1677.05,
+          "bottom": 184,
+          "width": 11.97,
+          "height": 21
+        },
+        "containerSelector": "div.pick-row",
+        "text": "N",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1665.08,
+          "y": 163,
+          "width": 11.97,
+          "height": 21
+        },
+        "firstSeen": 3.822,
+        "lastSeen": 3.822,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          3.822
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 3.822,
+        "selector": "div.company > span:nth-of-type(1) > small:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 1695.56,
+          "top": 159.5,
+          "right": 1778.02,
+          "bottom": 171.5,
+          "width": 82.45,
+          "height": 12
+        },
+        "containerSelector": "div.pick-row",
+        "text": "EMPRESA ACTIVA",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1695.56,
+          "y": 159.5,
+          "width": 82.45,
+          "height": 12
+        },
+        "firstSeen": 3.822,
+        "lastSeen": 3.822,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          3.822
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 3.822,
+        "selector": "div.company > span:nth-of-type(1) > strong:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 1695.56,
+          "top": 171.5,
+          "right": 1810,
+          "bottom": 187.5,
+          "width": 114.44,
+          "height": 16
+        },
+        "containerSelector": "div.pick-row",
+        "text": "NOVA SERVICIOS S.A.",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1695.56,
+          "y": 171.5,
+          "width": 114.44,
+          "height": 16
+        },
+        "firstSeen": 3.822,
+        "lastSeen": 3.822,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          3.822
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "info",
+        "time": 6.149,
+        "selector": "p.sub",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 974,
+          "top": 271,
+          "right": 1201.33,
+          "bottom": 290,
+          "width": 227.33,
+          "height": 19
+        },
+        "containerSelector": "div.facts > div:nth-of-type(2) > small:nth-of-type(1)",
+        "text": "Todo lo importante, listo para actuar.",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 974,
+          "y": 271,
+          "width": 227.33,
+          "height": 19
+        },
+        "firstSeen": 6.149,
+        "lastSeen": 6.149,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          6.149
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "info",
+        "time": 11.017,
+        "selector": "div.request-copy > p:nth-of-type(2)",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 88,
+          "top": 336.13,
+          "right": 635.75,
+          "bottom": 403.16,
+          "width": 547.75,
+          "height": 67.03
+        },
+        "containerSelector": "header.bank-tools > div:nth-of-type(1) > small:nth-of-type(1)",
+        "text": "Cada pago conserva su contexto, sus dimensiones y su impacto contable.",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 88,
+          "y": 336.13,
+          "width": 547.75,
+          "height": 67.03
+        },
+        "firstSeen": 11.017,
+        "lastSeen": 11.145,
+        "occurrences": 2,
+        "heldMs": 128.0000000000001,
+        "times": [
+          11.017,
+          11.145
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "info",
+        "time": 19.856,
+        "selector": "div.table.financial > div:nth-of-type(5) > span:nth-of-type(1)",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 711,
+          "top": 642.5,
+          "right": 753.05,
+          "bottom": 659.5,
+          "width": 42.05,
+          "height": 17
+        },
+        "containerSelector": "div.outro-content > h2:nth-of-type(1)",
+        "text": "615001",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 711,
+          "y": 642.5,
+          "width": 42.05,
+          "height": 17
+        },
+        "firstSeen": 19.856,
+        "lastSeen": 19.856,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          19.856
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "info",
+        "time": 19.856,
+        "selector": "div.table.financial > div:nth-of-type(5) > span:nth-of-type(2)",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 875.42,
+          "top": 642.5,
+          "right": 1004.67,
+          "bottom": 659.5,
+          "width": 129.25,
+          "height": 17
+        },
+        "containerSelector": "div.outro-content > h2:nth-of-type(1)",
+        "text": "Gastos administrativos",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 875.42,
+          "y": 642.5,
+          "width": 129.25,
+          "height": 17
+        },
+        "firstSeen": 19.856,
+        "lastSeen": 19.856,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          19.856
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "info",
+        "time": 19.856,
+        "selector": "div.table.financial > div:nth-of-type(6) > span:nth-of-type(2)",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 875.42,
+          "top": 710,
+          "right": 1047.42,
+          "bottom": 727,
+          "width": 172,
+          "height": 17
+        },
+        "containerSelector": "div.outro-content > p:nth-of-type(1)",
+        "text": "UTILIDAD NETA DEL PERÍODO",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 875.42,
+          "y": 710,
+          "width": 172,
+          "height": 17
+        },
+        "firstSeen": 19.856,
+        "lastSeen": 19.856,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          19.856
+        ]
+      }
+    ],
+    "duration": 22.93,
+    "samples": [
+      1.274,
+      3.822,
+      6.369,
+      8.917,
+      11.465,
+      14.013,
+      16.561,
+      19.108,
+      21.656
+    ],
+    "transitionSamples": [],
+    "transitionSamplesDropped": 0,
+    "tolerance": 2,
+    "totalIssueCount": 20,
+    "truncated": false
+  },
+  "motion": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": false,
+    "samples": 0
+  },
+  "contrast": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 27,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 2.75:1; WCAG AA requires 4.5:1.",
+        "text": "SOLICITUD DE PAGO",
+        "fg": "rgb(242,105,56)",
+        "bg": "rgb(240,243,247)",
+        "ratio": 2.75,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(183,79,42)",
+        "large": false,
+        "selector": "div > section:nth-of-type(3) > div:nth-of-type(4) > div:nth-of-type(1) > div:nth-of-type(1) > div > small",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 777.2406616210938,
+          "y": 179.21385192871094,
+          "width": 126.536376953125,
+          "height": 14.989486694335938
+        },
+        "time": 6.369,
+        "times": [
+          6.369
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 1.11:1; WCAG AA requires 3:1.",
+        "text": "SOL-PAG-000057",
+        "fg": "rgb(255,255,255)",
+        "bg": "rgb(240,243,247)",
+        "ratio": 1.11,
+        "requiredRatio": 3,
+        "suggestedColor": "rgb(140,140,140)",
+        "large": true,
+        "selector": "div > section:nth-of-type(3) > div:nth-of-type(4) > div:nth-of-type(1) > div:nth-of-type(1) > div > h3",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 777.2406616210938,
+          "y": 201.1984405517578,
+          "width": 217.61322021484375,
+          "height": 36.97410583496094
+        },
+        "time": 6.369,
+        "times": [
+          6.369
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 1.03:1; WCAG AA requires 4.5:1.",
+        "text": "NOVA SERVICIOS S.A.",
+        "fg": "rgb(255,255,255)",
+        "bg": "rgb(251,252,252)",
+        "ratio": 1.03,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(116,116,116)",
+        "large": false,
+        "selector": "div > section:nth-of-type(3) > div:nth-of-type(4) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > strong",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 792.2301635742188,
+          "y": 298.13055419921875,
+          "width": 133.40655517578125,
+          "height": 18.9866943359375
+        },
+        "time": 6.369,
+        "times": [
+          6.369
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 1.03:1; WCAG AA requires 4.5:1.",
+        "text": "Proveedor Horizonte",
+        "fg": "rgb(255,255,255)",
+        "bg": "rgb(251,252,252)",
+        "ratio": 1.03,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(116,116,116)",
+        "large": false,
+        "selector": "div > section:nth-of-type(3) > div:nth-of-type(4) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > strong",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1056.04541015625,
+          "y": 298.13055419921875,
+          "width": 128.25390625,
+          "height": 18.9866943359375
+        },
+        "time": 6.369,
+        "times": [
+          6.369
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 1.03:1; WCAG AA requires 4.5:1.",
+        "text": "USD",
+        "fg": "rgb(255,255,255)",
+        "bg": "rgb(251,252,252)",
+        "ratio": 1.03,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(116,116,116)",
+        "large": false,
+        "selector": "div > section:nth-of-type(3) > div:nth-of-type(4) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > strong",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1319.860595703125,
+          "y": 298.13055419921875,
+          "width": 26.856201171875,
+          "height": 18.9866943359375
+        },
+        "time": 6.369,
+        "times": [
+          6.369
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 1.03:1; WCAG AA requires 4.5:1.",
+        "text": "ADMINISTRATIVO",
+        "fg": "rgb(255,255,255)",
+        "bg": "rgb(251,252,252)",
+        "ratio": 1.03,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(116,116,116)",
+        "large": false,
+        "selector": "div > section:nth-of-type(3) > div:nth-of-type(4) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) > strong",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1583.67578125,
+          "y": 298.13055419921875,
+          "width": 110.406982421875,
+          "height": 18.9866943359375
+        },
+        "time": 6.369,
+        "times": [
+          6.369
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4:1; WCAG AA requires 4.5:1.",
+        "text": "CUENTA",
+        "fg": "rgb(104,117,138)",
+        "bg": "rgb(233,238,244)",
+        "ratio": 4,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(96,108,128)",
+        "large": false,
+        "selector": "div > section:nth-of-type(3) > div:nth-of-type(4) > div:nth-of-type(1) > div:nth-of-type(3) > div:nth-of-type(1) > span:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 795.22802734375,
+          "y": 375.5762939453125,
+          "width": 308.408935546875,
+          "height": 13.990203857421875
+        },
+        "time": 6.369,
+        "times": [
+          6.369
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4:1; WCAG AA requires 4.5:1.",
+        "text": "CENTRO DE COSTOS",
+        "fg": "rgb(104,117,138)",
+        "bg": "rgb(233,238,244)",
+        "ratio": 4,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(96,108,128)",
+        "large": false,
+        "selector": "div > section:nth-of-type(3) > div:nth-of-type(4) > div:nth-of-type(1) > div:nth-of-type(3) > div:nth-of-type(1) > span:nth-of-type(2)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1103.636962890625,
+          "y": 375.5762939453125,
+          "width": 237.2557373046875,
+          "height": 13.990203857421875
+        },
+        "time": 6.369,
+        "times": [
+          6.369
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4:1; WCAG AA requires 4.5:1.",
+        "text": "CONCEPTO",
+        "fg": "rgb(104,117,138)",
+        "bg": "rgb(233,238,244)",
+        "ratio": 4,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(96,108,128)",
+        "large": false,
+        "selector": "div > section:nth-of-type(3) > div:nth-of-type(4) > div:nth-of-type(1) > div:nth-of-type(3) > div:nth-of-type(1) > span:nth-of-type(3)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1340.8927001953125,
+          "y": 375.5762939453125,
+          "width": 272.8245849609375,
+          "height": 13.990203857421875
+        },
+        "time": 6.369,
+        "times": [
+          6.369
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4:1; WCAG AA requires 4.5:1.",
+        "text": "MONTO",
+        "fg": "rgb(104,117,138)",
+        "bg": "rgb(233,238,244)",
+        "ratio": 4,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(96,108,128)",
+        "large": false,
+        "selector": "div > section:nth-of-type(3) > div:nth-of-type(4) > div:nth-of-type(1) > div:nth-of-type(3) > div:nth-of-type(1) > span:nth-of-type(4)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1613.71728515625,
+          "y": 375.5762939453125,
+          "width": 189.788818359375,
+          "height": 13.990203857421875
+        },
+        "time": 6.369,
+        "times": [
+          6.369
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4.03:1; WCAG AA requires 4.5:1.",
+        "text": "TOTAL SOLICITADO",
+        "fg": "rgb(107,114,128)",
+        "bg": "rgb(228,235,245)",
+        "ratio": 4.03,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(100,106,119)",
+        "large": false,
+        "selector": "div > section:nth-of-type(3) > div:nth-of-type(4) > div:nth-of-type(1) > div:nth-of-type(4) > span",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1547.170166015625,
+          "y": 575.9359130859375,
+          "width": 110.360107421875,
+          "height": 27.98046875
+        },
+        "time": 6.369,
+        "times": [
+          6.369
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 2.83:1; WCAG AA requires 4.5:1.",
+        "text": "TESORERÍA",
+        "fg": "rgb(242,105,56)",
+        "bg": "rgb(244,246,250)",
+        "ratio": 2.83,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(186,81,43)",
+        "large": false,
+        "selector": "div > section:nth-of-type(4) > div:nth-of-type(2) > p:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 81.92070007324219,
+          "y": 65,
+          "width": 555,
+          "height": 24
+        },
+        "time": 11.465,
+        "times": [
+          11.465
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4.12:1; WCAG AA requires 4.5:1.",
+        "text": "ERP",
+        "fg": "rgb(104,117,138)",
+        "bg": "rgb(237,241,247)",
+        "ratio": 4.12,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(98,111,130)",
+        "large": false,
+        "selector": "div > section:nth-of-type(4) > div:nth-of-type(4) > div:nth-of-type(2) > div:nth-of-type(1) > span:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 112,
+          "y": 510.50469970703125,
+          "width": 50,
+          "height": 14
+        },
+        "time": 11.465,
+        "times": [
+          11.465
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4.12:1; WCAG AA requires 4.5:1.",
+        "text": "ESTADO",
+        "fg": "rgb(104,117,138)",
+        "bg": "rgb(237,241,247)",
+        "ratio": 4.12,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(98,111,130)",
+        "large": false,
+        "selector": "div > section:nth-of-type(4) > div:nth-of-type(4) > div:nth-of-type(2) > div:nth-of-type(1) > span:nth-of-type(2)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 162,
+          "y": 510.50469970703125,
+          "width": 95,
+          "height": 14
+        },
+        "time": 11.465,
+        "times": [
+          11.465
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4.12:1; WCAG AA requires 4.5:1.",
+        "text": "REFERENCIA",
+        "fg": "rgb(104,117,138)",
+        "bg": "rgb(237,241,247)",
+        "ratio": 4.12,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(98,111,130)",
+        "large": false,
+        "selector": "div > section:nth-of-type(4) > div:nth-of-type(4) > div:nth-of-type(2) > div:nth-of-type(1) > span:nth-of-type(3)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 257,
+          "y": 510.50469970703125,
+          "width": 276.171875,
+          "height": 14
+        },
+        "time": 11.465,
+        "times": [
+          11.465
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4.12:1; WCAG AA requires 4.5:1.",
+        "text": "NOTA",
+        "fg": "rgb(104,117,138)",
+        "bg": "rgb(237,241,247)",
+        "ratio": 4.12,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(98,111,130)",
+        "large": false,
+        "selector": "div > section:nth-of-type(4) > div:nth-of-type(4) > div:nth-of-type(2) > div:nth-of-type(1) > span:nth-of-type(4)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 533.171875,
+          "y": 510.50469970703125,
+          "width": 251.078125,
+          "height": 14
+        },
+        "time": 11.465,
+        "times": [
+          11.465
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4.12:1; WCAG AA requires 4.5:1.",
+        "text": "MONTO",
+        "fg": "rgb(104,117,138)",
+        "bg": "rgb(237,241,247)",
+        "ratio": 4.12,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(98,111,130)",
+        "large": false,
+        "selector": "div > section:nth-of-type(4) > div:nth-of-type(4) > div:nth-of-type(2) > div:nth-of-type(1) > span:nth-of-type(5)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 784.25,
+          "y": 510.50469970703125,
+          "width": 175.75,
+          "height": 14
+        },
+        "time": 11.465,
+        "times": [
+          11.465
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4.12:1; WCAG AA requires 4.5:1.",
+        "text": "BANCO",
+        "fg": "rgb(104,117,138)",
+        "bg": "rgb(237,241,247)",
+        "ratio": 4.12,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(98,111,130)",
+        "large": false,
+        "selector": "div > section:nth-of-type(4) > div:nth-of-type(4) > div:nth-of-type(2) > div:nth-of-type(1) > span:nth-of-type(6)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 960,
+          "y": 510.50469970703125,
+          "width": 50,
+          "height": 14
+        },
+        "time": 11.465,
+        "times": [
+          11.465
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4.12:1; WCAG AA requires 4.5:1.",
+        "text": "ESTADO",
+        "fg": "rgb(104,117,138)",
+        "bg": "rgb(237,241,247)",
+        "ratio": 4.12,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(98,111,130)",
+        "large": false,
+        "selector": "div > section:nth-of-type(4) > div:nth-of-type(4) > div:nth-of-type(2) > div:nth-of-type(1) > span:nth-of-type(7)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1010,
+          "y": 510.50469970703125,
+          "width": 95,
+          "height": 14
+        },
+        "time": 11.465,
+        "times": [
+          11.465
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4.12:1; WCAG AA requires 4.5:1.",
+        "text": "REFERENCIA",
+        "fg": "rgb(104,117,138)",
+        "bg": "rgb(237,241,247)",
+        "ratio": 4.12,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(98,111,130)",
+        "large": false,
+        "selector": "div > section:nth-of-type(4) > div:nth-of-type(4) > div:nth-of-type(2) > div:nth-of-type(1) > span:nth-of-type(8)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1105,
+          "y": 510.50469970703125,
+          "width": 251.0625,
+          "height": 14
+        },
+        "time": 11.465,
+        "times": [
+          11.465
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4.12:1; WCAG AA requires 4.5:1.",
+        "text": "NOTA",
+        "fg": "rgb(104,117,138)",
+        "bg": "rgb(237,241,247)",
+        "ratio": 4.12,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(98,111,130)",
+        "large": false,
+        "selector": "div > section:nth-of-type(4) > div:nth-of-type(4) > div:nth-of-type(2) > div:nth-of-type(1) > span:nth-of-type(9)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1356.0625,
+          "y": 510.50469970703125,
+          "width": 276.1875,
+          "height": 14
+        },
+        "time": 11.465,
+        "times": [
+          11.465
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4.12:1; WCAG AA requires 4.5:1.",
+        "text": "MONTO",
+        "fg": "rgb(104,117,138)",
+        "bg": "rgb(237,241,247)",
+        "ratio": 4.12,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(98,111,130)",
+        "large": false,
+        "selector": "div > section:nth-of-type(4) > div:nth-of-type(4) > div:nth-of-type(2) > div:nth-of-type(1) > span:nth-of-type(10)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1632.25,
+          "y": 510.50469970703125,
+          "width": 175.75,
+          "height": 14
+        },
+        "time": 11.465,
+        "times": [
+          11.465
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4.47:1; WCAG AA requires 4.5:1.",
+        "text": "Ingresos, costos, gastos y resultado del período.",
+        "fg": "rgb(107,114,128)",
+        "bg": "rgb(244,246,250)",
+        "ratio": 4.47,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(106,113,127)",
+        "large": false,
+        "selector": "div > section:nth-of-type(5) > div:nth-of-type(2) > div > p",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 693,
+          "y": 211,
+          "width": 1140,
+          "height": 17
+        },
+        "time": 16.561,
+        "times": [
+          16.561
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4.12:1; WCAG AA requires 4.5:1.",
+        "text": "CÓDIGO",
+        "fg": "rgb(104,117,138)",
+        "bg": "rgb(237,241,247)",
+        "ratio": 4.12,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(98,111,130)",
+        "large": false,
+        "selector": "div > section:nth-of-type(5) > div:nth-of-type(2) > div > div:nth-of-type(2) > div:nth-of-type(1) > span:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 711,
+          "y": 385.5,
+          "width": 164.421875,
+          "height": 14
+        },
+        "time": 16.561,
+        "times": [
+          16.561
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4.12:1; WCAG AA requires 4.5:1.",
+        "text": "CUENTA CONTABLE",
+        "fg": "rgb(104,117,138)",
+        "bg": "rgb(237,241,247)",
+        "ratio": 4.12,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(98,111,130)",
+        "large": false,
+        "selector": "div > section:nth-of-type(5) > div:nth-of-type(2) > div > div:nth-of-type(2) > div:nth-of-type(1) > span:nth-of-type(2)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 875.421875,
+          "y": 385.5,
+          "width": 469.78125,
+          "height": 14
+        },
+        "time": 16.561,
+        "times": [
+          16.561
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4.12:1; WCAG AA requires 4.5:1.",
+        "text": "PERÍODO",
+        "fg": "rgb(104,117,138)",
+        "bg": "rgb(237,241,247)",
+        "ratio": 4.12,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(98,111,130)",
+        "large": false,
+        "selector": "div > section:nth-of-type(5) > div:nth-of-type(2) > div > div:nth-of-type(2) > div:nth-of-type(1) > span:nth-of-type(3)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1345.203125,
+          "y": 385.5,
+          "width": 234.890625,
+          "height": 14
+        },
+        "time": 16.561,
+        "times": [
+          16.561
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 4.12:1; WCAG AA requires 4.5:1.",
+        "text": "ACUMULADO",
+        "fg": "rgb(104,117,138)",
+        "bg": "rgb(237,241,247)",
+        "ratio": 4.12,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(98,111,130)",
+        "large": false,
+        "selector": "div > section:nth-of-type(5) > div:nth-of-type(2) > div > div:nth-of-type(2) > div:nth-of-type(1) > span:nth-of-type(4)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1580.09375,
+          "y": 385.5,
+          "width": 234.90625,
+          "height": 14
+        },
+        "time": 16.561,
+        "times": [
+          16.561
+        ]
+      }
+    ],
+    "enabled": true,
+    "samples": [
+      1.274,
+      6.369,
+      11.465,
+      16.561,
+      21.656
+    ],
+    "checked": 89,
+    "passed": 62
+  },
+  "craft": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 2,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "first_frame_empty",
+        "severity": "warning",
+        "message": "Frame 0 shows only the background, and the first frame is the thumbnail on social players: have the title or key image already on screen at 0 s instead of entering from nothing; see references/review.md.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0
+      },
+      {
+        "code": "text_below_floor",
+        "severity": "warning",
+        "message": "Type floor is 28 px (2.6% of the 1080 px short side, what a phone can read) and 164 text elements stay under it for 0.5 s or more, the smallest \"EMPRESA ACTIVA\" at 9 px: set reading text to at least 28 px, or put data-layout-ignore on text that is texture rather than reading; see references/look.md.",
+        "text": "EMPRESA ACTIVA",
+        "selector": "div.company > span:nth-of-type(1) > small:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1732.73,
+          "y": 167.49,
+          "width": 80.3,
+          "height": 11.68
+        },
+        "time": 2.866,
+        "times": [
+          2.866,
+          2.866,
+          2.866,
+          2.866,
+          2.866,
+          2.866,
+          2.866,
+          2.866,
+          2.866,
+          2.866,
+          2.866,
+          2.866,
+          2.866,
+          2.866,
+          2.866,
+          2.866,
+          2.866,
+          2.991,
+          2.991,
+          2.991,
+          2.991,
+          3.365,
+          3.365,
+          3.365,
+          3.489,
+          3.489,
+          3.489,
+          3.489,
+          3.489,
+          3.489,
+          3.614,
+          3.614,
+          3.614,
+          3.863,
+          3.863,
+          3.863,
+          3.863,
+          6.106,
+          6.106,
+          6.106,
+          6.106,
+          6.106,
+          6.106,
+          6.106,
+          6.106,
+          6.106,
+          6.106,
+          6.106,
+          6.106,
+          6.106,
+          6.106,
+          6.106,
+          6.106,
+          6.106,
+          6.106,
+          6.106,
+          6.106,
+          6.106,
+          6.106,
+          6.356,
+          6.356,
+          6.854,
+          6.854,
+          6.854,
+          6.854,
+          6.854,
+          6.854,
+          6.854,
+          6.854,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.091,
+          11.216,
+          11.216,
+          11.59,
+          11.59,
+          11.714,
+          11.714,
+          11.714,
+          11.714,
+          11.839,
+          11.839,
+          11.839,
+          11.839,
+          13.21,
+          13.21,
+          15.951,
+          15.951,
+          15.951,
+          15.951,
+          15.951,
+          15.951,
+          15.951,
+          15.951,
+          15.951,
+          16.076,
+          16.076,
+          16.574,
+          16.574,
+          16.699,
+          16.699,
+          16.824,
+          16.824,
+          17.073,
+          17.073,
+          17.073,
+          17.073,
+          17.073,
+          17.073,
+          17.073,
+          17.073,
+          17.197,
+          17.197,
+          17.197,
+          17.197,
+          17.322,
+          17.322,
+          17.322,
+          17.322,
+          17.322,
+          17.322,
+          17.322,
+          17.571,
+          17.696,
+          17.821,
+          19.815
+        ],
+        "fontPx": 8.77,
+        "floorPx": 28,
+        "seconds": 3.49,
+        "elements": [
+          {
+            "selector": "div.company > span:nth-of-type(1) > small:nth-of-type(1)",
+            "text": "EMPRESA ACTIVA",
+            "fontPx": 8.77,
+            "time": 2.866,
+            "seconds": 3.49
+          },
+          {
+            "selector": "header.bank-tools > div:nth-of-type(1) > small:nth-of-type(1)",
+            "text": "BANCO",
+            "fontPx": 8.88,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "header.bank-tools > div:nth-of-type(2) > small:nth-of-type(1)",
+            "text": "MONEDA",
+            "fontPx": 8.88,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "header.bank-tools > div:nth-of-type(3) > small:nth-of-type(1)",
+            "text": "CUENTA",
+            "fontPx": 8.88,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "div.facts > div:nth-of-type(1) > small:nth-of-type(1)",
+            "text": "Subsidiaria",
+            "fontPx": 9.77,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "div.facts > div:nth-of-type(2) > small:nth-of-type(1)",
+            "text": "Tercero",
+            "fontPx": 9.77,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "div.facts > div:nth-of-type(3) > small:nth-of-type(1)",
+            "text": "Moneda",
+            "fontPx": 9.77,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "div.facts > div:nth-of-type(4) > small:nth-of-type(1)",
+            "text": "Departamento",
+            "fontPx": 9.77,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "div.panel > div:nth-of-type(3) > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "CUENTA",
+            "fontPx": 9.77,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "div.panel > div:nth-of-type(3) > div:nth-of-type(1) > span:nth-of-type(2)",
+            "text": "CENTRO DE COSTOS",
+            "fontPx": 9.77,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "div.panel > div:nth-of-type(3) > div:nth-of-type(1) > span:nth-of-type(3)",
+            "text": "CONCEPTO",
+            "fontPx": 9.77,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "div.panel > div:nth-of-type(3) > div:nth-of-type(1) > span:nth-of-type(4)",
+            "text": "MONTO",
+            "fontPx": 9.77,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "CÓDIGO",
+            "fontPx": 9.77,
+            "time": 15.951,
+            "seconds": 3.989
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(1) > span:nth-of-type(2)",
+            "text": "CUENTA CONTABLE",
+            "fontPx": 9.77,
+            "time": 15.951,
+            "seconds": 3.989
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(1) > span:nth-of-type(3)",
+            "text": "PERÍODO",
+            "fontPx": 9.77,
+            "time": 15.951,
+            "seconds": 3.989
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(1) > span:nth-of-type(4)",
+            "text": "ACUMULADO",
+            "fontPx": 9.77,
+            "time": 15.951,
+            "seconds": 3.989
+          },
+          {
+            "selector": "div.table.bank-table > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "ERP",
+            "fontPx": 9.87,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "div.table.bank-table > div:nth-of-type(1) > span:nth-of-type(2)",
+            "text": "ESTADO",
+            "fontPx": 9.87,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "div.table.bank-table > div:nth-of-type(1) > span:nth-of-type(3)",
+            "text": "REFERENCIA",
+            "fontPx": 9.87,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "div.table.bank-table > div:nth-of-type(1) > span:nth-of-type(4)",
+            "text": "NOTA",
+            "fontPx": 9.87,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "div.row.head > span:nth-of-type(5)",
+            "text": "MONTO",
+            "fontPx": 9.87,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "div.row.head > span:nth-of-type(6)",
+            "text": "BANCO",
+            "fontPx": 9.87,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "div.row.head > span:nth-of-type(7)",
+            "text": "ESTADO",
+            "fontPx": 9.87,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "div.row.head > span:nth-of-type(8)",
+            "text": "REFERENCIA",
+            "fontPx": 9.87,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "div.row.head > span:nth-of-type(9)",
+            "text": "NOTA",
+            "fontPx": 9.87,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "div.row.head > span:nth-of-type(10)",
+            "text": "MONTO",
+            "fontPx": 9.87,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "div.metrics > div:nth-of-type(1) > small:nth-of-type(1)",
+            "text": "Saldo según ERP",
+            "fontPx": 10,
+            "time": 11.59,
+            "seconds": 4.486
+          },
+          {
+            "selector": "div.metrics > div:nth-of-type(2) > small:nth-of-type(1)",
+            "text": "Pagos en tránsito",
+            "fontPx": 10,
+            "time": 11.714,
+            "seconds": 4.362
+          },
+          {
+            "selector": "div.metrics > div:nth-of-type(3) > small:nth-of-type(1)",
+            "text": "Depósitos en tránsito",
+            "fontPx": 10,
+            "time": 11.714,
+            "seconds": 4.362
+          },
+          {
+            "selector": "div.metrics > div:nth-of-type(4) > small:nth-of-type(1)",
+            "text": "Ajustes bancarios",
+            "fontPx": 10,
+            "time": 11.839,
+            "seconds": 4.237
+          },
+          {
+            "selector": "div.metric.ok > small:nth-of-type(1)",
+            "text": "Saldo conciliado",
+            "fontPx": 10,
+            "time": 11.839,
+            "seconds": 4.237
+          },
+          {
+            "selector": "#reconciled > span:nth-of-type(1) > small:nth-of-type(1)",
+            "text": "RESULTADO",
+            "fontPx": 10.59,
+            "time": 13.21,
+            "seconds": 2.866
+          },
+          {
+            "selector": "aside.side > small:nth-of-type(1)",
+            "text": "MÓDULOS",
+            "fontPx": 10.71,
+            "time": 2.866,
+            "seconds": 3.49
+          },
+          {
+            "selector": "div.panel-title > div:nth-of-type(1) > small:nth-of-type(1)",
+            "text": "SOLICITUD DE PAGO",
+            "fontPx": 10.75,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "div.report-actions > span:nth-of-type(1)",
+            "text": "PDF",
+            "fontPx": 10.75,
+            "time": 15.951,
+            "seconds": 3.989
+          },
+          {
+            "selector": "div.report-actions > span:nth-of-type(2)",
+            "text": "Excel",
+            "fontPx": 10.75,
+            "time": 15.951,
+            "seconds": 3.989
+          },
+          {
+            "selector": "div.report-actions > span:nth-of-type(3)",
+            "text": "CSV",
+            "fontPx": 10.75,
+            "time": 15.951,
+            "seconds": 3.989
+          },
+          {
+            "selector": "div.picker > small:nth-of-type(1)",
+            "text": "EMPRESA SELECCIONADA",
+            "fontPx": 10.91,
+            "time": 3.863,
+            "seconds": 1.745
+          },
+          {
+            "selector": "div.pick-row > span:nth-of-type(1) > small:nth-of-type(1)",
+            "text": "Moneda funcional · USD",
+            "fontPx": 10.91,
+            "time": 3.863,
+            "seconds": 1.745
+          },
+          {
+            "selector": "div.report-cards > div:nth-of-type(1) > small:nth-of-type(1)",
+            "text": "Ingresos operacionales",
+            "fontPx": 11,
+            "time": 16.574,
+            "seconds": 3.366
+          },
+          {
+            "selector": "div.report-cards > div:nth-of-type(2) > small:nth-of-type(1)",
+            "text": "Gastos de operación",
+            "fontPx": 11,
+            "time": 16.699,
+            "seconds": 3.241
+          },
+          {
+            "selector": "div.report-card.accent > small:nth-of-type(1)",
+            "text": "Resultado neto",
+            "fontPx": 11,
+            "time": 16.824,
+            "seconds": 3.116
+          },
+          {
+            "selector": "aside.side > div:nth-of-type(2) > b:nth-of-type(1)",
+            "text": "V",
+            "fontPx": 11.69,
+            "time": 2.866,
+            "seconds": 3.49
+          },
+          {
+            "selector": "aside.side > div:nth-of-type(3) > b:nth-of-type(1)",
+            "text": "C",
+            "fontPx": 11.69,
+            "time": 2.866,
+            "seconds": 3.49
+          },
+          {
+            "selector": "aside.side > div:nth-of-type(4) > b:nth-of-type(1)",
+            "text": "B",
+            "fontPx": 11.69,
+            "time": 2.866,
+            "seconds": 3.49
+          },
+          {
+            "selector": "aside.side > div:nth-of-type(5) > b:nth-of-type(1)",
+            "text": "R",
+            "fontPx": 11.69,
+            "time": 2.866,
+            "seconds": 3.49
+          },
+          {
+            "selector": "div.company > span:nth-of-type(1) > strong:nth-of-type(1)",
+            "text": "NOVA SERVICIOS S.A.",
+            "fontPx": 11.69,
+            "time": 2.866,
+            "seconds": 3.49
+          },
+          {
+            "selector": "div.role",
+            "text": "ROL ACTIVO · CONTABILIDAD",
+            "fontPx": 11.73,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "div.role > b:nth-of-type(1)",
+            "text": "A",
+            "fontPx": 11.73,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "#request-status",
+            "text": "APROBADO",
+            "fontPx": 11.73,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "span.crumb",
+            "text": "Espacio de trabajo /",
+            "fontPx": 12.66,
+            "time": 2.866,
+            "seconds": 3.49
+          },
+          {
+            "selector": "span.crumb > strong:nth-of-type(1)",
+            "text": "Inicio",
+            "fontPx": 12.66,
+            "time": 2.866,
+            "seconds": 3.49
+          },
+          {
+            "selector": "div.total > span:nth-of-type(1)",
+            "text": "TOTAL SOLICITADO",
+            "fontPx": 12.7,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "div.report-body > p:nth-of-type(1)",
+            "text": "Ingresos, costos, gastos y resultado del período.",
+            "fontPx": 12.7,
+            "time": 15.951,
+            "seconds": 3.989
+          },
+          {
+            "selector": "header.bank-tools > div:nth-of-type(1) > strong:nth-of-type(1)",
+            "text": "Banco Horizonte",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "header.bank-tools > div:nth-of-type(2) > strong:nth-of-type(1)",
+            "text": "USD",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "header.bank-tools > div:nth-of-type(3) > strong:nth-of-type(1)",
+            "text": "•••• 4821",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "span.auto",
+            "text": "Conciliar automáticamente",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match1 > span:nth-of-type(2)",
+            "text": "PENDIENTE",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match1 > strong:nth-of-type(1)",
+            "text": "COB-000184",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match1 > span:nth-of-type(3)",
+            "text": "Cobro Cliente Atlas",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match1 > strong:nth-of-type(2)",
+            "text": "35.887,09",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match1 > span:nth-of-type(5)",
+            "text": "PENDIENTE",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match1 > strong:nth-of-type(3)",
+            "text": "DEP-4821",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match1 > span:nth-of-type(6)",
+            "text": "Transferencia recibida",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match1 > strong:nth-of-type(4)",
+            "text": "35.887,09",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match2 > span:nth-of-type(2)",
+            "text": "PENDIENTE",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match2 > strong:nth-of-type(1)",
+            "text": "PAG-000091",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match2 > span:nth-of-type(3)",
+            "text": "Pago Proveedor Horizonte",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match2 > strong:nth-of-type(2)",
+            "text": "8.576,75",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match2 > span:nth-of-type(5)",
+            "text": "PENDIENTE",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match2 > strong:nth-of-type(3)",
+            "text": "TRF-091",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match2 > span:nth-of-type(6)",
+            "text": "Transferencia emitida",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match2 > strong:nth-of-type(4)",
+            "text": "8.576,75",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match3 > span:nth-of-type(2)",
+            "text": "PENDIENTE",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match3 > strong:nth-of-type(1)",
+            "text": "ASI-000301",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match3 > span:nth-of-type(3)",
+            "text": "Comisión bancaria",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match3 > strong:nth-of-type(2)",
+            "text": "126,75",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match3 > span:nth-of-type(5)",
+            "text": "PENDIENTE",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match3 > strong:nth-of-type(3)",
+            "text": "COM-301",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match3 > span:nth-of-type(6)",
+            "text": "Cargo del banco",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "#match3 > strong:nth-of-type(4)",
+            "text": "126,75",
+            "fontPx": 12.83,
+            "time": 11.091,
+            "seconds": 4.985
+          },
+          {
+            "selector": "div.module-grid > article:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "Facturación, clientes y cartera.",
+            "fontPx": 13,
+            "time": 3.365,
+            "seconds": 2.991
+          },
+          {
+            "selector": "div.module-grid > article:nth-of-type(2) > span:nth-of-type(1)",
+            "text": "Proveedores y solicitudes.",
+            "fontPx": 13,
+            "time": 3.489,
+            "seconds": 2.867
+          },
+          {
+            "selector": "div.module-grid > article:nth-of-type(3) > span:nth-of-type(1)",
+            "text": "Extractos y conciliación.",
+            "fontPx": 13,
+            "time": 3.489,
+            "seconds": 2.867
+          },
+          {
+            "selector": "div.module-grid > article:nth-of-type(4) > span:nth-of-type(1)",
+            "text": "Financieros, fiscales y auditoría.",
+            "fontPx": 13,
+            "time": 3.614,
+            "seconds": 2.742
+          },
+          {
+            "selector": "#draft",
+            "text": "BORRADOR",
+            "fontPx": 13,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "#approved",
+            "text": "APROBADO",
+            "fontPx": 13,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "#applied",
+            "text": "APLICADO",
+            "fontPx": 13,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "div.panel > div:nth-of-type(3) > div:nth-of-type(2) > strong:nth-of-type(1)",
+            "text": "613010 · Servicios",
+            "fontPx": 13,
+            "time": 6.854,
+            "seconds": 4.362
+          },
+          {
+            "selector": "div.panel > div:nth-of-type(3) > div:nth-of-type(2) > span:nth-of-type(1)",
+            "text": "CC-ADM",
+            "fontPx": 13,
+            "time": 6.854,
+            "seconds": 4.362
+          },
+          {
+            "selector": "div.panel > div:nth-of-type(3) > div:nth-of-type(2) > span:nth-of-type(2)",
+            "text": "Servicio mensual",
+            "fontPx": 13,
+            "time": 6.854,
+            "seconds": 4.362
+          },
+          {
+            "selector": "div.panel > div:nth-of-type(3) > div:nth-of-type(2) > strong:nth-of-type(2)",
+            "text": "USD 8.450,00",
+            "fontPx": 13,
+            "time": 6.854,
+            "seconds": 4.362
+          },
+          {
+            "selector": "div.panel > div:nth-of-type(3) > div:nth-of-type(3) > strong:nth-of-type(1)",
+            "text": "631002 · Comisiones",
+            "fontPx": 13,
+            "time": 6.854,
+            "seconds": 4.362
+          },
+          {
+            "selector": "div.panel > div:nth-of-type(3) > div:nth-of-type(3) > span:nth-of-type(1)",
+            "text": "CC-ADM",
+            "fontPx": 13,
+            "time": 6.854,
+            "seconds": 4.362
+          },
+          {
+            "selector": "div.panel > div:nth-of-type(3) > div:nth-of-type(3) > span:nth-of-type(2)",
+            "text": "Comisión bancaria",
+            "fontPx": 13,
+            "time": 6.854,
+            "seconds": 4.362
+          },
+          {
+            "selector": "div.panel > div:nth-of-type(3) > div:nth-of-type(3) > strong:nth-of-type(2)",
+            "text": "USD 126,75",
+            "fontPx": 13,
+            "time": 6.854,
+            "seconds": 4.362
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(2) > span:nth-of-type(1)",
+            "text": "411001",
+            "fontPx": 13,
+            "time": 17.073,
+            "seconds": 2.867
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(2) > span:nth-of-type(2)",
+            "text": "Ingresos por servicios",
+            "fontPx": 13,
+            "time": 17.073,
+            "seconds": 2.867
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(2) > span:nth-of-type(3)",
+            "text": "418.420,00",
+            "fontPx": 13,
+            "time": 17.073,
+            "seconds": 2.867
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(2) > span:nth-of-type(4)",
+            "text": "418.420,00",
+            "fontPx": 13,
+            "time": 17.073,
+            "seconds": 2.867
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(3) > span:nth-of-type(1)",
+            "text": "613010",
+            "fontPx": 13,
+            "time": 17.073,
+            "seconds": 2.867
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(3) > span:nth-of-type(2)",
+            "text": "Servicios y honorarios",
+            "fontPx": 13,
+            "time": 17.073,
+            "seconds": 2.867
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(3) > span:nth-of-type(3)",
+            "text": "190.200,00",
+            "fontPx": 13,
+            "time": 17.073,
+            "seconds": 2.867
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(3) > span:nth-of-type(4)",
+            "text": "190.200,00",
+            "fontPx": 13,
+            "time": 17.073,
+            "seconds": 2.867
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(4) > span:nth-of-type(1)",
+            "text": "631002",
+            "fontPx": 13,
+            "time": 17.197,
+            "seconds": 2.743
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(4) > span:nth-of-type(2)",
+            "text": "Comisiones y gastos bancarios",
+            "fontPx": 13,
+            "time": 17.197,
+            "seconds": 2.743
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(4) > span:nth-of-type(3)",
+            "text": "3.125,00",
+            "fontPx": 13,
+            "time": 17.197,
+            "seconds": 2.743
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(4) > span:nth-of-type(4)",
+            "text": "3.125,00",
+            "fontPx": 13,
+            "time": 17.197,
+            "seconds": 2.743
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(5) > span:nth-of-type(1)",
+            "text": "615001",
+            "fontPx": 13,
+            "time": 17.322,
+            "seconds": 2.618
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(5) > span:nth-of-type(2)",
+            "text": "Gastos administrativos",
+            "fontPx": 13,
+            "time": 17.322,
+            "seconds": 2.618
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(5) > span:nth-of-type(3)",
+            "text": "58.035,00",
+            "fontPx": 13,
+            "time": 17.322,
+            "seconds": 2.618
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(5) > span:nth-of-type(4)",
+            "text": "58.035,00",
+            "fontPx": 13,
+            "time": 17.322,
+            "seconds": 2.618
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(6) > span:nth-of-type(2)",
+            "text": "UTILIDAD NETA DEL PERÍODO",
+            "fontPx": 13,
+            "time": 17.322,
+            "seconds": 2.618
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(6) > span:nth-of-type(3)",
+            "text": "167.060,00",
+            "fontPx": 13,
+            "time": 17.322,
+            "seconds": 2.618
+          },
+          {
+            "selector": "div.table.financial > div:nth-of-type(6) > span:nth-of-type(4)",
+            "text": "167.060,00",
+            "fontPx": 13,
+            "time": 17.322,
+            "seconds": 2.618
+          },
+          {
+            "selector": "span.address",
+            "text": "gentia · espacio de trabajo",
+            "fontPx": 13.63,
+            "time": 2.866,
+            "seconds": 3.49
+          },
+          {
+            "selector": "p.sub",
+            "text": "Todo lo importante, listo para actuar.",
+            "fontPx": 13.63,
+            "time": 2.866,
+            "seconds": 3.49
+          },
+          {
+            "selector": "div.facts > div:nth-of-type(1) > strong:nth-of-type(1)",
+            "text": "NOVA SERVICIOS S.A.",
+            "fontPx": 13.68,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "div.facts > div:nth-of-type(2) > strong:nth-of-type(1)",
+            "text": "Proveedor Horizonte",
+            "fontPx": 13.68,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "div.facts > div:nth-of-type(3) > strong:nth-of-type(1)",
+            "text": "USD",
+            "fontPx": 13.68,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "div.facts > div:nth-of-type(4) > strong:nth-of-type(1)",
+            "text": "ADMINISTRATIVO",
+            "fontPx": 13.68,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "#approve",
+            "text": "Aprobar solicitud",
+            "fontPx": 13.68,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "div.pick-row > span:nth-of-type(1) > strong:nth-of-type(1)",
+            "text": "NOVA SERVICIOS S.A.",
+            "fontPx": 13.89,
+            "time": 3.863,
+            "seconds": 1.745
+          },
+          {
+            "selector": "div.exports > span:nth-of-type(1)",
+            "text": "↓ PDF",
+            "fontPx": 14,
+            "time": 17.571,
+            "seconds": 2.369
+          },
+          {
+            "selector": "div.exports > span:nth-of-type(2)",
+            "text": "↓ Excel",
+            "fontPx": 14,
+            "time": 17.696,
+            "seconds": 2.244
+          },
+          {
+            "selector": "div.exports > span:nth-of-type(3)",
+            "text": "↓ CSV",
+            "fontPx": 14,
+            "time": 17.821,
+            "seconds": 2.119
+          },
+          {
+            "selector": "div.nav.active",
+            "text": "Inicio",
+            "fontPx": 14.61,
+            "time": 2.866,
+            "seconds": 3.49
+          },
+          {
+            "selector": "aside.side > div:nth-of-type(2)",
+            "text": "Ventas",
+            "fontPx": 14.61,
+            "time": 2.866,
+            "seconds": 3.49
+          },
+          {
+            "selector": "aside.side > div:nth-of-type(3)",
+            "text": "Compras",
+            "fontPx": 14.61,
+            "time": 2.866,
+            "seconds": 3.49
+          },
+          {
+            "selector": "aside.side > div:nth-of-type(4)",
+            "text": "Bancos",
+            "fontPx": 14.61,
+            "time": 2.866,
+            "seconds": 3.49
+          },
+          {
+            "selector": "aside.side > div:nth-of-type(5)",
+            "text": "Reportes",
+            "fontPx": 14.61,
+            "time": 2.866,
+            "seconds": 3.49
+          },
+          {
+            "selector": "header.report-bar > strong:nth-of-type(1)",
+            "text": "Informes · Contabilidad",
+            "fontPx": 14.66,
+            "time": 15.951,
+            "seconds": 3.989
+          },
+          {
+            "selector": "div.company > b:nth-of-type(1)",
+            "text": "N",
+            "fontPx": 15.58,
+            "time": 2.866,
+            "seconds": 3.49
+          },
+          {
+            "selector": "div.pick-row > b:nth-of-type(1)",
+            "text": "N",
+            "fontPx": 15.87,
+            "time": 3.863,
+            "seconds": 1.745
+          },
+          {
+            "selector": "div.metrics > div:nth-of-type(1) > strong:nth-of-type(1)",
+            "text": "USD 168.585,50",
+            "fontPx": 16,
+            "time": 11.59,
+            "seconds": 4.486
+          },
+          {
+            "selector": "div.metrics > div:nth-of-type(2) > strong:nth-of-type(1)",
+            "text": "USD 4.200,00",
+            "fontPx": 16,
+            "time": 11.714,
+            "seconds": 4.362
+          },
+          {
+            "selector": "div.metrics > div:nth-of-type(3) > strong:nth-of-type(1)",
+            "text": "USD 1.875,00",
+            "fontPx": 16,
+            "time": 11.714,
+            "seconds": 4.362
+          },
+          {
+            "selector": "div.metrics > div:nth-of-type(4) > strong:nth-of-type(1)",
+            "text": "USD 126,75",
+            "fontPx": 16,
+            "time": 11.839,
+            "seconds": 4.237
+          },
+          {
+            "selector": "div.metric.ok > strong:nth-of-type(1)",
+            "text": "USD 170.783,75",
+            "fontPx": 16,
+            "time": 11.839,
+            "seconds": 4.237
+          },
+          {
+            "selector": "div.pills > span:nth-of-type(1)",
+            "text": "Multiempresa",
+            "fontPx": 17,
+            "time": 2.991,
+            "seconds": 3.365
+          },
+          {
+            "selector": "div.pills > span:nth-of-type(2)",
+            "text": "Multimoneda",
+            "fontPx": 17,
+            "time": 2.991,
+            "seconds": 3.365
+          },
+          {
+            "selector": "div.heading > p:nth-of-type(1)",
+            "text": "UN SOLO ESPACIO",
+            "fontPx": 18,
+            "time": 2.991,
+            "seconds": 3.365
+          },
+          {
+            "selector": "div.module-grid > article:nth-of-type(1) > strong:nth-of-type(1)",
+            "text": "Ventas y cobros",
+            "fontPx": 18,
+            "time": 3.365,
+            "seconds": 2.991
+          },
+          {
+            "selector": "div.module-grid > article:nth-of-type(2) > strong:nth-of-type(1)",
+            "text": "Compras y pagos",
+            "fontPx": 18,
+            "time": 3.489,
+            "seconds": 2.867
+          },
+          {
+            "selector": "div.module-grid > article:nth-of-type(3) > strong:nth-of-type(1)",
+            "text": "Bancos",
+            "fontPx": 18,
+            "time": 3.489,
+            "seconds": 2.867
+          },
+          {
+            "selector": "div.module-grid > article:nth-of-type(4) > strong:nth-of-type(1)",
+            "text": "Reportes",
+            "fontPx": 18,
+            "time": 3.614,
+            "seconds": 2.742
+          },
+          {
+            "selector": "div.bank-heading > p:nth-of-type(1)",
+            "text": "TESORERÍA",
+            "fontPx": 18,
+            "time": 11.216,
+            "seconds": 4.86
+          },
+          {
+            "selector": "div.module-grid > article:nth-of-type(1) > b:nth-of-type(1)",
+            "text": "V",
+            "fontPx": 19,
+            "time": 3.365,
+            "seconds": 2.991
+          },
+          {
+            "selector": "div.module-grid > article:nth-of-type(2) > b:nth-of-type(1)",
+            "text": "C",
+            "fontPx": 19,
+            "time": 3.489,
+            "seconds": 2.867
+          },
+          {
+            "selector": "div.module-grid > article:nth-of-type(3) > b:nth-of-type(1)",
+            "text": "B",
+            "fontPx": 19,
+            "time": 3.489,
+            "seconds": 2.867
+          },
+          {
+            "selector": "div.module-grid > article:nth-of-type(4) > b:nth-of-type(1)",
+            "text": "R",
+            "fontPx": 19,
+            "time": 3.614,
+            "seconds": 2.742
+          },
+          {
+            "selector": "#reconciled > span:nth-of-type(1) > strong:nth-of-type(1)",
+            "text": "CONCILIACIÓN CUADRADA",
+            "fontPx": 19.25,
+            "time": 13.21,
+            "seconds": 2.866
+          },
+          {
+            "selector": "div.outro-content > p:nth-of-type(1)",
+            "text": "Una visión financiera clara para todo el grupo.",
+            "fontPx": 20,
+            "time": 19.815,
+            "seconds": 3.115
+          },
+          {
+            "selector": "div.total > strong:nth-of-type(1)",
+            "text": "USD 8.576,75",
+            "fontPx": 20.52,
+            "time": 6.106,
+            "seconds": 5.11
+          },
+          {
+            "selector": "div.report-cards > div:nth-of-type(1) > strong:nth-of-type(1)",
+            "text": "USD 418.420,00",
+            "fontPx": 22,
+            "time": 16.574,
+            "seconds": 3.366
+          },
+          {
+            "selector": "div.report-cards > div:nth-of-type(2) > strong:nth-of-type(1)",
+            "text": "USD 251.360,00",
+            "fontPx": 22,
+            "time": 16.699,
+            "seconds": 3.241
+          },
+          {
+            "selector": "div.report-card.accent > strong:nth-of-type(1)",
+            "text": "USD 167.060,00",
+            "fontPx": 22,
+            "time": 16.824,
+            "seconds": 3.116
+          },
+          {
+            "selector": "div.reports-copy > p:nth-of-type(1)",
+            "text": "DECISIONES CON RESPALDO",
+            "fontPx": 23,
+            "time": 16.076,
+            "seconds": 3.864
+          },
+          {
+            "selector": "div.reports-copy > p:nth-of-type(2)",
+            "text": "Información financiera, fiscal y auditable, con el detalle detrás de cada cifra.",
+            "fontPx": 23,
+            "time": 16.076,
+            "seconds": 3.864
+          },
+          {
+            "selector": "div.heading > p:nth-of-type(2)",
+            "text": "Controla la operación de todo el grupo sin perder el contexto local.",
+            "fontPx": 24,
+            "time": 2.991,
+            "seconds": 3.365
+          },
+          {
+            "selector": "div.request-copy > p:nth-of-type(1)",
+            "text": "OPERACIÓN CONECTADA",
+            "fontPx": 24,
+            "time": 6.356,
+            "seconds": 4.86
+          },
+          {
+            "selector": "div.request-copy > p:nth-of-type(2)",
+            "text": "Cada pago conserva su contexto, sus dimensiones y su impacto contable.",
+            "fontPx": 24,
+            "time": 6.356,
+            "seconds": 4.86
+          },
+          {
+            "selector": "div.bank-heading > p:nth-of-type(2)",
+            "text": "Importa el extracto, encuentra coincidencias y registra ajustes.",
+            "fontPx": 24,
+            "time": 11.216,
+            "seconds": 4.86
+          }
+        ]
+      }
+    ],
+    "enabled": true,
+    "step": 0.125,
+    "samples": 184
+  },
+  "audio": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": []
+  },
+  "hdr": {
+    "autoPromotion": null,
+    "inspection": "available"
+  },
+  "snapshots": {
+    "enabled": true,
+    "files": [
+      ".hyperframes\\artifacts\\snapshots\\9f57fa57-7406-4830-92d3-2092a33249ad\\frame-00-at-1.3s.png",
+      ".hyperframes\\artifacts\\snapshots\\9f57fa57-7406-4830-92d3-2092a33249ad\\frame-01-at-6.4s.png",
+      ".hyperframes\\artifacts\\snapshots\\9f57fa57-7406-4830-92d3-2092a33249ad\\frame-02-at-11.5s.png",
+      ".hyperframes\\artifacts\\snapshots\\9f57fa57-7406-4830-92d3-2092a33249ad\\frame-03-at-16.6s.png",
+      ".hyperframes\\artifacts\\snapshots\\9f57fa57-7406-4830-92d3-2092a33249ad\\frame-04-at-21.7s.png"
+    ],
+    "times": [
+      1.274,
+      6.369,
+      11.465,
+      16.561,
+      21.656
+    ],
+    "findingFiles": [
+      "C:\\Users\\danny.valderrama\\Documents\\ERP STT\\brag-output\\composition\\.hyperframes\\artifacts\\snapshots\\9f57fa57-7406-4830-92d3-2092a33249ad\\finding-00-content_overlap.png",
+      "C:\\Users\\danny.valderrama\\Documents\\ERP STT\\brag-output\\composition\\.hyperframes\\artifacts\\snapshots\\9f57fa57-7406-4830-92d3-2092a33249ad\\finding-01-text_not_painted.png",
+      "C:\\Users\\danny.valderrama\\Documents\\ERP STT\\brag-output\\composition\\.hyperframes\\artifacts\\snapshots\\9f57fa57-7406-4830-92d3-2092a33249ad\\finding-02-text_not_painted.png",
+      "C:\\Users\\danny.valderrama\\Documents\\ERP STT\\brag-output\\composition\\.hyperframes\\artifacts\\snapshots\\9f57fa57-7406-4830-92d3-2092a33249ad\\finding-03-text_not_painted.png",
+      "C:\\Users\\danny.valderrama\\Documents\\ERP STT\\brag-output\\composition\\.hyperframes\\artifacts\\snapshots\\9f57fa57-7406-4830-92d3-2092a33249ad\\finding-04-text_not_painted.png",
+      "C:\\Users\\danny.valderrama\\Documents\\ERP STT\\brag-output\\composition\\.hyperframes\\artifacts\\snapshots\\9f57fa57-7406-4830-92d3-2092a33249ad\\finding-05-text_not_painted.png",
+      "C:\\Users\\danny.valderrama\\Documents\\ERP STT\\brag-output\\composition\\.hyperframes\\artifacts\\snapshots\\9f57fa57-7406-4830-92d3-2092a33249ad\\finding-06-text_not_painted.png"
+    ]
+  }
+}

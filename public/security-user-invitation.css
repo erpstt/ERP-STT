@@ -51,6 +51,19 @@
   font-weight: 600;
 }
 
+.table-message.form-warning {
+  margin: 12px 18px;
+  padding: 12px 14px;
+  border: 1px solid #efc489;
+  border-radius: 8px;
+  background: #fff8ec;
+  color: #874d0e;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+}
+
 @media (max-width: 560px) {
   .form-grid .user-invitation-field {
     grid-column: auto;

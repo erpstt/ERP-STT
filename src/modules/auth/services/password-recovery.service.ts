@@ -1,6 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
 import { hashPassword, validateNewPassword, verifyPassword } from '../../../shared/services/password.service.js';
+import { PublicAppUrlConfigurationError, publicAppUrl } from '../../../shared/services/public-app-url.js';
 
 type RecoveryRequestInput = { email?: string };
 type RecoveryCompletionInput = {
@@ -95,19 +96,15 @@ function recordAttempt(
 }
 
 function configuredBaseUrl() {
-  const raw = String(process.env.GENTIA_APP_URL ?? process.env.APP_BASE_URL ?? process.env.NEXO_APP_URL ?? '').trim();
-  if (!raw) throw new PasswordRecoveryError('La URL pública para recuperar contraseñas no está configurada.', 503);
-  let url: URL;
-  try { url = new URL(raw); }
-  catch { throw new PasswordRecoveryError('La URL pública para recuperar contraseñas no es válida.', 503); }
-  const local = ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
-  if (url.protocol !== 'https:' && !(local && url.protocol === 'http:')) {
-    throw new PasswordRecoveryError('La URL de recuperación debe utilizar HTTPS.', 503);
+  try { return publicAppUrl({allowLocalHttp: true}); }
+  catch (cause) {
+    if (cause instanceof PublicAppUrlConfigurationError) {
+      if (cause.issue === 'MISSING') throw new PasswordRecoveryError('La URL pública para recuperar contraseñas no está configurada.', 503);
+      if (cause.issue === 'INSECURE') throw new PasswordRecoveryError('La URL de recuperación debe utilizar HTTPS.', 503);
+      throw new PasswordRecoveryError('La URL pública para recuperar contraseñas no es válida.', 503);
+    }
+    throw cause;
   }
-  url.username = '';
-  url.password = '';
-  url.hash = '';
-  return url;
 }
 
 function serviceConfiguration() {

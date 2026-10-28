@@ -46,6 +46,55 @@ type InvitationTemplateSettings = {
 
 type MailResult = {accepted?: unknown[];messageId?: string};
 
+export type UserAccessEmailIssue =
+  | 'TEMPLATE_UNAVAILABLE'
+  | 'TEMPLATE_MISSING'
+  | 'TEMPLATE_INACTIVE'
+  | 'TEMPLATE_INVALID'
+  | 'SMTP_NOT_CONFIGURED'
+  | 'SMTP_DISABLED'
+  | 'SMTP_AUTH_FAILED'
+  | 'SMTP_UNAVAILABLE'
+  | 'SMTP_REJECTED'
+  | 'SMTP_SEND_FAILED';
+
+export class UserAccessEmailError extends Error {
+  constructor(readonly issue: UserAccessEmailIssue, message: string) {
+    super(message);
+    this.name = 'UserAccessEmailError';
+  }
+}
+
+function smtpDeliveryError(cause: unknown, templateLabel: string) {
+  const detail = typeof cause === 'object' && cause !== null
+    ? cause as {code?: unknown;command?: unknown;responseCode?: unknown}
+    : {};
+  const code = String(detail.code ?? '').toUpperCase();
+  const command = String(detail.command ?? '').toUpperCase();
+  if (code === 'EAUTH' || command === 'AUTH') {
+    return new UserAccessEmailError(
+      'SMTP_AUTH_FAILED',
+      'El servidor SMTP rechazó la autenticación. Revise SMTP_USER y SMTP_PASSWORD en Railway.'
+    );
+  }
+  if (['ECONNECTION', 'ECONNREFUSED', 'ENOTFOUND', 'ESOCKET', 'ETIMEDOUT'].includes(code)) {
+    return new UserAccessEmailError(
+      'SMTP_UNAVAILABLE',
+      'No fue posible conectar con el servidor SMTP. Revise SMTP_HOST, SMTP_PORT y la conectividad de Railway.'
+    );
+  }
+  if (detail.responseCode || ['MAIL FROM', 'RCPT TO'].includes(command)) {
+    return new UserAccessEmailError(
+      'SMTP_REJECTED',
+      `El servidor SMTP rechazó el correo de ${templateLabel}. Revise el remitente y el destinatario.`
+    );
+  }
+  return new UserAccessEmailError(
+    'SMTP_SEND_FAILED',
+    `No fue posible enviar el correo de ${templateLabel}. Revise la configuración SMTP de Railway e intente nuevamente.`
+  );
+}
+
 function validEmail(value: unknown) {
   const email = String(value ?? '').trim().toLowerCase();
   if (!/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(email) || email.length > 254) {
@@ -227,20 +276,49 @@ async function deliverUserAccessEmail(
   defaults: {subject:string;body:string},
   templateLabel: string
 ) {
-  if (!settings.template?.activo) {
-    throw new Error(`Active la plantilla de ${templateLabel} en Configuración > Plantillas de Notificación.`);
+  if (!settings.template) {
+    throw new UserAccessEmailError(
+      'TEMPLATE_MISSING',
+      `Configure la plantilla de ${templateLabel} en Configuración > Plantillas de Notificación.`
+    );
   }
-  if (!smtpStatus().enabled) throw new Error('El envío SMTP todavía no está activado en el servidor.');
+  if (!settings.template.activo) {
+    throw new UserAccessEmailError(
+      'TEMPLATE_INACTIVE',
+      `Active la plantilla de ${templateLabel} en Configuración > Plantillas de Notificación.`
+    );
+  }
+  const transportStatus = smtpStatus();
+  if (!transportStatus.configured) {
+    throw new UserAccessEmailError(
+      'SMTP_NOT_CONFIGURED',
+      'El correo no fue enviado: configure SMTP_HOST, SMTP_PORT y SMTP_FROM en Railway.'
+    );
+  }
+  if (!transportStatus.enabled) {
+    throw new UserAccessEmailError(
+      'SMTP_DISABLED',
+      'El correo no fue enviado: configure EMAIL_NOTIFICATIONS_ENABLED=true en Railway y vuelva a desplegar.'
+    );
+  }
   const effectiveSnapshot: UserInvitationEmailSnapshot = {
     ...snapshot,
     empresa_nombre: snapshot.empresa_nombre || settings.subsidiary?.name || 'GENTIA ERP',
     empresa_logo_url: snapshot.empresa_logo_url || settings.subsidiary?.logo || null
   };
-  const message = renderUserInvitationEmail(
-    String(settings.template.asunto_template || defaults.subject),
-    String(settings.template.cuerpo_template || defaults.body),
-    effectiveSnapshot
-  );
+  let message: ReturnType<typeof renderUserInvitationEmail>;
+  try {
+    message = renderUserInvitationEmail(
+      String(settings.template.asunto_template || defaults.subject),
+      String(settings.template.cuerpo_template || defaults.body),
+      effectiveSnapshot
+    );
+  } catch {
+    throw new UserAccessEmailError(
+      'TEMPLATE_INVALID',
+      `La plantilla de ${templateLabel} contiene datos o variables no válidos. Revísela en Configuración > Plantillas de Notificación.`
+    );
+  }
   const port = Number(process.env.SMTP_PORT || 587);
   const transport = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
@@ -265,12 +343,17 @@ async function deliverUserAccessEmail(
       disableFileAccess: true,
       disableUrlAccess: true
     });
-  } catch {
-    throw new Error(`No fue posible enviar el correo de ${templateLabel}. Verifique la configuración SMTP e intente nuevamente.`);
+  } catch (cause) {
+    throw smtpDeliveryError(cause, templateLabel);
   } finally {
     transport.close();
   }
-  if (!result.accepted?.length) throw new Error(`El servidor SMTP no aceptó al destinatario del correo de ${templateLabel}.`);
+  if (!result.accepted?.length) {
+    throw new UserAccessEmailError(
+      'SMTP_REJECTED',
+      `El servidor SMTP no aceptó al destinatario del correo de ${templateLabel}. Revise su dirección de correo.`
+    );
+  }
   return {success: true, messageId: result.messageId ?? null};
 }
 
@@ -278,10 +361,18 @@ export async function sendUserInvitationEmail(
   authorization: string,
   snapshot: UserInvitationEmailSnapshot
 ) {
-  const settings = await rpc('user_invitation_email_settings', {
-    p_action: 'delivery',
-    p_payload: {}
-  }, authorization) as InvitationTemplateSettings;
+  let settings: InvitationTemplateSettings;
+  try {
+    settings = await rpc('user_invitation_email_settings', {
+      p_action: 'delivery',
+      p_payload: {}
+    }, authorization) as InvitationTemplateSettings;
+  } catch {
+    throw new UserAccessEmailError(
+      'TEMPLATE_UNAVAILABLE',
+      'No fue posible consultar la plantilla de invitación. Revise su configuración y permisos.'
+    );
+  }
   return deliverUserAccessEmail(settings,{...snapshot,access_mode:'INVITATION'},{subject:userInvitationEmailSubject,body:userInvitationEmailBody},'invitación');
 }
 
@@ -289,9 +380,17 @@ export async function sendUserPasswordRecoveryEmail(
   authorization: string,
   snapshot: UserInvitationEmailSnapshot
 ) {
-  const settings = await rpc('user_password_recovery_email_settings', {
-    p_action: 'delivery',
-    p_payload: {}
-  }, authorization) as InvitationTemplateSettings;
+  let settings: InvitationTemplateSettings;
+  try {
+    settings = await rpc('user_password_recovery_email_settings', {
+      p_action: 'delivery',
+      p_payload: {}
+    }, authorization) as InvitationTemplateSettings;
+  } catch {
+    throw new UserAccessEmailError(
+      'TEMPLATE_UNAVAILABLE',
+      'No fue posible consultar la plantilla de recuperación de acceso. Revise su configuración y permisos.'
+    );
+  }
   return deliverUserAccessEmail(settings,{...snapshot,access_mode:'RECOVERY'},{subject:userPasswordRecoveryEmailSubject,body:userPasswordRecoveryEmailBody},'recuperación de acceso');
 }

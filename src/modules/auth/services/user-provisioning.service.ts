@@ -1,7 +1,8 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
 import { hashPassword, validateNewPassword, verifyPassword } from '../../../shared/services/password.service.js';
-import { sendUserInvitationEmail, sendUserPasswordRecoveryEmail } from '../../notifications/user-invitation-email.js';
+import { PublicAppUrlConfigurationError, publicAppUrl } from '../../../shared/services/public-app-url.js';
+import { UserAccessEmailError, sendUserInvitationEmail, sendUserPasswordRecoveryEmail } from '../../notifications/user-invitation-email.js';
 
 type CreateUserInput = {
   email?: unknown; first_name?: unknown; last_name?: unknown; timezone_id?: unknown;
@@ -29,8 +30,20 @@ function nameValue(value:unknown,label:string){const name=typeof value==='string
 function timezoneValue(value:unknown){if(value===undefined||value===null||value==='')return null;const id=Number(value);if(!Number.isSafeInteger(id)||id<=0)throw new UserProvisioningError('La zona horaria no es válida.');return id;}
 function bool(value:unknown,fallback:boolean){if(value===undefined||value===null||value==='')return fallback;if(value===true||value==='true'||value===1||value==='1')return true;if(value===false||value==='false'||value===0||value==='0')return false;throw new UserProvisioningError('El valor de la opción indicada no es válido.');}
 
-function config(){const base=getSupabaseConfig(),serviceKey=process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();if(!base||!serviceKey)throw new UserProvisioningError('La administración de usuarios no está configurada.',503);return{...base,serviceKey};}
-function appUrl(){const raw=String(process.env.GENTIA_APP_URL??process.env.APP_BASE_URL??process.env.NEXO_APP_URL??'').trim();if(!raw)throw new UserProvisioningError('La URL pública de la aplicación no está configurada.',503);let url:URL;try{url=new URL(raw);}catch{throw new UserProvisioningError('La URL pública de la aplicación no es válida.',503);}const local=['localhost','127.0.0.1','::1'].includes(url.hostname);if(url.protocol!=='https:'&&!(local&&url.protocol==='http:'))throw new UserProvisioningError('La URL de invitación debe utilizar HTTPS.',503);url.username='';url.password='';url.pathname='/';url.search='';url.hash='';return url;}
+let missingAdminConfigurationLogged=false;
+function config(){
+  const base=getSupabaseConfig(),serviceKey=process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if(!base){
+    if(!missingAdminConfigurationLogged){console.error('[UserProvisioning] Faltan SUPABASE_URL o SUPABASE_ANON_KEY en el entorno del servidor.');missingAdminConfigurationLogged=true;}
+    throw new UserProvisioningError('La conexión de Supabase para administrar usuarios no está configurada en el servidor.',503);
+  }
+  if(!serviceKey){
+    if(!missingAdminConfigurationLogged){console.error('[UserProvisioning] Falta SUPABASE_SERVICE_ROLE_KEY en el entorno del servidor.');missingAdminConfigurationLogged=true;}
+    throw new UserProvisioningError('El servidor no tiene habilitada la administración segura de usuarios. Configure SUPABASE_SERVICE_ROLE_KEY en el entorno del servidor y reinicie el servicio.',503);
+  }
+  return{...base,serviceKey};
+}
+function appUrl(){try{return publicAppUrl({allowLocalHttp:true,rootOnly:true});}catch(cause){if(cause instanceof PublicAppUrlConfigurationError){if(cause.issue==='MISSING')throw new UserProvisioningError('La URL pública de la aplicación no está configurada.',503);if(cause.issue==='INSECURE')throw new UserProvisioningError('La URL de invitación debe utilizar HTTPS.',503);throw new UserProvisioningError('La URL pública de la aplicación no es válida.',503);}throw cause;}}
 async function payload(response:Response){const text=response.status===204?'':await response.text();if(!text)return null;try{return JSON.parse(text)as unknown;}catch{return null;}}
 function apiMessage(value:unknown,fallback:string){if(typeof value!=='object'||value===null)return fallback;for(const key of['message','msg','error_description']){const item=(value as Record<string,unknown>)[key];if(typeof item==='string'&&item.trim())return item;}return fallback;}
 
@@ -124,6 +137,7 @@ export async function sendExistingUserPasswordLink(authorization:string,userId:n
     await serviceRest(`password_recovery_grants?state_hash=eq.${stateHash}`,{method:'DELETE'}).catch(()=>undefined);
     await auditPasswordNotification(target,'ERROR');
     if(cause instanceof UserProvisioningError)throw cause;
+    if(cause instanceof UserAccessEmailError)throw new UserProvisioningError(cause.message,503);
     throw new UserProvisioningError('No fue posible enviar el enlace de recuperación. El usuario puede utilizar «¿Olvidaste tu contraseña?» e intentarlo nuevamente.',503);
   }
 }

@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="/subsidiary-branding.css?v=20260814">
   <link rel="stylesheet" href="/exchange-rate.css?v=20260814">
   <link rel="stylesheet" href="/gentia-theme.css?v=20260930-switches">
-  <link rel="stylesheet" href="/security-user-invitation.css?v=20261026">
+  <link rel="stylesheet" href="/security-user-invitation.css?v=20261027-partial-notification">
 </head>
 <body>
 <div id="app">
@@ -392,6 +392,7 @@
 <span class="record-count">{{ filteredRows.length }} {{ filteredRows.length === 1 ? 'registro' : 'registros' }}</span>
 </div>
 <p v-if="tableNotice" class="table-message form-success" role="status">{{ tableNotice }}</p>
+<p v-if="tableWarning" class="table-message form-warning" role="alert">{{ tableWarning }}</p>
             <p v-if="tableLoading" class="table-message">Cargando registros…</p>
 <p v-else-if="tableError" class="table-message form-error" role="alert">{{ tableError }}</p>
             <div v-else class="table-scroll">
@@ -647,7 +648,7 @@
   </main>
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
-<script type="module" src="/app.js?v=20261027-bank-statement-format">
+<script type="module" src="/app.js?v=20261027-user-notification-warning">
 </script>
 <script src="/approval-notifications.js?v=20261023-second-pass"></script></body>
 </html>

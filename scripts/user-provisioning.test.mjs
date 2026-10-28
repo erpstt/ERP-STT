@@ -8,7 +8,7 @@ const originalFetch=globalThis.fetch,originalEnvironment={...process.env},origin
 const authId='123e4567-e89b-42d3-a456-426614174000';
 const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
 const hash=value=>createHash('sha256').update(value).digest('hex');
-function configure(){process.env.SUPABASE_URL='https://project.example.test';process.env.SUPABASE_ANON_KEY='anon';process.env.SUPABASE_SERVICE_ROLE_KEY='service';process.env.GENTIA_APP_URL='https://erp.example.test';delete process.env.SMTP_HOST;delete process.env.SMTP_FROM;}
+function configure(){process.env.SUPABASE_URL='https://project.example.test';process.env.SUPABASE_ANON_KEY='anon';process.env.SUPABASE_SERVICE_ROLE_KEY='service';process.env.GENTIA_APP_URL='https://erp.example.test';delete process.env.RAILWAY_PUBLIC_DOMAIN;delete process.env.SMTP_HOST;delete process.env.SMTP_FROM;}
 function jwt(method='otp',issuedAt=Math.floor(Date.now()/1000)){const enc=value=>Buffer.from(JSON.stringify(value)).toString('base64url');return`${enc({alg:'none'})}.${enc({iat:issuedAt,exp:issuedAt+3600,role:'authenticated',aud:'authenticated',amr:[{method,timestamp:issuedAt}]})}.signature`;}
 test.beforeEach(configure);test.afterEach(()=>{globalThis.fetch=originalFetch;process.env={...originalEnvironment};nodemailer.createTransport=originalCreateTransport;});
 
@@ -25,7 +25,7 @@ test('crea Auth y ERP, genera un enlace seguro y habilita recuperación si SMTP 
     if(url.pathname==='/rest/v1/user_invitation_grants'&&init.method==='DELETE'){grantDeletes++;return new Response(null,{status:204});}
     if(url.pathname==='/rest/v1/user_invitation_grants'&&init.method==='POST'){grantBody=JSON.parse(String(init.body));return new Response(null,{status:201});}
     if(url.pathname==='/rest/v1/rpc/security_create_user'&&init.method==='POST'){erpBody=JSON.parse(String(init.body));createAuthorization=new Headers(init.headers).get('authorization')??'';return json({user_id:7,email:erpBody.p_email,first_name:erpBody.p_first_name,last_name:erpBody.p_last_name,timezone_id:null,is_active:true,invitation_sent_at:null,invitation_accepted_at:null});}
-    if(url.pathname==='/rest/v1/rpc/user_invitation_email_settings')return json({canEdit:true,template:{activo:false},subsidiary:{name:'Empresa',logo:null}});
+    if(url.pathname==='/rest/v1/rpc/user_invitation_email_settings')return json({canEdit:true,template:{activo:true},subsidiary:{name:'Empresa',logo:null}});
     if(url.pathname===`/auth/v1/admin/users/${authId}`&&init.method==='PUT'){fallbackBody=JSON.parse(String(init.body));return json({id:authId,email:'persona@example.com'});}
     if(url.pathname===`/auth/v1/admin/users/${authId}`&&init.method==='DELETE'){authDeleted=true;return json({});}
     throw new Error(`Solicitud inesperada: ${url.pathname} ${init.method??'GET'}`);
@@ -35,12 +35,12 @@ test('crea Auth y ERP, genera un enlace seguro y habilita recuperación si SMTP 
   const callback=new URL(authBody.redirect_to),state=callback.searchParams.get('state');assert.equal(grantBody.state_hash,hash(state));assert.equal(grantBody.email_hash,hash('persona@example.com'));assert.equal(JSON.stringify(grantBody).includes('persona@example.com'),false);
   assert.equal('password_hash'in erpBody,false);assert.equal(erpBody.p_auth_user_id,authId);assert.equal(erpBody.p_email,'persona@example.com');assert.equal(createAuthorization,'Bearer actor');
   assert.deepEqual(usersAuthorizations,['Bearer service']);
-  assert.equal(result.notification.status,'ENVIO_FALLIDO_RECUPERACION_DISPONIBLE');assert.equal(result.user_id,7);assert.equal('password_hash'in result,false);assert.equal('auth_user_id'in result,false);assert.equal(JSON.stringify(result).includes('texto-que-debe-ignorarse'),false);assert.equal(fallbackBody.email_confirm,true);assert.match(fallbackBody.password,/^[A-Za-z0-9_-]{64}$/);assert.equal(JSON.stringify(result).includes(fallbackBody.password),false);assert.equal(grantDeletes,2);assert.equal(authDeleted,false);
+  assert.equal(result.notification.status,'ENVIO_FALLIDO_RECUPERACION_DISPONIBLE');assert.match(result.notification.error,/configure SMTP_HOST, SMTP_PORT y SMTP_FROM en Railway/i);assert.equal(result.user_id,7);assert.equal('password_hash'in result,false);assert.equal('auth_user_id'in result,false);assert.equal(JSON.stringify(result).includes('texto-que-debe-ignorarse'),false);assert.equal(fallbackBody.email_confirm,true);assert.match(fallbackBody.password,/^[A-Za-z0-9_-]{64}$/);assert.equal(JSON.stringify(result).includes(fallbackBody.password),false);assert.equal(grantDeletes,2);assert.equal(authDeleted,false);
 });
 
 test('marca intervención requerida si SMTP y la conversión de respaldo fallan',async()=>{
   globalThis.fetch=async(input,init={})=>{const url=new URL(String(input));if(url.pathname==='/rest/v1/users'&&(init.method??'GET')==='GET')return json([]);if(url.pathname==='/auth/v1/admin/generate_link'){const body=JSON.parse(String(init.body));return json({user:{id:authId,email:'intervencion@example.com'},action_link:`https://project.example.test/auth/v1/verify?token=x&type=invite&redirect_to=${encodeURIComponent(body.redirect_to)}`,redirect_to:body.redirect_to});}if(url.pathname==='/rest/v1/user_invitation_grants'&&init.method==='DELETE')return new Response(null,{status:204});if(url.pathname==='/rest/v1/user_invitation_grants'&&init.method==='POST')return new Response(null,{status:201});if(url.pathname==='/rest/v1/rpc/security_create_user'&&init.method==='POST')return json({user_id:10,email:'intervencion@example.com',first_name:'Requiere',last_name:'Ayuda',timezone_id:null,is_active:true,invitation_sent_at:null,invitation_accepted_at:null});if(url.pathname==='/rest/v1/rpc/user_invitation_email_settings')return json({canEdit:true,template:{activo:false},subsidiary:{name:'Empresa'}});if(url.pathname===`/auth/v1/admin/users/${authId}`&&init.method==='PUT')return json({message:'falló'},500);throw new Error(`Solicitud inesperada: ${url.pathname}`);};
-  const result=await provisioning.createSecurityUser('Bearer actor',{email:'intervencion@example.com',first_name:'Requiere',last_name:'Ayuda',notify_user:true});assert.equal(result.notification.status,'REQUIERE_INTERVENCION');assert.match(result.message,/intervención administrativa/i);
+  const result=await provisioning.createSecurityUser('Bearer actor',{email:'intervencion@example.com',first_name:'Requiere',last_name:'Ayuda',notify_user:true});assert.equal(result.notification.status,'REQUIERE_INTERVENCION');assert.match(result.notification.error,/Active la plantilla de invitación/i);assert.match(result.message,/intervención administrativa/i);
 });
 
 test('notify_user=false crea una cuenta confirmada con secreto aleatorio inaccesible y no envía correo',async()=>{
@@ -61,6 +61,20 @@ test('reporta intervención si no puede compensar un alta incompleta',async()=>{
   await assert.rejects(()=>provisioning.createSecurityUser('Bearer actor',{email:'huerfano@example.com',first_name:'Alta',last_name:'Incompleta',notify_user:false}),error=>error?.status===500&&/intervención administrativa/i.test(error.message));
 });
 
+test('rechaza el envío antes de llamar servicios externos si falta la clave administrativa',async()=>{
+  delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  let fetchCalls=0,transportCalls=0;
+  globalThis.fetch=async()=>{fetchCalls++;throw new Error('No debe consultar Supabase sin configuración administrativa.');};
+  nodemailer.createTransport=()=>{transportCalls++;throw new Error('No debe crear el transporte SMTP sin configuración administrativa.');};
+
+  await assert.rejects(
+    ()=>provisioning.sendExistingUserPasswordLink('Bearer actor',30),
+    error=>error?.status===503&&error.message==='El servidor no tiene habilitada la administración segura de usuarios. Configure SUPABASE_SERVICE_ROLE_KEY en el entorno del servidor y reinicie el servicio.'
+  );
+  assert.equal(fetchCalls,0);
+  assert.equal(transportCalls,0);
+});
+
 test('autoriza actor, subsidiaria y objetivo antes de usar service role para recuperar acceso',async()=>{
   const calls=[];
   globalThis.fetch=async(input,init={})=>{const url=new URL(String(input));calls.push(`${init.method??'GET'} ${url.pathname}`);assert.equal(url.pathname,'/rest/v1/rpc/security_prepare_user_password_recovery');assert.equal(new Headers(init.headers).get('authorization'),'Bearer actor');return json({message:'El usuario no está disponible para recuperar su acceso.'},403);};
@@ -69,6 +83,7 @@ test('autoriza actor, subsidiaria y objetivo antes de usar service role para rec
 });
 
 test('edición envía recovery de un solo uso, conserva enlaces concurrentes hasta el consumo y no devuelve secretos',async()=>{
+  delete process.env.GENTIA_APP_URL;process.env.RAILWAY_PUBLIC_DOMAIN='erp-stt-production.up.railway.app';
   process.env.SMTP_HOST='smtp.example.test';process.env.SMTP_FROM='seguridad@example.test';process.env.SMTP_PORT='587';process.env.EMAIL_NOTIFICATIONS_ENABLED='true';
   let generatedBody,grantBody,mailMessage,concurrentGrantsDeleted=false,audited=false;
   nodemailer.createTransport=()=>({sendMail:async message=>{mailMessage=message;return{accepted:['persona@example.com'],messageId:'mail-1'};},close(){}});
@@ -86,6 +101,7 @@ test('edición envía recovery de un solo uso, conserva enlaces concurrentes has
   };
   const result=await provisioning.sendExistingUserPasswordLink('Bearer actor',21);
   assert.equal(generatedBody.type,'recovery');assert.match(generatedBody.redirect_to,/password_recovery=1/);assert.match(generatedBody.redirect_to,/state=/);
+  assert.equal(new URL(generatedBody.redirect_to).origin,'https://erp-stt-production.up.railway.app');
   const state=new URL(generatedBody.redirect_to).searchParams.get('state');assert.equal(grantBody.state_hash,hash(state));assert.equal(grantBody.email_hash,hash('persona@example.com'));
   assert.equal(concurrentGrantsDeleted,false);assert.equal(audited,true);assert.match(mailMessage.html,/RECUPERACIÓN SEGURA/);assert.match(mailMessage.html,/contraseña actual no se conoce/);
   assert.equal(result.status,'RECUPERACION_ENVIADA');assert.equal(JSON.stringify(result).includes('admin-secret'),false);assert.equal(JSON.stringify(result).includes(state),false);assert.equal(JSON.stringify(result).toLowerCase().includes('password'),false);
@@ -105,7 +121,7 @@ test('si SMTP falla elimina solo el grant nuevo y conserva enlaces anteriores',a
   let generatedBody,newStateHash='',newGrantDeleted=false,olderGrantsDeleted=false;
   nodemailer.createTransport=()=>({sendMail:async()=>{throw new Error('SMTP caído');},close(){}});
   globalThis.fetch=async(input,init={})=>{const url=new URL(String(input)),method=init.method??'GET';if(url.pathname==='/rest/v1/rpc/security_prepare_user_password_recovery')return json({actor_user_id:7,subsidiary_id:4,user_id:22,email:'fallo-correo@example.com',first_name:'Correo',last_name:'Fallido'});if(url.pathname==='/rest/v1/users'&&method==='GET')return json([{user_id:22,email:'fallo-correo@example.com',auth_user_id:authId,is_active:true}]);if(url.pathname==='/rest/v1/password_recovery_grants'&&method==='DELETE'&&url.searchParams.has('expires_at'))return new Response(null,{status:204});if(url.pathname==='/rest/v1/password_recovery_grants'&&method==='POST'){newStateHash=JSON.parse(String(init.body)).state_hash;return new Response(null,{status:201});}if(url.pathname==='/auth/v1/admin/generate_link'){generatedBody=JSON.parse(String(init.body));return json({user:{id:authId,email:'fallo-correo@example.com'},action_link:`https://project.example.test/auth/v1/verify?token=secret&type=recovery&redirect_to=${encodeURIComponent(generatedBody.redirect_to)}`,redirect_to:generatedBody.redirect_to});}if(url.pathname==='/rest/v1/rpc/user_password_recovery_email_settings')return json({template:{activo:true,asunto_template:'Recupera tu acceso a {{empresa_nombre}}',cuerpo_template:'<p>Hola {{usuario_nombre}}</p>'},subsidiary:{name:'Empresa'}});if(url.pathname==='/rest/v1/password_recovery_grants'&&method==='DELETE'){if(url.searchParams.get('state_hash')===`eq.${newStateHash}`)newGrantDeleted=true;else olderGrantsDeleted=true;return new Response(null,{status:204});}if(url.pathname==='/rest/v1/rpc/security_audit_user_password_notification'){assert.deepEqual(JSON.parse(String(init.body)),{p_actor_user_id:7,p_target_user_id:22,p_subsidiary_id:4,p_result:'ERROR'});return json(true);}throw new Error(`Solicitud inesperada: ${method} ${url.pathname}${url.search}`);};
-  await assert.rejects(()=>provisioning.sendExistingUserPasswordLink('Bearer actor',22),error=>error?.status===503&&/No fue posible enviar el enlace/i.test(error.message));
+  await assert.rejects(()=>provisioning.sendExistingUserPasswordLink('Bearer actor',22),error=>error?.status===503&&/Revise la configuración SMTP de Railway/i.test(error.message));
   assert.equal(newGrantDeleted,true);assert.equal(olderGrantsDeleted,false);
 });
 
