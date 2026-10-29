@@ -6,8 +6,8 @@ import {
   PositiveRequestAccessCache,
 } from '../dist/modules/auth/services/request-access-cache.js';
 
-test('la configuración usa 15 segundos y limita el TTL al rango seguro', () => {
-  assert.equal(configuredRequestAccessCacheTtlMs(undefined), 15_000);
+test('la configuración usa 30 segundos y limita el TTL al rango seguro', () => {
+  assert.equal(configuredRequestAccessCacheTtlMs(undefined), 30_000);
   assert.equal(configuredRequestAccessCacheTtlMs('500'), 10_000);
   assert.equal(configuredRequestAccessCacheTtlMs('60000'), 30_000);
   assert.equal(configuredRequestAccessCacheTtlMs('0'), 0);

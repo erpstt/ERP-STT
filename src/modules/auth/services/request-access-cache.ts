@@ -10,7 +10,7 @@ interface ValidationOptions {
   validate: () => Promise<void>;
 }
 
-const DEFAULT_TTL_MS = 15_000;
+const DEFAULT_TTL_MS = 30_000;
 const MIN_TTL_MS = 10_000;
 const MAX_TTL_MS = 30_000;
 const DEFAULT_MAX_ENTRIES = 5_000;

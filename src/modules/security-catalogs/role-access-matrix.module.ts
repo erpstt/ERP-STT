@@ -84,9 +84,9 @@ const roleAccessResourceKeys=new Set(roleAccessModules.flatMap(module=>module.re
 export const isRoleAccessResource=(resourceKey:string)=>roleAccessResourceKeys.has(resourceKey);
 type RoleAccessGrant={resourceKey:string;canView:boolean;canCreate:boolean;canEdit:boolean;canDelete:boolean};
 type MyRoleAccessData={isAdmin:boolean;grants:RoleAccessGrant[];modules:AccessModule[]};
-// Mantiene el mismo límite de 15 s que tenían las autorizaciones positivas;
-// una revocación nunca queda aceptada más tiempo por esta optimización.
-const myRoleAccessCache=new ScopedReadCache<MyRoleAccessData>({defaultTtlMs:15_000});
+// El límite de 30 s conserva una ventana acotada y todas las mutaciones locales
+// invalidan inmediatamente; evita revalidar toda la matriz durante navegación.
+const myRoleAccessCache=new ScopedReadCache<MyRoleAccessData>({defaultTtlMs:30_000});
 const myRoleAccessNamespace='security-my-role-access';
 function accessCacheScope(token:string){
  const raw=token.replace(/^Bearer\s+/i,'').trim();if(!raw)throw new Error('La sesión no es válida.');

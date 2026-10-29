@@ -36,6 +36,10 @@ Para la certificación extendida, cambie `--duration-seconds=1800`. El resultado
 
 Los criterios automáticos son: éxito >= 99%, error < 1%, cero timeouts, p95 < 1,5 s y p99 < 3 s durante la fase sostenida.
 
+Las validaciones positivas de sesión, dispositivo y matriz de permisos se
+conservan como máximo 30 segundos. Cerrar sesión o cambiar rol, empresa o
+permisos invalida el contexto inmediatamente en el proceso activo.
+
 El aprovisionamiento se limita por defecto a una sesión cada 2,1 segundos y
 reintenta con espera progresiva si Supabase activa su protección del endpoint
 de tokens. La carga sostenida comienza solo después de crear las 120 sesiones.
