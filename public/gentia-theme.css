@@ -313,7 +313,7 @@
     color: var(--gentia-white) !important;
   }
 
-  :where(.drill, td a, summary, .link, .icon-action.view, .icon-action.edit) {
+  :where(.drill, td a, summary:not(.new-record), .link, .icon-action.view, .icon-action.edit) {
     color: var(--gentia-blue) !important;
   }
 

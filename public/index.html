@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="/company-selection.css">
   <link rel="stylesheet" href="/subsidiary-branding.css?v=20260814">
   <link rel="stylesheet" href="/exchange-rate.css?v=20260814">
-  <link rel="stylesheet" href="/gentia-theme.css?v=20260930-switches">
+  <link rel="stylesheet" href="/gentia-theme.css?v=20261029-exchange-rate-menu">
   <link rel="stylesheet" href="/security-user-invitation.css?v=20261027-partial-notification">
 </head>
 <body>
@@ -377,7 +377,7 @@
 <button type="button" class="new-record catalog-export-button" :disabled="tableLoading || Boolean(entityExporting)" :title="'Descargar '+activeCatalog.title+' en PDF para '+(activeCompany?.name || 'la subsidiaria activa')" @click="downloadEntityCatalog('pdf')"><span>↓</span> {{ entityExporting==='pdf' ? 'Preparando…' : 'PDF' }}</button>
 </div>
 <details v-if="activeCatalog.slug==='exchange-rates' && exchangeRateActions.length" class="rate-query-menu">
-<summary class="new-record">
+<summary class="new-record" aria-label="Consultar tasa de cambio" title="Consultar y actualizar tipos de cambio">
 <span>↻</span> Consultar tasa <b>⌄</b>
 </summary>
 <div>
