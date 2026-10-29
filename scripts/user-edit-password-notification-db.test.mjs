@@ -13,13 +13,16 @@ const db=new pg.Client({
   ssl:{rejectUnauthorized:false},
   connectionTimeoutMillis:15_000
 });
-const migration=await readFile(new URL('../supabase/migrations/20261027153000_user_edit_password_notification.sql',import.meta.url),'utf8');
+const migrations=await Promise.all([
+  '20261027153000_user_edit_password_notification.sql',
+  '20261029100000_admin_global_user_password_recovery.sql'
+].map(file=>readFile(new URL(`../supabase/migrations/${file}`,import.meta.url),'utf8')));
 
 await db.connect();
 try{
   await db.query('begin');
   await db.query("set local lock_timeout='5s';set local statement_timeout='60s'");
-  await db.query(migration);
+  for(const migration of migrations)await db.query(migration);
   let savepointCounter=0;
   const expectSqlError=async(work,code)=>{
     const savepoint=`expected_error_${++savepointCounter}`;
@@ -58,6 +61,7 @@ try{
   assert.equal(String(prepared.subsidiary_id),String(admin.subsidiary_id));
   assert.equal(prepared.email,target.email);
   assert.equal(Object.hasOwn(prepared,'auth_user_id'),false);
+  assert.equal(prepared.authorization_scope,'SUBSIDIARY');
 
   const delivery=(await db.query("select public.user_password_recovery_email_settings('delivery','{}'::jsonb) value")).rows[0].value;
   assert.equal(delivery.template.tipo_notificacion,'USUARIO_RECUPERACION');
@@ -72,6 +76,36 @@ try{
   assert.equal((await db.query(`select count(*)::int count from public.activity_log
     where user_id=$1 and activity_type='ENVIO_RECUPERACION_USUARIO_ENVIADO'
       and path_accessed like $2`,[admin.user_id,`security/users/${target.user_id}/password-recovery%`])).rows[0].count,1);
+
+  // El Administrador activo puede recuperar a un usuario activo que no
+  // pertenece a la subsidiaria seleccionada. El alcance queda en auditoria.
+  const globalTarget=(await db.query(`
+    insert into public.users(email,password_hash,auth_user_id,first_name,last_name,is_active)
+    values($1,'test-only',gen_random_uuid(),'Usuario','Global',true)
+    returning user_id,email`,[`recovery-global-${suffix}@example.test`])).rows[0];
+  await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({sub:admin.auth_user_id,email:admin.email,session_id:sessionId,role:'authenticated'})]);
+  prepared=(await db.query('select public.security_prepare_user_password_recovery($1) value',[globalTarget.user_id])).rows[0].value;
+  assert.equal(String(prepared.user_id),String(globalTarget.user_id));
+  assert.equal(prepared.authorization_scope,'GLOBAL_ADMIN');
+  assert.equal(String(prepared.subsidiary_id),String(admin.subsidiary_id));
+
+  await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({role:'service_role'})]);
+  await db.query(
+    'select public.security_audit_user_password_notification($1,$2,$3,$4)',
+    [admin.user_id,globalTarget.user_id,admin.subsidiary_id,'ENVIADO']
+  );
+  const globalAudit=(await db.query(`select path_accessed from public.activity_log
+    where user_id=$1 and activity_type='ENVIO_RECUPERACION_USUARIO_ENVIADO'
+      and path_accessed like $2 order by "timestamp" desc limit 1`,
+    [admin.user_id,`security/users/${globalTarget.user_id}/password-recovery%`])).rows[0];
+  assert.match(globalAudit.path_accessed,/scope=global_admin$/);
+
+  // El RPC de auditoria no acepta combinaciones actor/objetivo que no fueron
+  // previamente autorizadas por la RPC actor-scoped.
+  await expectSqlError(
+    ()=>db.query('select public.security_audit_user_password_notification($1,$2,$3,$4)',[admin.user_id,globalTarget.user_id+1000000,admin.subsidiary_id,'ENVIADO']),
+    '22023'
+  );
 
   const emailHash='a'.repeat(64),firstState='b'.repeat(64),secondState='c'.repeat(64);
   await db.query(`insert into public.password_recovery_grants(email_hash,state_hash,expires_at)
@@ -88,12 +122,21 @@ try{
     '42501'
   );
 
-  await db.query('update public.users set is_active=false where user_id=$1',[target.user_id]);
-  await expectSqlError(()=>db.query('select public.security_prepare_user_password_recovery($1)',[target.user_id]),'22023');
-  await db.query('update public.users set is_active=true where user_id=$1',[target.user_id]);
-  await db.query('delete from public.user_subsidiaries where user_id=$1 and subsidiary_id=$2',[target.user_id,admin.subsidiary_id]);
-  await expectSqlError(()=>db.query('select public.security_prepare_user_password_recovery($1)',[target.user_id]),'22023');
-  await db.query('insert into public.user_subsidiaries(user_id,subsidiary_id)values($1,$2)',[target.user_id,admin.subsidiary_id]);
+  await db.query('update public.users set is_active=false where user_id=$1',[globalTarget.user_id]);
+  await expectSqlError(()=>db.query('select public.security_prepare_user_password_recovery($1)',[globalTarget.user_id]),'22023');
+  await db.query('update public.users set is_active=true where user_id=$1',[globalTarget.user_id]);
+
+  // Un rol delegado con security:users.edit puede trabajar dentro de la
+  // subsidiaria, pero no hereda el alcance global del Administrador.
+  const delegatedRole=(await db.query(`insert into public.roles(role_name,description,is_system_role)
+    values($1,'Prueba edicion de usuarios por subsidiaria',false)returning role_id`,[`RECOVERY_SCOPED_EDIT_${suffix}`])).rows[0];
+  await db.query('insert into public.user_roles(user_id,role_id)values($1,$2)',[admin.user_id,delegatedRole.role_id]);
+  await db.query(`insert into public.role_access_matrix(role_id,resource_key,can_view,can_create,can_edit,can_delete)
+    values($1,'security:users',true,false,true,false)`,[delegatedRole.role_id]);
+  await db.query('update public.user_role_sessions set role_id=$1 where session_id=$2',[delegatedRole.role_id,sessionId]);
+  prepared=(await db.query('select public.security_prepare_user_password_recovery($1) value',[target.user_id])).rows[0].value;
+  assert.equal(prepared.authorization_scope,'SUBSIDIARY');
+  await expectSqlError(()=>db.query('select public.security_prepare_user_password_recovery($1)',[globalTarget.user_id]),'22023');
 
   const restrictedRole=(await db.query(`insert into public.roles(role_name,description,is_system_role)
     values($1,'Prueba sin permiso de edición',false)returning role_id`,[`RECOVERY_NO_EDIT_${suffix}`])).rows[0];
@@ -116,8 +159,9 @@ try{
   });
 
   console.log(JSON.stringify({
-    migration:true,rollback:true,editPermission:true,subsidiaryScope:true,
+    migration:true,rollback:true,editPermission:true,subsidiaryScope:true,globalAdministratorScope:true,
     inactiveRejected:true,authIdNotExposed:true,recoveryTemplate:true,audit:true,
+    globalScopeAudited:true,auditRequiresPreparedRequest:true,
     allConcurrentLinksConsumed:true,serviceOnlyAudit:true
   }));
 }finally{
