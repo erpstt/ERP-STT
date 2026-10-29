@@ -147,6 +147,6 @@ export class ScopedReadCache<T> {
 }
 
 /** Invalida el mismo catálogo en todas las cachés del proceso sin acoplar módulos. */
-export function invalidateReadCacheNamespace(namespace: string) {
-  for (const cache of registeredCaches) cache.invalidate(namespace);
+export function invalidateReadCacheNamespace(namespace: string, scope?: readonly (string | number | boolean | null | undefined)[]) {
+  for (const cache of registeredCaches) cache.invalidate(namespace, scope);
 }

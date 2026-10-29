@@ -1,5 +1,6 @@
 import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
 import { invalidateReadCacheNamespace, ScopedReadCache } from '../../../core/performance/scoped-read-cache.js';
+import { invalidateOperationalReadCaches } from '../../../core/performance/operational-read-cache.js';
 import { invalidateAccountingReportOptionsCache } from '../../reports/accounting-reports.service.js';
 
 type UserRole = { roleId: number; name: string; description: string };
@@ -96,6 +97,7 @@ export async function selectUserRole(authorization: string, roleId: number) {
   invalidateReadCacheNamespace('security-my-role-access');
   invalidateReadCacheNamespace('organization-subsidiaries-summary');
   invalidateAccountingReportOptionsCache(authorization);
+  invalidateOperationalReadCaches(authorization);
   const roles = await rest<Array<{ role_id: number; role_name: string; description: string | null }>>(
     `roles?select=role_id,role_name,description&role_id=eq.${roleId}&limit=1`,
     authorization,

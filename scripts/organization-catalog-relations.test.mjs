@@ -4,6 +4,7 @@ import {
   collectRelationPages,
   getOrganizationRow,
   getOrganizationCatalog,
+  invalidateOrganizationListCache,
   listOrganizationRows,
   updateOrganizationRow,
 } from '../dist/modules/organization-catalogs/organization-catalogs.module.js';
@@ -17,6 +18,7 @@ process.env.SUPABASE_ANON_KEY = 'test-key';
 
 test.afterEach(() => {
   globalThis.fetch = originalFetch;
+  invalidateOrganizationListCache();
 });
 
 test.after(() => {

@@ -1,4 +1,5 @@
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
+import { invalidateFixedAssetCatalogCache } from './fixed-asset-catalogs.module.js';
 
 async function rpc(authorization:string,name:string,parameters:Record<string,unknown>={}) {
   const config=getSupabaseConfig();
@@ -12,9 +13,9 @@ async function rpc(authorization:string,name:string,parameters:Record<string,unk
 
 export const fixedAssetOptions=(authorization:string)=>rpc(authorization,'fixed_asset_options');
 export const fixedAssetProposalReport=(authorization:string,filters:Record<string,unknown>)=>rpc(authorization,'fixed_asset_proposal_report',{p_filters:filters});
-export const processFixedAssetProposals=(authorization:string,payload:Record<string,unknown>)=>rpc(authorization,'process_fixed_asset_proposals',{p_payload:payload});
+export async function processFixedAssetProposals(authorization:string,payload:Record<string,unknown>){const result=await rpc(authorization,'process_fixed_asset_proposals',{p_payload:payload});invalidateFixedAssetCatalogCache('assets');return result;}
 export const fixedAssetReport=(authorization:string,filters:Record<string,unknown>)=>rpc(authorization,'fixed_asset_report',{p_filters:filters});
-export const saveFixedAsset=(authorization:string,payload:Record<string,unknown>,id?:number)=>rpc(authorization,'save_fixed_asset',{p_payload:payload,p_asset_id:id||null});
+export async function saveFixedAsset(authorization:string,payload:Record<string,unknown>,id?:number){const result=await rpc(authorization,'save_fixed_asset',{p_payload:payload,p_asset_id:id||null});invalidateFixedAssetCatalogCache('assets');return result;}
 export async function depreciationPreview(authorization:string,date:string) {
   const result = await rpc(authorization,'fixed_asset_depreciation_preview',{p_date:date});
   if (!result?.period?.id || !result.rows?.some((row:{processed:boolean})=>row.processed)) return result;
@@ -35,7 +36,7 @@ export async function depreciationPreview(authorization:string,date:string) {
   result.rows = result.rows.map((row:{id:number})=>({...row,depreciationId:ids.get(String(row.id))??null}));
   return result;
 }
-export const runDepreciation=(authorization:string,payload:Record<string,unknown>)=>rpc(authorization,'run_fixed_asset_depreciation',{p_date:payload.date,p_asset_ids:payload.assetIds});
+export async function runDepreciation(authorization:string,payload:Record<string,unknown>){const result=await rpc(authorization,'run_fixed_asset_depreciation',{p_date:payload.date,p_asset_ids:payload.assetIds});invalidateFixedAssetCatalogCache('assets');return result;}
 export async function fixedAssetDetail(authorization:string,id:number){
   const [detail,origins]=await Promise.all([rpc(authorization,'fixed_asset_detail',{p_asset_id:id}),rpc(authorization,'fixed_asset_proposal_origins',{p_asset_id:id})]);
   return {...detail,origins};

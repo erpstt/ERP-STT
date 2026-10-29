@@ -2,6 +2,7 @@ import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabas
 import { primeRoleAccessCache } from '../../security-catalogs/role-access-matrix.module.js';
 import { invalidateOrganizationSubsidiarySummaryCache } from '../../organization-catalogs/organization-catalogs.module.js';
 import { invalidateAccountingReportOptionsCache } from '../../reports/accounting-reports.service.js';
+import { invalidateOperationalReadCaches } from '../../../core/performance/operational-read-cache.js';
 
 interface BootstrapInput {
   preferredRoleId?: unknown;
@@ -80,6 +81,7 @@ export async function bootstrapSession(authorization: string, input: BootstrapIn
   });
   invalidateOrganizationSubsidiarySummaryCache(authorization);
   invalidateAccountingReportOptionsCache(authorization);
+  invalidateOperationalReadCaches(authorization);
   return {
     ...value,
     roleAccess,

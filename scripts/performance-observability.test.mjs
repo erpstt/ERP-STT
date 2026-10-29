@@ -13,6 +13,12 @@ import {
   configuredReadCacheTtlMs,
   ScopedReadCache,
 } from '../dist/core/performance/scoped-read-cache.js';
+import {
+  invalidateOperationalReadCaches,
+  operationalReadCacheTtlMs,
+  operationalSessionScope,
+  registerOperationalReadCacheNamespace,
+} from '../dist/core/performance/operational-read-cache.js';
 
 test.beforeEach(() => resetRuntimePerformanceMetrics());
 
@@ -114,4 +120,28 @@ test('acota la configuración de caché a rangos operativos seguros', () => {
   assert.equal(configuredReadCacheTtlMs('900000'), 300_000);
   assert.equal(configuredReadCacheMaxEntries('2'), 100);
   assert.equal(configuredReadCacheMaxEntries('900000'), 100_000);
+});
+
+test('operational cache is session scoped, expiration is spread and context invalidation is precise', async () => {
+  const claims = Buffer.from(JSON.stringify({ sub: 'user-1', session_id: 'session-1' })).toString('base64url');
+  const authorization = `Bearer header.${claims}.signature`;
+  const scope = operationalSessionScope(authorization);
+  assert.deepEqual(scope, ['user-1', 'session-1']);
+  const ttl = operationalReadCacheTtlMs(scope, 90_000);
+  assert.ok(ttl >= 90_000 && ttl <= 103_500);
+  assert.equal(operationalReadCacheTtlMs(scope, 90_000), ttl);
+
+  const namespace = registerOperationalReadCacheNamespace('test-operational-context');
+  const cache = new ScopedReadCache({ defaultTtlMs: 90_000 });
+  let loads = 0;
+  const read = () => cache.getOrLoad({ namespace, scope, loader: async () => ++loads });
+  const otherClaims = Buffer.from(JSON.stringify({ sub: 'user-1', session_id: 'session-2' })).toString('base64url');
+  const otherScope = operationalSessionScope(`Bearer header.${otherClaims}.signature`);
+  const readOther = () => cache.getOrLoad({ namespace, scope: otherScope, loader: async () => ++loads });
+  assert.equal(await read(), 1);
+  assert.equal(await read(), 1);
+  assert.equal(await readOther(), 2);
+  invalidateOperationalReadCaches(authorization);
+  assert.equal(await read(), 3);
+  assert.equal(await readOther(), 2, 'Invalidating one session must preserve every other session.');
 });

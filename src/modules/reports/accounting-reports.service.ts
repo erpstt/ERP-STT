@@ -1,5 +1,10 @@
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { ScopedReadCache } from '../../core/performance/scoped-read-cache.js';
+import {
+  operationalReadCacheTtlMs,
+  operationalSessionScope,
+  registerOperationalReadCacheNamespace,
+} from '../../core/performance/operational-read-cache.js';
 import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { readFile, rm, writeFile } from 'node:fs/promises';
@@ -12,18 +17,11 @@ const configuredPdfConcurrency=Number(process.env.PDF_RENDER_CONCURRENCY??2);
 const maxPdfConcurrency=Number.isInteger(configuredPdfConcurrency)?Math.min(Math.max(configuredPdfConcurrency,1),4):2;
 let activePdfRenders=0;
 const pendingPdfRenders:Array<()=>void>=[];
-const accountingOptionsCache=new ScopedReadCache<Record<string,unknown>>({defaultTtlMs:60_000,maxEntries:2_000});
-const accountingOptionsCacheNamespace='reports-accounting-options';
+const accountingOptionsCache=new ScopedReadCache<Record<string,unknown>>({defaultTtlMs:90_000,maxEntries:2_000});
+const accountingOptionsCacheNamespace=registerOperationalReadCacheNamespace('reports-accounting-options');
 
 function accountingOptionsScope(authorization:string){
-  const raw=authorization.replace(/^Bearer\s+/,'');
-  const part=raw.split('.')[1];
-  if(!part)return[authorization]as const;
-  try{
-    const identity=JSON.parse(Buffer.from(part,'base64url').toString('utf8'))as Record<string,unknown>;
-    const user=String(identity.sub??identity.email??'unknown');
-    return[user,String(identity.session_id??user)]as const;
-  }catch{return[authorization]as const;}
+  return operationalSessionScope(authorization);
 }
 
 export function invalidateAccountingReportOptionsCache(authorization?:string){
@@ -47,9 +45,11 @@ async function rpc<T>(authorization:string,name:string,input:Record<string,unkno
   return payload as T;
 }
 export function accountingReportOptions(authorization:string){
+  const scope=accountingOptionsScope(authorization);
   return accountingOptionsCache.getOrLoad({
     namespace:accountingOptionsCacheNamespace,
-    scope:accountingOptionsScope(authorization),
+    scope,
+    ttlMs:operationalReadCacheTtlMs(scope),
     loader:()=>rpc<Record<string,unknown>>(authorization,'accounting_report_options_bundle'),
   });
 }
