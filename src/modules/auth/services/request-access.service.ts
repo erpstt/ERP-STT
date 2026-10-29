@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
 import { SessionAuthenticationError } from './session.service.js';
+import { primeRoleAccessCache } from '../../security-catalogs/role-access-matrix.module.js';
 import {
   configuredRequestAccessCacheMaxEntries,
   configuredRequestAccessCacheTtlMs,
@@ -10,6 +11,18 @@ import {
 interface RequestAccessResult {
   allowed?: boolean;
   reason?: string;
+  roleAccess?: unknown;
+}
+
+interface RequestRoleAccess {
+  isAdmin: boolean;
+  grants: Array<{
+    resourceKey: string;
+    canView: boolean;
+    canCreate: boolean;
+    canEdit: boolean;
+    canDelete: boolean;
+  }>;
 }
 
 const sha256 = (value: string) => createHash('sha256').update(value).digest('hex');
@@ -48,6 +61,32 @@ function tokenExpiration(token: string) {
   } catch {
     return undefined;
   }
+}
+
+function validRoleAccess(value: unknown): RequestRoleAccess | null {
+  if (!value || typeof value !== 'object') return null;
+  const candidate = value as { isAdmin?: unknown; grants?: unknown };
+  if (typeof candidate.isAdmin !== 'boolean' || !Array.isArray(candidate.grants)) return null;
+  const grants: RequestRoleAccess['grants'] = [];
+  for (const raw of candidate.grants) {
+    if (!raw || typeof raw !== 'object') return null;
+    const grant = raw as Record<string, unknown>;
+    if (
+      typeof grant.resourceKey !== 'string'
+      || typeof grant.canView !== 'boolean'
+      || typeof grant.canCreate !== 'boolean'
+      || typeof grant.canEdit !== 'boolean'
+      || typeof grant.canDelete !== 'boolean'
+    ) return null;
+    grants.push({
+      resourceKey: grant.resourceKey,
+      canView: grant.canView,
+      canCreate: grant.canCreate,
+      canEdit: grant.canEdit,
+      canDelete: grant.canDelete,
+    });
+  }
+  return { isAdmin: candidate.isAdmin, grants };
 }
 
 export function invalidateRequestAccess(authorization: string) {
@@ -99,6 +138,8 @@ export async function assertRequestAccess(authorization: string, deviceToken: st
         throw new Error(detail);
       }
       if (result?.allowed !== true) throw new SessionAuthenticationError(authenticationMessage(result?.reason));
+      const roleAccess = validRoleAccess(result.roleAccess);
+      if (roleAccess) await primeRoleAccessCache(authorization, roleAccess);
     },
   });
 }

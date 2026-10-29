@@ -65,6 +65,25 @@ test('listOrganizationRows carga todas las subsidiarias de departamentos con má
   assert.deepEqual(rows.at(-1).subsidiary_ids, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
 });
 
+test('departamentos incorpora sus subsidiarias en una sola consulta PostgREST', async () => {
+  let calls = 0;
+  globalThis.fetch = async input => {
+    calls += 1;
+    const url = new URL(String(input));
+    assert.ok(url.pathname.endsWith('/departments'));
+    assert.match(url.searchParams.get('select') || '', /department_subsidiaries\(subsidiary_id\)/);
+    return Response.json([{
+      department_id: 80,
+      name: 'CONTABILIDAD R.',
+      department_subsidiaries: [{ subsidiary_id: 3 }, { subsidiary_id: 7 }],
+    }]);
+  };
+
+  const rows = await listOrganizationRows(getOrganizationCatalog('departments'), 'Bearer test');
+  assert.equal(calls, 1);
+  assert.deepEqual(rows, [{ department_id: 80, name: 'CONTABILIDAD R.', subsidiary_ids: [3, 7] }]);
+});
+
 test('el listado de subsidiarias excluye logos pesados y el detalle conserva el registro completo', async () => {
   const queries = [];
   globalThis.fetch = async input => {

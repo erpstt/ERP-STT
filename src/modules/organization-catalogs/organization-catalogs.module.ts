@@ -50,6 +50,12 @@ function listColumns(catalog:OrganizationCatalog,summary:boolean){
  if(catalog.slug!=='subsidiaries'||!summary)return'*';
  return[catalog.primaryKey,...catalog.fields.filter(field=>field.type!=='multi-reference'&&field.key!=='logo_url').map(field=>field.key)].filter((key,index,keys)=>keys.indexOf(key)===index).join(',');
 }
+function listColumnsWithRelations(catalog:OrganizationCatalog,summary:boolean){
+ const columns=listColumns(catalog,summary),relation=multiRelation(catalog);
+ // Departamentos concentra miles de vínculos. PostgREST puede incluirlos con
+ // el encabezado en una sola consulta, respetando RLS en ambas tablas.
+ return catalog.slug==='departments'&&relation?`${columns},${relation.table}(subsidiary_id)`:columns;
+}
 async function enrichOrganizationRows(catalog:OrganizationCatalog,token:string,rows:Record<string,unknown>[]){
  if(!rows.length)return rows;
  if(catalog.slug==='subsidiaries'){
@@ -64,19 +70,25 @@ async function enrichOrganizationRows(catalog:OrganizationCatalog,token:string,r
   return rows.map(row=>{const currencies=currenciesBySubsidiary.get(Number(row.subsidiary_id));return{...row,secondary_currency_ids:currencies?.secondary??[],allowed_currency_ids:currencies?.allowed??[]};});
  }
  const relation=multiRelation(catalog);if(!relation)return rows;
+ const embedded=rows.every(row=>Array.isArray(row[relation.table]));
+ if(embedded)return rows.map(row=>{
+  const copy={...row},links=copy[relation.table]as Array<{subsidiary_id?:unknown}>;
+  delete copy[relation.table];
+  return{...copy,subsidiary_ids:[...new Set(links.map(link=>Number(link.subsidiary_id)).filter(Number.isSafeInteger))]};
+ });
  const links=await listRelationRows<Record<string,number>>(`${relation.table}?select=${relation.owner},subsidiary_id&order=${relation.owner}.asc,subsidiary_id.asc`,token);
  const subsidiariesByOwner=new Map<number,number[]>();
  for(const link of links){const ownerId=Number(link[relation.owner]),ids=subsidiariesByOwner.get(ownerId)??[];ids.push(link.subsidiary_id);subsidiariesByOwner.set(ownerId,ids);}
  return rows.map(row=>({...row,subsidiary_ids:subsidiariesByOwner.get(Number(row[catalog.primaryKey]))??[]}));
 }
 export async function listOrganizationRows(catalog:OrganizationCatalog,token:string,summary=false){
- const load=async()=>{const rows=await request<Record<string,unknown>[]>(catalog,token,`?select=${listColumns(catalog,summary)}&order=${catalog.primaryKey}.asc`),safeRows=catalog.slug==='subsidiaries'&&summary?rows.map(({logo_url:_logo,...row})=>row):rows;return enrichOrganizationRows(catalog,token,safeRows);};
+ const load=async()=>{const rows=await request<Record<string,unknown>[]>(catalog,token,`?select=${listColumnsWithRelations(catalog,summary)}&order=${catalog.primaryKey}.asc`),safeRows=catalog.slug==='subsidiaries'&&summary?rows.map(({logo_url:_logo,...row})=>row):rows;return enrichOrganizationRows(catalog,token,safeRows);};
  if(catalog.slug==='subsidiaries'&&summary)return subsidiarySummaryCache.getOrLoad({namespace:subsidiarySummaryNamespace,scope:tokenCacheScope(token),loader:load});
  return load();
 }
 export async function getOrganizationRow(catalog:OrganizationCatalog,token:string,id:number){
  if(!Number.isSafeInteger(id)||id<=0)throw new Error('El identificador del registro no es válido.');
- const rows=await request<Record<string,unknown>[]>(catalog,token,`?select=*&${catalog.primaryKey}=eq.${id}&limit=1`);
+ const rows=await request<Record<string,unknown>[]>(catalog,token,`?select=${listColumnsWithRelations(catalog,false)}&${catalog.primaryKey}=eq.${id}&limit=1`);
  if(!rows.length)throw new Error('El registro no existe o no está disponible para la empresa activa.');
  return(await enrichOrganizationRows(catalog,token,rows))[0];
 }

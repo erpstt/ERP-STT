@@ -36,9 +36,14 @@ Para la certificación extendida, cambie `--duration-seconds=1800`. El resultado
 
 Los criterios automáticos son: éxito >= 99%, error < 1%, cero timeouts, p95 < 1,5 s y p99 < 3 s durante la fase sostenida.
 
-Las validaciones positivas de sesión, dispositivo y matriz de permisos se
-conservan como máximo 30 segundos. Cerrar sesión o cambiar rol, empresa o
-permisos invalida el contexto inmediatamente en el proceso activo.
+Las validaciones positivas de sesión y dispositivo se distribuyen de forma
+determinista entre 80 % y 100 % de 27 segundos; la matriz de permisos se
+conserva como máximo 30 segundos y se renueva con la validación. Cerrar sesión
+o cambiar rol, empresa o permisos invalida el contexto inmediatamente.
+
+El proceso limita por defecto a 16 las solicitudes simultáneas hacia Supabase;
+las adicionales esperan en una cola cancelable. Este límite conserva margen
+suficiente para la carga media y evita trasladar ráfagas completas a PostgREST.
 
 El aprovisionamiento se limita por defecto a una sesión cada 2,1 segundos y
 reintenta con espera progresiva si Supabase activa su protección del endpoint

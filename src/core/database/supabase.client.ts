@@ -10,8 +10,8 @@ import { recordSupabasePerformance } from '../performance/runtime-metrics.js';
 const requestSignalStorage = new AsyncLocalStorage<AbortSignal>();
 
 function configuredConcurrency(): number {
-  const configured = Number(process.env.SUPABASE_MAX_CONCURRENCY ?? 24);
-  return Number.isFinite(configured) ? Math.min(128, Math.max(4, Math.trunc(configured))) : 24;
+  const configured = Number(process.env.SUPABASE_MAX_CONCURRENCY ?? 16);
+  return Number.isFinite(configured) ? Math.min(128, Math.max(4, Math.trunc(configured))) : 16;
 }
 
 function abortReason(signal: AbortSignal): unknown {

@@ -9,6 +9,7 @@ process.env.AUTH_REQUEST_ACCESS_CACHE_TTL_MS = '0';
 
 const { assertRequestAccess } = await import('../dist/modules/auth/services/request-access.service.js');
 const { SessionAuthenticationError } = await import('../dist/modules/auth/services/session.service.js');
+const { assertRoleAccess, invalidateRoleAccessCaches } = await import('../dist/modules/security-catalogs/role-access-matrix.module.js');
 const originalFetch = globalThis.fetch;
 const accessToken = 'header.payload.signature-with-enough-content';
 const authorization = `Bearer ${accessToken}`;
@@ -18,10 +19,17 @@ const digest = value => createHash('sha256').update(value).digest('hex');
 test.afterEach(() => { globalThis.fetch = originalFetch; });
 
 test('valida sesión y dispositivo con una sola RPC y envía únicamente sus hashes', async () => {
+  invalidateRoleAccessCaches();
   const calls = [];
   globalThis.fetch = async (input, init = {}) => {
     calls.push({ input: String(input), init });
-    return Response.json({ allowed: true });
+    return Response.json({
+      allowed: true,
+      roleAccess: {
+        isAdmin: false,
+        grants: [{ resourceKey: 'core:languages', canView: true, canCreate: false, canEdit: false, canDelete: false }],
+      },
+    });
   };
 
   await assertRequestAccess(authorization, deviceToken);
@@ -37,6 +45,29 @@ test('valida sesión y dispositivo con una sola RPC y envía únicamente sus has
   });
   assert.equal(String(calls[0].init.body).includes(deviceToken), false);
   assert.equal(String(calls[0].init.body).includes(accessToken), false);
+  await assertRoleAccess(authorization, 'core:languages', 'view');
+  assert.equal(calls.length, 1, 'La misma RPC debe precargar la matriz y evitar una segunda consulta de permisos.');
+});
+
+test('mantiene compatibilidad cuando una versión anterior no devuelve roleAccess', async () => {
+  invalidateRoleAccessCaches();
+  const paths = [];
+  globalThis.fetch = async input => {
+    const path = new URL(String(input)).pathname;
+    paths.push(path);
+    if (path.endsWith('/rpc/assert_request_access')) return Response.json({ allowed: true });
+    if (path.endsWith('/rpc/security_my_role_access')) {
+      return Response.json({
+        isAdmin: false,
+        grants: [{ resourceKey: 'core:languages', canView: true, canCreate: false, canEdit: false, canDelete: false }],
+      });
+    }
+    throw new Error(`Solicitud inesperada: ${path}`);
+  };
+
+  await assertRequestAccess(authorization, deviceToken);
+  await assertRoleAccess(authorization, 'core:languages', 'view');
+  assert.deepEqual(paths, ['/rest/v1/rpc/assert_request_access', '/rest/v1/rpc/security_my_role_access']);
 });
 
 test('convierte los rechazos de sesión y dispositivo en SessionAuthenticationError', async t => {
@@ -79,4 +110,11 @@ test('la migración protege la RPC y limita last_used a cinco minutos', async ()
   assert.match(sql, /revoke all on function public\.assert_request_access\(text,text\) from public/i);
   assert.match(sql, /grant execute on function public\.assert_request_access\(text,text\) to authenticated/i);
   assert.doesNotMatch(sql, /grant execute[^;]+to anon/i);
+
+  const contextSql = await readFile(new URL('../supabase/migrations/20261029220000_assert_request_access_role_context.sql', import.meta.url), 'utf8');
+  assert.match(contextSql, /'roleAccess',public\.security_my_role_access\(\)/);
+  assert.match(contextSql, /security definer/i);
+  assert.match(contextSql, /set search_path=public,pg_temp/i);
+  assert.match(contextSql, /revoke all on function public\.assert_request_access\(text,text\) from public,anon/i);
+  assert.match(contextSql, /grant execute on function public\.assert_request_access\(text,text\) to authenticated/i);
 });

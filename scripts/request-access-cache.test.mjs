@@ -6,8 +6,8 @@ import {
   PositiveRequestAccessCache,
 } from '../dist/modules/auth/services/request-access-cache.js';
 
-test('la configuración usa 30 segundos y limita el TTL al rango seguro', () => {
-  assert.equal(configuredRequestAccessCacheTtlMs(undefined), 30_000);
+test('la configuración usa 27 segundos y limita el TTL al rango seguro', () => {
+  assert.equal(configuredRequestAccessCacheTtlMs(undefined), 27_000);
   assert.equal(configuredRequestAccessCacheTtlMs('500'), 10_000);
   assert.equal(configuredRequestAccessCacheTtlMs('60000'), 30_000);
   assert.equal(configuredRequestAccessCacheTtlMs('0'), 0);
@@ -30,6 +30,56 @@ test('comparte una validación concurrente y reutiliza solo su resultado positiv
   now += 101;
   await request();
   assert.equal(calls, 2);
+});
+
+test('distribuye expiraciones por clave entre 80 % y 100 % sin superar el TTL máximo', async () => {
+  let now = 10_000;
+  const calls = new Map();
+  const cache = new PositiveRequestAccessCache({ ttlMs: 1_000, maxEntries: 200, now: () => now });
+  const request = key => cache.getOrValidate({
+    key,
+    validate: async () => { calls.set(key, (calls.get(key) ?? 0) + 1); },
+  });
+  const keys = Array.from({ length: 100 }, (_, index) => `session-${index}:device-${index}`);
+  await Promise.all(keys.map(request));
+
+  now = 10_799;
+  await Promise.all(keys.map(request));
+  assert.equal([...calls.values()].reduce((total, value) => total + value, 0), 100, 'ninguna entrada debe expirar antes del 80 %');
+
+  now = 10_900;
+  await Promise.all(keys.map(request));
+  const callsAtNinetyPercent = [...calls.values()].reduce((total, value) => total + value, 0);
+  assert.ok(callsAtNinetyPercent > 100, 'algunas claves deben expirar antes del TTL máximo');
+  assert.ok(callsAtNinetyPercent < 200, 'las expiraciones no deben ocurrir todas al mismo instante');
+
+  const maximumCache = new PositiveRequestAccessCache({ ttlMs: 1_000, maxEntries: 200, now: () => now });
+  let maximumCalls = 0;
+  await Promise.all(keys.map(key => maximumCache.getOrValidate({ key, validate: async () => { maximumCalls += 1; } })));
+  now = 11_901;
+  await Promise.all(keys.map(key => maximumCache.getOrValidate({ key, validate: async () => { maximumCalls += 1; } })));
+  assert.equal(maximumCalls, 200, 'ninguna entrada puede conservarse después del TTL máximo');
+});
+
+test('la distribución es determinista para la misma clave en procesos equivalentes', async () => {
+  let now = 20_000;
+  const keys = Array.from({ length: 40 }, (_, index) => `session-${index}:device-${index}`);
+  const expiredByCache = [];
+  for (let instance = 0; instance < 2; instance += 1) {
+    const calls = new Map();
+    const cache = new PositiveRequestAccessCache({ ttlMs: 1_000, maxEntries: 100, now: () => now });
+    const request = key => cache.getOrValidate({
+      key,
+      validate: async () => { calls.set(key, (calls.get(key) ?? 0) + 1); },
+    });
+    now = 20_000;
+    await Promise.all(keys.map(request));
+    now = 20_900;
+    await Promise.all(keys.map(request));
+    expiredByCache.push(keys.filter(key => calls.get(key) === 2));
+  }
+  assert.deepEqual(expiredByCache[0], expiredByCache[1]);
+  assert.ok(expiredByCache[0].length > 0 && expiredByCache[0].length < keys.length);
 });
 
 test('no conserva errores de validación', async () => {

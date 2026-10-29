@@ -10,17 +10,34 @@ interface ValidationOptions {
   validate: () => Promise<void>;
 }
 
-const DEFAULT_TTL_MS = 30_000;
+const DEFAULT_TTL_MS = 27_000;
 const MIN_TTL_MS = 10_000;
 const MAX_TTL_MS = 30_000;
 const DEFAULT_MAX_ENTRIES = 5_000;
 const MIN_MAX_ENTRIES = 100;
 const MAX_MAX_ENTRIES = 100_000;
+const EXPIRATION_JITTER_PERCENT = 20;
 
 function integer(value: string | undefined) {
   if (!value?.trim()) return null;
   const parsed = Number(value);
   return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
+/**
+ * Distribuye de forma estable las expiraciones entre 80 % y 100 % del TTL.
+ * La clave ya es un resumen criptográfico de sesión/dispositivo; solo se usa
+ * para obtener un bucket y nunca se copia a otra estructura ni se registra.
+ */
+function jitteredTtlMs(key: string, maximumTtlMs: number) {
+  const spread = Math.floor(maximumTtlMs * EXPIRATION_JITTER_PERCENT / 100);
+  if (spread <= 0) return maximumTtlMs;
+  let hash = 2_166_136_261;
+  for (let index = 0; index < key.length; index += 1) {
+    hash ^= key.charCodeAt(index);
+    hash = Math.imul(hash, 16_777_619);
+  }
+  return maximumTtlMs - ((hash >>> 0) % (spread + 1));
 }
 
 export function configuredRequestAccessCacheTtlMs(value = process.env.AUTH_REQUEST_ACCESS_CACHE_TTL_MS) {
@@ -66,7 +83,7 @@ export class PositiveRequestAccessCache {
   private remember(key: string, validUntil: number | undefined) {
     if (this.options.ttlMs <= 0) return;
     const now = this.now();
-    const expiresAt = Math.min(now + this.options.ttlMs, validUntil ?? Number.POSITIVE_INFINITY);
+    const expiresAt = Math.min(now + jitteredTtlMs(key, this.options.ttlMs), validUntil ?? Number.POSITIVE_INFINITY);
     if (expiresAt <= now) return;
     this.values.delete(key);
     while (this.values.size >= this.options.maxEntries) {
