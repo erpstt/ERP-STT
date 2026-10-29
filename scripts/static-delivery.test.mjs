@@ -70,7 +70,24 @@ test('entrega estáticos comprimidos, revalidables y con rango para video', { ti
 
     const report = await fetch(`${baseUrl}/accounting-reports.html`);
     assert.equal(report.status, 200);
-    assert.match(await report.text(), /inside-erp-workspace/);
+    const reportHtml = await report.text();
+    assert.match(reportHtml, /inside-erp-workspace/);
+    assert.match(reportHtml, /\/i18n\.js\?v=20261029-global/);
+
+    const i18n = await fetch(`${baseUrl}/i18n.js?v=20261029-global`);
+    assert.equal(i18n.status, 200);
+    assert.match(i18n.headers.get('cache-control') ?? '', /immutable/);
+    assert.match(await i18n.text(), /class GentiaI18n/);
+
+    for (const locale of ['es', 'en', 'pt']) {
+      const dictionary = await fetch(`${baseUrl}/locales/${locale}.json?v=20261029-i18n`);
+      assert.equal(dictionary.status, 200);
+      assert.equal((await dictionary.json()).meta.locale, locale);
+      for (const bundle of ['operations', 'reports', 'admin', 'business']) {
+        const fragment = await fetch(`${baseUrl}/locales/modules/${bundle}/${locale}.json?v=20261029-i18n`);
+        assert.equal(fragment.status, 200, `${bundle}/${locale} debe publicarse con los estáticos.`);
+      }
+    }
 
     const oversizedStatus = await new Promise((resolve, reject) => {
       const target = new URL('/api/auth/login', baseUrl);

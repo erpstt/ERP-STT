@@ -9,13 +9,13 @@
 </head>
 <body>
 <main class="report-page">
-  <a class="back-link" href="/informes/contabilidad">← Todos los informes</a>
+  <a class="back-link" href="/informes/contabilidad" data-i18n="reports.common.allAccountingReports">← Todos los informes</a>
   <header class="report-heading">
-    <div><p class="eyebrow">FISCAL · BALANCE TRIBUTARIO</p><h1>Balance General de 8 Columnas</h1><p class="lead">Comprobación de movimientos, saldos, inventario y resultado del ejercicio en la moneda local de la sociedad.</p></div>
-    <div class="export-actions" aria-label="Descargar reporte"><button id="downloadPdf" class="button secondary" type="button" disabled>↓ Descargar PDF</button><button id="downloadExcel" class="button secondary" type="button" disabled>↓ Descargar Excel</button></div>
+    <div><p class="eyebrow" data-i18n="reports.eightColumn.eyebrow">FISCAL · BALANCE TRIBUTARIO</p><h1 data-i18n="reports.eightColumn.title">Balance General de 8 Columnas</h1><p class="lead" data-i18n="reports.eightColumn.description">Comprobación de movimientos, saldos, inventario y resultado del ejercicio en la moneda local de la sociedad.</p></div>
+    <div class="export-actions" aria-label="Descargar reporte"><button id="downloadPdf" class="button secondary" type="button" disabled data-i18n="reports.eightColumn.downloadPdf">↓ Descargar PDF</button><button id="downloadExcel" class="button secondary" type="button" disabled data-i18n="reports.eightColumn.downloadExcel">↓ Descargar Excel</button></div>
   </header>
   <form id="filters" class="panel filters">
-    <div class="panel-title"><span class="step">1</span><div><b>Parámetros del balance</b><small>El reporte incluye únicamente sociedades autorizadas y libros asociados a la sociedad seleccionada.</small></div></div>
+    <div class="panel-title"><span class="step">1</span><div><b data-i18n="reports.eightColumn.parameters">Parámetros del balance</b><small data-i18n="reports.eightColumn.parametersHelp">El reporte incluye únicamente sociedades autorizadas y libros asociados a la sociedad seleccionada.</small></div></div>
     <div class="filter-grid">
       <label>Subsidiaria<select id="subsidiary" required><option value="">Cargando…</option></select></label>
       <label>Libro contable<select id="book" required><option value="">Seleccione un libro</option></select></label>
@@ -24,21 +24,21 @@
       <label>Moneda local<input id="currency" value="—" readonly aria-readonly="true"></label>
       <label>Nivel de detalle<select id="detailLevel"><option value="4" selected>4 · Cuentas imputables</option><option value="3">3 · Subgrupos</option><option value="2">2 · Grupos</option><option value="1">1 · Rubros principales</option></select></label>
       <label class="switch-field"><span>Incluir cuentas sin movimiento</span><span class="gentia-switch"><input id="includeZero" type="checkbox" role="switch"><span aria-hidden="true"></span></span><small>Incluye las cuentas habilitadas aunque sus ocho columnas estén en cero.</small></label>
-      <button id="generate" class="button primary" type="submit">Generar balance</button>
+      <button id="generate" class="button primary" type="submit" data-i18n="reports.eightColumn.generate">Generar balance</button>
     </div>
-    <p class="filter-note">Activo, Pasivo y Patrimonio, Costos y Gastos e Ingresos se clasifican desde el plan de cuentas. Las cuentas sin clasificación se muestran para corregirlas.</p>
+    <p class="filter-note" data-i18n="reports.eightColumn.classificationHelp">Activo, Pasivo y Patrimonio, Costos y Gastos e Ingresos se clasifican desde el plan de cuentas. Las cuentas sin clasificación se muestran para corregirlas.</p>
   </form>
   <div id="message" class="message" role="status" aria-live="polite"></div>
   <section id="controlBoard" class="control-board" aria-label="Validaciones del balance">
-    <article class="control-card neutral"><span class="control-icon">1</span><div><small>Partida doble</small><b>Sin calcular</b><p>Débitos contra créditos</p></div></article>
-    <article class="control-card neutral"><span class="control-icon">2</span><div><small>Saldos</small><b>Sin calcular</b><p>Deudor contra acreedor</p></div></article>
-    <article class="control-card neutral"><span class="control-icon">3</span><div><small>Resultado</small><b>Sin calcular</b><p>Inventario contra resultados</p></div></article>
-    <article class="control-card neutral"><span class="control-icon">4</span><div><small>Clasificación</small><b>Sin calcular</b><p>Cuentas listas para presentar</p></div></article>
+    <article class="control-card neutral"><span class="control-icon">1</span><div><small data-i18n="reports.eightColumn.doubleEntry">Partida doble</small><b data-i18n="reports.eightColumn.notCalculated">Sin calcular</b><p data-i18n="reports.eightColumn.debitsCredits">Débitos contra créditos</p></div></article>
+    <article class="control-card neutral"><span class="control-icon">2</span><div><small data-i18n="reports.eightColumn.balances">Saldos</small><b data-i18n="reports.eightColumn.notCalculated">Sin calcular</b><p data-i18n="reports.eightColumn.debtorCreditor">Deudor contra acreedor</p></div></article>
+    <article class="control-card neutral"><span class="control-icon">3</span><div><small data-i18n="reports.eightColumn.result">Resultado</small><b data-i18n="reports.eightColumn.notCalculated">Sin calcular</b><p data-i18n="reports.eightColumn.inventoryResults">Inventario contra resultados</p></div></article>
+    <article class="control-card neutral"><span class="control-icon">4</span><div><small data-i18n="reports.eightColumn.classification">Clasificación</small><b data-i18n="reports.eightColumn.notCalculated">Sin calcular</b><p data-i18n="reports.eightColumn.readyAccounts">Cuentas listas para presentar</p></div></article>
   </section>
   <aside id="warnings" class="warnings" hidden></aside>
   <section class="panel result-panel">
-    <div class="result-heading"><div class="panel-title compact"><span class="step">2</span><div><b>Detalle del balance</b><small id="reportCaption">Genere el reporte para consultar las cuentas.</small></div></div><div class="result-tools"><label>Buscar cuenta<input id="search" type="search" placeholder="Código o nombre" disabled></label><span id="recordCount" class="record-count">0 registros</span></div></div>
-    <div class="table-shell"><table id="balanceTable"><thead><tr class="group-head"><th colspan="2" class="account-group">Cuenta contable</th><th colspan="2">Sumas</th><th colspan="2">Saldos</th><th colspan="2">Inventario</th><th colspan="2">Resultados</th></tr><tr><th class="sticky-code">Código</th><th class="sticky-name">Nombre</th><th class="number">Débitos</th><th class="number">Créditos</th><th class="number">Deudor</th><th class="number">Acreedor</th><th class="number">Activo</th><th class="number">Pasivo</th><th class="number">Pérdida</th><th class="number">Ganancia</th></tr></thead><tbody id="rows"><tr><td colspan="10" class="empty-state"><b>Balance pendiente de generar</b><span>Seleccione los parámetros y presione “Generar balance”.</span></td></tr></tbody></table></div>
+    <div class="result-heading"><div class="panel-title compact"><span class="step">2</span><div><b data-i18n="reports.eightColumn.detail">Detalle del balance</b><small id="reportCaption" data-i18n="reports.eightColumn.generatePrompt">Genere el reporte para consultar las cuentas.</small></div></div><div class="result-tools"><label>Buscar cuenta<input id="search" type="search" placeholder="Código o nombre" data-i18n-placeholder="reports.eightColumn.searchPlaceholder" disabled></label><span id="recordCount" class="record-count">0 registros</span></div></div>
+    <div class="table-shell"><table id="balanceTable"><thead><tr class="group-head"><th colspan="2" class="account-group" data-i18n="reports.eightColumn.account">Cuenta contable</th><th colspan="2" data-i18n="reports.eightColumn.sums">Sumas</th><th colspan="2" data-i18n="reports.eightColumn.balances">Saldos</th><th colspan="2" data-i18n="reports.eightColumn.inventory">Inventario</th><th colspan="2" data-i18n="reports.eightColumn.results">Resultados</th></tr><tr><th class="sticky-code" data-i18n="reports.eightColumn.code">Código</th><th class="sticky-name" data-i18n="reports.eightColumn.name">Nombre</th><th class="number">Débitos</th><th class="number">Créditos</th><th class="number" data-i18n="reports.eightColumn.debtor">Deudor</th><th class="number" data-i18n="reports.eightColumn.creditor">Acreedor</th><th class="number" data-i18n="reports.eightColumn.asset">Activo</th><th class="number" data-i18n="reports.eightColumn.liability">Pasivo</th><th class="number" data-i18n="reports.eightColumn.loss">Pérdida</th><th class="number" data-i18n="reports.eightColumn.profit">Ganancia</th></tr></thead><tbody id="rows"><tr><td colspan="10" class="empty-state"><b data-i18n="reports.eightColumn.pending">Balance pendiente de generar</b><span data-i18n="reports.eightColumn.pendingHelp">Seleccione los parámetros y presione “Generar balance”.</span></td></tr></tbody></table></div>
     <footer class="pager"><span id="range">0 registros</span><label>Filas por página<select id="pageSize"><option>25</option><option selected>50</option><option>100</option><option>250</option></select></label><button id="previous" type="button" disabled>Anterior</button><span id="pageIndicator">Página 1 de 1</span><button id="next" type="button" disabled>Siguiente</button></footer>
   </section>
 </main>

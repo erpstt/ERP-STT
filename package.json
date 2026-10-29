@@ -15,6 +15,7 @@
     "configure:supabase-production-auth": "node scripts/configure-supabase-production-auth.mjs",
     "test:supabase-production-auth": "node --test scripts/configure-supabase-production-auth.test.mjs",
     "test:peru-rate": "npm run build && node --test scripts/test-peru-exchange-rate-client.test.mjs",
+    "test:i18n": "npm run build && node --test scripts/i18n-runtime.test.mjs scripts/test-i18n-locale-coverage.test.mjs scripts/test-i18n-explicit-coverage.test.mjs scripts/test-i18n-operations-coverage.test.mjs scripts/test-i18n-reports-coverage.test.mjs scripts/test-i18n-admin-coverage.test.mjs scripts/test-i18n-business-coverage.test.mjs scripts/test-language-preference-migration.test.mjs scripts/test-language-preference-service.test.mjs",
     "test:static": "npm run build && node --test scripts/static-delivery.test.mjs scripts/supabase-client-timeout.test.mjs",
     "audit:frontend": "node scripts/frontend-performance-audit.mjs"
   },

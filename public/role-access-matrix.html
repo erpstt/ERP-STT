@@ -2,7 +2,7 @@
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Permisos por rol · GENTIA</title><link rel="stylesheet" href="/role-access-matrix.css?v=20261012"><link rel="stylesheet" href="/role-access-special.css?v=20261012"></head>
 <body><main id="matrixApp" class="permission-page" v-cloak>
-  <header class="page-head"><div><p class="eyebrow">SEGURIDAD · CONTROL DE ACCESO</p><h1>Permisos por rol</h1><p>Define el acceso y las acciones disponibles para cada opción del ERP.</p></div>
+  <header class="page-head"><div><p class="eyebrow">SEGURIDAD · CONTROL DE ACCESO</p><h1 data-i18n="admin.security.rolePermissions">Permisos por rol</h1><p data-i18n="admin.security.rolePermissionsDescription">Define el acceso y las acciones disponibles para cada opción del ERP.</p></div>
     <button class="primary" type="button" :disabled="loading||saving||!selectedRoleId||administratorRole" @click="save">{{saving?'Guardando…':'Guardar permisos'}}</button>
   </header>
   <section class="role-panel">

@@ -281,19 +281,19 @@
 <summary>
 <span class="company-badge">{{ activeCompany?.name?.charAt(0)?.toUpperCase() }}</span>
 <span class="role-copy">
-<small>EMPRESA ACTIVA</small>
-<strong>{{ activeCompany?.name }}</strong>
+<small>{{ t('core.header.activeCompany',{},'EMPRESA ACTIVA') }}</small>
+<strong data-i18n-ignore>{{ activeCompany?.name }}</strong>
 </span>
 <span class="role-chevron">⌄</span>
 </summary>
 <div class="company-menu">
 <div class="role-menu-head">
-<strong>Cambiar empresa</strong>
-<small>{{ companies.length }} empresas asignadas</small>
+<strong>{{ t('core.header.changeCompany',{},'Cambiar empresa') }}</strong>
+<small>{{ t('core.header.assignedCompanies',{count:companies.length},companies.length+' empresas asignadas') }}</small>
 </div>
 <button v-for="company in companies" :key="company.subsidiaryId" type="button" :class="{active:String(company.subsidiaryId)===String(activeCompany?.subsidiaryId)}" :disabled="isSelectingCompany" @click="chooseCompany(company,$event)">
 <span class="company-option-icon">{{ company.name.charAt(0).toUpperCase() }}</span>
-<span>
+<span data-i18n-ignore>
 <strong>{{ company.name }}</strong>
 <small>{{ company.legalName }}</small>
 </span>
@@ -304,27 +304,27 @@
 <div v-else class="company-switch-single">
 <span class="company-badge">{{ activeCompany?.name?.charAt(0)?.toUpperCase() }}</span>
 <span class="role-copy">
-<small>EMPRESA ACTIVA</small>
-<strong>{{ activeCompany?.name }}</strong>
+<small>{{ t('core.header.activeCompany',{},'EMPRESA ACTIVA') }}</small>
+<strong data-i18n-ignore>{{ activeCompany?.name }}</strong>
 </span>
 </div>
 <details v-if="roles.length > 1" class="role-selector">
 <summary>
 <span class="role-badge" aria-hidden="true">✓</span>
 <span class="role-copy">
-<small>ROL ACTIVO</small>
-<strong>{{ activeRole?.name }}</strong>
+<small>{{ t('core.header.activeRole',{},'ROL ACTIVO') }}</small>
+<strong data-i18n-ignore>{{ activeRole?.name }}</strong>
 </span>
 <span class="role-chevron" aria-hidden="true">⌄</span>
 </summary>
 <div class="role-menu">
 <div class="role-menu-head">
-<strong>Cambiar rol</strong>
-<small>{{ roles.length }} roles asignados</small>
+<strong>{{ t('core.header.changeRole',{},'Cambiar rol') }}</strong>
+<small>{{ t('core.header.assignedRoles',{count:roles.length},roles.length+' roles asignados') }}</small>
 </div>
 <button v-for="role in roles" :key="role.roleId" type="button" :class="{active:String(role.roleId)===String(activeRole?.roleId)}" :disabled="isSelectingRole" @click="chooseRole(role,$event)">
 <span class="role-option-icon">{{ role.name.charAt(0).toUpperCase() }}</span>
-<span>
+<span data-i18n-ignore>
 <strong>{{ role.name }}</strong>
 <small>{{ role.description || 'Rol del sistema' }}</small>
 </span>
@@ -335,10 +335,35 @@
 <div v-else class="role-switch role-switch-single">
 <span class="role-badge" aria-hidden="true">✓</span>
 <span class="role-copy">
-<small>ROL ACTIVO</small>
-<strong>{{ activeRole?.name }}</strong>
+<small>{{ t('core.header.activeRole',{},'ROL ACTIVO') }}</small>
+<strong data-i18n-ignore>{{ activeRole?.name }}</strong>
 </span>
 </div>
+<details class="role-selector language-selector">
+<summary :aria-label="t('core.header.selectLanguage',{},'Seleccionar idioma')">
+<span class="language-badge" aria-hidden="true">{{ currentLanguage.locale.toUpperCase() }}</span>
+<span class="role-copy">
+<small>{{ t('core.header.language',{},'IDIOMA') }}</small>
+<strong data-i18n-ignore>{{ currentLanguage.name }}</strong>
+</span>
+<span class="role-chevron" aria-hidden="true">⌄</span>
+</summary>
+<div class="role-menu language-menu">
+<div class="role-menu-head">
+<strong>{{ t('core.header.changeLanguage',{},'Cambiar idioma') }}</strong>
+<small>{{ t('core.header.availableLanguages',{count:languageOptions.length},languageOptions.length+' disponibles') }}</small>
+</div>
+<button v-for="language in languageOptions" :key="language.locale" type="button" :class="{active:language.locale===currentLocale}" :disabled="isSelectingLanguage" @click="chooseLanguage(language,$event)">
+<span class="language-option-icon">{{ language.code }}</span>
+<span>
+<strong data-i18n-ignore>{{ language.name }}</strong>
+<small>{{ language.locale.toUpperCase() }}</small>
+</span>
+<b>{{ language.locale===currentLocale ? '✓' : '→' }}</b>
+</button>
+<p v-if="languageError" class="language-menu-error" role="alert">{{ languageError }}</p>
+</div>
+</details>
 <span class="avatar">{{ userInitial }}</span>
 </div>
 </header>
@@ -432,7 +457,7 @@
 <td>
 <span class="id-cell">#{{ row[activeCatalog.primaryKey] }}</span>
 </td>
-<td v-for="field in tableFields" :key="field.key" :class="'field-'+field.key">
+<td v-for="field in tableFields" :key="field.key" :class="'field-'+field.key" data-i18n-ignore>
 <strong v-if="field.key === 'name'" class="country-name">{{ displayValue(field,row[field.key]) }}</strong>
 <span v-else :class="{'bank-statement-amount':activeCatalog.slug==='bank-statements' &amp;&amp; field.numberFormat==='money','bank-statement-account':activeCatalog.slug==='bank-statements' &amp;&amp; field.key==='bank_account_id'}">{{ displayValue(field,row[field.key]) }}</span>
 </td>
@@ -552,7 +577,7 @@
 <section v-if="activeCatalog.slug==='bank-statements'" class="bank-statement-form-overview">
 <span class="bank-statement-form-icon" aria-hidden="true">▤</span>
 <div><strong>Saldos del extracto bancario</strong><small>Seleccione la cuenta y registre los saldos oficiales de apertura y cierre.</small></div>
-<span class="bank-statement-company">{{ activeCompany?.name }}</span>
+<span class="bank-statement-company" data-i18n-ignore>{{ activeCompany?.name }}</span>
 </section>
 <div v-show="activeCatalog.slug!=='subsidiaries' || subsidiaryFormTab!=='tax'" class="form-grid" :class="{'subsidiary-tab-grid':activeCatalog.slug==='subsidiaries','bank-statement-form-grid':activeCatalog.slug==='bank-statements'}">
 <template v-for="field in formFields" :key="field.key"><div v-if="activeCatalog.slug==='customers' &amp;&amp; field.key==='envio_estado_cuenta_auto'" class="approver-section"><h3>Crédito y Cobro</h3></div>
@@ -648,8 +673,8 @@
 </form>
         <div v-else-if="recordDialog.mode === 'audit'" class="modal-actions" style="padding:16px 24px"><button type="button" class="button-secondary" @click="closeRecordDialog">Cerrar</button></div>
         <div v-else-if="recordDialog.mode === 'view'" class="record-view">
-<div v-if="customerViewTab==='details'" class="record-view-grid"><div v-for="field in formFields" :key="field.key" :class="{'wide':field.wide||field.type==='multi-reference'}"><span>{{ field.label }}</span><strong>{{ displayValue(field,recordDialog.values[field.key]) }}</strong></div></div>
-<iframe v-else-if="customerViewTab==='communications'" :src="'/customer-statement-notifications.html?id='+recordDialog.id" title="Historial de Comunicaciones" style="width:100%;height:550px;border:0"></iframe><section v-else class="customer-cost-centers standalone"><div class="record-section-title"><div><span>RELACIÓN ACTIVA</span><h3>Centros de costos del cliente</h3></div><small>{{ activeCompany?.name }}</small></div><div v-if="customerCostCenters.length" class="cost-center-list"><div v-for="center in customerCostCenters" :key="center.cost_center_id"><strong>{{ center.code }}</strong><span>{{ center.name }}</span></div></div><p v-else>No hay centros de costos vinculados a este cliente en la subsidiaria activa.</p></section>
+<div v-if="customerViewTab==='details'" class="record-view-grid"><div v-for="field in formFields" :key="field.key" :class="{'wide':field.wide||field.type==='multi-reference'}"><span>{{ field.label }}</span><strong data-i18n-ignore>{{ displayValue(field,recordDialog.values[field.key]) }}</strong></div></div>
+<iframe v-else-if="customerViewTab==='communications'" :src="'/customer-statement-notifications.html?id='+recordDialog.id" title="Historial de Comunicaciones" style="width:100%;height:550px;border:0"></iframe><section v-else class="customer-cost-centers standalone"><div class="record-section-title"><div><span>RELACIÓN ACTIVA</span><h3>Centros de costos del cliente</h3></div><small data-i18n-ignore>{{ activeCompany?.name }}</small></div><div v-if="customerCostCenters.length" class="cost-center-list"><div v-for="center in customerCostCenters" :key="center.cost_center_id"><strong data-i18n-ignore>{{ center.code }}</strong><span data-i18n-ignore>{{ center.name }}</span></div></div><p v-else>No hay centros de costos vinculados a este cliente en la subsidiaria activa.</p></section>
 <div class="modal-actions"><button class="button-secondary" @click="closeRecordDialog">Cerrar</button><button class="button-primary" @click="openRecordForm(recordDialog.values)">Editar cliente</button></div>
 </div>
         <div v-else class="delete-confirm">
@@ -665,7 +690,8 @@
   </main>
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
-<script type="module" src="/app.js?v=20261028-password-link-confirmation">
+<script type="module" src="/i18n.js?v=20261029-global"></script>
+<script type="module" src="/app.js?v=20261029-global-i18n">
 </script>
 <script src="/approval-notifications.js?v=20261023-second-pass"></script></body>
 </html>

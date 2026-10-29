@@ -65,6 +65,7 @@ import { consolidationInit, consolidationOptions, consolidationProcess, consolid
 import { createAiRow, deleteAiRow, getAiCatalog, listAiRows, updateAiRow } from './modules/ai-catalogs/ai-catalogs.module.js';
 import { listUserCompanies, selectUserCompany } from './modules/auth/services/company-access.service.js';
 import { listUserRoles, selectUserRole } from './modules/auth/services/role-access.service.js';
+import { getLanguagePreference, setLanguagePreference } from './modules/auth/services/language-preference.service.js';
 import { revokeCurrentSession, SessionAuthenticationError } from './modules/auth/services/session.service.js';
 import { assertRequestAccess } from './modules/auth/services/request-access.service.js';
 import { changePassword } from './modules/auth/services/password-history.service.js';
@@ -223,7 +224,7 @@ async function serveFile(pathname: string, request: IncomingMessage, response: S
     if(extension==='.html'&&relative!=='index.html'){
       const html=content.toString('utf8');
       const guard=`<script defer src="/record-audit.js"></script><style>html.inside-erp-workspace,html.inside-erp-workspace body{width:100%!important;min-width:0!important;min-height:100%!important;margin:0!important;padding:0!important}html.inside-erp-workspace body>main{box-sizing:border-box!important;width:100%!important;max-width:none!important;min-height:100vh!important;margin:0!important;border-radius:0!important;box-shadow:none!important}html.inside-erp-workspace body>.toolbar,html.inside-erp-workspace body>nav{box-sizing:border-box!important;width:100%!important;max-width:none!important;margin:0!important}</style><script>if(window===window.top){sessionStorage.setItem('nexo_workspace_redirect',JSON.stringify({path:location.pathname+location.search+location.hash,createdAt:Date.now()}));location.replace('/')}else{document.documentElement.classList.add('inside-erp-workspace')}</script>`;
-      const gentiaAssets='<link rel="stylesheet" href="/gentia-theme.css?v=20260930-switches"><script defer src="/gentia-brand.js?v=20260929"></script>';
+      const gentiaAssets='<link rel="stylesheet" href="/gentia-theme.css?v=20261029-exchange-rate-menu"><script defer src="/gentia-brand.js?v=20260929"></script><script type="module" src="/i18n.js?v=20261029-global"></script>';
       const branded=html.includes('</head>')
         ? html.replace('</head>',`${gentiaAssets}</head>`)
         : `${gentiaAssets}${html}`;
@@ -298,6 +299,8 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if(request.method==='POST'&&request.url==='/api/auth/select-company'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const input=await body(request)as{subsidiaryId?:number};return json(response,200,await selectUserCompany(authorization,Number(input.subsidiaryId)));}
     if(request.method==='GET'&&request.url==='/api/auth/roles'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');return json(response,200,await listUserRoles(authorization));}
     if(request.method==='POST'&&request.url==='/api/auth/select-role'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const input=await body(request)as{roleId?:number};return json(response,200,await selectUserRole(authorization,Number(input.roleId)));}
+    if(request.method==='GET'&&request.url==='/api/auth/language-preference'){return json(response,200,await getLanguagePreference(request.headers.authorization!));}
+    if(request.method==='PATCH'&&request.url==='/api/auth/language-preference'){const input=await body(request)as{locale?:unknown};return json(response,200,await setLanguagePreference(request.headers.authorization!,input.locale));}
     if(request.method==='POST'&&request.url==='/api/auth/change-password'){const authorization=request.headers.authorization!;return json(response,200,await changePassword(authorization,await body(request)as{currentPassword?:string;newPassword?:string;confirmation?:string}));}
     if(request.method==='GET'&&request.url==='/api/reports/accounting/options'){return json(response,200,await accountingReportOptions(request.headers.authorization!));}
     if(request.method==='GET'&&request.url==='/api/v1/reports/sales/settled-invoices/options'){return json(response,200,await settledInvoiceReportOptions(request.headers.authorization!));}
