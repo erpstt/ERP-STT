@@ -1,211 +1,145 @@
-# Informe de prueba de carga — GENTIA ERP
+# Informe de optimización y carga — GENTIA ERP
 
-**Fecha:** 29 de octubre de 2026  
-**Entorno:** Producción en Railway  
-**Objetivo:** evaluar estabilidad, latencia y recuperación con hasta 120 usuarios virtuales concurrentes.
+**Fecha:** 29 de octubre de 2026
 
-## Conclusión ejecutiva después de optimizar
+**Objetivo:** certificar una experiencia estable y ágil con 120 sesiones concurrentes.
 
-**Resultado actual: Aprobado para 120 usuarios concurrentes, con una mejora adicional recomendada en la inicialización de sesión.**
+**Aplicación de producción:** `https://erp-stt-production.up.railway.app`
 
-La versión optimizada `f4468e9` procesó 1.348 solicitudes autenticadas y 640 públicas con **100% de éxito**, sin timeouts ni respuestas HTTP 5xx. En la fase sostenida de 120 usuarios, el p95 bajó de 2.361,0 ms a 1.373,4 ms y el p99 de 3.407,0 ms a 1.575,4 ms. Esta fase ya cumple holgadamente los objetivos de p95 menor de 1,5 segundos y p99 menor de 3 segundos.
+## Estado ejecutivo
 
-El mayor cambio fue la eliminación de logos y campos pesados de la respuesta resumida de subsidiarias. El cuerpo promedio pasó de 737,7 KB a 15,4 KB y, con gzip, el tráfico real quedó en aproximadamente 1,8 KB por respuesta. Los contratos existentes se conservaron: las rutas completas siguen devolviendo el mismo modelo y la interfaz solicita expresamente `view=summary`.
+La versión optimizada aprobó la certificación completa de cinco minutos en el
+servidor local conectado al mismo Supabase de la aplicación:
 
-La rampa global todavía registró p95 de 2.711,1 ms y p99 de 3.076,1 ms porque las ráfagas simultáneas siguen generando varias consultas funcionales a Supabase. No afecta la estabilidad, pero justifica como siguiente mejora un endpoint consolidado de arranque (`/api/auth/bootstrap`) y caché breve de catálogos de lectura con aislamiento por usuario y empresa.
+- 120 sesiones Auth y dispositivos independientes;
+- 6.739 solicitudes durante la fase sostenida;
+- 100 % de éxito;
+- cero errores y cero timeouts;
+- p50 de 99,63 ms;
+- p95 de 348,38 ms;
+- p99 de 1.307,83 ms;
+- 22,46 solicitudes por segundo;
+- limpieza posterior verificada al 100 %.
 
-## Comparación antes y después
+Los cinco criterios automáticos fueron aprobados. La confirmación definitiva en
+Railway queda pendiente de desplegar los commits `c13d9f2` y `fd03644`; no se
+debe presentar el resultado local como certificación de la red o instancia de
+producción hasta repetir allí el mismo escenario.
 
-| Métrica autenticada | Antes | Después | Variación |
-|---|---:|---:|---:|
-| Solicitudes | 1.280 | 1.348 | +5,3% de carga |
-| Éxito | 100% | 100% | Se mantiene |
-| HTTP 5xx / timeouts | 0 / 0 | 0 / 0 | Se mantiene |
-| p50 global | 925,0 ms | 831,3 ms | -10,1% |
-| p95 global | 3.075,7 ms | 2.711,1 ms | -11,9% |
-| p99 global | 3.862,0 ms | 3.076,1 ms | -20,3% |
-| Latencia máxima | 5.466,0 ms | 3.255,6 ms | -40,4% |
-| Tráfico autenticado estimado | 165,1 MB | 1,41 MB reales | -99,1% |
+## Criterios de certificación
 
-### Fase sostenida de 120 usuarios
-
-| Métrica | Antes | Después | Variación |
-|---|---:|---:|---:|
-| Solicitudes en 30 s | 628 | 696 | +10,8% |
-| RPS | 17,11 | 22,67 | +32,5% |
-| p50 | 849,8 ms | 649,0 ms | -23,6% |
-| p95 | 2.361,0 ms | 1.373,4 ms | -41,8% |
-| p99 | 3.407,0 ms | 1.575,4 ms | -53,8% |
-| Máxima | 3.812,5 ms | 1.671,0 ms | -56,2% |
-
-### Segunda ejecución por nivel de concurrencia
-
-| Fase | Solicitudes | Éxito | RPS | p50 | p95 | p99 |
-|---|---:|---:|---:|---:|---:|---:|
-| Base, 1 usuario | 6 | 100% | 7,34 | 663,9 ms | 816,5 ms | 816,5 ms |
-| 10 usuarios | 20 | 100% | 19,88 | 698,8 ms | 993,9 ms | 1.005,7 ms |
-| 30 usuarios | 60 | 100% | 48,87 | 856,4 ms | 1.205,9 ms | 1.226,3 ms |
-| 60 usuarios | 120 | 100% | 43,29 | 2.203,3 ms | 2.616,8 ms | 2.732,2 ms |
-| 100 usuarios | 200 | 100% | 70,81 | 1.902,8 ms | 2.622,9 ms | 2.747,9 ms |
-| 120 usuarios, ráfaga | 240 | 100% | 73,51 | 2.194,7 ms | 3.080,6 ms | 3.207,2 ms |
-| 120 usuarios, sostenido | 696 | 100% | 22,67 | 649,0 ms | 1.373,4 ms | 1.575,4 ms |
-| Recuperación, 1 usuario | 6 | 100% | 5,34 | 908,7 ms | 1.120,4 ms | 1.120,4 ms |
-
-La ráfaga de 120 usuarios duplicó el rendimiento frente a la línea base, de 34,57 a 73,51 RPS. Su mediana fue más alta, pero la cola mejoró: p95 bajó 20,2%, p99 35,3% y máxima 40,4%. Esto indica mayor procesamiento simultáneo y menos solicitudes rezagadas.
-
-### Segunda ejecución por endpoint
-
-| Endpoint | Solicitudes | p50 | p95 | p99 | Cuerpo promedio | Transferencia promedio |
-|---|---:|---:|---:|---:|---:|---:|
-| Preferencia de idioma | 231 | 583,0 ms | 1.860,0 ms | 2.473,4 ms | 318 B | 318 B |
-| Roles | 226 | 1.017,2 ms | 2.600,9 ms | 3.021,2 ms | 121 B | 121 B |
-| Empresas resumidas | 220 | 1.237,8 ms | 3.004,6 ms | 3.121,3 ms | 171 B | 171 B |
-| Idiomas | 227 | 822,2 ms | 2.582,6 ms | 2.921,3 ms | 1,4 KB | 320 B |
-| Permisos del rol | 224 | 608,2 ms | 1.822,5 ms | 2.398,4 ms | 28,8 KB | 3,6 KB |
-| Subsidiarias resumidas | 220 | 1.217,1 ms | 2.980,7 ms | 3.188,3 ms | 15,4 KB | 1,8 KB |
-
-## Optimizaciones aplicadas
-
-1. Se agregó un modelo resumido optativo para subsidiarias y empresas, sin logos codificados ni campos innecesarios.
-2. Se creó una consulta individual de detalle para edición y documentos que sí necesitan el logo.
-3. Se incorporó caché positiva de 15 segundos para validar sesión y dispositivo, limitada a 5.000 entradas, sin almacenar tokens y respetando la expiración del JWT.
-4. Las validaciones simultáneas de una misma sesión se agrupan en una sola llamada, evitando una estampida hacia Supabase.
-5. Se agregó compresión gzip asíncrona para JSON desde 1 KB, sin bloquear el event loop y respetando `gzip;q=0`.
-6. El cierre de sesión invalida la caché local inmediatamente; una revocación externa puede tardar como máximo 15 segundos, valor configurable o desactivable.
-7. Se conservaron los contratos completos por defecto para no romper consumidores existentes.
-
-## Verificación técnica de la optimización
-
-- Compilación TypeScript: correcta.
-- Pruebas focales de rendimiento y compatibilidad: 24/24.
-- Pruebas de seguridad: 81/81.
-- Pruebas de entrega estática y compresión: 6/6.
-- Pruebas de internacionalización ejecutadas durante la preparación: 27/27.
-- Limpieza posterior a la carga: correcta; cero sesiones, dispositivos, roles, subsidiarias o historiales técnicos activos y la identidad temporal de Supabase Auth fue eliminada.
-
-## Conclusión de la línea base inicial
-
-**Resultado: Aprobado con mejoras prioritarias.**
-
-GENTIA se mantuvo disponible durante toda la prueba autenticada: procesó 1.280 solicitudes con 100% de éxito, sin timeouts y sin respuestas HTTP 5xx. La aplicación soporta la concurrencia probada desde el punto de vista de estabilidad, pero la latencia excede los objetivos definidos para una experiencia fluida.
-
-El principal cuello de botella observado es `GET /api/organization/subsidiaries`. Su respuesta promedio fue de aproximadamente 738 KB, concentró cerca del 96% del volumen transferido durante la fase autenticada y alcanzó una latencia p95 de 3,88 segundos.
-
-## Metodología
-
-La validación utilizó una rampa de 10, 30, 60, 100 y 120 usuarios virtuales. Después se mantuvieron 120 usuarios durante 30 segundos y se ejecutó una medición de recuperación.
-
-- Las operaciones funcionales fueron de solo lectura.
-- No se crearon facturas, pagos, solicitudes ni asientos contables.
-- Los 120 usuarios virtuales compartieron una identidad y un dispositivo técnicos temporales.
-- Se probaron preferencias de idioma, roles, empresas, idiomas, permisos del rol y subsidiarias.
-- Se ejecutó un inicio de sesión real antes de la carga, pero no 120 autenticaciones independientes.
-
-Esta metodología mide la concurrencia de Railway, el servidor Node, la validación de sesión y Supabase. No representa todavía 120 perfiles distintos ejecutando procesos transaccionales pesados.
-
-## Resultados de la capa pública
-
-La capa pública fue validada dos veces. En ambas ejecuciones completó 640 solicitudes con 100% de éxito y sin errores del servidor.
-
-| Métrica de la ejecución base | Resultado |
-|---|---:|
-| Solicitudes | 640 |
-| Éxito | 100% |
-| HTTP 5xx | 0 |
-| Timeouts | 0 |
-| p50 | 376,3 ms |
-| p95 | 768,0 ms |
-| p99 | 847,7 ms |
-| Máxima | 1.040,7 ms |
-
-En la repetición, el pico de 120 usuarios procesó 240 solicitudes a 160,99 solicitudes por segundo, con p95 de 659,2 ms y 100% de éxito.
-
-## Resultados de API autenticada
-
-| Métrica global | Resultado | Objetivo | Estado |
-|---|---:|---:|---|
-| Solicitudes | 1.280 | — | — |
-| Éxito | 100% | >= 99% | Cumple |
-| Errores | 0 | < 1% | Cumple |
-| HTTP 5xx | 0 | < 0,2% | Cumple |
+| Criterio | Objetivo | Resultado local optimizado | Estado |
+| --- | ---: | ---: | --- |
+| Tasa de éxito | >= 99 % | 100 % | Cumple |
+| Tasa de error | < 1 % | 0 % | Cumple |
 | Timeouts | 0 | 0 | Cumple |
-| p50 | 925,0 ms | < 600 ms | No cumple |
-| p95 | 3.075,7 ms | < 1.500 ms | No cumple |
-| p99 | 3.862,0 ms | < 3.000 ms | No cumple |
-| Máxima | 5.466,0 ms | — | Revisar |
+| p95 sostenido | < 1.500 ms | 348,38 ms | Cumple |
+| p99 sostenido | < 3.000 ms | 1.307,83 ms | Cumple |
 
-### Comportamiento por nivel de concurrencia
+## Resultado de la prueba optimizada
 
-| Fase | Solicitudes | Éxito | RPS | p50 | p95 | p99 |
-|---|---:|---:|---:|---:|---:|---:|
-| 10 usuarios | 20 | 100% | 4,64 | 985,7 ms | 2.100,9 ms | 2.814,5 ms |
-| 30 usuarios | 60 | 100% | 13,26 | 920,5 ms | 2.257,8 ms | 2.626,6 ms |
-| 60 usuarios | 120 | 100% | 24,88 | 921,9 ms | 2.436,2 ms | 2.677,1 ms |
-| 100 usuarios | 200 | 100% | 37,76 | 1.049,0 ms | 2.896,7 ms | 3.439,9 ms |
-| 120 usuarios, ráfaga | 240 | 100% | 34,57 | 1.343,3 ms | 3.862,0 ms | 4.959,6 ms |
-| 120 usuarios, sostenido | 628 | 100% | 17,11 | 849,8 ms | 2.361,0 ms | 3.407,0 ms |
-| Recuperación, 1 usuario | 6 | 100% | 0,71 | 944,6 ms | 2.258,5 ms | 2.258,5 ms |
+| Fase | Solicitudes | Éxito | p50 | p95 | p99 | Máxima |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Bootstrap de 120 sesiones | 240 | 100 % | 667,59 ms | 1.472,17 ms | 2.893,23 ms | 4.794,99 ms |
+| Rampa + sostenida + recuperación | 7.065 | 100 % | 101,08 ms | 410,38 ms | 1.635,44 ms | 2.920,14 ms |
+| Sostenida, 120 sesiones/5 min | 6.739 | 100 % | 99,63 ms | 348,38 ms | 1.307,83 ms | 2.920,14 ms |
 
-La ráfaga de 120 usuarios incrementó la latencia, pero no produjo errores ni pérdida de disponibilidad. Después de diez segundos, la aplicación continuó respondiendo correctamente; la muestra de recuperación fue pequeña y debe complementarse con métricas de infraestructura.
+La tasa sostenida fue de 22,46 RPS. El proceso utilizó 11,62 % de CPU en el
+intervalo medido, 206,41 MiB de memoria RSS y un retraso de event loop p99 de
+34,41 ms. Estos valores no indican saturación del proceso Node.
 
-### Resultados por endpoint
+## Comparación con la última ejecución de producción
 
-| Endpoint | Solicitudes | p50 | p95 | p99 | Promedio de respuesta |
-|---|---:|---:|---:|---:|---:|
-| Preferencia de idioma | 211 | 565,1 ms | 1.984,9 ms | 2.613,4 ms | 318 B |
-| Roles | 213 | 931,4 ms | 2.526,3 ms | 2.993,8 ms | 121 B |
-| Empresas | 214 | 1.048,1 ms | 2.825,8 ms | 3.046,1 ms | 171 B |
-| Idiomas | 218 | 749,0 ms | 2.126,8 ms | 2.832,5 ms | 1,4 KB |
-| Permisos del rol | 209 | 843,9 ms | 1.808,3 ms | 2.813,2 ms | 28,8 KB |
-| Subsidiarias | 215 | 2.246,1 ms | 3.881,9 ms | 4.959,6 ms | 737,7 KB |
+La última prueba en Railway se ejecutó antes de incorporar la caché operativa.
+Sirve como línea base, no como comparación pura de infraestructura porque la
+ejecución optimizada de este informe fue local.
 
-## Cuellos de botella confirmados
+| Métrica sostenida | Railway antes de caché operativa | Local optimizado |
+| --- | ---: | ---: |
+| Solicitudes | 6.002 | 6.739 |
+| Éxito | 100 % | 100 % |
+| Errores / timeouts | 0 / 0 | 0 / 0 |
+| p50 | 582,82 ms | 99,63 ms |
+| p95 | 1.742,58 ms | 348,38 ms |
+| p99 | 7.851,96 ms | 1.307,83 ms |
+| RPS | 20,01 | 22,46 |
 
-### 1. Respuesta excesiva del catálogo de subsidiarias
+La prueba pendiente en Railway determinará qué parte de esta mejora se conserva
+con la latencia de red e infraestructura de producción.
 
-La ruta lista las subsidiarias con `select=*`, incluyendo campos que no son necesarios para un selector o listado. El campo `logo_url` puede contener imágenes codificadas y amplía sustancialmente la respuesta. Las 215 consultas de esta ruta transfirieron 158,6 MB de los 165,1 MB observados en la prueba autenticada.
+## Optimizaciones ejecutadas
 
-**Mejora recomendada:** devolver en el listado únicamente identificador, nombre, razón social, país, moneda y estado. El logo y el resto del detalle deben consultarse en una ruta individual o almacenarse como URL de objeto, no como contenido base64 repetido.
+1. Se consolidó el arranque autenticado en `/api/auth/bootstrap` y una sola RPC.
+2. La validación de sesión, dispositivo y permisos comparte resultados positivos
+   por un intervalo breve, con expiraciones distribuidas para evitar estampidas.
+3. Las solicitudes simultáneas hacia Supabase se limitan y la cola es cancelable.
+4. Las opciones de reportes contables se obtienen mediante una RPC agrupada.
+5. Los listados de facturas de venta y proveedor, clientes, departamentos,
+   centros de costos, cuentas y extractos bancarios, activos y categorías usan
+   caché operativa por usuario y sesión.
+6. La caché operativa usa un TTL base de 90 segundos con una dispersión
+   determinista de 0 % a 15 %.
+7. Crear, editar, eliminar o ejecutar servicios especializados invalida el
+   catálogo afectado. Cambiar empresa, rol o bootstrap invalida solamente el
+   contexto de la sesión.
+8. No se implementó `stale-while-revalidate`: al expirar la entrada se consulta
+   nuevamente el origen para evitar entregar datos vencidos.
+9. Departamentos incluye sus relaciones de subsidiarias en la consulta principal,
+   eliminando la paginación adicional del camino caliente.
+10. Se agregó telemetría de rutas, llamadas a Supabase, caché, CPU, memoria y
+    event loop.
 
-### 2. Demasiados viajes a Supabase durante el arranque
+## Efecto de la caché operativa
 
-El ingreso completo del usuario carga idioma, roles, permisos, empresas, empresa activa y otros catálogos mediante múltiples llamadas sucesivas. Además, cada API autenticada ejecuta primero `assert_request_access`.
+| Catálogo | Aciertos | Fallos | Tasa de acierto |
+| --- | ---: | ---: | ---: |
+| Facturas de venta | 1.052 | 362 | 74,40 % |
+| Facturas de proveedor | 1.048 | 363 | 74,27 % |
+| Clientes | 581 | 360 | 61,74 % |
+| Cuentas bancarias | 226 | 247 | 47,78 % |
+| Extractos bancarios | 224 | 248 | 47,46 % |
+| Departamentos | 226 | 249 | 47,58 % |
+| Centros de costos | 220 | 248 | 47,01 % |
+| Activos | 222 | 248 | 47,23 % |
+| Categorías de activos | 229 | 240 | 48,83 % |
+| Opciones contables | 224 | 248 | 47,46 % |
 
-**Mejora recomendada:** crear `/api/auth/bootstrap` respaldado por un RPC que entregue el contexto inicial en una sola operación. Aplicar una caché corta, de 10 a 30 segundos, a validaciones exitosas de sesión y dispositivo, con un TTL configurable.
+Los catálogos de mayor frecuencia redujeron aproximadamente entre 59 % y 64 %
+sus viajes promedio a Supabase. La caché de permisos alcanzó 82,20 %.
 
-### 3. Falta de telemetría de infraestructura
+## Verificación automatizada
 
-La prueba midió tiempos desde el cliente, pero no tuvo acceso a CPU, memoria, event-loop lag, conexiones ni tiempos internos de Supabase.
+- Rendimiento y compatibilidad: 64/64 pruebas.
+- Seguridad y autenticación: 91/91 pruebas.
+- Entrega estática, compresión y timeouts: 6/6 pruebas.
+- Internacionalización: 27/27 pruebas.
+- Prueba corta de 15 sesiones: aprobada, p95 450,90 ms y p99 557,07 ms.
+- Prueba completa de 120 sesiones: aprobada, limpieza verificada.
 
-**Mejora recomendada:** incorporar métricas por ruta y por llamada upstream, además de `/health` y `/ready`. Los timeouts o fallos de Supabase deben clasificarse como 503/504 y no como errores funcionales 400.
+## Metodología y alcance
 
-## Plan de mejora priorizado
+El arnés utiliza una identidad técnica inactiva y crea 120 sesiones Auth y
+dispositivos independientes. Después del bootstrap, cada sesión navega durante
+cinco minutos por una mezcla ponderada de ventas, compras, entidades,
+organización, bancos, activos fijos y opciones contables.
 
-1. Reducir la respuesta de subsidiarias y separar la descarga de logos.
-2. Incorporar compresión gzip/Brotli y ETag para JSON de lectura.
-3. Crear el endpoint consolidado `/api/auth/bootstrap`.
-4. Cachear brevemente la validación positiva de sesión/dispositivo.
-5. Agregar paginación, búsqueda del lado servidor y proyección de columnas a catálogos grandes.
-6. Añadir métricas de Railway/Supabase y trazabilidad de latencia por endpoint.
-7. Permitir reintentos únicamente para RPC de lectura idempotentes.
-8. Separar tareas programadas y conectores de tipos de cambio del proceso web.
-9. Evaluar aumento de recursos o réplicas en Railway después de optimizar payloads y consultas.
+Las operaciones funcionales son exclusivamente de lectura. No se crean
+facturas, pagos, asientos ni solicitudes. En `finally`, el proceso elimina la
+identidad Auth temporal y restaura exactamente el estado anterior del usuario
+técnico.
 
-## Criterio para la segunda prueba
+Esta prueba valida concurrencia de sesiones, API, caché y Supabase. No equivale
+a 120 identidades distintas ejecutando simultáneamente reportes pesados o
+transacciones de escritura. Ese escenario debe ser una fase separada con datos
+de prueba y una ventana controlada.
 
-Después de las mejoras se debe repetir una prueba de al menos cinco minutos con 120 usuarios y exigir:
+## Paso final para producción
 
-- éxito >= 99%;
-- errores < 1%;
-- cero timeouts;
-- p95 API < 1,5 segundos;
-- p99 API < 3 segundos;
-- recuperación al baseline en menos de dos minutos.
-
-Como fase adicional, conviene utilizar un grupo de usuarios técnicos independientes y ejecutar escenarios controlados de reportes, facturas y consultas contables, sin afectar información real.
-
-## Limpieza y seguridad
-
-La identidad creada en Supabase Auth fue eliminada y su consulta posterior devolvió HTTP 404. No quedaron sesiones, dispositivos, roles, subsidiarias ni historial de ingreso asociados. El catálogo conserva un registro técnico inactivo, sin vínculo Auth y sin permisos, porque la bitácora de auditoría impide eliminar usuarios referenciados. Se preservaron cuatro eventos de auditoría de la prueba; el registro residual no puede iniciar sesión y no representa acceso activo.
-
-No se expusieron credenciales ni se modificaron transacciones de negocio durante la prueba.
+1. Rotar las credenciales administrativas que estuvieron presentes en dos
+   scripts temporales antiguos y actualizar Railway/Supabase.
+2. Publicar los commits saneados y confirmar el despliegue de Railway.
+3. Ejecutar nuevamente el arnés de 120 sesiones durante cinco minutos contra
+   la URL HTTPS de producción.
+4. Certificar solamente si vuelve a cumplir los cinco criterios automáticos.
+5. Para una certificación extendida, repetir durante 30 minutos y revisar las
+   métricas de Supabase y Railway durante toda la ventana.

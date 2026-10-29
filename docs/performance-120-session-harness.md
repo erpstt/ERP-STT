@@ -45,6 +45,12 @@ El proceso limita por defecto a 16 las solicitudes simultáneas hacia Supabase;
 las adicionales esperan en una cola cancelable. Este límite conserva margen
 suficiente para la carga media y evita trasladar ráfagas completas a PostgREST.
 
+Los catálogos operativos incluidos en el perfil usan una caché aislada por
+usuario y sesión con base de 90 segundos y dispersión determinista de hasta
+15 %. Las mutaciones invalidan todo el catálogo afectado; cambiar empresa, rol
+o ejecutar nuevamente el bootstrap invalida solamente el contexto de esa
+sesión. No se sirven entradas vencidas en segundo plano.
+
 El aprovisionamiento se limita por defecto a una sesión cada 2,1 segundos y
 reintenta con espera progresiva si Supabase activa su protección del endpoint
 de tokens. La carga sostenida comienza solo después de crear las 120 sesiones.
