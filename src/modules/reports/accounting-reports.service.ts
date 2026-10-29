@@ -1,4 +1,5 @@
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
+import { ScopedReadCache } from '../../core/performance/scoped-read-cache.js';
 import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { readFile, rm, writeFile } from 'node:fs/promises';
@@ -11,6 +12,23 @@ const configuredPdfConcurrency=Number(process.env.PDF_RENDER_CONCURRENCY??2);
 const maxPdfConcurrency=Number.isInteger(configuredPdfConcurrency)?Math.min(Math.max(configuredPdfConcurrency,1),4):2;
 let activePdfRenders=0;
 const pendingPdfRenders:Array<()=>void>=[];
+const accountingOptionsCache=new ScopedReadCache<Record<string,unknown>>({defaultTtlMs:60_000,maxEntries:2_000});
+const accountingOptionsCacheNamespace='reports-accounting-options';
+
+function accountingOptionsScope(authorization:string){
+  const raw=authorization.replace(/^Bearer\s+/,'');
+  const part=raw.split('.')[1];
+  if(!part)return[authorization]as const;
+  try{
+    const identity=JSON.parse(Buffer.from(part,'base64url').toString('utf8'))as Record<string,unknown>;
+    const user=String(identity.sub??identity.email??'unknown');
+    return[user,String(identity.session_id??user)]as const;
+  }catch{return[authorization]as const;}
+}
+
+export function invalidateAccountingReportOptionsCache(authorization?:string){
+  accountingOptionsCache.invalidate(accountingOptionsCacheNamespace,authorization?accountingOptionsScope(authorization):undefined);
+}
 async function acquirePdfRender(){
   if(activePdfRenders>=maxPdfConcurrency)await new Promise<void>(resolve=>pendingPdfRenders.push(resolve));
   activePdfRenders+=1;
@@ -28,7 +46,13 @@ async function rpc<T>(authorization:string,name:string,input:Record<string,unkno
   if(!response.ok)throw new Error(typeof payload==='object'&&payload&&'message'in payload?String(payload.message):'No fue posible generar el informe.');
   return payload as T;
 }
-export async function accountingReportOptions(authorization:string){const [base,dimensionLinks,journalOptions,pendingInvoiceOptions,agingOptions,bankOptions]=await Promise.all([rpc<Record<string,unknown>>(authorization,'accounting_report_options'),rpc<Record<string,unknown>>(authorization,'income_statement_dimension_links'),rpc<Record<string,unknown>>(authorization,'general_journal_options'),rpc<Record<string,unknown>>(authorization,'pending_invoice_control_options'),rpc<Record<string,unknown>>(authorization,'aging_report_options'),rpc<Record<string,unknown>>(authorization,'bank_reconciliation_options')]);return{...base,...dimensionLinks,journalOptions,pendingInvoiceOptions,agingOptions,bankOptions};}
+export function accountingReportOptions(authorization:string){
+  return accountingOptionsCache.getOrLoad({
+    namespace:accountingOptionsCacheNamespace,
+    scope:accountingOptionsScope(authorization),
+    loader:()=>rpc<Record<string,unknown>>(authorization,'accounting_report_options_bundle'),
+  });
+}
 export function runAccountingReport(authorization:string,report:string,filters:Record<string,unknown>){
   if(!reports.has(report))throw new Error('El reporte solicitado no existe.');
   const scopedFilters=report==='income-statement'?{...filters,accountId:null}:filters;

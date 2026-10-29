@@ -19,7 +19,10 @@ test('una escritura a Supabase libera una solicitud que deja de responder', { ti
   };
 
   const started = performance.now();
-  await assert.rejects(fetchSupabase('https://example.invalid/rest/v1/test', { method: 'POST' }), /No fue posible conectar con Supabase/);
+  await assert.rejects(
+    fetchSupabase('https://example.invalid/rest/v1/test', { method: 'POST' }),
+    error => error?.name === 'SupabaseUnavailableError' && error?.status === 503 && /No fue posible conectar con Supabase/.test(error.message)
+  );
   const elapsed = performance.now() - started;
   assert.equal(calls, 1);
   assert.ok(elapsed >= 900 && elapsed < 2_500, `tiempo transcurrido inesperado: ${elapsed} ms`);

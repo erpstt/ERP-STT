@@ -1,4 +1,5 @@
 import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
+import { ScopedReadCache } from '../../../core/performance/scoped-read-cache.js';
 
 export type SupportedLocale = 'es' | 'en' | 'pt';
 
@@ -13,6 +14,32 @@ export interface LanguageOption {
 export interface LanguagePreference extends Partial<LanguageOption> {
   locale: SupportedLocale;
   languages: LanguageOption[];
+}
+
+const languagePreferenceCache = new ScopedReadCache<LanguagePreference>({
+  defaultTtlMs: 60_000,
+  maxEntries: 2_000,
+});
+const languagePreferenceCacheNamespace = 'auth-language-preference';
+
+function preferenceScope(authorization: string) {
+  const raw = authorization.replace(/^Bearer\s+/, '');
+  const part = raw.split('.')[1];
+  if (!part) return [authorization] as const;
+  try {
+    const identity = JSON.parse(Buffer.from(part, 'base64url').toString('utf8')) as Record<string, unknown>;
+    return [String(identity.sub ?? identity.email ?? 'unknown')] as const;
+  } catch {
+    // ScopedReadCache resume el alcance; el token nunca queda en texto claro.
+    return [authorization] as const;
+  }
+}
+
+export function invalidateLanguagePreferenceCache(authorization?: string) {
+  languagePreferenceCache.invalidate(
+    languagePreferenceCacheNamespace,
+    authorization ? preferenceScope(authorization) : undefined,
+  );
 }
 
 function errorMessage(payload: unknown, fallback: string) {
@@ -48,12 +75,20 @@ function normalizedLocale(value: unknown): SupportedLocale {
 }
 
 export function getLanguagePreference(authorization: string) {
-  return rpc<LanguagePreference>(authorization, 'user_language_preference');
+  return languagePreferenceCache.getOrLoad({
+    namespace: languagePreferenceCacheNamespace,
+    scope: preferenceScope(authorization),
+    loader: () => rpc<LanguagePreference>(authorization, 'user_language_preference'),
+  });
 }
 
 export function setLanguagePreference(authorization: string, locale: unknown) {
+  const normalized = normalizedLocale(locale);
   return rpc<LanguagePreference>(authorization, 'set_user_language_preference', {
-    p_locale: normalizedLocale(locale),
+    p_locale: normalized,
+  }).then(preference => {
+    invalidateLanguagePreferenceCache(authorization);
+    return preference;
   });
 }
 

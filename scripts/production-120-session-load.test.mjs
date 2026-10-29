@@ -18,6 +18,47 @@ test('cada usuario virtual recibe sesión y dispositivo independientes', () => {
   assert.match(source, /bootstrapVersion\) !== 1/);
 });
 
+test('la carga posterior al bootstrap representa navegación operativa de solo lectura', () => {
+  const workloadStart = source.indexOf('const workloadEndpoints = [');
+  const workloadEnd = source.indexOf('const endpointFor', workloadStart);
+  const workload = source.slice(workloadStart, workloadEnd);
+
+  for (const path of [
+    '/api/sales/invoices',
+    '/api/purchasing/supplier-invoices',
+    '/api/entities/customers',
+    '/api/organization/departments',
+    '/api/organization/cost-centers',
+    '/api/banking/bank-accounts',
+    '/api/banking/bank-statements',
+    '/api/fixed-assets/assets',
+    '/api/fixed-assets/asset-categories',
+    '/api/reports/accounting/options',
+  ]) {
+    assert.ok(workload.includes(path), `Falta la ruta operativa ${path}.`);
+  }
+
+  for (const legacyPath of [
+    '/api/core/languages',
+    '/api/auth/companies?view=summary',
+    '/api/organization/subsidiaries?view=summary',
+    '/api/security/my-role-access',
+    '/api/auth/roles',
+    '/api/auth/language-preference',
+  ]) {
+    assert.ok(!workload.includes(legacyPath), `La mezcla no debe repetir ${legacyPath} después del bootstrap.`);
+  }
+
+  assert.doesNotMatch(workload, /method:\s*'(POST|PUT|PATCH|DELETE)'/);
+});
+
+test('el aprovisionamiento respeta el token bucket y reintenta con espera progresiva', () => {
+  assert.match(source, /login-interval-ms/);
+  assert.match(source, /rate limit\|too many requests/i);
+  assert.match(source, /Math\.min\(30_000, 5_000 \* attempt\)/);
+  assert.match(source, /loginIntervalMs - \(Date\.now\(\) - batchStartedAt\)/);
+});
+
 test('mide percentiles, criterios y telemetría interna', () => {
   for (const marker of ['p50Ms', 'p95Ms', 'p99Ms', 'successRateAtLeast99', 'p95Below1500Ms', '/api/internal/performance']) {
     assert.ok(source.includes(marker), `Falta ${marker}.`);

@@ -86,15 +86,13 @@ test('subsidiarias resume por sesión, no cachea logos y respeta invalidación',
   assert.equal(queries.filter(url => url.pathname.endsWith('/subsidiaries')).length, 2);
 });
 
-test('permisos y autorizaciones positivas se cachean y una asignación de rol los invalida', async () => {
+test('la matriz de permisos se cachea y una asignación de rol la invalida', async () => {
   invalidateRoleAccessCaches();
   let myAccessCalls = 0;
-  let assertionCalls = 0;
   let assignments = 0;
   globalThis.fetch = async (input, init = {}) => {
     const url = new URL(String(input));
-    if (url.pathname.endsWith('/rpc/security_my_role_access')) { myAccessCalls += 1; return Response.json({ isAdmin: false, grants: [] }); }
-    if (url.pathname.endsWith('/rpc/security_assert_role_access')) { assertionCalls += 1; return Response.json(null); }
+    if (url.pathname.endsWith('/rpc/security_my_role_access')) { myAccessCalls += 1; return Response.json({ isAdmin: false, grants: [{ resourceKey: 'core:languages', canView: true, canCreate: false, canEdit: false, canDelete: false }] }); }
     if (url.pathname.endsWith('/user_roles') && init.method === 'POST') { assignments += 1; return Response.json([{ id: 1 }]); }
     throw new Error(`Solicitud inesperada: ${init.method ?? 'GET'} ${url}`);
   };
@@ -103,32 +101,30 @@ test('permisos y autorizaciones positivas se cachean y una asignación de rol lo
   await assertRoleAccess(authorization, 'core:languages', 'view');
   await assertRoleAccess(authorization, 'core:languages', 'view');
   assert.equal(myAccessCalls, 1);
-  assert.equal(assertionCalls, 1);
   await createSecurityRow(getSecurityCatalog('user-roles'), authorization, { user_id: 4, role_id: 1 });
   assert.equal(assignments, 1);
   await myRoleAccess(authorization);
   await assertRoleAccess(authorization, 'core:languages', 'view');
   assert.equal(myAccessCalls, 2);
-  assert.equal(assertionCalls, 2);
 });
 
-test('un cambio de contexto invalida solo las autorizaciones de esa sesión', async () => {
+test('un cambio de contexto invalida solo la matriz de esa sesión', async () => {
   invalidateRoleAccessCaches();
-  let assertionCalls = 0;
+  let matrixCalls = 0;
   globalThis.fetch = async input => {
     const url = new URL(String(input));
-    if (url.pathname.endsWith('/rpc/security_assert_role_access')) { assertionCalls += 1; return Response.json(null); }
+    if (url.pathname.endsWith('/rpc/security_my_role_access')) { matrixCalls += 1; return Response.json({ isAdmin: false, grants: [{ resourceKey: 'core:languages', canView: true, canCreate: false, canEdit: false, canDelete: false }] }); }
     throw new Error(`Solicitud inesperada: ${url}`);
   };
   await assertRoleAccess(authorization, 'core:languages', 'view');
   await assertRoleAccess(secondAuthorization, 'core:languages', 'view');
   await assertRoleAccess(authorization, 'core:languages', 'view');
   await assertRoleAccess(secondAuthorization, 'core:languages', 'view');
-  assert.equal(assertionCalls, 2);
+  assert.equal(matrixCalls, 2);
   invalidateRoleAccessCaches(authorization);
   await assertRoleAccess(authorization, 'core:languages', 'view');
   await assertRoleAccess(secondAuthorization, 'core:languages', 'view');
-  assert.equal(assertionCalls, 3);
+  assert.equal(matrixCalls, 3);
 });
 
 test('cambiar empresas de un usuario invalida empresas y subsidiarias resumidas', async () => {

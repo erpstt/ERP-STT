@@ -21,7 +21,8 @@ const confirmed = argumentsMap.get('confirm-production-load') === true;
 const baseUrl = String(argumentsMap.get('base-url') || process.env.GENTIA_LOAD_BASE_URL || process.env.GENTIA_APP_URL || '').replace(/\/$/, '');
 const sessionCount = numberArgument('sessions', 120, 2, 150);
 const durationSeconds = numberArgument('duration-seconds', 300, 30, 3600);
-const loginRate = numberArgument('login-rate', 5, 1, 10);
+const loginRate = numberArgument('login-rate', 1, 1, 10);
+const loginIntervalMs = numberArgument('login-interval-ms', 2100, 200, 10000);
 const thinkTimeMs = numberArgument('think-time-ms', 4500, 500, 30000);
 const timeoutMs = numberArgument('timeout-ms', 15000, 1000, 60000);
 const outputFile = argumentsMap.get('output') ? resolve(String(argumentsMap.get('output'))) : null;
@@ -204,20 +205,30 @@ async function prepareTechnicalUser() {
 
 async function createApplicationSession(index, context) {
   const deviceToken = `gentia-load-${runId}-${index}-${randomBytes(12).toString('hex')}`;
-  const login = await observedRequest({
-    phase: 'session-bootstrap',
-    label: 'POST /api/auth/login',
-    path: '/api/auth/login',
-    method: 'POST',
-    body: {
-      email: technicalUser.email,
-      password,
-      deviceToken,
-      deviceName: `Carga certificación ${index + 1}`,
-      ...(turnstileToken ? { turnstileToken } : {}),
-    },
-    fatal: true,
-  });
+  let login;
+  for (let attempt = 1; attempt <= 8; attempt += 1) {
+    try {
+      login = await observedRequest({
+        phase: 'session-bootstrap',
+        label: 'POST /api/auth/login',
+        path: '/api/auth/login',
+        method: 'POST',
+        body: {
+          email: technicalUser.email,
+          password,
+          deviceToken,
+          deviceName: `Carga certificación ${index + 1}`,
+          ...(turnstileToken ? { turnstileToken } : {}),
+        },
+        fatal: true,
+      });
+      break;
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      if (!/rate limit|too many requests/i.test(message) || attempt === 8) throw cause;
+      await sleep(Math.min(30_000, 5_000 * attempt));
+    }
+  }
   const accessToken = String(login?.accessToken || '');
   if (!accessToken) throw new Error('El inicio de sesión no devolvió token de acceso.');
   const session = { index, deviceToken, accessToken };
@@ -232,23 +243,37 @@ async function createApplicationSession(index, context) {
   });
   if (Number(bootstrap?.bootstrapVersion) !== 1) throw new Error('El servidor no devolvió bootstrapVersion 1.');
   sessions.push(session);
+  if (sessions.length % 10 === 0 || sessions.length === sessionCount) {
+    console.error(`[carga] Sesiones preparadas: ${sessions.length}/${sessionCount}`);
+  }
   return session;
 }
 
 async function createSessionBatch(from, to, context) {
   for (let cursor = from; cursor < to; cursor += loginRate) {
+    const batchStartedAt = Date.now();
     await Promise.all(Array.from({ length: Math.min(loginRate, to - cursor) }, (_, offset) => createApplicationSession(cursor + offset, context)));
-    if (cursor + loginRate < to) await sleep(1000);
+    if (cursor + loginRate < to) await sleep(Math.max(0, loginIntervalMs - (Date.now() - batchStartedAt)));
   }
 }
 
 const workloadEndpoints = [
-  { label: 'GET /api/core/languages', path: '/api/core/languages' },
-  { label: 'GET /api/auth/companies?view=summary', path: '/api/auth/companies?view=summary' },
-  { label: 'GET /api/organization/subsidiaries?view=summary', path: '/api/organization/subsidiaries?view=summary' },
-  { label: 'GET /api/security/my-role-access', path: '/api/security/my-role-access' },
-  { label: 'GET /api/auth/roles', path: '/api/auth/roles' },
-  { label: 'GET /api/auth/language-preference', path: '/api/auth/language-preference' },
+  // Mezcla ponderada de navegación real posterior al bootstrap (15 posiciones).
+  // Las repeticiones expresan frecuencia de uso sin encadenar la misma vista.
+  { label: 'GET /api/sales/invoices', path: '/api/sales/invoices' },
+  { label: 'GET /api/purchasing/supplier-invoices', path: '/api/purchasing/supplier-invoices' },
+  { label: 'GET /api/entities/customers', path: '/api/entities/customers' },
+  { label: 'GET /api/organization/departments', path: '/api/organization/departments' },
+  { label: 'GET /api/banking/bank-accounts', path: '/api/banking/bank-accounts' },
+  { label: 'GET /api/fixed-assets/assets', path: '/api/fixed-assets/assets' },
+  { label: 'GET /api/sales/invoices', path: '/api/sales/invoices' },
+  { label: 'GET /api/purchasing/supplier-invoices', path: '/api/purchasing/supplier-invoices' },
+  { label: 'GET /api/organization/cost-centers', path: '/api/organization/cost-centers' },
+  { label: 'GET /api/entities/customers', path: '/api/entities/customers' },
+  { label: 'GET /api/banking/bank-statements', path: '/api/banking/bank-statements' },
+  { label: 'GET /api/fixed-assets/asset-categories', path: '/api/fixed-assets/asset-categories' },
+  { label: 'GET /api/sales/invoices', path: '/api/sales/invoices' },
+  { label: 'GET /api/purchasing/supplier-invoices', path: '/api/purchasing/supplier-invoices' },
   { label: 'GET /api/reports/accounting/options', path: '/api/reports/accounting/options' },
 ];
 
@@ -275,14 +300,21 @@ async function runRamp() {
 
 async function runSustained() {
   const deadline = Date.now() + durationSeconds * 1000;
-  await Promise.all(sessions.map(async session => {
-    let iteration = 0;
-    while (Date.now() < deadline) {
-      await readOnce('sustained-120', session, iteration++);
-      const jitter = Math.floor(Math.random() * Math.max(250, Math.floor(thinkTimeMs / 3)));
-      await sleep(thinkTimeMs + jitter);
-    }
-  }));
+  console.error(`[carga] Fase sostenida iniciada: ${sessionCount} sesiones durante ${durationSeconds} segundos.`);
+  const progress = setInterval(() => {
+    console.error(`[carga] Fase sostenida: ${Math.max(0, Math.ceil((deadline - Date.now()) / 1000))} segundos restantes.`);
+  }, 60_000);
+  progress.unref();
+  try {
+    await Promise.all(sessions.map(async session => {
+      let iteration = 0;
+      while (Date.now() < deadline) {
+        await readOnce('sustained-120', session, iteration++);
+        const jitter = Math.floor(Math.random() * Math.max(250, Math.floor(thinkTimeMs / 3)));
+        await sleep(thinkTimeMs + jitter);
+      }
+    }));
+  } finally { clearInterval(progress); }
 }
 
 const percentile = (values, fraction) => {
@@ -432,8 +464,8 @@ try {
     startedAt: runStartedAt,
     completedAt: new Date().toISOString(),
     target: parsedBaseUrl.origin,
-    configuration: { sessionCount, durationSeconds, loginRate, thinkTimeMs, timeoutMs },
-    methodology: 'Una identidad técnica, 120 sesiones Auth y dispositivos independientes; operaciones funcionales de solo lectura.',
+    configuration: { sessionCount, durationSeconds, loginRate, loginIntervalMs, thinkTimeMs, timeoutMs },
+    methodology: 'Una identidad técnica, 120 sesiones Auth y dispositivos independientes; un bootstrap por sesión y navegación UI ponderada, posterior al bootstrap y de solo lectura, por ventas, compras, entidades, organización, bancos, activos y opciones contables.',
     bootstrap: { overall: summarize(bootstrapRecords), byEndpoint: groupedSummary(bootstrapRecords, 'label'), server: bootstrapServerMetrics },
     workload: {
       elapsedSeconds: Number(workloadElapsedSeconds.toFixed(3)),

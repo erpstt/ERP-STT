@@ -10,6 +10,7 @@ import { startTaxCalendarNotifications, taxCalendarAction, taxCalendarDocument }
 import { taxObligationCatalogAction } from './modules/tax-calendar/tax-obligation-catalog.service.js';
 import { recordActorAudit } from './modules/audit-catalogs/record-actor-audit.service.js';
 import { withAuditExecution } from './core/database/audit-context.js';
+import { withSupabaseRequestSignal } from './core/database/supabase.client.js';
 import { resetRuntimePerformanceMetrics, runtimePerformanceSnapshot, withRequestPerformance } from './core/performance/runtime-metrics.js';
 import { paymentRequests } from './modules/treasury-catalogs/payment-requests.service.js';
 import { paymentBatchOptions, paymentBatchCandidates, paymentBatchReport, paymentBatchDetail, generatePaymentBatch, downloadPaymentBatch, markPaymentBatchSent, cancelPaymentBatch, applyPaymentBatchReference, applyPaymentBatchResponse } from './modules/treasury-catalogs/payment-batches.service.js';
@@ -247,6 +248,11 @@ async function serveFile(pathname: string, request: IncomingMessage, response: S
 }
 
 const server = createServer((request, response) => {
+  const requestAbort=new AbortController();
+  const abortRequest=()=>{if(!requestAbort.signal.aborted)requestAbort.abort(new Error('El cliente cerró la solicitud.'));};
+  const abortClosedResponse=()=>{if(!response.writableFinished)abortRequest();};
+  request.once('aborted',abortRequest);
+  response.once('close',abortClosedResponse);
   void withRequestPerformance(
     {
       method: request.method,
@@ -259,7 +265,7 @@ const server = createServer((request, response) => {
             response.once('finish',done);response.once('close',done);
           }),
     },
-    () => withAuditExecution(async () => {
+    () => withSupabaseRequestSignal(requestAbort.signal,() => withAuditExecution(async () => {
   applySecurityHeaders(request, response);
   try {
     if (request.method === 'GET' && request.url === '/api/health') {
@@ -803,10 +809,13 @@ const server = createServer((request, response) => {
     if (cause instanceof UserProvisioningError && cause.retryAfterSeconds) response.setHeader('Retry-After', String(cause.retryAfterSeconds));
     error(response, cause instanceof SessionAuthenticationError ? 401 : (cause as {status?:number})?.status || (cause instanceof Error&&/^Saldo presupuestario/.test(cause.message)?422:400), cause instanceof Error ? cause.message : 'No fue posible procesar la solicitud.');
   }
-    })
+    }))
   ).catch(cause => {
     if (!response.headersSent) error(response, 500, cause instanceof Error ? cause.message : 'No fue posible procesar la solicitud.');
     else if (!response.writableEnded) response.destroy(cause instanceof Error ? cause : undefined);
+  }).finally(()=>{
+    request.off('aborted',abortRequest);
+    response.off('close',abortClosedResponse);
   });
 });
 

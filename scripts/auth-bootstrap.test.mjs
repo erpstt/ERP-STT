@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { bootstrapSession } from '../dist/modules/auth/services/bootstrap.service.js';
+import { assertRoleAccess, invalidateRoleAccessCaches } from '../dist/modules/security-catalogs/role-access-matrix.module.js';
 
 const originalFetch = globalThis.fetch;
 const originalUrl = process.env.SUPABASE_URL;
@@ -17,6 +18,7 @@ test.after(() => {
 });
 
 test('bootstrap usa una sola RPC, conserva el JWT y agrega el catálogo de módulos', async () => {
+  invalidateRoleAccessCaches();
   const calls = [];
   globalThis.fetch = async (input, init = {}) => {
     calls.push({ url: new URL(String(input)), init });
@@ -40,6 +42,12 @@ test('bootstrap usa una sola RPC, conserva el JWT y agrega el catálogo de módu
   assert.equal(result.activeRole.roleId, 2);
   assert.equal(result.activeCompany.subsidiaryId, 7);
   assert.ok(result.roleAccess.modules.length > 10);
+  await assertRoleAccess('Bearer jwt-test', 'accounting:journals', 'view');
+  await assert.rejects(
+    () => assertRoleAccess('Bearer jwt-test', 'accounting:journals', 'delete'),
+    error => error instanceof Error && error.status === 403,
+  );
+  assert.equal(calls.length, 1, 'El bootstrap debe precargar la matriz sin otra RPC de permisos.');
 });
 
 test('bootstrap rechaza identificadores inválidos antes de consultar Supabase', async () => {

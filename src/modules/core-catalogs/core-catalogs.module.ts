@@ -1,9 +1,13 @@
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
-import { ScopedReadCache } from '../../core/performance/scoped-read-cache.js';
+import { invalidateReadCacheNamespace, ScopedReadCache } from '../../core/performance/scoped-read-cache.js';
 
 const languageCache = new ScopedReadCache<Record<string, unknown>[]>({ defaultTtlMs: 300_000 });
 const languageCacheNamespace = 'core-languages';
-export const invalidateCoreLanguageCache = () => languageCache.invalidate(languageCacheNamespace);
+export const invalidateCoreLanguageCache = () => {
+  languageCache.invalidate(languageCacheNamespace);
+  // La preferencia devuelve también el catálogo de idiomas habilitados.
+  invalidateReadCacheNamespace('auth-language-preference');
+};
 
 type FieldType = 'text' | 'number' | 'boolean';
 export interface CatalogField { key: string; label: string; type: FieldType; required?: boolean; readOnly?: boolean; reference?: string; options?: string[]; }

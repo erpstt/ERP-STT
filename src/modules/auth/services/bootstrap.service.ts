@@ -1,6 +1,7 @@
 import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
-import { invalidateRoleAccessCaches, roleAccessModules } from '../../security-catalogs/role-access-matrix.module.js';
+import { primeRoleAccessCache } from '../../security-catalogs/role-access-matrix.module.js';
 import { invalidateOrganizationSubsidiarySummaryCache } from '../../organization-catalogs/organization-catalogs.module.js';
+import { invalidateAccountingReportOptionsCache } from '../../reports/accounting-reports.service.js';
 
 interface BootstrapInput {
   preferredRoleId?: unknown;
@@ -73,14 +74,14 @@ export async function bootstrapSession(authorization: string, input: BootstrapIn
   // La RPC puede seleccionar un rol o una empresa distintos para esta sesión.
   // Se invalida solo el resumen de esta sesión; las autorizaciones positivas
   // se limpian para impedir que sobrevivan a un cambio de rol.
-  invalidateRoleAccessCaches(authorization);
+  const roleAccess = await primeRoleAccessCache(authorization, {
+    isAdmin: value.roleAccess?.isAdmin === true,
+    grants: Array.isArray(value.roleAccess?.grants) ? value.roleAccess.grants : [],
+  });
   invalidateOrganizationSubsidiarySummaryCache(authorization);
+  invalidateAccountingReportOptionsCache(authorization);
   return {
     ...value,
-    roleAccess: {
-      isAdmin: Boolean(value.roleAccess?.isAdmin),
-      grants: Array.isArray(value.roleAccess?.grants) ? value.roleAccess.grants : [],
-      modules: roleAccessModules,
-    },
+    roleAccess,
   };
 }

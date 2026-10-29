@@ -5,9 +5,18 @@ import test from 'node:test';
 const source = await readFile(new URL('../src/server.ts', import.meta.url), 'utf8');
 
 test('todas las solicitudes quedan envueltas por telemetrÃ­a de rendimiento', () => {
-  assert.match(source, /createServer\(\(request, response\) => \{\s*void withRequestPerformance\(/);
+  assert.match(source, /createServer\(\(request, response\) => \{[\s\S]*?void withRequestPerformance\(/);
   assert.match(source, /status: \(\) => response\.statusCode/);
   assert.match(source, /completion: \(\) => response\.writableFinished \|\| response\.destroyed/);
+});
+
+test('el cierre del cliente cancela las consultas Supabase pendientes', () => {
+  assert.match(source, /const requestAbort=new AbortController\(\)/);
+  assert.match(source, /request\.once\('aborted',abortRequest\)/);
+  assert.match(source, /response\.once\('close',abortClosedResponse\)/);
+  assert.match(source, /withSupabaseRequestSignal\(requestAbort\.signal/);
+  assert.match(source, /request\.off\('aborted',abortRequest\)/);
+  assert.match(source, /response\.off\('close',abortClosedResponse\)/);
 });
 
 test('bootstrap se ejecuta despuÃ©s de validar sesiÃ³n y dispositivo', () => {
