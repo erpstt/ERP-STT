@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   collectRelationPages,
+  getOrganizationRow,
   getOrganizationCatalog,
   listOrganizationRows,
   updateOrganizationRow,
@@ -62,6 +63,47 @@ test('listOrganizationRows carga todas las subsidiarias de departamentos con má
   assert.equal(links.length, 1569);
   assert.deepEqual(offsets, [0, 500, 1000, 1500]);
   assert.deepEqual(rows.at(-1).subsidiary_ids, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+});
+
+test('el listado de subsidiarias excluye logos pesados y el detalle conserva el registro completo', async () => {
+  const queries = [];
+  globalThis.fetch = async input => {
+    const url = new URL(String(input));
+    queries.push(url);
+    if (url.pathname.endsWith('/subsidiaries')) {
+      const detail = url.searchParams.get('subsidiary_id') === 'eq.7';
+      const complete = url.searchParams.get('select') === '*';
+      return Response.json([{
+        subsidiary_id: 7,
+        name: 'Empresa de pruebas',
+        legal_name: 'Empresa de pruebas S.A.',
+        currency_id: 2,
+        ...(detail || complete ? { logo_url: 'data:image/png;base64,LOGO' } : {}),
+      }]);
+    }
+    if (url.pathname.endsWith('/subsidiary_currencies')) {
+      return Response.json([{ subsidiary_id: 7, currency_id: 2, is_primary: true }]);
+    }
+    throw new Error(`Solicitud inesperada: ${url}`);
+  };
+
+  const catalog = getOrganizationCatalog('subsidiaries');
+  const complete = await listOrganizationRows(catalog, 'Bearer test');
+  const list = await listOrganizationRows(catalog, 'Bearer test', true);
+  const detail = await getOrganizationRow(catalog, 'Bearer test', 7);
+  const completeQuery = queries.find(url => url.pathname.endsWith('/subsidiaries') && url.searchParams.get('select') === '*');
+  const listQuery = queries.find(url => url.pathname.endsWith('/subsidiaries') && !url.searchParams.has('subsidiary_id') && url.searchParams.get('select') !== '*');
+  const detailQuery = queries.find(url => url.pathname.endsWith('/subsidiaries') && url.searchParams.has('subsidiary_id'));
+
+  assert.ok(completeQuery);
+  assert.equal(complete[0].logo_url, 'data:image/png;base64,LOGO');
+  assert.ok(listQuery);
+  assert.equal(listQuery.searchParams.get('select').includes('logo_url'), false);
+  assert.equal(list[0].logo_url, undefined);
+  assert.deepEqual(list[0].allowed_currency_ids, [2]);
+  assert.equal(detailQuery.searchParams.get('select'), '*');
+  assert.equal(detail.logo_url, 'data:image/png;base64,LOGO');
+  assert.deepEqual(detail.allowed_currency_ids, [2]);
 });
 
 test('una inserción fallida conserva las relaciones que ya existían', async () => {

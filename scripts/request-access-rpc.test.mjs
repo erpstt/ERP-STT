@@ -5,6 +5,7 @@ import test from 'node:test';
 
 process.env.SUPABASE_URL = 'https://example.supabase.co';
 process.env.SUPABASE_ANON_KEY = 'test-anon-key';
+process.env.AUTH_REQUEST_ACCESS_CACHE_TTL_MS = '0';
 
 const { assertRequestAccess } = await import('../dist/modules/auth/services/request-access.service.js');
 const { SessionAuthenticationError } = await import('../dist/modules/auth/services/session.service.js');

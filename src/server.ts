@@ -23,7 +23,7 @@ import { createCountry, deleteCountry, listCountries, updateCountry } from './mo
 import { createCatalogRow, deleteCatalogRow, getCoreCatalog, listCatalogRows, updateCatalogRow } from './modules/core-catalogs/core-catalogs.module.js';
 import { createSecurityRow, deleteSecurityRow, getSecurityCatalog, listSecurityRows, listUserSubsidiaryOptions, updateSecurityRow } from './modules/security-catalogs/security-catalogs.module.js';
 import { assertRoleAccess, isRoleAccessResource, myRoleAccess, roleAccessMatrix, saveRoleAccessMatrix } from './modules/security-catalogs/role-access-matrix.module.js';
-import { listSubsidiaryApprovers, createOrganizationRow, deleteOrganizationRow, getOrganizationCatalog, listOrganizationRows, updateOrganizationRow } from './modules/organization-catalogs/organization-catalogs.module.js';
+import { listSubsidiaryApprovers, createOrganizationRow, deleteOrganizationRow, getOrganizationCatalog, getOrganizationRow, listOrganizationRows, updateOrganizationRow } from './modules/organization-catalogs/organization-catalogs.module.js';
 import { exportCostCenters } from './modules/organization-catalogs/cost-center-export.service.js';
 import { exportOrganizationCatalog } from './modules/organization-catalogs/organization-catalog-export.service.js';
 import { listCostCentersByUpApprover, reassignCostCenterUpApprover, upApproverOptions, upApproverSelectorOptions } from './modules/organization-catalogs/up-approvers.service.js';
@@ -67,7 +67,7 @@ import { listUserCompanies, selectUserCompany } from './modules/auth/services/co
 import { listUserRoles, selectUserRole } from './modules/auth/services/role-access.service.js';
 import { getLanguagePreference, setLanguagePreference } from './modules/auth/services/language-preference.service.js';
 import { revokeCurrentSession, SessionAuthenticationError } from './modules/auth/services/session.service.js';
-import { assertRequestAccess } from './modules/auth/services/request-access.service.js';
+import { assertRequestAccess, invalidateRequestAccess } from './modules/auth/services/request-access.service.js';
 import { changePassword } from './modules/auth/services/password-history.service.js';
 import { completePasswordRecovery, PasswordRecoveryError, requestPasswordRecovery } from './modules/auth/services/password-recovery.service.js';
 import { completePasswordInvitation, createSecurityUser, sendExistingUserPasswordLink, UserProvisioningError, validatePasswordAccessContinuation } from './modules/auth/services/user-provisioning.service.js';
@@ -266,7 +266,10 @@ const server = createServer((request, response) => withAuditExecution(async () =
     }
     if (request.method === 'POST' && request.url === '/api/auth/logout') {
       const authorization = request.headers.authorization;
-      if (authorization?.startsWith('Bearer ')) await revokeCurrentSession(authorization);
+      if (authorization?.startsWith('Bearer ')) {
+        try { await revokeCurrentSession(authorization); }
+        finally { invalidateRequestAccess(authorization); }
+      }
       return json(response, 200, { success: true });
     }
     if (request.method === 'POST' && request.url === '/api/auth/request-password-recovery') {
@@ -295,7 +298,7 @@ const server = createServer((request, response) => withAuditExecution(async () =
       const query = new URL(request.url, 'http://localhost').searchParams;
       return json(response, 200, await recordActorAudit(request.headers.authorization!, query.get('table') ?? '', query.get('id') ?? ''));
     }
-    if(request.method==='GET'&&request.url==='/api/auth/companies'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');return json(response,200,await listUserCompanies(authorization));}
+    if(request.method==='GET'&&request.url?.split('?')[0]==='/api/auth/companies'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const query=new URL(request.url,'http://localhost').searchParams;return json(response,200,await listUserCompanies(authorization,query.get('view')==='summary'));}
     if(request.method==='POST'&&request.url==='/api/auth/select-company'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const input=await body(request)as{subsidiaryId?:number};return json(response,200,await selectUserCompany(authorization,Number(input.subsidiaryId)));}
     if(request.method==='GET'&&request.url==='/api/auth/roles'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');return json(response,200,await listUserRoles(authorization));}
     if(request.method==='POST'&&request.url==='/api/auth/select-role'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const input=await body(request)as{roleId?:number};return json(response,200,await selectUserRole(authorization,Number(input.roleId)));}
@@ -515,13 +518,14 @@ const server = createServer((request, response) => withAuditExecution(async () =
       await assertRoleAccess(authorization,`organization:${organizationExportRoute[1]}`,'view');
       return download(response,await exportOrganizationCatalog(authorization,organizationExportRoute[1],upApproverUrl.searchParams.get('format')||'',upApproverUrl.searchParams.get('search')||''));
     }
-    const organizationRoute = request.url?.match(/^\/api\/organization\/([a-z-]+)(?:\/(\d+))?$/);
+    const organizationRoute = upApproverUrl.pathname.match(/^\/api\/organization\/([a-z-]+)(?:\/(\d+))?$/);
     if (organizationRoute) {
       const authorization = request.headers.authorization;
       if (!authorization?.startsWith('Bearer ')) return error(response, 401, 'Debe iniciar sesión para administrar Organización.');
       const catalog = getOrganizationCatalog(organizationRoute[1]);
       const id = organizationRoute[2] ? Number(organizationRoute[2]) : null;
-      if (request.method === 'GET' && id === null) return json(response, 200, await listOrganizationRows(catalog, authorization));
+      if (request.method === 'GET' && id === null) return json(response, 200, await listOrganizationRows(catalog, authorization, upApproverUrl.searchParams.get('view') === 'summary'));
+      if (request.method === 'GET' && id !== null) return json(response, 200, await getOrganizationRow(catalog, authorization, id));
       if (request.method === 'POST' && id === null) return json(response, 201, await createOrganizationRow(catalog, authorization, await body(request) as Record<string, unknown>));
       if (request.method === 'PATCH' && id !== null) return json(response, 200, await updateOrganizationRow(catalog, authorization, id, await body(request) as Record<string, unknown>));
       if (request.method === 'DELETE' && id !== null) { await deleteOrganizationRow(catalog, authorization, id); return json(response, 200, { success: true }); }

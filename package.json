@@ -10,13 +10,15 @@
     "typecheck": "tsc --noEmit",
     "test:opening-pending": "npm run build && node --test scripts/opening-pending-parser.test.mjs",
     "test:opening-files": "npm run build && node --test scripts/opening-all-file-parser.test.mjs",
-    "test:security": "npm run build && node --test scripts/public-app-url.test.mjs scripts/security-turnstile.test.mjs scripts/password-recovery.test.mjs scripts/password-recovery-ui.test.mjs scripts/user-invitation-email.test.mjs scripts/user-invitation-ui.test.mjs scripts/user-provisioning.test.mjs scripts/security-user-api.test.mjs scripts/auth-repository-provisioning.test.mjs scripts/record-actor-audit-service.test.mjs",
+    "test:security": "npm run build && node --test scripts/public-app-url.test.mjs scripts/security-turnstile.test.mjs scripts/password-recovery.test.mjs scripts/password-recovery-ui.test.mjs scripts/user-invitation-email.test.mjs scripts/user-invitation-ui.test.mjs scripts/user-provisioning.test.mjs scripts/security-user-api.test.mjs scripts/auth-repository-provisioning.test.mjs scripts/record-actor-audit-service.test.mjs scripts/request-access-rpc.test.mjs scripts/request-access-cache.test.mjs",
+    "test:request-access-cache": "npm run build && node --test scripts/request-access-cache.test.mjs",
     "test:user-password-notification-db": "node scripts/user-edit-password-notification-db.test.mjs",
     "configure:supabase-production-auth": "node scripts/configure-supabase-production-auth.mjs",
     "test:supabase-production-auth": "node --test scripts/configure-supabase-production-auth.test.mjs",
     "test:peru-rate": "npm run build && node --test scripts/test-peru-exchange-rate-client.test.mjs",
     "test:i18n": "npm run build && node --test scripts/i18n-runtime.test.mjs scripts/test-i18n-locale-coverage.test.mjs scripts/test-i18n-explicit-coverage.test.mjs scripts/test-i18n-operations-coverage.test.mjs scripts/test-i18n-reports-coverage.test.mjs scripts/test-i18n-admin-coverage.test.mjs scripts/test-i18n-business-coverage.test.mjs scripts/test-language-preference-migration.test.mjs scripts/test-language-preference-service.test.mjs",
-    "test:static": "npm run build && node --test scripts/static-delivery.test.mjs scripts/supabase-client-timeout.test.mjs",
+    "test:static": "npm run build && node --test scripts/static-delivery.test.mjs scripts/http-response-compression.test.mjs scripts/supabase-client-timeout.test.mjs",
+    "test:performance": "npm run build && node --test scripts/http-response-compression.test.mjs scripts/request-access-cache.test.mjs scripts/request-access-rpc.test.mjs scripts/organization-catalog-relations.test.mjs scripts/subsidiary-payload-optimization.test.mjs",
     "audit:frontend": "node scripts/frontend-performance-audit.mjs"
   },
   "devDependencies": {

@@ -88,12 +88,12 @@ function renderSupports(items){
 try{
   if(!token)throw Error('Debe iniciar sesión para consultar la factura.');
   if(!invoiceId)throw Error('No se recibió el identificador de la factura.');
-  const paths=['/api/sales/invoices','/api/sales/sales-invoice-lines','/api/sales/sales-invoice-withholdings','/api/entities/customers','/api/inventory/products','/api/configuration/tax-codes','/api/configuration/payment-terms','/api/core/currencies','/api/core/countries','/api/organization/subsidiaries','/api/accounting/journal-supports'];
-  const [invoices,invoiceLines,withholdings,customers,products,taxes,terms,currencies,countries,subsidiaries,supports]=await Promise.all(paths.map(path=>api(path)));
+  const paths=['/api/sales/invoices','/api/sales/sales-invoice-lines','/api/sales/sales-invoice-withholdings','/api/entities/customers','/api/inventory/products','/api/configuration/tax-codes','/api/configuration/payment-terms','/api/core/currencies','/api/core/countries','/api/accounting/journal-supports'];
+  const [invoices,invoiceLines,withholdings,customers,products,taxes,terms,currencies,countries,supports]=await Promise.all(paths.map(path=>api(path)));
   const invoice=find(invoices,'invoice_id',invoiceId);
   if(!invoice)throw Error('No se encontró la factura en la subsidiaria activa.');
   const customer=find(customers,'customer_id',invoice.customer_id)||{};
-  const subsidiary=find(subsidiaries,'subsidiary_id',invoice.subsidiary_id)||{};
+  const subsidiary=await api(`/api/organization/subsidiaries/${encodeURIComponent(invoice.subsidiary_id)}`);
   const currency=find(currencies,'currency_id',invoice.currency_id)||{};
   const term=find(terms,'term_id',invoice.payment_term_id)||{};
   const lines=invoiceLines.filter(line=>String(line.invoice_id)===String(invoiceId));
