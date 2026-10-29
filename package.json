@@ -10,7 +10,11 @@
     "typecheck": "tsc --noEmit",
     "test:opening-pending": "npm run build && node --test scripts/opening-pending-parser.test.mjs",
     "test:opening-files": "npm run build && node --test scripts/opening-all-file-parser.test.mjs",
-    "test:security": "npm run build && node --test scripts/public-app-url.test.mjs scripts/security-turnstile.test.mjs scripts/password-recovery.test.mjs scripts/password-recovery-ui.test.mjs scripts/user-invitation-email.test.mjs scripts/user-invitation-ui.test.mjs scripts/user-provisioning.test.mjs scripts/security-user-api.test.mjs scripts/auth-repository-provisioning.test.mjs scripts/record-actor-audit-service.test.mjs scripts/request-access-rpc.test.mjs scripts/request-access-cache.test.mjs",
+    "test:security": "npm run build && node --test scripts/public-app-url.test.mjs scripts/security-turnstile.test.mjs scripts/password-recovery.test.mjs scripts/password-recovery-ui.test.mjs scripts/user-invitation-email.test.mjs scripts/user-invitation-ui.test.mjs scripts/user-provisioning.test.mjs scripts/security-user-api.test.mjs scripts/auth-repository-provisioning.test.mjs scripts/record-actor-audit-service.test.mjs scripts/request-access-rpc.test.mjs scripts/request-access-cache.test.mjs scripts/auth-bootstrap.test.mjs scripts/auth-bootstrap-ui.test.mjs",
+    "test:auth-bootstrap": "npm run build && node --test scripts/auth-bootstrap.test.mjs scripts/auth-bootstrap-ui.test.mjs",
+    "db:auth-bootstrap:check": "node scripts/apply-auth-bootstrap.mjs",
+    "db:auth-bootstrap:apply": "node scripts/apply-auth-bootstrap.mjs --apply",
+    "load:certify-120": "node scripts/production-120-session-load.mjs --confirm-production-load --sessions=120 --duration-seconds=300 --login-rate=5 --think-time-ms=4500 --output=.local-tools/performance/load-120.json",
     "test:request-access-cache": "npm run build && node --test scripts/request-access-cache.test.mjs",
     "test:user-password-notification-db": "node scripts/user-edit-password-notification-db.test.mjs",
     "configure:supabase-production-auth": "node scripts/configure-supabase-production-auth.mjs",
@@ -18,7 +22,7 @@
     "test:peru-rate": "npm run build && node --test scripts/test-peru-exchange-rate-client.test.mjs",
     "test:i18n": "npm run build && node --test scripts/i18n-runtime.test.mjs scripts/test-i18n-locale-coverage.test.mjs scripts/test-i18n-explicit-coverage.test.mjs scripts/test-i18n-operations-coverage.test.mjs scripts/test-i18n-reports-coverage.test.mjs scripts/test-i18n-admin-coverage.test.mjs scripts/test-i18n-business-coverage.test.mjs scripts/test-language-preference-migration.test.mjs scripts/test-language-preference-service.test.mjs",
     "test:static": "npm run build && node --test scripts/static-delivery.test.mjs scripts/http-response-compression.test.mjs scripts/supabase-client-timeout.test.mjs",
-    "test:performance": "npm run build && node --test scripts/http-response-compression.test.mjs scripts/request-access-cache.test.mjs scripts/request-access-rpc.test.mjs scripts/organization-catalog-relations.test.mjs scripts/subsidiary-payload-optimization.test.mjs",
+    "test:performance": "npm run build && node --test scripts/http-response-compression.test.mjs scripts/request-access-cache.test.mjs scripts/request-access-rpc.test.mjs scripts/organization-catalog-relations.test.mjs scripts/subsidiary-payload-optimization.test.mjs scripts/performance-observability.test.mjs scripts/read-cache-integration.test.mjs scripts/server-performance-routes.test.mjs scripts/production-120-session-load.test.mjs",
     "audit:frontend": "node scripts/frontend-performance-audit.mjs"
   },
   "devDependencies": {

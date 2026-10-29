@@ -1,4 +1,6 @@
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
+import { createHash } from 'node:crypto';
+import { invalidateReadCacheNamespace, ScopedReadCache } from '../../core/performance/scoped-read-cache.js';
 import { coreCatalogs } from '../core-catalogs/core-catalogs.module.js';
 import { securityCatalogs } from './security-catalogs.module.js';
 import { organizationCatalogs } from '../organization-catalogs/organization-catalogs.module.js';
@@ -81,6 +83,29 @@ export const roleAccessModules:AccessModule[] = [
 ];
 const roleAccessResourceKeys=new Set(roleAccessModules.flatMap(module=>module.resources.map(resource=>resource.key)));
 export const isRoleAccessResource=(resourceKey:string)=>roleAccessResourceKeys.has(resourceKey);
+type MyRoleAccessData={isAdmin:boolean;grants:Array<{resourceKey:string;canView:boolean;canCreate:boolean;canEdit:boolean;canDelete:boolean}>;modules:AccessModule[]};
+const myRoleAccessCache=new ScopedReadCache<MyRoleAccessData>({defaultTtlMs:30_000});
+const positiveRoleAssertionCache=new ScopedReadCache<null>({defaultTtlMs:15_000});
+const myRoleAccessNamespace='security-my-role-access',roleAssertionNamespace='security-role-assertion';
+const roleAssertionEpochs=new Map<string,number>();
+function accessCacheScope(token:string){
+ const raw=token.replace(/^Bearer\s+/i,'').trim();if(!raw)throw new Error('La sesión no es válida.');
+ try{const part=raw.split('.')[1];if(!part)throw new Error();const value=JSON.parse(Buffer.from(part,'base64url').toString('utf8'))as Record<string,unknown>;return[String(value.sub??'unknown'),String(value.session_id??value.sub??'unknown')];}
+ catch{return['opaque',raw];}
+}
+function accessScopeKey(token:string){return createHash('sha256').update(JSON.stringify(accessCacheScope(token))).digest('hex');}
+function roleAssertionEpoch(token:string){return roleAssertionEpochs.get(accessScopeKey(token))??0;}
+function advanceRoleAssertionEpoch(token:string){
+  const key=accessScopeKey(token);
+  if(!roleAssertionEpochs.has(key)&&roleAssertionEpochs.size>=4_000)roleAssertionEpochs.delete(roleAssertionEpochs.keys().next().value as string);
+  roleAssertionEpochs.set(key,(roleAssertionEpochs.get(key)??0)+1);
+}
+export function invalidateRoleAccessCaches(token?:string){
+  if(token){myRoleAccessCache.invalidate(myRoleAccessNamespace,accessCacheScope(token));advanceRoleAssertionEpoch(token);return;}
+  invalidateReadCacheNamespace(myRoleAccessNamespace);
+  invalidateReadCacheNamespace(roleAssertionNamespace);
+  roleAssertionEpochs.clear();
+}
 
 async function rpc<T>(token:string,name:string,payload:Record<string,unknown>={}):Promise<T>{
   const config=getSupabaseConfig();if(!config)throw new Error('Supabase no está configurado.');
@@ -104,7 +129,7 @@ export async function saveRoleAccessMatrix(token:string,input:Record<string,unkn
   });
   const permissionIds=[...new Set((Array.isArray(input.specialPermissionIds)?input.specialPermissionIds:[]).map(Number))];
   if(permissionIds.some(id=>!Number.isInteger(id)||id<=0))throw new Error('La selección de permisos especiales no es válida.');
-  return rpc(token,'security_save_role_access_matrix',{p_role_id:roleId,p_entries:entries,p_permission_ids:permissionIds});
+  const result=await rpc(token,'security_save_role_access_matrix',{p_role_id:roleId,p_entries:entries,p_permission_ids:permissionIds});invalidateRoleAccessCaches();return result;
 }
-export const myRoleAccess=async(token:string)=>({...(await rpc<{isAdmin:boolean;grants:Array<{resourceKey:string;canView:boolean;canCreate:boolean;canEdit:boolean;canDelete:boolean}>}>(token,'security_my_role_access')),modules:roleAccessModules});
-export const assertRoleAccess=(token:string,resourceKey:string,action:Action)=>rpc<null>(token,'security_assert_role_access',{p_resource_key:resourceKey,p_action:action});
+export const myRoleAccess=(token:string)=>myRoleAccessCache.getOrLoad({namespace:myRoleAccessNamespace,scope:accessCacheScope(token),loader:async()=>({...(await rpc<Omit<MyRoleAccessData,'modules'>>(token,'security_my_role_access')),modules:roleAccessModules})});
+export const assertRoleAccess=(token:string,resourceKey:string,action:Action)=>positiveRoleAssertionCache.getOrLoad({namespace:roleAssertionNamespace,scope:[...accessCacheScope(token),roleAssertionEpoch(token),resourceKey,action],loader:()=>rpc<null>(token,'security_assert_role_access',{p_resource_key:resourceKey,p_action:action})});

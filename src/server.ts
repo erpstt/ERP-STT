@@ -10,6 +10,7 @@ import { startTaxCalendarNotifications, taxCalendarAction, taxCalendarDocument }
 import { taxObligationCatalogAction } from './modules/tax-calendar/tax-obligation-catalog.service.js';
 import { recordActorAudit } from './modules/audit-catalogs/record-actor-audit.service.js';
 import { withAuditExecution } from './core/database/audit-context.js';
+import { resetRuntimePerformanceMetrics, runtimePerformanceSnapshot, withRequestPerformance } from './core/performance/runtime-metrics.js';
 import { paymentRequests } from './modules/treasury-catalogs/payment-requests.service.js';
 import { paymentBatchOptions, paymentBatchCandidates, paymentBatchReport, paymentBatchDetail, generatePaymentBatch, downloadPaymentBatch, markPaymentBatchSent, cancelPaymentBatch, applyPaymentBatchReference, applyPaymentBatchResponse } from './modules/treasury-catalogs/payment-batches.service.js';
 import { createHash } from 'node:crypto';
@@ -66,6 +67,7 @@ import { createAiRow, deleteAiRow, getAiCatalog, listAiRows, updateAiRow } from 
 import { listUserCompanies, selectUserCompany } from './modules/auth/services/company-access.service.js';
 import { listUserRoles, selectUserRole } from './modules/auth/services/role-access.service.js';
 import { getLanguagePreference, setLanguagePreference } from './modules/auth/services/language-preference.service.js';
+import { bootstrapSession } from './modules/auth/services/bootstrap.service.js';
 import { revokeCurrentSession, SessionAuthenticationError } from './modules/auth/services/session.service.js';
 import { assertRequestAccess, invalidateRequestAccess } from './modules/auth/services/request-access.service.js';
 import { changePassword } from './modules/auth/services/password-history.service.js';
@@ -244,9 +246,25 @@ async function serveFile(pathname: string, request: IncomingMessage, response: S
   } catch { error(response, 404, 'Recurso no encontrado.'); }
 }
 
-const server = createServer((request, response) => withAuditExecution(async () => {
+const server = createServer((request, response) => {
+  void withRequestPerformance(
+    {
+      method: request.method,
+      url: request.url,
+      status: () => response.statusCode,
+      completion: () => response.writableFinished || response.destroyed
+        ? Promise.resolve()
+        : new Promise<void>(resolve => {
+            const done=()=>{response.off('finish',done);response.off('close',done);resolve();};
+            response.once('finish',done);response.once('close',done);
+          }),
+    },
+    () => withAuditExecution(async () => {
   applySecurityHeaders(request, response);
   try {
+    if (request.method === 'GET' && request.url === '/api/health') {
+      return json(response, 200, { status: 'ok', timestamp: new Date().toISOString(), uptimeSeconds: Math.round(process.uptime()) });
+    }
     if (request.method === 'GET' && request.url === '/api/security/turnstile/config') {
       return json(response, 200, turnstilePublicConfig());
     }
@@ -297,6 +315,19 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if (request.method === 'GET' && request.url?.split('?')[0] === '/api/audit/record-actor') {
       const query = new URL(request.url, 'http://localhost').searchParams;
       return json(response, 200, await recordActorAudit(request.headers.authorization!, query.get('table') ?? '', query.get('id') ?? ''));
+    }
+    if(request.method==='POST'&&request.url==='/api/auth/bootstrap'){
+      const input=await body(request)as{preferredRoleId?:unknown;preferredSubsidiaryId?:unknown};
+      const context=await bootstrapSession(request.headers.authorization!,input);
+      return json(response,200,context);
+    }
+    if(request.url==='/api/internal/performance'){
+      const authorization=request.headers.authorization!;
+      const access=await myRoleAccess(authorization);
+      if(!access.isAdmin)return error(response,403,'Solo un usuario administrador puede consultar la telemetría de rendimiento.');
+      if(request.method==='POST'){resetRuntimePerformanceMetrics();return json(response,200,{success:true});}
+      if(request.method==='GET')return json(response,200,runtimePerformanceSnapshot());
+      return error(response,405,'Método no permitido.');
     }
     if(request.method==='GET'&&request.url?.split('?')[0]==='/api/auth/companies'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const query=new URL(request.url,'http://localhost').searchParams;return json(response,200,await listUserCompanies(authorization,query.get('view')==='summary'));}
     if(request.method==='POST'&&request.url==='/api/auth/select-company'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const input=await body(request)as{subsidiaryId?:number};return json(response,200,await selectUserCompany(authorization,Number(input.subsidiaryId)));}
@@ -772,7 +803,12 @@ const server = createServer((request, response) => withAuditExecution(async () =
     if (cause instanceof UserProvisioningError && cause.retryAfterSeconds) response.setHeader('Retry-After', String(cause.retryAfterSeconds));
     error(response, cause instanceof SessionAuthenticationError ? 401 : (cause as {status?:number})?.status || (cause instanceof Error&&/^Saldo presupuestario/.test(cause.message)?422:400), cause instanceof Error ? cause.message : 'No fue posible procesar la solicitud.');
   }
-}));
+    })
+  ).catch(cause => {
+    if (!response.headersSent) error(response, 500, cause instanceof Error ? cause.message : 'No fue posible procesar la solicitud.');
+    else if (!response.writableEnded) response.destroy(cause instanceof Error ? cause : undefined);
+  });
+});
 
 server.listen(Number(process.env.PORT ?? 3000), '0.0.0.0', () => {
   console.log(`GENTIA ERP disponible en el puerto ${process.env.PORT ?? 3000}`);

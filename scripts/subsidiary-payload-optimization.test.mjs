@@ -97,7 +97,9 @@ test('el cliente usa el detalle solo donde necesita el logo o editar la subsidia
     readFile(new URL('../public/sales-note-view.js', import.meta.url), 'utf8'),
   ]);
   const selectCompany = app.slice(app.indexOf('async selectCompany(company)'), app.indexOf('async chooseCompany'));
-  assert.match(selectCompany, /activeCompany\.allowedCurrencyIds/);
+  const applyActiveCompany = app.slice(app.indexOf('async applyActiveCompanyContext'), app.indexOf('async applyBootstrapContext'));
+  assert.match(applyActiveCompany, /company\.allowedCurrencyIds/);
+  assert.match(selectCompany, /applyActiveCompanyContext\(selected\)/);
   assert.doesNotMatch(selectCompany, /\/api\/organization\/subsidiaries/);
   assert.match(app, /\/api\/auth\/companies\?view=summary/);
   assert.match(app, /slug==='subsidiaries'\?`\$\{this\.catalogPath\(\)\}\?view=summary`/);
