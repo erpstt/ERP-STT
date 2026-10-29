@@ -8,64 +8,64 @@
 
 ## Estado ejecutivo
 
-La versión optimizada aprobó la certificación completa de cinco minutos en el
-servidor local conectado al mismo Supabase de la aplicación:
+La versión optimizada aprobó la certificación completa de cinco minutos en
+Railway contra la URL HTTPS de producción:
 
 - 120 sesiones Auth y dispositivos independientes;
-- 6.739 solicitudes durante la fase sostenida;
+- 6.335 solicitudes durante la fase sostenida;
 - 100 % de éxito;
 - cero errores y cero timeouts;
-- p50 de 99,63 ms;
-- p95 de 348,38 ms;
-- p99 de 1.307,83 ms;
-- 22,46 solicitudes por segundo;
+- p50 de 427,73 ms;
+- p95 de 751,94 ms;
+- p99 de 2.368,68 ms;
+- 21,12 solicitudes por segundo;
 - limpieza posterior verificada al 100 %.
 
-Los cinco criterios automáticos fueron aprobados. La confirmación definitiva en
-Railway queda pendiente de desplegar los commits `c13d9f2` y `fd03644`; no se
-debe presentar el resultado local como certificación de la red o instancia de
-producción hasta repetir allí el mismo escenario.
+Los cinco criterios automáticos fueron aprobados. Los commits `c13d9f2`,
+`fd03644` y `db8825a` fueron desplegados y la verificación se realizó sobre la
+instancia nueva de producción.
 
 ## Criterios de certificación
 
-| Criterio | Objetivo | Resultado local optimizado | Estado |
+| Criterio | Objetivo | Resultado en producción | Estado |
 | --- | ---: | ---: | --- |
 | Tasa de éxito | >= 99 % | 100 % | Cumple |
 | Tasa de error | < 1 % | 0 % | Cumple |
 | Timeouts | 0 | 0 | Cumple |
-| p95 sostenido | < 1.500 ms | 348,38 ms | Cumple |
-| p99 sostenido | < 3.000 ms | 1.307,83 ms | Cumple |
+| p95 sostenido | < 1.500 ms | 751,94 ms | Cumple |
+| p99 sostenido | < 3.000 ms | 2.368,68 ms | Cumple |
 
 ## Resultado de la prueba optimizada
 
+**Run ID de producción:** `1793317079785-56a811b3`
+
 | Fase | Solicitudes | Éxito | p50 | p95 | p99 | Máxima |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Bootstrap de 120 sesiones | 240 | 100 % | 667,59 ms | 1.472,17 ms | 2.893,23 ms | 4.794,99 ms |
-| Rampa + sostenida + recuperación | 7.065 | 100 % | 101,08 ms | 410,38 ms | 1.635,44 ms | 2.920,14 ms |
-| Sostenida, 120 sesiones/5 min | 6.739 | 100 % | 99,63 ms | 348,38 ms | 1.307,83 ms | 2.920,14 ms |
+| Bootstrap de 120 sesiones | 240 | 100 % | 1.026,58 ms | 1.368,57 ms | 1.735,08 ms | 2.965,63 ms |
+| Rampa + sostenida + recuperación | 6.661 | 100 % | 429,11 ms | 874,18 ms | 2.320,57 ms | 3.825,91 ms |
+| Sostenida, 120 sesiones/5 min | 6.335 | 100 % | 427,73 ms | 751,94 ms | 2.368,68 ms | 3.825,91 ms |
 
-La tasa sostenida fue de 22,46 RPS. El proceso utilizó 11,62 % de CPU en el
-intervalo medido, 206,41 MiB de memoria RSS y un retraso de event loop p99 de
-34,41 ms. Estos valores no indican saturación del proceso Node.
+La tasa sostenida fue de 21,12 RPS. El proceso de Railway utilizó 8,07 % de CPU
+en el intervalo medido, 117,24 MiB de memoria RSS y un retraso de event loop
+p99 de 21,35 ms. Estos valores no indican saturación del proceso Node.
 
-## Comparación con la última ejecución de producción
+## Comparación de producción antes y después
 
-La última prueba en Railway se ejecutó antes de incorporar la caché operativa.
-Sirve como línea base, no como comparación pura de infraestructura porque la
-ejecución optimizada de este informe fue local.
+Ambas ejecuciones se realizaron contra Railway con 120 sesiones, cinco minutos
+de navegación y la misma mezcla funcional.
 
-| Métrica sostenida | Railway antes de caché operativa | Local optimizado |
+| Métrica sostenida | Antes de caché operativa | Producción optimizada |
 | --- | ---: | ---: |
-| Solicitudes | 6.002 | 6.739 |
+| Solicitudes | 6.002 | 6.335 |
 | Éxito | 100 % | 100 % |
 | Errores / timeouts | 0 / 0 | 0 / 0 |
-| p50 | 582,82 ms | 99,63 ms |
-| p95 | 1.742,58 ms | 348,38 ms |
-| p99 | 7.851,96 ms | 1.307,83 ms |
-| RPS | 20,01 | 22,46 |
+| p50 | 582,82 ms | 427,73 ms |
+| p95 | 1.742,58 ms | 751,94 ms |
+| p99 | 7.851,96 ms | 2.368,68 ms |
+| RPS | 20,01 | 21,12 |
 
-La prueba pendiente en Railway determinará qué parte de esta mejora se conserva
-con la latencia de red e infraestructura de producción.
+La mejora redujo el p50 en 26,6 %, el p95 en 56,8 % y el p99 en 69,8 %, a la vez
+que aumentó el rendimiento sostenido en 5,5 %.
 
 ## Optimizaciones ejecutadas
 
@@ -93,19 +93,19 @@ con la latencia de red e infraestructura de producción.
 
 | Catálogo | Aciertos | Fallos | Tasa de acierto |
 | --- | ---: | ---: | ---: |
-| Facturas de venta | 1.052 | 362 | 74,40 % |
-| Facturas de proveedor | 1.048 | 363 | 74,27 % |
-| Clientes | 581 | 360 | 61,74 % |
-| Cuentas bancarias | 226 | 247 | 47,78 % |
-| Extractos bancarios | 224 | 248 | 47,46 % |
-| Departamentos | 226 | 249 | 47,58 % |
-| Centros de costos | 220 | 248 | 47,01 % |
-| Activos | 222 | 248 | 47,23 % |
-| Categorías de activos | 229 | 240 | 48,83 % |
-| Opciones contables | 224 | 248 | 47,46 % |
+| Facturas de venta | 970 | 361 | 72,88 % |
+| Facturas de proveedor | 968 | 360 | 72,89 % |
+| Clientes | 528 | 357 | 59,66 % |
+| Cuentas bancarias | 199 | 249 | 44,42 % |
+| Extractos bancarios | 194 | 248 | 43,89 % |
+| Departamentos | 205 | 241 | 45,96 % |
+| Centros de costos | 199 | 248 | 44,52 % |
+| Activos | 201 | 241 | 45,48 % |
+| Categorías de activos | 204 | 240 | 45,95 % |
+| Opciones contables | 201 | 247 | 44,87 % |
 
 Los catálogos de mayor frecuencia redujeron aproximadamente entre 59 % y 64 %
-sus viajes promedio a Supabase. La caché de permisos alcanzó 82,20 %.
+sus viajes promedio a Supabase. La caché de permisos alcanzó 81,52 %.
 
 ## Verificación automatizada
 
@@ -113,8 +113,9 @@ sus viajes promedio a Supabase. La caché de permisos alcanzó 82,20 %.
 - Seguridad y autenticación: 91/91 pruebas.
 - Entrega estática, compresión y timeouts: 6/6 pruebas.
 - Internacionalización: 27/27 pruebas.
-- Prueba corta de 15 sesiones: aprobada, p95 450,90 ms y p99 557,07 ms.
-- Prueba completa de 120 sesiones: aprobada, limpieza verificada.
+- Prueba local de 120 sesiones: aprobada, p95 348,38 ms y p99 1.307,83 ms.
+- Prueba corta de producción: aprobada, p95 942,24 ms y p99 1.170,78 ms.
+- Prueba completa de producción: aprobada, limpieza verificada.
 
 ## Metodología y alcance
 
@@ -133,13 +134,13 @@ a 120 identidades distintas ejecutando simultáneamente reportes pesados o
 transacciones de escritura. Ese escenario debe ser una fase separada con datos
 de prueba y una ventana controlada.
 
-## Paso final para producción
+## Recomendaciones posteriores
 
-1. Rotar las credenciales administrativas que estuvieron presentes en dos
-   scripts temporales antiguos y actualizar Railway/Supabase.
-2. Publicar los commits saneados y confirmar el despliegue de Railway.
-3. Ejecutar nuevamente el arnés de 120 sesiones durante cinco minutos contra
-   la URL HTTPS de producción.
-4. Certificar solamente si vuelve a cumplir los cinco criterios automáticos.
-5. Para una certificación extendida, repetir durante 30 minutos y revisar las
-   métricas de Supabase y Railway durante toda la ventana.
+1. Ejecutar una certificación extendida de 30 minutos durante una ventana
+   controlada y conservar las métricas de Railway y Supabase.
+2. Preparar un escenario separado para reportes pesados y escrituras con una
+   base de datos de prueba; no debe ejecutarse sobre transacciones reales.
+3. Mantener alertas para p95 superior a 1.500 ms, p99 superior a 3.000 ms,
+   timeouts o tasa de error igual o superior a 1 %.
+4. Repetir la prueba después de cambios importantes en autenticación, RLS,
+   reportes, catálogos o capacidad de Supabase/Railway.
