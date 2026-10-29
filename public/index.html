@@ -404,7 +404,7 @@
             <div class="table-tools">
 <div class="search-box">
 <span>⌕</span>
-<input v-model="search" placeholder="Buscar en el catálogo" aria-label="Buscar registros">
+<input v-model="search" :placeholder="activeCatalog?.slug==='exchange-rates'?'Buscar moneda destino o fecha efectiva':'Buscar en el catálogo'" aria-label="Buscar registros">
 </div>
 <span class="record-count">{{ filteredRows.length }} {{ filteredRows.length === 1 ? 'registro' : 'registros' }}</span>
 </div>
