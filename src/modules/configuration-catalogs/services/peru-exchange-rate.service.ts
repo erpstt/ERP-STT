@@ -1,11 +1,49 @@
 import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
 const SBS_SERIES_API='https://estadisticas.bcrp.gob.pe/estadisticas/series/api/PD04639PD-PD04640PD/json';
 type CurrencyRow={currency_id:number;currency_code:string};type SeriesResponse={periods?:Array<{name:string;values:string[]}>};
+type SeriesDependencies={fetch?:typeof fetch;wait?:(ms:number)=>Promise<void>;random?:()=>number;timeoutMs?:number;maxAttempts?:number};
+const TRANSIENT_STATUS=new Set([408,425,429,500,502,503,504]);
+const DEFAULT_ATTEMPTS=5,DEFAULT_TIMEOUT_MS=20_000,MAX_WAIT_MS=30_000;
 const MONTHS:Record<string,string>={Ene:'01',Feb:'02',Mar:'03',Abr:'04',May:'05',Jun:'06',Jul:'07',Ago:'08',Set:'09',Sep:'09',Oct:'10',Nov:'11',Dic:'12'};
 function effectiveDate(value?:Date|string){const date=value instanceof Date?value:new Date(value??Date.now());if(Number.isNaN(date.getTime()))throw new Error('La fecha efectiva no es válida.');return date.toISOString().slice(0,10);}
 function previous(iso:string,days:number){const date=new Date(`${iso}T12:00:00Z`);date.setUTCDate(date.getUTCDate()-days);return date.toISOString().slice(0,10);}
 function periodDate(name:string){const[day,month,year]=name.split('.');return month&&MONTHS[month]?`20${year}-${MONTHS[month]}-${day.padStart(2,'0')}`:'';}
-async function latestSbsRate(effective:string){const start=previous(effective,7),url=`${SBS_SERIES_API}/${start}/${effective}/esp`,response=await fetch(url,{headers:{Accept:'application/json','User-Agent':'Mozilla/5.0 (compatible; Gentia ERP/1.0; +https://estadisticas.bcrp.gob.pe/)'}}),raw=await response.text();if(!response.ok)throw new Error(`El servicio de series SBS respondió con estado ${response.status}.`);let payload:SeriesResponse;try{payload=JSON.parse(raw)as SeriesResponse;}catch{throw new Error('El servicio de series SBS no devolvió una respuesta JSON válida.');}const valid=(payload.periods??[]).map(period=>({fecha:periodDate(period.name),buy:Number(period.values[0]),sell:Number(period.values[1])})).filter(row=>row.fecha&&Number.isFinite(row.sell)&&row.sell>0);return valid.at(-1);}
+function attempts(value:number|undefined){return Number.isInteger(value)&&Number(value)>=1&&Number(value)<=5?Number(value):DEFAULT_ATTEMPTS;}
+function timeout(value:number|undefined){return Number.isFinite(value)&&Number(value)>=1&&Number(value)<=30_000?Number(value):DEFAULT_TIMEOUT_MS;}
+function retryAfter(response:Response){const value=response.headers.get('retry-after')?.trim();if(!value)return null;if(/^\d+$/.test(value))return Math.min(MAX_WAIT_MS,Math.max(500,Number(value)*1000));const parsed=Date.parse(value);return Number.isFinite(parsed)?Math.min(MAX_WAIT_MS,Math.max(500,parsed-Date.now())):null;}
+function progressiveDelay(response:Response|undefined,attempt:number,random:()=>number){const serverDelay=response?retryAfter(response):null;if(serverDelay!==null)return serverDelay;const sample=random(),normalized=Number.isFinite(sample)?Math.min(.999,Math.max(0,sample)):0,jitter=Math.floor(normalized*300);return Math.min(MAX_WAIT_MS,750*2**attempt+jitter);}
+async function pause(response:Response|undefined,attempt:number,dependencies:SeriesDependencies){await(dependencies.wait??(ms=>new Promise(resolve=>setTimeout(resolve,ms))))(progressiveDelay(response,attempt,dependencies.random??Math.random));}
+
+/**
+ * Consulta las series oficiales BCRP/SBS con reintentos limitados. El portal
+ * puede responder temporalmente un challenge HTML con HTTP 200; nunca se
+ * expone ese cuerpo ni se interpreta como una tasa.
+ */
+export async function consultarSeriesSbs(start:string,end:string,dependencies:SeriesDependencies={}):Promise<SeriesResponse>{
+ const request=dependencies.fetch??fetch,total=attempts(dependencies.maxAttempts),requestTimeout=timeout(dependencies.timeoutMs),url=`${SBS_SERIES_API}/${start}/${end}/esp`;
+ let finalMessage=`No fue posible consultar el servicio oficial de series BCRP/SBS después de ${total} intentos.`;
+ for(let attempt=0;attempt<total;attempt++){
+  let response:Response,raw:string;
+  try{response=await request(url,{headers:{Accept:'application/json','User-Agent':'Mozilla/5.0 (compatible; Gentia ERP/1.0; +https://estadisticas.bcrp.gob.pe/)'},signal:AbortSignal.timeout(requestTimeout)});raw=await response.text();}
+  catch{finalMessage=`No fue posible conectar con el servicio oficial de series BCRP/SBS después de ${total} intentos.`;if(attempt===total-1)break;await pause(undefined,attempt,dependencies);continue;}
+  if(TRANSIENT_STATUS.has(response.status)){
+   finalMessage=`El servicio oficial de series BCRP/SBS no estuvo disponible después de ${total} intentos (HTTP ${response.status}).`;
+   if(attempt===total-1)break;
+   await pause(response,attempt,dependencies);continue;
+  }
+  if(!response.ok)throw new Error(`El servicio oficial de series BCRP/SBS respondió con estado ${response.status}.`);
+  let payload:SeriesResponse|undefined;
+  try{const parsed=JSON.parse(raw)as unknown,candidate=parsed as SeriesResponse;if(parsed&&typeof parsed==='object'&&Array.isArray(candidate.periods)&&candidate.periods.every(period=>period&&typeof period.name==='string'&&Array.isArray(period.values)&&period.values.length>=2))payload=candidate;}catch{}
+  if(!payload){
+   finalMessage=`El servicio oficial de series BCRP/SBS no devolvió una respuesta JSON válida después de ${total} intentos.`;
+   if(attempt===total-1)break;
+   await pause(response,attempt,dependencies);continue;
+  }
+  return payload;
+ }
+ throw new Error(finalMessage);
+}
+async function latestSbsRate(effective:string){const start=previous(effective,7),payload=await consultarSeriesSbs(start,effective);const valid=(payload.periods??[]).map(period=>({fecha:periodDate(period.name),buy:Number(period.values[0]),sell:Number(period.values[1])})).filter(row=>row.fecha&&Number.isFinite(row.sell)&&row.sell>0);return valid.at(-1);}
 /** Consulta el tipo de cambio promedio ponderado de compra y venta publicado por la SBS. */
 export async function obtenerTipoDeCambioPE(monedaOrigen='USD',monedaDestino='PEN',fechaEfectiva?:Date|string){const from=monedaOrigen.trim().toUpperCase(),to=monedaDestino.trim().toUpperCase(),effective=effectiveDate(fechaEfectiva);if(from===to)return{monedaOrigen:from,monedaDestino:to,fechaEfectiva:effective,tipoCambio:1,fuente:'Superintendencia de Banca, Seguros y AFP del Perú'};if(!((from==='USD'&&to==='PEN')||(from==='PEN'&&to==='USD')))throw new Error('Por ahora la consulta de Perú admite únicamente USD y PEN.');const rate=await latestSbsRate(effective);if(rate)return{monedaOrigen:from,monedaDestino:to,fechaEfectiva:effective,fechaFuente:rate.fecha,tipoCambio:from==='USD'?rate.sell:1/rate.sell,tasaCompra:rate.buy,tasaVenta:rate.sell,serie:'TC Sistema bancario SBS (S/ por US$) - Venta',fuente:'Superintendencia de Banca, Seguros y AFP del Perú'};throw new Error('La SBS no devolvió una tasa de venta válida para la fecha solicitada ni los 7 días anteriores.');}
 function claims(auth:string){const part=auth.replace(/^Bearer\s+/,'').split('.')[1];if(!part)throw new Error('La sesión no es válida.');return JSON.parse(Buffer.from(part,'base64url').toString('utf8'))as Record<string,unknown>;}

@@ -14,6 +14,7 @@
     "test:user-password-notification-db": "node scripts/user-edit-password-notification-db.test.mjs",
     "configure:supabase-production-auth": "node scripts/configure-supabase-production-auth.mjs",
     "test:supabase-production-auth": "node --test scripts/configure-supabase-production-auth.test.mjs",
+    "test:peru-rate": "npm run build && node --test scripts/test-peru-exchange-rate-client.test.mjs",
     "test:static": "npm run build && node --test scripts/static-delivery.test.mjs scripts/supabase-client-timeout.test.mjs",
     "audit:frontend": "node scripts/frontend-performance-audit.mjs"
   },
