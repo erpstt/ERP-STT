@@ -1,20 +1,24 @@
+const BASE_URL=process.env.UI_TEST_BASE_URL||'http://localhost:3000';
+import { pendingInvoicePdfHtml } from '../public/pending-invoice-pdf.js';
 import { readFile } from 'node:fs/promises';
 import { renderBankReconciliationPdf } from '../dist/modules/reports/accounting-reports.service.js';
-import { chromium } from '../.tmp/record-audit-validation/node_modules/playwright-core/index.mjs';
+import { chromium } from '@playwright/test';
 const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});
 const page=await browser.newPage({viewport:{width:1500,height:1000}});page.setDefaultTimeout(15000);
 page.on('pageerror',error=>console.error('PAGE_ERROR',error.message));
 await page.addInitScript(()=>localStorage.setItem('nexo_token','ui-check'));
 await page.route('**/app.js*',route=>route.fulfill({contentType:'application/javascript',body:''}));
 let reversalPayload=null,pdfPayload=null;const reportPayloads=[];
-await page.route('**/api/reports/accounting/pending-invoice-control/pdf',async route=>{pdfPayload=route.request().postDataJSON();await route.fulfill({json:await renderBankReconciliationPdf(pdfPayload)})});
+await page.route('**/api/reports/accounting/pending-invoice-control/pdf',async route=>{pdfPayload=route.request().postDataJSON();if(pdfPayload.html!==undefined||typeof pdfPayload.closed!=='boolean'||!pdfPayload.filters)throw Error('Contrato PDF inseguro.');pdfHtml=pendingInvoicePdfHtml({rows:pdfFixtureRows.filter(row=>pdfPayload.closed?row.status==='REVERSADO_TOTAL':['PENDIENTE','REVERSADO_PARCIAL'].includes(row.status)),company:{name:'Empresa'},currency:{symbol:'J$'},from:pdfPayload.filters.dateFrom,to:pdfPayload.filters.dateTo,closed:pdfPayload.closed});await route.fulfill({json:await renderBankReconciliationPdf({html:pdfHtml,fileName:'control-pendientes.pdf'})})});
 
+const pdfFixtureRows=[{journal_id:7,journal_number:'ASI_PEN-00000001',date:'2026-09-01',customer_id:5,customer:'Cliente Uno',initial:1000,reversed:250,balance:750,status:'REVERSADO_PARCIAL',reversals:[{journalId:8,number:'ASI_REV_PEN-00000001',date:'2026-09-10',amount:250,type:'FACTURACION',reference:'FAC_VEN-25',user:'Usuario Prueba'}]},{journal_id:11,journal_number:'ASI_PEN-00000011',date:'2026-09-01',customer:'Cliente Uno',initial:500,reversed:500,balance:0,status:'REVERSADO_TOTAL',reversals:[]},{journal_id:12,journal_number:'ASI_PEN-00000012',date:'2026-09-01',customer:'Cliente Uno',initial:300,reversed:0,balance:300,status:'PENDIENTE',reversals:[]}];
+let pdfHtml='';
 const requestedInvoiceDates=[];
 await page.route('**/api/reports/accounting/options',route=>route.fulfill({json:{subsidiaries:[{id:1,name:'Empresa',currencyId:1},{id:2,name:'Empresa Dos',currencyId:2}],currencies:[{id:1,code:'JMD',symbol:'J$'},{id:2,code:'CRC',symbol:'₡'}],books:[],periods:[],departments:[],locations:[],classes:[],costCenters:[],accounts:[],thirdParties:[],accountGroups:[],journalOptions:{canReverse:true,modules:[]},pendingInvoiceOptions:{customers:[{id:5,name:'Cliente Uno'}]}}}));
-await page.route('**/api/reports/accounting/pending-invoice-control',route=>{const payload=route.request().postDataJSON();reportPayloads.push(payload);const rows=[{journal_id:7,journal_number:'ASI_PEN-00000001',date:'2026-09-01',customer_id:5,customer:'Cliente Uno',initial:1000,reversed:250,balance:750,status:'REVERSADO_PARCIAL',reversals:[{journalId:8,number:'ASI_REV_PEN-00000001',date:'2026-09-10',amount:250,type:'FACTURACION',reference:'FAC_VEN-25',user:'Usuario Prueba'}]},{journal_id:11,journal_number:'ASI_PEN-00000011',date:'2026-09-01',customer:'Cliente Uno',initial:500,reversed:500,balance:0,status:'REVERSADO_TOTAL',reversals:[]},{journal_id:12,journal_number:'ASI_PEN-00000012',date:'2026-09-01',customer:'Cliente Uno',initial:300,reversed:0,balance:300,status:'PENDIENTE',reversals:[]}].map(row=>payload.consolidated?{...row,subsidiary_id:2,subsidiary_name:'Empresa Dos',presentation_currency:'USD',conversion_rate:.01}:row);route.fulfill({json:{rows,total:3,summary:{initial:1800,reversed:750,balance:1050},...(payload.consolidated?{consolidated:true,currency:'USD'}:{})}})});
+await page.route('**/api/reports/accounting/pending-invoice-control',route=>{const payload=route.request().postDataJSON();reportPayloads.push(payload);const rows=pdfFixtureRows.map(row=>payload.consolidated?{...row,subsidiary_id:2,subsidiary_name:'Empresa Dos',presentation_currency:'USD',conversion_rate:.01}:row);route.fulfill({json:{rows,total:3,summary:{initial:1800,reversed:750,balance:1050},...(payload.consolidated?{consolidated:true,currency:'USD'}:{})}})});
 await page.route('**/api/reports/accounting/pending-invoices/7/reversal-options*',route=>{const date=new URL(route.request().url()).searchParams.get('date');requestedInvoiceDates.push(date);route.fulfill({json:{journal:{id:7,number:'ASI_PEN-00000001',initialLocal:1000,reversedLocal:250,balanceLocal:750,status:'REVERSADO_PARCIAL'},invoices:date?.startsWith('2026-09')?[{id:9,number:'FAC_VEN-25',date:'2026-09-08',customerId:5,customer:'Cliente Uno',total:800,subtotal:700,applied:100,available:600}]:[],reversals:[]}})});
 await page.route('**/api/reports/accounting/pending-invoices/7/reverse',async route=>{reversalPayload=route.request().postDataJSON();await route.fulfill({status:201,json:{journalId:10,number:'ASI_REV_PEN-00000002',amount:200,remaining:550}})});
-await page.goto('http://localhost:3000/',{waitUntil:'domcontentloaded',timeout:30000});await page.setContent('<iframe id="app" src="http://localhost:3000/accounting-reports.html" style="width:1400px;height:900px"></iframe>');const app=page.frameLocator('#app');
+await page.goto(`${BASE_URL}/`,{waitUntil:'domcontentloaded',timeout:30000});await page.setContent(`<iframe id="app" src="${BASE_URL}/accounting-reports.html" style="width:1400px;height:900px"></iframe>`);const app=page.frameLocator('#app');
 await app.getByText('Control de Pendientes de Facturar',{exact:true}).click();await app.locator('#tbody tr').first().waitFor();
 if(await app.locator('#pendingCustomer option').count()!==2)throw Error('No se cargÃ³ el filtro de clientes.');
 if(!(await app.getByText('REVERSADO PARCIAL',{exact:true}).count()))throw Error('No se mostrÃ³ el estado del pendiente.');
@@ -26,16 +30,16 @@ if(await app.locator('#pendingStatus').count())throw Error('No debe existir un f
 if(await app.locator('#pendingClosedTab').getAttribute('aria-pressed')!=='true')throw Error('No se marca la pesta?a activa.');
 const closedDownload=page.waitForEvent('download',{timeout:60000});await app.locator('#pdf').click();const closedPdf=await closedDownload;
 if(!(await readFile(await closedPdf.path())).subarray(0,5).equals(Buffer.from('%PDF-')))throw Error('No se descargo un PDF real.');
-if(!pdfPayload.html.includes('ASI_PEN-00000011')||pdfPayload.html.includes('ASI_PEN-00000012'))throw Error('El PDF no respeta la vista cerrada.');
+if(!pdfHtml.includes('ASI_PEN-00000011')||pdfHtml.includes('ASI_PEN-00000012'))throw Error('El PDF no respeta la vista cerrada.');
 await app.locator('#pendingOpenTab').click();
 const openDownload=page.waitForEvent('download',{timeout:60000});await app.locator('#pdf').click();await openDownload;
-if(!pdfPayload.html.includes('ASI_PEN-00000012')||!pdfPayload.html.includes('ASI_PEN-00000001')||pdfPayload.html.includes('ASI_PEN-00000011'))throw Error('El PDF no incluye pendientes y parciales juntos.');
+if(!pdfHtml.includes('ASI_PEN-00000012')||!pdfHtml.includes('ASI_PEN-00000001')||pdfHtml.includes('ASI_PEN-00000011'))throw Error('El PDF no incluye pendientes y parciales juntos.');
 const consolidatedResponse=page.waitForResponse(response=>response.url().includes('/api/reports/accounting/pending-invoice-control')&&response.request().postDataJSON()?.consolidated===true);await app.locator('#pendingCurrencyMode').selectOption('CONSOLIDATED');await consolidatedResponse;if(!reportPayloads.at(-1)?.consolidated)throw Error('No se solicitó el reporte consolidado.');if(!(await app.locator('#tbody').innerText()).includes('Empresa Dos'))throw Error('El consolidado no identifica la empresa de origen.');if(!(await app.locator('#summary').innerText()).includes('US$'))throw Error('El consolidado no se presenta en USD.');if(await app.locator('[data-reverse-pending]').count())throw Error('El consolidado no debe permitir reversar asientos de otra empresa.');
 const localResponse=page.waitForResponse(response=>response.url().includes('/api/reports/accounting/pending-invoice-control')&&response.request().postDataJSON()?.consolidated===false);await app.locator('#pendingCurrencyMode').selectOption('LOCAL');await localResponse;
 
 await app.locator('[data-toggle="pending-7"]').click();
 const alignedReversal=app.locator('tr.pending-reversal-row[data-parent="pending-7"]');await alignedReversal.waitFor();
-if(await alignedReversal.locator('td').count()!==8)throw Error('La reversiÃ³n no quedÃ³ alineada con las columnas del asiento inicial.');
+if(await alignedReversal.locator('td').count()!==await app.locator('#thead tr').last().locator('th').count())throw Error('La reversiÃ³n no quedÃ³ alineada con las columnas del asiento inicial.');
 if(!(await alignedReversal.textContent()).includes('ASI_PEN-00000001'))throw Error('La reversiÃ³n no identifica claramente su asiento inicial.');
 if(!(await alignedReversal.textContent()).includes('Cliente Uno'))throw Error('La reversiÃ³n no conserva el cliente o tercero del asiento inicial.');
 await app.locator('[data-reverse-pending="7"]').click();await app.locator('#pendingReversalModal[open]').waitFor();

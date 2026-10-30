@@ -1,8 +1,9 @@
+const BASE_URL=process.env.UI_TEST_BASE_URL||'http://localhost:3000';
 import assert from 'node:assert/strict';
 import {writeFile} from 'node:fs/promises';
 import {forecastCsv,forecastPdfHtml} from '../public/income-forecast-export.js';
 import {renderBankReconciliationPdf} from '../dist/modules/reports/accounting-reports.service.js';
-import {chromium} from '../.tmp/record-audit-validation/node_modules/playwright-core/index.mjs';
+import {chromium} from '@playwright/test';
 const months=Array.from({length:12},(_,i)=>`2026-${String(i+1).padStart(2,'0')}`),rows=[
  {key:'1:7',number:'400101',name:'Ingresos por servicios profesionales',category:'Ingreso',dimension:'7',values:months.map((_,i)=>i===8?125000:100000)},
  {key:'2:8',number:'500101',name:'Costos de operación regional',category:'Costo',dimension:'8',values:months.map(()=>40000)},
@@ -25,8 +26,8 @@ try{
  await page.route('**/test-professional-forecast',r=>r.fulfill({contentType:'text/html',body:'<iframe src="/income-forecast.html" style="width:100%;height:1000px"></iframe>'}));
  const uiReport={...report,columnView:'ACCOUNTING_PERIOD',overrides:options.overrides,totals:{real:360000,future:221500,annual:581500},rows:rows.map(r=>({...r,ytd:r.values.slice(0,8).reduce((s,v)=>s+v,0),future:r.values.slice(8).reduce((s,v)=>s+v,0),annual:r.values.reduce((s,v)=>s+v,0)}))};
  await page.route('**/api/reports/income-forecast/**',r=>r.fulfill({json:r.request().url().endsWith('/options')?{activeSubsidiaryId:1,subsidiaries:[{id:1,name:'Sociedad de demostración',currencyId:1}],currencies:[{id:1,code:'USD',name:'Dólar'}],years:[{id:1,name:'2026',start:report.start,end:report.end}],scenarios:[],departments:[{id:7,name:'Administración',subsidiaryId:1},{id:8,name:'Operaciones',subsidiaryId:1}]}:uiReport}));
- await page.route('**/api/reports/accounting/pending-invoice-control/pdf',async r=>{assert.equal(r.request().headers()['x-device-token'],'test-device');assert.equal(r.request().headers().authorization,'Bearer test-session');const p=r.request().postDataJSON();assert.ok(p.html.includes('Resumen anual'));assert.ok(p.html.includes('Contrato adicional'));assert.ok(!p.html.includes('RUN_RATE'));await r.fulfill({json:await renderBankReconciliationPdf(p)});});
- await page.goto('http://localhost:3000/test-professional-forecast');const frame=page.frameLocator('iframe');await frame.locator('#year option').first().waitFor({state:'attached'});await frame.locator('#cutoff').selectOption(report.cutoff);await frame.locator('#generate').click();await frame.locator('#matrix button[data-key]').first().waitFor();
+ await page.route('**/api/reports/income-forecast/pdf',async r=>{assert.equal(r.request().headers()['x-device-token'],'test-device');assert.equal(r.request().headers().authorization,'Bearer test-session');const p=r.request().postDataJSON();assert.equal(p.html,undefined);assert.ok(p.configuration);const html=forecastPdfHtml(uiReport,options);assert.ok(html.includes('Resumen anual'));assert.ok(html.includes('Contrato adicional'));await r.fulfill({json:await renderBankReconciliationPdf({html,fileName:'resultados-proyectados-'+uiReport.cutoff+'.pdf'})});});
+ await page.goto(`${BASE_URL}/test-professional-forecast`);const frame=page.frameLocator('iframe');await frame.locator('#year option').first().waitFor({state:'attached'});await frame.locator('#cutoff').selectOption(report.cutoff);await frame.locator('#generate').click();await frame.locator('#matrix button[data-key]').first().waitFor();
  const csvDownload=page.waitForEvent('download');await frame.locator('#csv').click();assert.ok((await csvDownload).suggestedFilename().endsWith('.csv'));
  const pdfDownload=page.waitForEvent('download');await frame.locator('#pdf').click();assert.ok((await pdfDownload).suggestedFilename().endsWith('.pdf'));assert.deepEqual(errors,[]);
  console.log(JSON.stringify({csvButtonDownload:true,pdfButtonDownload:true,browserErrors:0}));

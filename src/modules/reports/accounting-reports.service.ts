@@ -5,18 +5,8 @@ import {
   operationalSessionScope,
   registerOperationalReadCacheNamespace,
 } from '../../core/performance/operational-read-cache.js';
-import { execFile } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
-import { readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { promisify } from 'node:util';
+import { renderSafePdf } from '../../core/security/pdf-renderer.js';
 
-const execFileAsync=promisify(execFile);
-const configuredPdfConcurrency=Number(process.env.PDF_RENDER_CONCURRENCY??2);
-const maxPdfConcurrency=Number.isInteger(configuredPdfConcurrency)?Math.min(Math.max(configuredPdfConcurrency,1),4):2;
-let activePdfRenders=0;
-const pendingPdfRenders:Array<()=>void>=[];
 const accountingOptionsCache=new ScopedReadCache<Record<string,unknown>>({defaultTtlMs:90_000,maxEntries:2_000});
 const accountingOptionsCacheNamespace=registerOperationalReadCacheNamespace('reports-accounting-options');
 
@@ -26,14 +16,6 @@ function accountingOptionsScope(authorization:string){
 
 export function invalidateAccountingReportOptionsCache(authorization?:string){
   accountingOptionsCache.invalidate(accountingOptionsCacheNamespace,authorization?accountingOptionsScope(authorization):undefined);
-}
-async function acquirePdfRender(){
-  if(activePdfRenders>=maxPdfConcurrency)await new Promise<void>(resolve=>pendingPdfRenders.push(resolve));
-  activePdfRenders+=1;
-}
-function releasePdfRender(){
-  activePdfRenders=Math.max(0,activePdfRenders-1);
-  pendingPdfRenders.shift()?.();
 }
 
 const reports=new Set(['balance-sheet','income-statement','cash-flow','equity-changes','trial-balance','general-ledger','journal','pending-invoice-control','receivables-aging','payables-aging','bank-reconciliation','bank-balances','sales-transactions','purchase-transactions','intercompany-loans','intercompany-commercial']);
@@ -87,9 +69,7 @@ export function executePendingInvoiceReclassification(authorization:string,recla
 export async function bankReconciliationAction(authorization:string,action:string,input:Record<string,unknown>){const names:Record<string,string>={import:'import_bank_statement',auto:'auto_match_bank_reconciliation',match:'match_bank_transaction',close:'close_bank_reconciliation','close-report':'bank_reconciliation_close_report'};if(!names[action])throw new Error('Acción bancaria no válida.');if(action==='import'&&typeof input.p_file_base64==='string'){const encoded=input.p_file_base64;if(encoded.length>8_000_000)throw new Error('El archivo Excel supera el límite permitido de 5 MB.');const {default:readXlsxFile}=await import('read-excel-file/node');const matrix=await readXlsxFile(Buffer.from(encoded,'base64')) as unknown as unknown[][],headers=(matrix.shift()??[]).map(value=>String(value??'').trim().toLowerCase()),cell=(row:unknown[],names:string[])=>row[headers.findIndex(header=>names.some(name=>header.includes(name)))],dateValue=(value:unknown)=>value instanceof Date?value.toISOString().slice(0,10):String(value??'').slice(0,10);input.p_lines=matrix.map(row=>({date:dateValue(cell(row,['fecha','date'])),valueDate:dateValue(cell(row,['valor','value'])),reference:String(cell(row,['referencia','reference','cheque'])??''),description:String(cell(row,['nota','descrip','concept','memo'])??''),beneficiary:String(cell(row,['benefici','nombre','name'])??''),amount:Number(cell(row,['monto','amount','importe'])??0)})).filter(row=>/^\d{4}-\d{2}-\d{2}$/.test(row.date)&&Number.isFinite(row.amount)&&row.amount!==0);delete input.p_file_base64;if(!(input.p_lines as unknown[]).length)throw new Error('El archivo Excel no contiene movimientos reconocibles.');}if(action==='import'){const lines=Array.isArray(input.p_lines)?input.p_lines as Record<string,unknown>[]:[],opening=Number(input.p_opening_balance??0);input.p_opening_balance=Number.isFinite(opening)?opening:0;if(input.p_closing_balance===null||input.p_closing_balance===undefined||input.p_closing_balance==='')input.p_closing_balance=Number(input.p_opening_balance)+lines.reduce((sum,line)=>sum+Number(line.amount||0),0);}return rpc<unknown>(authorization,names[action],input);}
 
 export async function renderBankReconciliationPdf(input:Record<string,unknown>){
- const html=String(input.html??''),requestedName=String(input.fileName??'conciliacion-bancaria.pdf'),safeName=requestedName.replace(/[^a-zA-Z0-9._-]/g,'-');
- if(!html.startsWith('<!doctype html>')||html.length>4_000_000)throw new Error('El contenido del reporte PDF no es válido.');
- await acquirePdfRender();
- const id=randomUUID(),htmlPath=join(tmpdir(),`nexo-bank-${id}.html`),pdfPath=join(tmpdir(),`nexo-bank-${id}.pdf`),profilePath=join(tmpdir(),`nexo-chrome-${id}`),chrome=process.env.CHROME_PATH||'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
- try{await writeFile(htmlPath,html,'utf8');await execFileAsync(chrome,['--headless','--no-sandbox','--disable-gpu','--disable-gpu-compositing','--disable-dev-shm-usage','--disable-extensions','--no-first-run',`--user-data-dir=${profilePath}`,'--no-pdf-header-footer',`--print-to-pdf=${pdfPath}`,new URL(`file:///${htmlPath.replaceAll('\\','/')}`).href],{windowsHide:true,timeout:60_000});const pdf=await readFile(pdfPath);if(pdf.subarray(0,4).toString()!=='%PDF')throw new Error('No fue posible producir un archivo PDF válido.');return{fileName:safeName.toLowerCase().endsWith('.pdf')?safeName:`${safeName}.pdf`,mimeType:'application/pdf',base64:pdf.toString('base64')};}finally{await Promise.allSettled([rm(htmlPath,{force:true}),rm(pdfPath,{force:true}),rm(profilePath,{recursive:true,force:true})]);releasePdfRender();}
+ const safeName=String(input.fileName??'reporte.pdf').replace(/[^a-zA-Z0-9._-]/g,'-').slice(0,120)||'reporte.pdf';
+ const pdf=await renderSafePdf(String(input.html??''));
+ return{fileName:safeName.toLowerCase().endsWith('.pdf')?safeName:`${safeName}.pdf`,mimeType:'application/pdf',base64:pdf.toString('base64')};
 }

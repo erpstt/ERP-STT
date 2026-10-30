@@ -93,7 +93,8 @@ import { consultarYGuardarTipoDeCambioNI } from './modules/configuration-catalog
 import { iniciarProgramacionTipoCambioNI } from './modules/configuration-catalogs/services/nicaragua-exchange-rate.scheduler.js';
 import { consultarYGuardarTipoDeCambioPE } from './modules/configuration-catalogs/services/peru-exchange-rate.service.js';
 import { iniciarProgramacionTipoCambioPE } from './modules/configuration-catalogs/services/peru-exchange-rate.scheduler.js';
-import { accountingReportOptions, bankReconciliationAction, executePendingInvoiceReclassification, pendingInvoiceReversalOptions, previewPendingInvoiceReclassification, purchaseTransactionSupport, renderBankReconciliationPdf, reverseJournalEntry, reversePendingInvoiceJournal, runAccountingReport } from './modules/reports/accounting-reports.service.js';
+import { accountingReportOptions, bankReconciliationAction, executePendingInvoiceReclassification, pendingInvoiceReversalOptions, previewPendingInvoiceReclassification, purchaseTransactionSupport, reverseJournalEntry, reversePendingInvoiceJournal, runAccountingReport } from './modules/reports/accounting-reports.service.js';
+import { renderAccountingPdf } from './modules/reports/accounting-pdf.service.js';
 import { exportSettledInvoiceExcel, exportSettledInvoicePdf, runSettledInvoiceReport, settledInvoiceReportOptions } from './modules/reports/settled-invoices-report.service.js';
 import { exportSettledSupplierInvoiceExcel, exportSettledSupplierInvoicePdf, runSettledSupplierInvoiceReport, settledSupplierInvoiceReportOptions } from './modules/reports/settled-supplier-invoices-report.service.js';
 import { exportPaymentRequestReportExcel, exportPaymentRequestReportPdf, paymentRequestReportOptions, runPaymentRequestReport } from './modules/reports/payment-requests-report.service.js';
@@ -122,10 +123,10 @@ type StaticCacheEntry = { mtimeMs:number; size:number; content:Buffer; etag:stri
 const staticCache = new Map<string, StaticCacheEntry>();
 const compressible = new Set(['.html','.css','.js','.json','.svg','.csv']);
 
-async function body(request: IncomingMessage): Promise<unknown> {
+async function body(request: IncomingMessage, maximumBytes?: number): Promise<unknown> {
   const isOpeningBalanceValidation = request.url === '/api/opening-balances/validate';
   const isPasswordAccessContinuation = request.url === '/api/auth/continue-password-access';
-  const maxBodyBytes = isOpeningBalanceValidation ? 36 * 1024 * 1024 : isPasswordAccessContinuation ? 16 * 1024 : 8 * 1024 * 1024;
+  const maxBodyBytes = maximumBytes ?? (isOpeningBalanceValidation ? 36 * 1024 * 1024 : isPasswordAccessContinuation ? 16 * 1024 : 8 * 1024 * 1024);
   const tooLarge=()=>{
     const limit=maxBodyBytes<1024*1024?`${Math.floor(maxBodyBytes/1024)} KB`:`${Math.floor(maxBodyBytes/1024/1024)} MB`;
     const failure=new Error(`La solicitud supera el límite permitido de ${limit}.`) as Error & {status?:number};
@@ -425,8 +426,8 @@ const server = createServer((request, response) => {
       if(request.method!=='GET')return error(response,405,'Método no permitido.');
       return json(response,200,await getQuadraticReconciliation(request.headers.authorization!,Number(quadraticDetailRoute[1])));
     }
-    const forecastRoute=request.url?.match(/^\/api\/reports\/income-forecast\/(options|generate|save)$/);
-    if(request.method==='POST'&&forecastRoute){const auth=request.headers.authorization;if(!auth?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');return json(response,200,await incomeForecastAction(auth,forecastRoute[1],await body(request)as Record<string,unknown>));}
+    const forecastRoute=request.url?.match(/^\/api\/reports\/income-forecast\/(options|generate|save|pdf)$/);
+    if(request.method==='POST'&&forecastRoute){const auth=request.headers.authorization;if(!auth?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const input=await body(request,forecastRoute[1]==='pdf'?128*1024:undefined)as Record<string,unknown>;return json(response,200,forecastRoute[1]==='pdf'?await renderAccountingPdf(auth,'forecast',input):await incomeForecastAction(auth,forecastRoute[1],input));}
     if(request.method==='GET'&&request.url==='/api/banking/transfers/options'){return json(response,200,await bankTransferOptions(request.headers.authorization!));}
     if(request.method==='POST'&&request.url==='/api/banking/transfers'){return json(response,201,await createBankTransfer(request.headers.authorization!,await body(request) as Record<string,unknown>));}
     if(request.method==='POST'&&request.url==='/api/banking/deposit-entry'){return json(response,201,await saveBankDeposit(request.headers.authorization!,await body(request) as Record<string,unknown>));}
@@ -445,7 +446,7 @@ const server = createServer((request, response) => {
     const depositRoute=request.url?.match(/^\/api\/banking\/deposits\/(\d+)$/);if(depositRoute){const id=Number(depositRoute[1]);if(request.method==='GET')return json(response,200,await bankDepositDetail(request.headers.authorization!,id));if(request.method==='PUT')return json(response,200,await updateBankDeposit(request.headers.authorization!,id,await body(request) as Record<string,unknown>));if(request.method==='DELETE')return json(response,200,await deleteBankDeposit(request.headers.authorization!,id));}
     if(request.method==='POST'&&request.url==='/api/banking/transfers/report'){return json(response,200,await runBankTransferReport(request.headers.authorization!,await body(request) as Record<string,unknown>));}
     const transferJournalRoute=request.url?.match(/^\/api\/banking\/transfers\/(\d+)\/journal$/);if(request.method==='GET'&&transferJournalRoute){return json(response,200,await bankTransferJournal(request.headers.authorization!,Number(transferJournalRoute[1])));}
-    if(request.method==='POST'&&['/api/reports/accounting/bank-reconciliation/pdf','/api/reports/accounting/pending-invoice-control/pdf'].includes(request.url??'')){return json(response,200,await renderBankReconciliationPdf(await body(request) as Record<string,unknown>));}
+    if(request.method==='POST'&&['/api/reports/accounting/bank-reconciliation/pdf','/api/reports/accounting/pending-invoice-control/pdf'].includes(request.url??'')){return json(response,200,await renderAccountingPdf(request.headers.authorization!,request.url?.includes('/bank-reconciliation/')?'bank':'pending',await body(request,128*1024)));}
     if(request.method==='POST'&&request.url==='/api/reports/accounting/bank-reconciliation/bank-fees'){
       const authorization=request.headers.authorization;
       if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');

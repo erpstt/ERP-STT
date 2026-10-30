@@ -4,3 +4,10 @@ dist/
 server-*.log
 .local-tools/
 cloudflare-tunnel-*.log
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
