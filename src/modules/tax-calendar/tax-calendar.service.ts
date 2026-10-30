@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 import { tryPublicAppUrl } from '../../shared/services/public-app-url.js';
 import { randomUUID } from 'node:crypto';
-import { getSupabaseConfig } from '../../core/database/supabase.client.js';
+import { getSupabaseConfig, supabaseApiHeaders } from '../../core/database/supabase.client.js';
 import { rpc, smtpStatus } from '../notifications/email-notification.service.js';
 import { escapeHtml } from '../notifications/payment-email.js';
 import { pollMilliseconds, startAdaptivePoller } from '../../core/runtime/adaptive-poller.js';
@@ -140,7 +140,7 @@ async function uploadDocument(path: string, file: ValidatedUpload) {
   const storage = serviceStorage();
   const response = await fetch(new URL(`/storage/v1/object/tax-calendar/${encodedStoragePath(path)}`, storage.url), {
     method: 'POST',
-    headers: { apikey: storage.key, Authorization: `Bearer ${storage.key}`, 'Content-Type': file.mimeType, 'x-upsert': 'false' },
+    headers: supabaseApiHeaders({ apikey: storage.key, Authorization: `Bearer ${storage.key}`, 'Content-Type': file.mimeType, 'x-upsert': 'false' }),
     body: file.bytes as unknown as BodyInit,
     signal: AbortSignal.timeout(30000)
   });
@@ -152,7 +152,7 @@ async function removeDocument(path: string) {
   const storage = serviceStorage();
   const response = await fetch(new URL('/storage/v1/object/tax-calendar', storage.url), {
     method: 'DELETE',
-    headers: { apikey: storage.key, Authorization: `Bearer ${storage.key}`, 'Content-Type': 'application/json' },
+    headers: supabaseApiHeaders({ apikey: storage.key, Authorization: `Bearer ${storage.key}`, 'Content-Type': 'application/json' }),
     body: JSON.stringify({ prefixes: [path] }),
     signal: AbortSignal.timeout(20000)
   });
@@ -229,7 +229,7 @@ export async function taxCalendarDocument(authorization: string, eventId: string
   if (!fileName || fileName.length > 255 || /[\x00-\x1f\\/]/.test(fileName)) throw Error('El respaldo tiene un nombre de archivo inválido.');
   const storage = serviceStorage();
   const response = await fetch(new URL(`/storage/v1/object/authenticated/tax-calendar/${encodedStoragePath(path)}`, storage.url), {
-    headers: { apikey: storage.key, Authorization: `Bearer ${storage.key}` },
+    headers: supabaseApiHeaders({ apikey: storage.key, Authorization: `Bearer ${storage.key}` }),
     signal: AbortSignal.timeout(30000)
   });
   if (!response.ok) throw Error(response.status === 404 ? 'El archivo de respaldo ya no existe.' : 'No fue posible descargar el respaldo.');

@@ -124,11 +124,23 @@ export function getSupabaseConfig(): SupabaseConfig | null {
   return url && anonKey ? { url, anonKey } : null;
 }
 
+/** Las claves secretas modernas autentican al servidor mediante apikey, no como JWT. */
+export function supabaseApiHeaders(input?: HeadersInit): Headers {
+  const headers = new Headers(input);
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const bearer = headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (serviceKey?.startsWith('sb_secret_') && bearer === serviceKey) {
+    headers.set('apikey', serviceKey);
+    headers.delete('authorization');
+  }
+  return headers;
+}
+
 /** Solo las lecturas se reintentan: una escritura con respuesta perdida pudo confirmarse. */
 export async function fetchSupabase(input: URL | string, init?: RequestInit): Promise<Response> {
   const metricStarted = performance.now();
   let attempts = 0;
-  const request = { ...init, headers: auditRequestHeaders(init?.headers) };
+  const request = { ...init, headers: auditRequestHeaders(supabaseApiHeaders(init?.headers)) };
   const delays = ['GET', 'HEAD'].includes((init?.method ?? 'GET').toUpperCase()) ? [0, 300, 900, 1800] : [0];
   const configuredTimeout = Number(process.env.SUPABASE_REQUEST_TIMEOUT_MS ?? 20_000);
   const timeoutMs = Number.isFinite(configuredTimeout) && configuredTimeout >= 1_000 ? configuredTimeout : 20_000;
