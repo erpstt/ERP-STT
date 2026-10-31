@@ -1,1 +1,2 @@
-import{ fetchSupabase,getSupabaseConfig}from'../../core/database/supabase.client.js';export async function bankCheckPeriods(authorization:string){const config=getSupabaseConfig();if(!config)throw Error('Supabase no está configurado.');const response=await fetchSupabase(new URL('/rest/v1/rpc/bank_check_periods',config.url),{method:'POST',headers:{apikey:config.anonKey,Authorization:authorization,'Content-Type':'application/json'},body:'{}'}),raw=await response.text(),result=raw?JSON.parse(raw):null;if(!response.ok)throw Error(result?.message||'No fue posible cargar los períodos contables.');return result}
+import {bankCheckRpc} from './bank-check.service.js';
+export const bankCheckPeriods=(authorization:string)=>bankCheckRpc(authorization,'view','bank_check_periods');
