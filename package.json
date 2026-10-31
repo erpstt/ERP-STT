@@ -35,7 +35,8 @@
     "test:bank-deposit-security": "npm run build && node --test scripts/bank-deposit-api-security.test.mjs scripts/bank-deposit-sql-security.test.mjs",
     "test:bank-account-security": "npm run build && node --test scripts/bank-account-api-security.test.mjs scripts/bank-account-sql-security.test.mjs",
     "test:bank-check-security": "npm run build && node --test scripts/bank-check-api-security.test.mjs scripts/bank-check-sql-security.test.mjs",
-    "test:bank-fee-security": "npm run build && node --test scripts/bank-fee-api-security.test.mjs scripts/bank-fee-sql-security.test.mjs"
+    "test:bank-fee-security": "npm run build && node --test scripts/bank-fee-api-security.test.mjs scripts/bank-fee-sql-security.test.mjs",
+    "test:reconciliation-security": "npm run build && node --test scripts/reconciliation-api-security.test.mjs scripts/reconciliation-sql-security.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",

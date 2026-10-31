@@ -1,3 +1,4 @@
+import {requireReconciliationAccess} from './bank-reconciliation-security.service.js';
 import type ExcelJS from 'exceljs';
 import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
@@ -86,6 +87,8 @@ function errorStatus(code: unknown) {
 }
 
 async function rpc<T>(authorization: string, name: string, input: JsonObject = {}) {
+  const action=name==='quadratic_reconciliation_save'?(input.p_payload && typeof input.p_payload==='object' && (input.p_payload as JsonObject).id?'edit':'create'):['quadratic_reconciliation_options','quadratic_reconciliation_list','quadratic_reconciliation_get'].includes(name)?'view':'edit';
+  await requireReconciliationAccess(authorization,'banking:cash-proof',action);
   const config = getSupabaseConfig();
   if (!config) throw new Error('Supabase no está configurado.');
   const response = await fetchSupabase(new URL(`/rest/v1/rpc/${name}`, config.url), {
@@ -103,7 +106,7 @@ async function rpc<T>(authorization: string, name: string, input: JsonObject = {
   catch { payload = raw; }
   if (!response.ok) {
     const failure = object(payload);
-    const error = new Error(String(first(failure, 'message', 'details', 'hint') ?? 'No fue posible procesar la conciliación cuadrática.')) as Error & { status?: number };
+    const error = new Error(String(failure.code==='42501'?'No tiene permiso para operar esta conciliación.':first(failure, 'message') ?? 'No fue posible procesar la conciliación cuadrática.')) as Error & { status?: number };
     error.status = errorStatus(failure.code);
     throw error;
   }
