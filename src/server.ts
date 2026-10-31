@@ -13,7 +13,7 @@ import { withAuditExecution } from './core/database/audit-context.js';
 import { withSupabaseRequestSignal } from './core/database/supabase.client.js';
 import { resetRuntimePerformanceMetrics, runtimePerformanceSnapshot, withRequestPerformance } from './core/performance/runtime-metrics.js';
 import { paymentRequests } from './modules/treasury-catalogs/payment-requests.service.js';
-import { paymentBatchOptions, paymentBatchCandidates, paymentBatchReport, paymentBatchDetail, generatePaymentBatch, downloadPaymentBatch, markPaymentBatchSent, cancelPaymentBatch, applyPaymentBatchReference, applyPaymentBatchResponse } from './modules/treasury-catalogs/payment-batches.service.js';
+import { paymentBatchAccess, paymentBatchOptions, paymentBatchCandidates, paymentBatchReport, paymentBatchDetail, generatePaymentBatch, downloadPaymentBatch, markPaymentBatchSent, cancelPaymentBatch, applyPaymentBatchReference, applyPaymentBatchResponse } from './modules/treasury-catalogs/payment-batches.service.js';
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
@@ -582,6 +582,7 @@ const server = createServer((request, response) => {
     const prRoute=request.url?.match(/^\/api\/treasury\/payment-requests\/(access|options|invoices|report|detail|save|transition|execute|supports|support-save|support-delete)$/);
     if(prRoute&&((['access','options'].includes(prRoute[1])&&request.method==='GET')||(!['access','options'].includes(prRoute[1])&&request.method==='POST')))return json(response,200,await paymentRequests(request.headers.authorization!,prRoute[1],['access','options'].includes(prRoute[1])?{}:await body(request) as Record<string,unknown>));
     const paymentBatchUrl=new URL(request.url??'/','http://localhost'),paymentBatchBase='/api/treasury/payment-batches';
+    if(paymentBatchUrl.pathname===`${paymentBatchBase}/access`&&request.method==='GET')return json(response,200,await paymentBatchAccess(request.headers.authorization!));
     if(paymentBatchUrl.pathname===`${paymentBatchBase}/options`&&request.method==='GET')return json(response,200,await paymentBatchOptions(request.headers.authorization!));
     if(paymentBatchUrl.pathname===`${paymentBatchBase}/candidates`&&request.method==='POST')return json(response,200,await paymentBatchCandidates(request.headers.authorization!,await body(request)as Record<string,unknown>));
     if(paymentBatchUrl.pathname===`${paymentBatchBase}/generate`&&request.method==='POST')return json(response,201,await generatePaymentBatch(request.headers.authorization!,await body(request)as Record<string,unknown>));

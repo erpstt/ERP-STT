@@ -243,10 +243,11 @@
   <form id="actionForm" class="dialog-card">
     <div class="dialog-heading"><div><span class="eyebrow">CONFIRMACIÓN</span><h2 id="actionTitle">Confirmar acción</h2><p id="actionDescription"></p></div><button type="button" class="close-button" data-close="actionDialog" aria-label="Cerrar">×</button></div>
     <div id="actionNotice" class="dialog-notice"></div>
+    <label id="cancelReasonField" hidden>Motivo de cancelación<textarea id="cancelReason" maxlength="1000"></textarea></label>
     <footer class="dialog-actions"><button type="button" class="button secondary" data-close="actionDialog">Volver</button><button id="confirmAction" type="submit" class="button primary">Confirmar</button></footer>
   </form>
 </dialog>
 
-<script type="module" src="/payment-batches.js?v=20261003"></script>
+<script type="module" src="/payment-batches.js?v=20261031-security"></script>
 </body>
 </html>

@@ -17,7 +17,7 @@ const statusLabels={
 };
 const permissionKeys={
   generate:['manage','generate','canGenerate','can_generate','GENERATE','payment-batches:generate','treasury:payment-batches:generate'],
-  download:['manage','download','canDownload','can_download','DOWNLOAD','payment-batches:download','treasury:payment-batches:download'],
+  download:['download','canDownload','can_download','DOWNLOAD','payment-batches:download','treasury:payment-batches:download'],
   sent:['manage','sent','markSent','canMarkSent','can_mark_sent','SEND','payment-batches:send','treasury:payment-batches:send'],
   cancel:['manage','cancel','canCancel','can_cancel','CANCEL','payment-batches:cancel','treasury:payment-batches:cancel'],
   apply:['execute','apply','canApply','can_apply','APPLY','payment-batches:apply','treasury:payment-batches:apply']
@@ -53,7 +53,7 @@ function clearMessage(){message('')}
 function closeDialog(id){const dialog=$(id);if(dialog?.open)dialog.close()}
 
 function permission(action){
-  const permissions=state.options?.permissions;if(permissions===undefined||permissions===null)return true;
+  const permissions=state.options?.permissions;if(permissions===undefined||permissions===null)return false;
   const aliases=permissionKeys[action]||[action];
   if(typeof permissions==='boolean')return permissions;
   if(Array.isArray(permissions))return aliases.some(key=>permissions.some(value=>String(value).toLowerCase()===String(key).toLowerCase()));
@@ -172,6 +172,7 @@ function validateCandidateFilters(){
   if(!$('dueTo').value)throw Error('Indique la fecha máxima de vencimiento de CxP.');
 }
 async function queryCandidates(){
+  if(!permission('generate'))throw Error('Sin permiso para generar lotes.');
   validateCandidateFilters();renderCandidateLoading();state.selected.clear();
   const result=await api(`${API}/candidates`,{method:'POST',payload:candidatePayload()});
   state.candidates=Array.isArray(result)?result:array(result?.rows||result?.candidates);renderCandidates();
@@ -228,8 +229,8 @@ async function generateBatch(){
       const result=await api(`${API}/generate`,{method:'POST',payload:{bankAccountId:generation.account.id,formatId:generation.format.id,executionDate:$('executionDate').value,rate:number($('rate').value),requestIds:generation.rows.map(row=>row.id)}}),batch=result?.batch||{};
       closeDialog('generateDialog');
       let downloaded=true;try{await downloadUrl(result?.downloadUrl||`${API}/${encodeURIComponent(batch.id)}/download`,batch.fileName||`${batch.number||'lote-pagos'}${generation.format.extension||''}`)}catch(error){downloaded=false;message(`${batch.number||'El lote'} fue generado por ${money(batch.total,generation.account.currencyCode)}, pero la descarga falló: ${error.message}`,'warning')}
-      await Promise.allSettled([queryHistory(),queryCandidates()]);
-      switchView('history',{load:false});
+      await Promise.allSettled([...(permission('view')?[queryHistory()]:[]),queryCandidates()]);
+      switchView(permission('view')?'history':'generator',{load:false});
       if(downloaded)message(`${batch.number||'Lote generado'} · ${batch.itemCount??generation.rows.length} solicitudes · ${money(batch.total??generation.total,generation.account.currencyCode)}. El archivo se descargó correctamente.`);
     });
   }catch(error){message(error.message,'error')}
@@ -241,7 +242,7 @@ function amountSummary(rows){
   const totals=new Map();for(const row of rows){const code=currencyCode(row.currency)||'MONEDA';totals.set(code,(totals.get(code)||0)+number(row.total))}
   return[...totals].map(([code,total])=>money(total,code)).join(' · ')||'0,00';
 }
-function canDownloadBatch(row){return permission('download')&&Boolean(first(row,'fileName','generated_file_name','hasFile'))}
+function canDownloadBatch(row){return !['DRAFT','CANCELLED'].includes(String(row.status))&&permission('download')&&Boolean(first(row,'fileName','generated_file_name','hasFile'))}
 function canMarkSent(row){return permission('sent')&&String(row.status)==='FILE_GENERATED'}
 function canApplyBatch(row){return permission('apply')&&['FILE_GENERATED','SENT_TO_BANK','PARTIALLY_REJECTED'].includes(String(row.status))}
 function canCancelBatch(row){return permission('cancel')&&['DRAFT','FILE_GENERATED'].includes(String(row.status))}
@@ -268,6 +269,7 @@ function renderHistory(){
   </tr>`).join('');
 }
 async function queryHistory(){
+  if(!permission('view'))throw Error('Sin permiso para consultar lotes.');
   validateHistoryFilters();const result=await api(`${API}/report`,{method:'POST',payload:historyPayload()});
   state.batches=array(result?.rows??result);state.historyLoaded=true;renderHistory();
 }
@@ -307,6 +309,7 @@ function validateResponseFile(file){
 }
 function fileBase64(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',').pop()||'');reader.onerror=()=>reject(Error('No fue posible leer el archivo seleccionado.'));reader.readAsDataURL(file)})}
 async function applySettlement(){
+  if(!permission('apply'))return;
   const mode=$('settlementForm').dataset.mode,batch=state.settlementBatch;if(!batch)return;
   try{
     $('settlementError').textContent='';let endpoint,payload;
@@ -317,18 +320,20 @@ async function applySettlement(){
 }
 
 function openAction(type,id,numberValue){
+  if(!permission(type))return;
+  $('cancelReasonField').hidden=type!=='cancel';$('cancelReason').required=type==='cancel';$('cancelReason').value='';
   state.pendingAction={type,id,number:numberValue};
   if(type==='sent'){$('actionTitle').textContent='Marcar lote como enviado';$('actionDescription').textContent=`Confirme que ${numberValue} fue cargado en el portal bancario.`;$('actionNotice').innerHTML='<b>Estado del lote</b><span>Quedará pendiente de la respuesta o referencia del banco.</span>';$('confirmAction').textContent='Confirmar envío';$('confirmAction').className='button primary'}
   else{$('actionTitle').textContent='Cancelar lote de pago';$('actionDescription').textContent=`Esta acción cancelará ${numberValue}.`;$('actionNotice').innerHTML='<b>Solicitudes liberadas</b><span>Las solicitudes volverán a estar disponibles para corregirse o incluirse en otro lote.</span>';$('confirmAction').textContent='Cancelar lote';$('confirmAction').className='button danger'}
   closeDialog('detailDialog');$('actionDialog').showModal();
 }
 async function runPendingAction(){
-  const action=state.pendingAction;if(!action)return;
-  try{await withBusy($('confirmAction'),action.type==='sent'?'Confirmando…':'Cancelando…',async()=>{await api(`${API}/${encodeURIComponent(action.id)}/${action.type}`,{method:'POST',payload:{}});closeDialog('actionDialog');await Promise.allSettled([queryHistory(),$('bankAccount').value?queryCandidates():Promise.resolve()]);message(action.type==='sent'?`${action.number} quedó marcado como enviado al banco.`:`${action.number} fue cancelado y sus solicitudes quedaron liberadas.`)})}catch(error){closeDialog('actionDialog');message(error.message,'error')}
+  const action=state.pendingAction;if(!action||!permission(action.type))return;
+  try{await withBusy($('confirmAction'),action.type==='sent'?'Confirmando…':'Cancelando…',async()=>{await api(`${API}/${encodeURIComponent(action.id)}/${action.type}`,{method:'POST',payload:action.type==='cancel'?{reason:$('cancelReason').value.trim()}:{} });closeDialog('actionDialog');await Promise.allSettled([...(permission('view')?[queryHistory()]:[]),permission('generate')&&$('bankAccount').value?queryCandidates():Promise.resolve()]);message(action.type==='sent'?`${action.number} quedó marcado como enviado al banco.`:`${action.number} fue cancelado y sus solicitudes quedaron liberadas.`)})}catch(error){closeDialog('actionDialog');message(error.message,'error')}
 }
 
 function switchView(view,{updateUrl=true,load=true}={}){
-  const selected=view==='history'?'history':'generator';state.activeView=selected;$('generatorView').hidden=selected!=='generator';$('historyView').hidden=selected!=='history';
+  const selected=permission('view')&&(view==='history'||!permission('generate'))?'history':'generator';state.activeView=selected;$('generatorView').hidden=selected!=='generator';$('historyView').hidden=selected!=='history';
   for(const button of document.querySelectorAll('[data-view]'))button.setAttribute('aria-selected',String(button.dataset.view===selected));
   if(updateUrl){const url=new URL(location.href);url.searchParams.set('view',selected);history.replaceState(history.state,'',url.pathname+url.search+url.hash)}
   clearMessage();if(selected==='history'&&load&&!state.historyLoaded)void loadHistory();
@@ -367,11 +372,13 @@ function setDates(){
   const current=today(),firstDay=`${current.slice(0,8)}01`;$('dueTo').value=current;$('executionDate').value=current;$('executionDate').min=current;$('historyFrom').value=firstDay;$('historyTo').value=current;
 }
 async function initialize(button){
-  try{await withBusy(button,'Cargando…',async()=>{state.options=await api(`${API}/options`);state.options.accounts=array(state.options.accounts);state.options.formats=array(state.options.formats);state.options.currencies=array(state.options.currencies);state.options.suppliers=array(state.options.suppliers);renderOptions();renderAccountContext()})}catch(error){message(error.message,'error')}
+  try{await withBusy(button,'Cargando…',async()=>{const permissions=await api(`${API}/access`);state.options=await api(`${API}/options`);state.options.permissions=permissions;$('historyViewTab').hidden=!permission('view');$('generatorViewTab').hidden=!permission('generate');state.options.accounts=array(state.options.accounts);state.options.formats=array(state.options.formats);state.options.currencies=array(state.options.currencies);state.options.suppliers=array(state.options.suppliers);renderOptions();renderAccountContext()});return true}catch(error){state.options.permissions={};$('generateBatch').hidden=true;$('historyViewTab').hidden=true;$('generatorViewTab').hidden=true;message(error.message,'error');return false}
 }
 
 setDates();
-await initialize();
-const initialView=new URL(location.href).searchParams.get('view')==='history'?'history':'generator';
+if(await initialize()){
+const initialView=permission('view')&&(new URL(location.href).searchParams.get('view')==='history'||!permission('generate'))?'history':'generator';
 switchView(initialView,{updateUrl:false,load:false});
-if(initialView==='history')await loadHistory();
+if(initialView==='history'&&permission('view'))await loadHistory();
+
+}

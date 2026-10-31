@@ -43,7 +43,8 @@
     "test:supplier-invoice-security": "npm run build && node --test scripts/supplier-invoice-api-security.test.mjs scripts/supplier-invoice-sql-security.test.mjs scripts/supplier-invoice-ui-security.test.mjs",
     "test:supplier-note-security": "npm run build && node --test scripts/supplier-note-api-security.test.mjs scripts/supplier-note-sql-security.test.mjs scripts/supplier-note-ui-security.test.mjs",
     "test:supplier-payment-security": "npm run build && node --test scripts/supplier-payment-api-security.test.mjs scripts/supplier-payment-sql-security.test.mjs scripts/supplier-payment-ui-security.test.mjs",
-    "test:payment-request-security": "npm run build && node --test scripts/payment-request-api-security.test.mjs scripts/payment-request-sql-security.test.mjs scripts/payment-request-ui-security.test.mjs"
+    "test:payment-request-security": "npm run build && node --test scripts/payment-request-api-security.test.mjs scripts/payment-request-sql-security.test.mjs scripts/payment-request-ui-security.test.mjs",
+    "test:payment-batch-security": "npm run build && node --test scripts/payment-batch-api-security.test.mjs scripts/payment-batch-sql-security.test.mjs scripts/payment-batch-ui-security.test.mjs && node scripts/test-payment-batch-files.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",

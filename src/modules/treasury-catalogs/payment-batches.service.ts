@@ -29,23 +29,53 @@ export type BatchHeader = {
   structureDefinition?: Json;
   responseDefinition?: Json;
 };
-export type BatchDetail = { header: BatchHeader; items: BatchItem[] };
+export type BatchDetail = { header: BatchHeader; items: BatchItem[]; fileCapability?: string; responseCapability?: string };
 export type GeneratedBankFile = { fileName: string; mimeType: string; buffer: Buffer };
 
 async function rpc<T>(authorization: string, name: string, parameters: Json = {}): Promise<T> {
+  await assertBatchAccess(authorization, name);
+  return callRpc<T>(authorization, name, parameters);
+}
+
+async function assertBatchAccess(authorization: string, name: string) {
+  if (!/^Bearer\s+\S+$/i.test(authorization)) throw Object.assign(new Error('Debe iniciar sesi\u00f3n.'), { status: 401 });
+  const { assertRoleAccess } = await import('../security-catalogs/role-access-matrix.module.js');
+  const actions = ['payment_batch_access', 'payment_batch_options', 'payment_batch_detail', 'payment_batch_file'].includes(name)
+    ? ['view', 'create'] as const
+    : ['payment_batch_candidates', 'payment_batch_prepare', 'payment_batch_mark_sent', 'payment_batch_cancel'].includes(name) ? ['create'] as const : ['view'] as const;
+  for (const action of actions) {
+    try { await assertRoleAccess(authorization, 'treasury:payment-batches', action); return; }
+    catch (cause) { if ((cause as {status?: number}).status !== 403) throw cause; }
+  }
+  throw Object.assign(new Error('El rol activo no puede realizar esta operaci\u00f3n.'), {status: 403});
+}
+
+function serviceKey() {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!key) throw Object.assign(new Error('El procesamiento seguro de lotes no est\u00e1 disponible.'), {status: 503});
+  return key;
+}
+
+async function workerRpc<T>(name: 'payment_batch_finalize' | 'payment_batch_apply_response', parameters: Json): Promise<T> {
+  const key = serviceKey();
+  return callRpc<T>(`Bearer ${key}`, name, parameters, key);
+}
+
+async function callRpc<T>(authorization: string, name: string, parameters: Json, apiKey?: string): Promise<T> {
   const config = getSupabaseConfig();
   if (!config) throw new Error('Supabase no está configurado.');
   const response = await fetchSupabase(new URL(`/rest/v1/rpc/${name}`, config.url), {
     method: 'POST',
-    headers: { apikey: config.anonKey, Authorization: authorization, 'Content-Type': 'application/json' },
+    headers: { apikey: apiKey || config.anonKey, Authorization: authorization, 'Content-Type': 'application/json' },
     body: JSON.stringify(parameters)
   });
   const raw = await response.text();
   let result: unknown = null;
   try { result = raw ? JSON.parse(raw) : null; } catch { result = raw; }
   if (!response.ok) {
-    const message = typeof result === 'object' && result && 'message' in result ? String((result as Json).message) : 'No fue posible procesar el lote de pago.';
-    throw new Error(message);
+    const code = typeof result === 'object' && result ? String((result as Json).code || '') : '';
+    const status = response.status === 401 ? 401 : response.status === 403 || code === '42501' ? 403 : ['55000','23503','23505','P0001','PT422'].includes(code) ? 409 : ['22023','22P02','22003','22007','22008','23514','23502'].includes(code) ? 400 : 500;
+    throw Object.assign(new Error(status === 403 ? 'El rol activo no puede realizar esta operaci\u00f3n.' : status === 401 ? 'La sesi\u00f3n no es v\u00e1lida.' : status === 409 ? 'El lote est\u00e1 protegido por su estado, reservas o historial.' : status === 400 ? 'Revise los datos del lote.' : 'No fue posible procesar el lote de pago.'), {status});
   }
   return result as T;
 }
@@ -205,18 +235,22 @@ export function parsePaymentBatchResponse(content: string, definition: Json = {}
   return parseBankResponse(content, definition);
 }
 
+export const paymentBatchAccess = (authorization: string) => rpc<Json>(authorization, 'payment_batch_access');
 export const paymentBatchOptions = (authorization: string) => rpc<Json>(authorization, 'payment_batch_options');
 export const paymentBatchCandidates = (authorization: string, payload: Json) => rpc<Json[]>(authorization, 'payment_batch_candidates', { p: payload });
 export const paymentBatchReport = (authorization: string, payload: Json) => rpc<Json>(authorization, 'payment_batch_report', { p: payload });
 export const paymentBatchDetail = (authorization: string, id: number) => rpc<BatchDetail>(authorization, 'payment_batch_detail', { p_batch_id: id });
 
 export async function generatePaymentBatch(authorization: string, payload: Json) {
+  await assertBatchAccess(authorization, 'payment_batch_prepare');
+  serviceKey();
   const prepared = await rpc<BatchDetail>(authorization, 'payment_batch_prepare', { p: payload });
   const id = Number(prepared.header.id);
   try {
     const file = buildPaymentBatchFile(prepared);
     const checksum = createHash('sha256').update(file.buffer).digest('hex');
-    return await rpc<Json>(authorization, 'payment_batch_finalize', { p: { batchId: id, fileName: file.fileName, mimeType: file.mimeType, checksum, contentBase64: file.buffer.toString('base64') } });
+    if (!prepared.fileCapability) throw new Error('La autorizaci\u00f3n de generaci\u00f3n no est\u00e1 disponible.');
+    return await workerRpc<Json>('payment_batch_finalize', { p: { batchId: id, capability: prepared.fileCapability, fileName: file.fileName, mimeType: file.mimeType, checksum, contentBase64: file.buffer.toString('base64') } });
   } catch (cause) {
     await rpc(authorization, 'payment_batch_cancel', { p: { batchId: id, reason: 'La generación del archivo no pudo completarse.' } }).catch(() => undefined);
     throw cause;
@@ -233,18 +267,22 @@ export const cancelPaymentBatch = (authorization: string, id: number, payload: J
 export const applyPaymentBatchReference = (authorization: string, id: number, payload: Json) => rpc<Json>(authorization, 'payment_batch_apply_reference', { p: { ...payload, batchId: id } });
 
 export async function applyPaymentBatchResponse(authorization: string, id: number, payload: Json) {
-  const detail = await paymentBatchDetail(authorization, id);
+  await assertBatchAccess(authorization, 'payment_batch_prepare_response');
+  serviceKey();
   const fileName = String(payload.fileName || '').trim();
   const contentBase64 = String(payload.contentBase64 || '');
   if (!/\.(ack|res|csv|txt|xml)$/i.test(fileName)) throw new Error('Use una respuesta bancaria .ACK, .RES, .CSV, .TXT o .XML.');
   const buffer = Buffer.from(contentBase64, 'base64');
   if (!buffer.length || buffer.length > 5 * 1024 * 1024) throw new Error('La respuesta bancaria debe pesar entre 1 byte y 5 MB.');
+  const detail = await rpc<BatchDetail>(authorization, 'payment_batch_prepare_response', {p_batch_id: id});
   const content = buffer.toString('utf8');
   const results = parsePaymentBatchResponse(content, detail.header.responseDefinition || {});
   if (!results.length) throw new Error('No se reconocieron líneas de pago en la respuesta bancaria. Verifique el formato configurado.');
   const checksum = createHash('sha256').update(buffer).digest('hex');
-  return rpc<Json>(authorization, 'payment_batch_apply_response', { p: {
+  if (!detail.responseCapability) throw new Error('La autorizaci\u00f3n de respuesta no est\u00e1 disponible.');
+  return workerRpc<Json>('payment_batch_apply_response', { p: {
     batchId: id,
+    capability: detail.responseCapability,
     responseFileName: fileName,
     responseChecksum: checksum,
     responseContentBase64: contentBase64,
