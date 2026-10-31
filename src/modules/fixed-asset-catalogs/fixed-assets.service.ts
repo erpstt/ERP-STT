@@ -2,8 +2,10 @@ import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.c
 import { invalidateFixedAssetCatalogCache } from './fixed-asset-catalogs.module.js';
 import { assertRoleAccess } from '../security-catalogs/role-access-matrix.module.js';
 import { assetMasterRpc, assertAssetMasterAccess } from './asset-master-access.service.js';
+import { assetOperationRpc } from './asset-operation-access.service.js';
 
 async function rpc(authorization:string,name:string,parameters:Record<string,unknown>={}) {
+  if(['fixed_asset_operation_options','fixed_asset_operation_report','save_fixed_asset_operation','delete_fixed_asset_operation'].includes(name))return assetOperationRpc(authorization,name,parameters);
   if(['fixed_asset_report','fixed_asset_detail','fixed_asset_analytics','save_fixed_asset'].includes(name))return assetMasterRpc(authorization,name==='fixed_asset_analytics'?'fixed-assets:reports':'fixed-assets:assets',name==='save_fixed_asset'?(parameters.p_asset_id===null?'create':'edit'):'view',name,parameters);
   const payload=parameters.p_payload as Record<string,unknown>|undefined;
   const proposal=name==='fixed_asset_proposal_report'||name==='process_fixed_asset_proposals';
@@ -63,5 +65,5 @@ export async function fixedAssetDetail(authorization:string,id:number){
 export const fixedAssetAnalytics=(authorization:string,filters:Record<string,unknown>)=>rpc(authorization,'fixed_asset_analytics',{p_filters:filters});
 export const fixedAssetOperationOptions=(authorization:string)=>rpc(authorization,'fixed_asset_operation_options');
 export const fixedAssetOperationReport=(authorization:string,filters:Record<string,unknown>)=>rpc(authorization,'fixed_asset_operation_report',{p_filters:filters});
-export const saveFixedAssetOperation=(authorization:string,payload:Record<string,unknown>,id?:number)=>rpc(authorization,'save_fixed_asset_operation',{p_payload:payload,p_operation_id:id||null});
+export const saveFixedAssetOperation=(authorization:string,payload:Record<string,unknown>,id?:number)=>rpc(authorization,'save_fixed_asset_operation',{p_payload:payload,p_operation_id:id??null});
 export const deleteFixedAssetOperation=(authorization:string,type:string,id:number)=>rpc(authorization,'delete_fixed_asset_operation',{p_type:type,p_operation_id:id});
