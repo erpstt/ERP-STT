@@ -110,7 +110,7 @@ import { bankCheckOptions, saveBankCheck, bankCheckReport, bankCheckDetail, dele
 import { bankCheckPeriods } from './modules/banking-catalogs/bank-check-period.service.js';
 import { bankFeeOptions, saveBankFee, importBankFees, bankFeeReport, bankFeeDetail, updateBankFee, deleteBankFee, registerStatementBankFees } from './modules/banking-catalogs/bank-fee.service.js';
 import { autoMatchQuadraticReconciliation, deleteQuadraticReconciliationItem, exportQuadraticReconciliationExcel, exportQuadraticReconciliationPdf, getQuadraticReconciliation, getQuadraticReconciliationMatrix, listQuadraticReconciliations, matchQuadraticReconciliation, quadraticReconciliationOptions, saveQuadraticReconciliation, saveQuadraticReconciliationItem, transitionQuadraticReconciliation, unmatchQuadraticReconciliation } from './modules/banking-catalogs/quadratic-reconciliation.service.js';
-import { purchaseWorkflowOptions, purchaseDocuments, purchaseDocumentDetail, savePurchaseDocument, deletePurchaseDocument } from './modules/purchasing-catalogs/purchase-workflow.service.js';
+import { purchaseDocumentAccess, purchaseDocumentSource, purchaseWorkflowOptions, purchaseDocuments, purchaseDocumentDetail, savePurchaseDocument, deletePurchaseDocument } from './modules/purchasing-catalogs/purchase-workflow.service.js';
 import { supplierPaymentAccess, supplierPaymentOptions, supplierPaymentReport, supplierPaymentDetail, saveSupplierPayment, deleteSupplierPayment } from './modules/purchasing-catalogs/supplier-payment.service.js';
 
 const loadEnvFile = (process as typeof process & { loadEnvFile?: (path?: string) => void }).loadEnvFile;
@@ -606,6 +606,9 @@ const server = createServer((request, response) => {
     const noteContextRoute=request.url?.match(/^\/api\/purchasing\/supplier-note-(access|options)\/(CREDIT|DEBIT)$/);if(request.method==='GET'&&noteContextRoute)return json(response,200,await (noteContextRoute[1]==='access'?supplierNoteAccess:supplierNoteOptions)(request.headers.authorization!,noteContextRoute[2]!));
     if(request.method==='GET'&&request.url==='/api/purchasing/supplier-invoice-access')return json(response,200,await supplierInvoiceAccess(request.headers.authorization!));
     if(request.method==='POST'&&request.url==='/api/purchasing/supplier-invoice-entry'){const authorization=request.headers.authorization!;return json(response,201,await saveSupplierInvoice(authorization,await body(request)as Record<string,unknown>));}
+    const purchaseUrl=new URL(request.url??'/','http://localhost');
+    if(request.method==='GET'&&purchaseUrl.pathname==='/api/purchasing/workflow/access')return json(response,200,await purchaseDocumentAccess(request.headers.authorization!,purchaseUrl.searchParams.get('type')||''));
+    const purchaseSource=purchaseUrl.pathname.match(/^\/api\/purchasing\/workflow\/(\d+)\/source$/);if(purchaseSource&&request.method==='GET')return json(response,200,await purchaseDocumentSource(request.headers.authorization!,Number(purchaseSource[1]),purchaseUrl.searchParams.get('type')||''));
     if(request.method==='GET'&&request.url==='/api/purchasing/workflow/options')return json(response,200,await purchaseWorkflowOptions(request.headers.authorization!));
     if(request.method==='POST'&&request.url==='/api/purchasing/workflow/report')return json(response,200,await purchaseDocuments(request.headers.authorization!,await body(request)as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/purchasing/workflow')return json(response,201,await savePurchaseDocument(request.headers.authorization!,await body(request)as Record<string,unknown>));
