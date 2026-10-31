@@ -50,6 +50,11 @@ test('anon no ejecuta RPC ni lee tablas; las funciones internas son inaccesibles
   await assume(); await denied('select consolidation_private.consolidation_process(999)');
 });
 
+test('service_role no sustituye la identidad y permisos de un operador de consolidacion', async t => {
+  await transaction(t);await db.exec('set role service_role');
+  for(const rpc of rpcs) await denied(`select public.${rpc}`);
+});
+
 test('permiso tecnico usa codigo exacto y rol activo, sin heredar otro rol asignado', async t => {
   await transaction(t); await assume();
   assert.equal((await scalar("select consolidation_has_permission('ACC_CONSOLIDATION_RUN') allowed")).allowed,true);
