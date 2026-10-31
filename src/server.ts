@@ -35,7 +35,7 @@ import { createJournalEntry, updateJournalEntry } from './modules/accounting-cat
 import { fxRevaluation } from './modules/accounting-catalogs/fx-revaluation.service.js';
 import { importJournalCsv } from './modules/accounting-catalogs/journal-import.service.js';
 import { OpeningBalanceFilesValidationError, openingBalances } from './modules/accounting-catalogs/opening-balances.service.js';
-import { saveSupplierInvoice, supplierInvoiceAccess } from './modules/purchasing-catalogs/supplier-invoice.service.js';
+import { supplierInvoiceReceiptSource, saveSupplierInvoice, supplierInvoiceAccess } from './modules/purchasing-catalogs/supplier-invoice.service.js';
 import { saveSupplierNote, supplierNoteAccess, supplierNoteOptions } from './modules/purchasing-catalogs/supplier-note.service.js';
 import { saveSalesInvoice, setSalesInvoicePdfLineUnification } from './modules/sales-catalogs/sales-invoice.service.js';
 import { salesWorkflowOptions, salesDocuments, salesDocumentDetail, saveSalesDocument, deleteSalesDocument } from './modules/sales-catalogs/sales-workflow.service.js';
@@ -604,6 +604,7 @@ const server = createServer((request, response) => {
     if(request.method==='POST'&&request.url==='/api/accounting/journal-entry'){const authorization=request.headers.authorization!;return json(response,201,await createJournalEntry(authorization,await body(request)as Record<string,unknown>));}
     const journalEntryUpdate=request.url?.match(/^\/api\/accounting\/journal-entry\/(\d+)$/);if(request.method==='PUT'&&journalEntryUpdate){const authorization=request.headers.authorization!;return json(response,200,await updateJournalEntry(authorization,Number(journalEntryUpdate[1]),await body(request)as Record<string,unknown>));}
     const noteContextRoute=request.url?.match(/^\/api\/purchasing\/supplier-note-(access|options)\/(CREDIT|DEBIT)$/);if(request.method==='GET'&&noteContextRoute)return json(response,200,await (noteContextRoute[1]==='access'?supplierNoteAccess:supplierNoteOptions)(request.headers.authorization!,noteContextRoute[2]!));
+    const invoiceReceiptSource=request.url?.match(/^\/api\/purchasing\/supplier-invoice-receipt-source\/(\d+)$/);if(invoiceReceiptSource&&request.method==='GET')return json(response,200,await supplierInvoiceReceiptSource(request.headers.authorization!,Number(invoiceReceiptSource[1])));
     if(request.method==='GET'&&request.url==='/api/purchasing/supplier-invoice-access')return json(response,200,await supplierInvoiceAccess(request.headers.authorization!));
     if(request.method==='POST'&&request.url==='/api/purchasing/supplier-invoice-entry'){const authorization=request.headers.authorization!;return json(response,201,await saveSupplierInvoice(authorization,await body(request)as Record<string,unknown>));}
     const purchaseUrl=new URL(request.url??'/','http://localhost');
