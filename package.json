@@ -29,7 +29,8 @@
     "test:performance": "npm run build && node --test scripts/http-response-compression.test.mjs scripts/request-access-cache.test.mjs scripts/request-access-rpc.test.mjs scripts/organization-catalog-relations.test.mjs scripts/operational-catalog-cache.test.mjs scripts/subsidiary-payload-optimization.test.mjs scripts/performance-observability.test.mjs scripts/read-cache-integration.test.mjs scripts/hot-read-paths.test.mjs scripts/server-performance-routes.test.mjs scripts/supabase-concurrency-gate.test.mjs scripts/production-120-session-load.test.mjs",
     "audit:frontend": "node scripts/frontend-performance-audit.mjs",
     "test:pdf-security": "npm run build && node --test scripts/pdf-security.test.mjs scripts/pdf-worker.test.mjs",
-    "test:consolidation-security": "npm run build && node --test scripts/consolidation-api-security.test.mjs scripts/consolidation-sql-security.test.mjs"
+    "test:consolidation-security": "npm run build && node --test scripts/consolidation-api-security.test.mjs scripts/consolidation-sql-security.test.mjs",
+    "test:bank-transfer-security": "npm run build && node --test scripts/bank-transfer-api-security.test.mjs scripts/bank-transfer-sql-security.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
