@@ -1,6 +1,6 @@
 import type ExcelJS from 'exceljs';
 import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
-import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
+import {paymentRequestRpc} from '../treasury-catalogs/payment-request-security.service.js';
 import { renderBankReconciliationPdf } from './accounting-reports.service.js';
 
 type Json = Record<string, unknown>;
@@ -63,24 +63,7 @@ type NormalizedReport = {
   };
 };
 
-async function rpc<T>(authorization: string, name: string, input: Json = {}) {
-  const config = getSupabaseConfig();
-  if (!config) throw new Error('Supabase no está configurado.');
-  const response = await fetchSupabase(new URL(`/rest/v1/rpc/${name}`, config.url), {
-    method: 'POST',
-    headers: { apikey: config.anonKey, Authorization: authorization, 'Content-Type': 'application/json' },
-    body: JSON.stringify(input)
-  });
-  const raw = await response.text();
-  const result: unknown = raw ? JSON.parse(raw) : null;
-  if (!response.ok) {
-    const message = typeof result === 'object' && result && 'message' in result
-      ? String((result as { message?: unknown }).message)
-      : 'No fue posible generar el reporte de solicitudes de pago.';
-    throw new Error(message);
-  }
-  return result as T;
-}
+const rpc=<T>(a:string,name:string,input:Json={})=>paymentRequestRpc<T>(a,name,input,'view','reports:accounting-reports');
 
 export function paymentRequestReportOptions(authorization: string) {
   return rpc<Json>(authorization, 'payment_request_report_options');

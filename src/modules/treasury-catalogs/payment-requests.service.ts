@@ -1,26 +1,12 @@
-import { fetchSupabase,getSupabaseConfig} from '../../core/database/supabase.client.js';
-const actions:Record<string,string>={options:'pr_options',invoices:'pr_invoices',report:'pr_report',detail:'pr_detail',save:'pr_save',transition:'pr_transition',execute:'pr_execute',supports:'pr_supports','support-save':'pr_support_save','support-delete':'pr_support_delete'};
-async function rpc(auth:string,name:string,parameters:Record<string,unknown>={}){const c=getSupabaseConfig();if(!c)throw Error('Supabase no está configurado.');const r=await fetchSupabase(new URL(`/rest/v1/rpc/${name}`,c.url),{method:'POST',headers:{apikey:c.anonKey,Authorization:auth,'Content-Type':'application/json'},body:JSON.stringify(parameters)}),raw=await r.text(),result=raw?JSON.parse(raw):null;if(!r.ok)throw Error(result?.message||'No fue posible procesar la solicitud.');return result}
+import {paymentRequestRpc,type RequestAction} from './payment-request-security.service.js';
+const actions:Record<string,string>={access:'pr_access_context',options:'pr_options',invoices:'pr_invoices',report:'pr_report',detail:'pr_detail',save:'pr_save',transition:'pr_transition',execute:'pr_execute',supports:'pr_supports','support-save':'pr_support_save','support-delete':'pr_support_delete'};
 export async function paymentRequests(auth:string,action:string,payload:Record<string,unknown>={}){
- const name=actions[action];if(!name)throw Error('Solicitud no válida.');
- if(action==='detail'){
-  const id=Number(payload.id);
-  const[detail,inbox]=await Promise.all([
-   rpc(auth,name,{p:payload}),
-   rpc(auth,'wf_inbox')
-  ]);
-  const canActApproval=Array.isArray(inbox)&&inbox.some(item=>item?.entityType==='PAYMENT_REQUEST'&&Number(item?.entityId)===id);
-  return detail&&typeof detail==='object'?{...detail,canActApproval}:detail;
- }
- if(action==='transition'){
-  const transition=String(payload.transition||'').toUpperCase(),id=Number(payload.id);
-  if(['APPROVE','REJECT','CANCEL'].includes(transition)){
-   const detail=await rpc(auth,'wf_instance_detail',{p_entity_type:'PAYMENT_REQUEST',p_entity_id:id});
-   if(detail?.instance){const map:Record<string,string>={APPROVE:'APROBAR',REJECT:'RECHAZAR',CANCEL:'CANCELAR'};return rpc(auth,'wf_act',{p_instance_id:detail.instance.id,p_action:map[transition],p_comment:payload.reason||null,p_ip:null})}
-  }
-  // pr_transition submits and materializes the workflow in one database transaction.
-  // This prevents a request from remaining pending when its UP approver cannot be resolved.
-  return rpc(auth,name,{p:payload});
- }
- return rpc(auth,name,action==='options'?{}:{p:payload});
+ const name=actions[action];if(!name)throw Object.assign(new Error('Solicitud no v\u00e1lida.'),{status:400});let permission:RequestAction;
+ if(action==='access'||action==='options'||action==='invoices')permission='context';
+ else if(action==='save')permission=payload.id===undefined||payload.id===null||payload.id===''?'create':'edit';
+ else if(action==='execute')permission='edit';
+ else if(action==='support-save'||action==='support-delete')permission='support';
+ else if(action==='transition'){const t=String(payload.transition||'').toUpperCase();if(!['SUBMIT','APPROVE','REJECT','CANCEL'].includes(t))throw Object.assign(new Error('Transici\u00f3n inv\u00e1lida.'),{status:400});permission=t==='SUBMIT'?'edit':t==='CANCEL'?'delete':'view';}
+ else permission='view';
+ return paymentRequestRpc(auth,name,['access','options'].includes(action)?{}:{p:payload},permission);
 }
