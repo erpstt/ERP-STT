@@ -1,31 +1,10 @@
-import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
-
-async function rpc(authorization:string,name:string,parameters:Record<string,unknown>={}) {
-  const config=getSupabaseConfig();
-  if(!config)throw Error('Supabase no está configurado.');
-  const response=await fetchSupabase(new URL(`/rest/v1/rpc/${name}`,config.url),{method:'POST',headers:{apikey:config.anonKey,Authorization:authorization,'Content-Type':'application/json'},body:JSON.stringify(parameters)});
-  const text=await response.text(),data=text?JSON.parse(text):null;
-  if(!response.ok)throw Error(data?.message||'No fue posible procesar el cobro.');
-  return data;
-}
-export async function customerPaymentOptions(authorization:string,paymentId?:number){
-  if(paymentId!==undefined&&(!Number.isSafeInteger(paymentId)||paymentId<=0))throw Error('El cobro indicado no es válido.');
-  const optionsRequest=paymentId===undefined
-    ?rpc(authorization,'customer_payment_options')
-    :rpc(authorization,'customer_payment_edit_options',{p_payment_id:paymentId});
-  const [options,advances,bankFeeOptions]=await Promise.all([optionsRequest,rpc(authorization,'customer_available_advances'),rpc(authorization,'bank_fee_options')]);
-  return {...options,advances,bankFeeAccount:bankFeeOptions?.expenseAccount??null};
-}
-export async function customerPaymentReport(authorization:string,filters:Record<string,unknown>){
-  const [report,summaries,bankFees]=await Promise.all([rpc(authorization,'customer_payment_report',{p_filters:filters}),rpc(authorization,'customer_payment_advance_summary'),rpc(authorization,'customer_payment_bank_fee_summary')]);
-  const advanceByPayment=new Map<string,unknown>();for(const item of summaries as Array<Record<string,unknown>>){const paymentId=String(item.paymentId);if(!advanceByPayment.has(paymentId))advanceByPayment.set(paymentId,item.advanceTotal);}
-  const bankFeeByPayment=new Map<string,Record<string,unknown>>();for(const item of bankFees as Array<Record<string,unknown>>)bankFeeByPayment.set(String(item.paymentId),item);
-  return {...report,rows:(report.rows||[]).map((row:Record<string,unknown>)=>{const advanceTotal=Number(advanceByPayment.get(String(row.id))||0),bankFee=bankFeeByPayment.get(String(row.id)),bankFeeTotal=Number(bankFee?.amount||0);return{...row,advanceTotal,bankFeeTotal,bankFeeAccountNumber:bankFee?.expenseAccountNumber??null,bankFeeAccountName:bankFee?.expenseAccountName??null,cashNet:Math.max(Number(row.amount||0)-advanceTotal-bankFeeTotal,0)};})};
-}
-export async function customerPaymentDetail(authorization:string,id:number){
-  const [detail,advances,bankFee]=await Promise.all([rpc(authorization,'customer_payment_detail',{p_payment_id:id}),rpc(authorization,'customer_payment_advance_detail',{p_payment_id:id}),rpc(authorization,'customer_payment_bank_fee_detail',{p_payment_id:id})]);
-  return {...detail,advances,bankFee:Object.keys(bankFee||{}).length?bankFee:null};
-}
-export const saveCustomerPayment=(authorization:string,payload:Record<string,unknown>,id?:number)=>rpc(authorization,'save_customer_payment_with_advances',{p_payload:payload,p_payment_id:id||null});
-export const deleteCustomerPayment=(authorization:string,id:number)=>rpc(authorization,'delete_customer_payment',{p_payment_id:id});
-
+import{fetchSupabase,getSupabaseConfig}from'../../core/database/supabase.client.js';
+type Action='view'|'create'|'edit'|'delete'|'context';
+export async function assertCustomerPaymentAccess(auth:string,action:Action){if(!/^Bearer\s+\S+$/i.test(auth))throw Object.assign(new Error('Debe iniciar sesión.'),{status:401});const{assertRoleAccess}=await import('../security-catalogs/role-access-matrix.module.js');if(action!=='context'){await assertRoleAccess(auth,'sales:customer-payments',action);return;}for(const a of['view','create','edit','delete']as const){try{await assertRoleAccess(auth,'sales:customer-payments',a);return;}catch(e){if((e as {status?:number}).status!==403)throw e;}}throw Object.assign(new Error('Sin acceso a cobros de clientes.'),{status:403});}
+export async function customerPaymentRpc(auth:string,name:string,p:Record<string,unknown>={},action:Action='view'){await assertCustomerPaymentAccess(auth,action);const c=getSupabaseConfig();if(!c)throw Error('Supabase no está configurado.');const r=await fetchSupabase(new URL('/rest/v1/rpc/'+name,c.url),{method:'POST',headers:{apikey:c.anonKey,Authorization:auth,'Content-Type':'application/json'},body:JSON.stringify(p)}),raw=await r.text(),data=raw?JSON.parse(raw):null;if(!r.ok){const status=r.status===401?401:r.status===403||data?.code==='42501'?403:['55000','23503','23505','P0001'].includes(data?.code)?409:['22023','22P02','22003','22007','22008','23514','23502'].includes(data?.code)?400:500;throw Object.assign(new Error(status===403?'El rol activo no puede realizar esta operación.':status===409?'El cobro está protegido por saldo, origen, conciliación o historial contable.':status===400?'Revise los campos, importes, anticipos y respaldos del cobro.':'No fue posible procesar el cobro de cliente.'),{status});}return data;}
+export function customerPaymentOptions(auth:string,id?:number){if(id!==undefined&&(!Number.isSafeInteger(id)||id<=0))throw Object.assign(new Error('Cobro inválido.'),{status:400});return customerPaymentRpc(auth,id===undefined?'customer_payment_options':'customer_payment_edit_options',id===undefined?{}:{p_payment_id:id},id===undefined?'context':'edit');}
+export async function customerPaymentReport(auth:string,filters:Record<string,unknown>){const r=await customerPaymentRpc(auth,'customer_payment_report',{p_filters:filters});return{...r,rows:(r.rows||[]).map((x:Record<string,unknown>)=>({...x,cashNet:Math.max(Number(x.amount||0)-Number(x.advanceTotal||0)-Number(x.bankFeeTotal||0),0)}))};}
+export const customerPaymentDetail=(auth:string,id:number)=>customerPaymentRpc(auth,'customer_payment_detail',{p_payment_id:id});
+export const saveCustomerPayment=(auth:string,payload:Record<string,unknown>,id?:number)=>customerPaymentRpc(auth,'save_customer_payment_with_advances',{p_payload:payload,p_payment_id:id??null},id===undefined?'create':'edit');
+export const deleteCustomerPayment=(auth:string,id:number)=>customerPaymentRpc(auth,'delete_customer_payment',{p_payment_id:id},'delete');
+export function denyCustomerPaymentCatalogWrite(){throw Object.assign(new Error('Utilice el proceso protegido de cobros; no se permite CRUD directo.'),{status:403});}
