@@ -390,6 +390,7 @@
 <p class="eyebrow">{{ currentModule.toUpperCase() }} · CATÁLOGOS</p>
 <h1>{{ activeCatalog.title }}</h1>
 <p class="dashboard-copy">{{ activeCatalog.description }}</p>
+<p v-if="activeCatalog.inventoryReadOnly" class="dashboard-copy">Consulta de inventario. Los cambios de cantidades requieren un proceso operativo autorizado.</p>
 </div>
 <div class="records-head-actions">
 <div v-if="organizationCatalogExportEnabled" class="catalog-export-actions" role="group" :aria-label="'Descargar '+activeCatalog.title+' de la subsidiaria activa'">
@@ -691,7 +692,7 @@
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
 <script type="module" src="/i18n.js?v=20261029-global"></script>
-<script type="module" src="/app.js?v=20261031-supplier-note-security">
+<script type="module" src="/app.js?v=20261031-inventory-security">
 </script>
 <script src="/approval-notifications.js?v=20261023-second-pass"></script></body>
 </html>

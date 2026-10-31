@@ -46,7 +46,8 @@
     "test:payment-request-security": "npm run build && node --test scripts/payment-request-api-security.test.mjs scripts/payment-request-sql-security.test.mjs scripts/payment-request-ui-security.test.mjs",
     "test:payment-batch-security": "npm run build && node --test scripts/payment-batch-api-security.test.mjs scripts/payment-batch-sql-security.test.mjs scripts/payment-batch-ui-security.test.mjs && node scripts/test-payment-batch-files.mjs",
     "test:purchase-order-security": "npm run build && node --test scripts/purchase-order-api-security.test.mjs scripts/purchase-order-sql-security.test.mjs scripts/purchase-order-ui-security.test.mjs",
-    "test:purchase-receipt-security": "npm run build && node --test scripts/purchase-receipt-api-security.test.mjs scripts/purchase-receipt-sql-security.test.mjs scripts/purchase-receipt-ui-security.test.mjs"
+    "test:purchase-receipt-security": "npm run build && node --test scripts/purchase-receipt-api-security.test.mjs scripts/purchase-receipt-sql-security.test.mjs scripts/purchase-receipt-ui-security.test.mjs",
+    "test:inventory-balance-security": "npm run build && node --test scripts/inventory-balance-api-security.test.mjs scripts/inventory-balance-sql-security.test.mjs scripts/inventory-balance-ui-security.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
