@@ -1,24 +1,11 @@
-import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
-
-async function rpc(authorization: string, name: string, parameters: Record<string, unknown> = {}) {
-  const config = getSupabaseConfig();
-  if (!config) throw Error('Supabase no está configurado.');
-  const response = await fetchSupabase(new URL(`/rest/v1/rpc/${name}`, config.url), {
-    method: 'POST',
-    headers: { apikey: config.anonKey, Authorization: authorization, 'Content-Type': 'application/json' },
-    body: JSON.stringify(parameters)
-  });
-  const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
-  if (!response.ok) throw Error(data?.message || 'No fue posible procesar el pago.');
-  return data;
-}
+import {supplierPaymentRpc as rpc} from './supplier-payment-security.service.js';
+export const supplierPaymentAccess=(a:string)=>rpc(a,'supplier_payment_access',{},'context');
 
 export async function supplierPaymentOptions(authorization: string) {
   const [options, locks, advances] = await Promise.all([
-    rpc(authorization, 'supplier_payment_options'),
-    rpc(authorization, 'supplier_payment_request_locks'),
-    rpc(authorization, 'supplier_available_advances')
+    rpc(authorization, 'supplier_payment_options',{},'context'),
+    rpc(authorization, 'supplier_payment_request_locks',{},'context'),
+    rpc(authorization, 'supplier_available_advances',{},'context')
   ]);
   return { ...options, paymentRequestLocks: locks, advances };
 }
@@ -51,6 +38,6 @@ export async function supplierPaymentDetail(authorization: string, id: number) {
 }
 
 export const saveSupplierPayment = (authorization: string, payload: Record<string, unknown>, id?: number) =>
-  rpc(authorization, 'save_supplier_payment_with_advances', { p_payload: payload, p_payment_id: id || null });
+  rpc(authorization, 'save_supplier_payment_with_advances', { p_payload: payload, p_payment_id: id ?? null },id===undefined?'create':'edit');
 export const deleteSupplierPayment = (authorization: string, id: number) =>
-  rpc(authorization, 'delete_supplier_payment', { p_payment_id: id });
+  rpc(authorization, 'delete_supplier_payment', { p_payment_id: id },'delete');

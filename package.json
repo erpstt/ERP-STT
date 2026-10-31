@@ -41,7 +41,8 @@
     "test:asset-master-security": "npm run build && node --test scripts/asset-master-api-security.test.mjs scripts/asset-master-sql-security.test.mjs scripts/asset-master-ui-security.test.mjs",
     "test:asset-operation-security": "npm run build && node --test scripts/asset-operation-api-security.test.mjs scripts/asset-operation-sql-security.test.mjs scripts/asset-operation-ui-security.test.mjs",
     "test:supplier-invoice-security": "npm run build && node --test scripts/supplier-invoice-api-security.test.mjs scripts/supplier-invoice-sql-security.test.mjs scripts/supplier-invoice-ui-security.test.mjs",
-    "test:supplier-note-security": "npm run build && node --test scripts/supplier-note-api-security.test.mjs scripts/supplier-note-sql-security.test.mjs scripts/supplier-note-ui-security.test.mjs"
+    "test:supplier-note-security": "npm run build && node --test scripts/supplier-note-api-security.test.mjs scripts/supplier-note-sql-security.test.mjs scripts/supplier-note-ui-security.test.mjs",
+    "test:supplier-payment-security": "npm run build && node --test scripts/supplier-payment-api-security.test.mjs scripts/supplier-payment-sql-security.test.mjs scripts/supplier-payment-ui-security.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",

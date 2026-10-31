@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import {assertSupplierPaymentAccess,supplierPaymentRpc} from '../purchasing-catalogs/supplier-payment-security.service.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { pollMilliseconds, startAdaptivePoller } from '../../core/runtime/adaptive-poller.js';
 import { cleanBody, defaultBody, defaultSubject, renderPaymentEmail, validateTemplate, type PaymentSnapshot } from './payment-email.js';
@@ -33,12 +34,16 @@ export async function notificationSettings(authorization:string, action:string, 
   return {...data,transport:smtpStatus(),defaults:{subject:defaultSubject,body:defaultBody}};
 }
 export async function paymentNotifications(authorization:string,id:number,action:string,payload:Record<string,unknown>) {
+  await assertSupplierPaymentAccess(authorization,'view');
+  if(action==='resend')await assertSupplierPaymentAccess(authorization,'edit');
   if(!Number.isSafeInteger(id)||id<=0)throw Error('Pago inválido.');
   if(action==='resend') {
     if(!smtpStatus().enabled) throw Error('El envío SMTP todavía no está activado en el servidor.');
-    return rpc('payment_email_resend',{p_id:id,p_email:payload.email||null},authorization);
+    return supplierPaymentRpc(authorization,'payment_email_resend',{p_id:id,p_email:payload.email||null},'edit');
   }
-  return {logs:await rpc('payment_email_history',{p_id:id},authorization),transport:smtpStatus()};
+  let canResend=false;
+  try{await assertSupplierPaymentAccess(authorization,'edit');canResend=true;}catch(e){if((e as {status?:number}).status!==403)throw e;}
+  return {logs:await supplierPaymentRpc(authorization,'payment_email_history',{p_id:id},'view'),transport:smtpStatus(),canResend};
 }
 
 type Job={id:string;lease:string;destinatario:string;payload:PaymentSnapshot;asunto_template:string;cuerpo_template:string};

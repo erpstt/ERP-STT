@@ -1,4 +1,5 @@
 const $=id=>document.getElementById(id),token=localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo_token'),device=localStorage.getItem('nexo_device_token')||sessionStorage.getItem('nexo_device_token'),money=value=>Number(value||0).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2}),id=new URLSearchParams(location.search).get('id');
+const accessResponse=await fetch('/api/purchasing/supplier-payments/access',{headers:{Authorization:`Bearer ${token}`,'X-Device-Token':device||''}}),access=await accessResponse.json();if(!accessResponse.ok||!access.canView){$('number').textContent='El rol activo no puede consultar este pago.';document.querySelector('.print').disabled=true;throw Error('Acceso denegado.')}
 const response=await fetch(`/api/purchasing/supplier-payments/${id}`,{headers:{Authorization:`Bearer ${token}`,'X-Device-Token':device||''}}),data=await response.json();
 if(!response.ok)throw Error(data?.error?.message||'No fue posible cargar el pago.');
 const header=data.header,advanceTotal=(data.advances||[]).reduce((sum,row)=>sum+Number(row.amount),0);

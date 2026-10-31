@@ -111,7 +111,7 @@ import { bankCheckPeriods } from './modules/banking-catalogs/bank-check-period.s
 import { bankFeeOptions, saveBankFee, importBankFees, bankFeeReport, bankFeeDetail, updateBankFee, deleteBankFee, registerStatementBankFees } from './modules/banking-catalogs/bank-fee.service.js';
 import { autoMatchQuadraticReconciliation, deleteQuadraticReconciliationItem, exportQuadraticReconciliationExcel, exportQuadraticReconciliationPdf, getQuadraticReconciliation, getQuadraticReconciliationMatrix, listQuadraticReconciliations, matchQuadraticReconciliation, quadraticReconciliationOptions, saveQuadraticReconciliation, saveQuadraticReconciliationItem, transitionQuadraticReconciliation, unmatchQuadraticReconciliation } from './modules/banking-catalogs/quadratic-reconciliation.service.js';
 import { purchaseWorkflowOptions, purchaseDocuments, purchaseDocumentDetail, savePurchaseDocument, deletePurchaseDocument } from './modules/purchasing-catalogs/purchase-workflow.service.js';
-import { supplierPaymentOptions, supplierPaymentReport, supplierPaymentDetail, saveSupplierPayment, deleteSupplierPayment } from './modules/purchasing-catalogs/supplier-payment.service.js';
+import { supplierPaymentAccess, supplierPaymentOptions, supplierPaymentReport, supplierPaymentDetail, saveSupplierPayment, deleteSupplierPayment } from './modules/purchasing-catalogs/supplier-payment.service.js';
 
 const loadEnvFile = (process as typeof process & { loadEnvFile?: (path?: string) => void }).loadEnvFile;
 try { loadEnvFile?.('.env'); } catch { /* Las variables también pueden venir del entorno del proceso. */ }
@@ -488,7 +488,7 @@ const server = createServer((request, response) => {
       return json(response,200,await sendExistingUserPasswordLink(authorization,Number(userPasswordLinkRoute[1])));
     }
     const accessUrl=new URL(request.url??'/',`http://${request.headers.host??'localhost'}`),accessRoute=accessUrl.pathname.match(/^\/api\/(core|security|organization|configuration|accounting|banking|treasury|entities|inventory|sales|transaction-engine|purchasing|expenses|fixed-assets|workflow|documents|audit|consolidation|ai)\/([a-z-]+)(?:\/\d+)?$/);
-    if(accessRoute){const resourceKey=request.method==='GET'&&accessRoute[1]==='purchasing'&&['supplier-invoice-lines','supplier-invoice-withholdings'].includes(accessRoute[2]!)?'purchasing:supplier-invoices':`${accessRoute[1]}:${accessRoute[2]}`;if(isRoleAccessResource(resourceKey)&&!(request.method==='GET'&&resourceKey==='purchasing:supplier-note-lines')){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const accessAction=request.method==='GET'?'view':request.method==='PATCH'||(request.method==='POST'&&resourceKey==='security:user-subsidiaries')?'edit':request.method==='POST'?'create':'delete';await assertRoleAccess(authorization,resourceKey,accessAction);}}
+    if(accessRoute){const resourceKey=request.method==='GET'&&accessRoute[1]==='purchasing'&&['supplier-invoice-lines','supplier-invoice-withholdings'].includes(accessRoute[2]!)?'purchasing:supplier-invoices':`${accessRoute[1]}:${accessRoute[2]}`;if(isRoleAccessResource(resourceKey)&&!(request.method==='GET'&&resourceKey==='purchasing:supplier-note-lines')){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const accessAction=request.method==='GET'?'view':request.method==='PATCH'||(request.method==='PUT'&&resourceKey==='purchasing:supplier-payments')||(request.method==='POST'&&resourceKey==='security:user-subsidiaries')?'edit':request.method==='POST'?'create':'delete';await assertRoleAccess(authorization,resourceKey,accessAction);}}
     const coreRoute = request.url?.match(/^\/api\/core\/([a-z-]+)(?:\/(\d+))?$/);
     if (coreRoute) {
       const authorization = request.headers.authorization;
@@ -669,6 +669,7 @@ const server = createServer((request, response) => {
       }
       return error(response,405,'Método no permitido.');
     }
+    if(request.method==='GET'&&request.url==='/api/purchasing/supplier-payments/access')return json(response,200,await supplierPaymentAccess(request.headers.authorization!));
     if(request.method==='GET'&&request.url==='/api/purchasing/supplier-payments/options')return json(response,200,await supplierPaymentOptions(request.headers.authorization!));
     if(request.method==='POST'&&request.url==='/api/purchasing/supplier-payments/report')return json(response,200,await supplierPaymentReport(request.headers.authorization!,await body(request)as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/purchasing/supplier-payments/save')return json(response,201,await saveSupplierPayment(request.headers.authorization!,await body(request)as Record<string,unknown>));
