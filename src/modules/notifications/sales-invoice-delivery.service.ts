@@ -1,3 +1,4 @@
+import{assertSalesInvoiceAccess,salesInvoiceRpc}from'../sales-catalogs/sales-invoice-security.service.js';
 import nodemailer from 'nodemailer';
 import { renderBankReconciliationPdf } from '../reports/accounting-reports.service.js';
 import { rpc, smtpStatus } from './email-notification.service.js';
@@ -231,7 +232,7 @@ export function prepareSalesInvoicePdfViewModel(document:SalesInvoiceDocument):S
 export async function loadSalesInvoiceDocument(authorization:string,invoiceId:number):Promise<SalesInvoiceDocument>{
   if(!Number.isSafeInteger(invoiceId)||invoiceId<=0)throw Error('Factura de venta inválida.');
   // La función SECURITY DEFINER comprueba primero la sesión y la subsidiaria activa.
-  const document=await rpc('sales_invoice_delivery_snapshot',{p_invoice_id:invoiceId},authorization) as SalesInvoiceDocument;
+  const document=await salesInvoiceRpc(authorization,'sales_invoice_delivery_snapshot',{p_invoice_id:invoiceId},'view') as SalesInvoiceDocument;
   if(!document||Number(document.id)!==invoiceId||!document.company||!document.customer||!Array.isArray(document.lines)||!Array.isArray(document.supports))throw Error('La factura no devolvió la información necesaria para generar el documento.');
   document.customer.email=String(document.customer.email??'').trim();
   return document;
@@ -291,6 +292,9 @@ export async function deliverSalesInvoiceEmail(
 export async function downloadSalesInvoicePdf(authorization:string,invoiceId:number){return renderSalesInvoicePdf(await loadSalesInvoiceDocument(authorization,invoiceId));}
 
 export async function sendSalesInvoiceEmail(authorization:string,invoiceId:number){
+  await assertSalesInvoiceAccess(authorization,'edit');
+  const access=await salesInvoiceRpc(authorization,'sales_invoice_access',{},'edit');
+  if(access?.canEdit!==true||access?.canView!==true)throw Object.assign(new Error('El rol activo no puede enviar esta factura.'),{status:403});
   const transportStatus=smtpStatus();
   if(!transportStatus.enabled)throw Error('El envío SMTP todavía no está activado en el servidor.');
   const document=await loadSalesInvoiceDocument(authorization,invoiceId),settings=await rpc('sales_invoice_email_settings',{p_action:'get',p_payload:{}},authorization)as TemplateSettings,template=settings.template;

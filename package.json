@@ -49,7 +49,8 @@
     "test:purchase-receipt-security": "npm run build && node --test scripts/purchase-receipt-api-security.test.mjs scripts/purchase-receipt-sql-security.test.mjs scripts/purchase-receipt-ui-security.test.mjs",
     "test:inventory-balance-security": "npm run build && node --test scripts/inventory-balance-api-security.test.mjs scripts/inventory-balance-sql-security.test.mjs scripts/inventory-balance-ui-security.test.mjs",
     "test:inventory-master-security": "npm run build && node --test scripts/inventory-master-sql-security.test.mjs scripts/inventory-master-api-security.test.mjs scripts/inventory-master-ui-security.test.mjs",
-    "test:inventory-global-security": "npm run build && node --test scripts/inventory-global-sql-security.test.mjs scripts/inventory-global-api-security.test.mjs scripts/inventory-global-ui-security.test.mjs"
+    "test:inventory-global-security": "npm run build && node --test scripts/inventory-global-sql-security.test.mjs scripts/inventory-global-api-security.test.mjs scripts/inventory-global-ui-security.test.mjs",
+    "test:sales-invoice-security": "npm run build && node --test scripts/sales-invoice-sql-security.test.mjs scripts/sales-invoice-api-security.test.mjs scripts/sales-invoice-ui-security.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",

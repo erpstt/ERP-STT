@@ -35,7 +35,7 @@ function bearer(user, session) {
 
 const firstAuthorization = bearer('user-1', 'session-1');
 const secondAuthorization = bearer('user-1', 'session-2');
-test.beforeEach(async()=>{for(const auth of[firstAuthorization,secondAuthorization])await primeRoleAccessCache(auth,{isAdmin:false,grants:['purchasing:supplier-invoices','fixed-assets:assets','fixed-assets:asset-categories','banking:bank-statements','banking:bank-accounts'].map(resourceKey=>({resourceKey,canView:true,canCreate:true,canEdit:true,canDelete:true}))});});
+test.beforeEach(async()=>{for(const auth of[firstAuthorization,secondAuthorization])await primeRoleAccessCache(auth,{isAdmin:false,grants:['sales:invoices','purchasing:supplier-invoices','fixed-assets:assets','fixed-assets:asset-categories','banking:bank-statements','banking:bank-accounts'].map(resourceKey=>({resourceKey,canView:true,canCreate:true,canEdit:true,canDelete:true}))});});
 
 function invalidateOperationalCatalogs() {
   sales.invalidateSalesCatalogCache('invoices');
@@ -121,7 +121,7 @@ test('departamentos reutiliza la lectura por sesión e invalida al modificar el 
   assert.equal(reads, 4);
 });
 
-test('los seis catálogos de la carga reutilizan lecturas únicamente dentro de la sesión', async () => {
+test('facturas de venta revalidan cada lectura; otros catálogos reutilizan solo dentro de sesión', async () => {
   invalidateOperationalCatalogs();
   const reads = new Map();
   globalThis.fetch = async (input, init = {}) => {
@@ -141,7 +141,7 @@ test('los seis catálogos de la carga reutilizan lecturas únicamente dentro de 
   ];
   for (const operation of operations) { await operation(); await operation(); }
   assert.deepEqual(Object.fromEntries(reads), {
-    invoice: 1,
+    invoice: 2,
     supplier_invoice: 1,
     bank_account: 1,
     bank_statement: 1,
@@ -150,7 +150,7 @@ test('los seis catálogos de la carga reutilizan lecturas únicamente dentro de 
   });
 
   await sales.listSalesRows(sales.getSalesCatalog('invoices'), secondAuthorization);
-  assert.equal(reads.get('invoice'), 2, 'Otra sesión no debe reutilizar datos de la empresa activa anterior.');
+  assert.equal(reads.get('invoice'), 3, 'Otra sesión no debe reutilizar datos de la empresa activa anterior.');
 });
 
 test('guardar facturas, activos y categorías invalida sus listados especializados', async () => {
@@ -177,10 +177,10 @@ test('guardar facturas, activos y categorías invalida sus listados especializad
   for (const item of cases) {
     await item.list();
     await item.list();
-    assert.equal(reads.get(item.resource), 1);
+    assert.equal(reads.get(item.resource), item.resource==='invoice'?2:1);
     await item.save();
     await item.list();
-    assert.equal(reads.get(item.resource), 2, `${item.resource} debe releerse después de guardar.`);
+    assert.equal(reads.get(item.resource), item.resource==='invoice'?3:2, `${item.resource} debe releerse después de guardar.`);
     assert.equal(saves.get(item.rpc), 1);
   }
 });

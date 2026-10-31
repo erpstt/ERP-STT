@@ -88,12 +88,12 @@ function renderSupports(items){
 try{
   if(!token)throw Error('Debe iniciar sesión para consultar la factura.');
   if(!invoiceId)throw Error('No se recibió el identificador de la factura.');
-  const paths=['/api/sales/invoices','/api/sales/sales-invoice-lines','/api/sales/sales-invoice-withholdings','/api/entities/customers','/api/inventory/products','/api/configuration/tax-codes','/api/configuration/payment-terms','/api/core/currencies','/api/core/countries','/api/accounting/journal-supports'];
-  const [invoices,invoiceLines,withholdings,customers,products,taxes,terms,currencies,countries,supports]=await Promise.all(paths.map(path=>api(path)));
+  const context=await api('/api/sales/invoice-context?action=view&id='+encodeURIComponent(invoiceId));
+  const {invoices,invoiceLines,withholdings,customers,products,taxes,terms,currencies,countries,supports}=context;
   const invoice=find(invoices,'invoice_id',invoiceId);
   if(!invoice)throw Error('No se encontró la factura en la subsidiaria activa.');
   const customer=find(customers,'customer_id',invoice.customer_id)||{};
-  const subsidiary=await api(`/api/organization/subsidiaries/${encodeURIComponent(invoice.subsidiary_id)}`);
+  const subsidiary=context.subsidiaries[0]||{};
   const currency=find(currencies,'currency_id',invoice.currency_id)||{};
   const term=find(terms,'term_id',invoice.payment_term_id)||{};
   const lines=invoiceLines.filter(line=>String(line.invoice_id)===String(invoiceId));
@@ -134,10 +134,11 @@ try{
   renderSupports(invoiceSupports);
 
   $('edit').href=`/sales-invoice-entry.html?id=${encodeURIComponent(invoiceId)}`;
+  $('edit').hidden=context.access?.canEdit!==true||invoice.is_opening_balance===true||invoice.sales_delivery_document_id!=null;
   $('back').onclick=()=>history.length>1?history.back():window.location.assign('/');
   $('print').onclick=()=>downloadInvoicePdf(invoice.invoice_number);
 
-  const validEmail=/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(String(customer.email||''));
+  const validEmail=context.access?.canEdit===true&&/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(String(customer.email||''));
   const fileCount=invoiceSupports.filter(item=>item.support_type==='Archivo').length,linkCount=invoiceSupports.filter(item=>item.support_type==='Enlace').length;
   $('emailCustomer').textContent=customer.company_name||customer.name||'el cliente';
   $('emailRecipient').textContent=validEmail?customer.email:'No hay un correo válido registrado';

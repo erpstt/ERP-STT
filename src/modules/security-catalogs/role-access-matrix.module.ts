@@ -26,6 +26,7 @@ export interface AccessResource { key:string; moduleKey:string; moduleName:strin
 export interface AccessModule { key:string; name:string; resources:AccessResource[]; }
 
 const viewOnly = new Set([
+  'sales-invoice-lines','sales-invoice-withholdings',
   'product-subsidiaries',
   'stock','stock-adjustments','stock-lots','stock-serials','stock-reservations','stock-transfers','stock-movements',
   'permissions','sessions','devices','login-history','password-history','gl-impacts','audit-logs','system-logs',

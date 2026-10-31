@@ -1,0 +1,9 @@
+import{fetchSupabase,getSupabaseConfig}from'../../core/database/supabase.client.js';
+export async function assertSalesInvoiceAccess(auth:string,action:'view'|'create'|'edit'|'context'){
+ if(!/^Bearer\s+\S+$/i.test(auth))throw Object.assign(new Error('Debe iniciar sesión.'),{status:401});const{assertRoleAccess}=await import('../security-catalogs/role-access-matrix.module.js');if(action!=='context'){await assertRoleAccess(auth,'sales:invoices',action);return;}for(const a of['view','create','edit']as const){try{await assertRoleAccess(auth,'sales:invoices',a);return;}catch(e){if((e as {status?:number}).status!==403)throw e;}}throw Object.assign(new Error('Sin acceso a facturas de clientes.'),{status:403});
+}
+export async function salesInvoiceRpc(auth:string,name:string,p:Record<string,unknown>={},action:'view'|'create'|'edit'|'context'='view'){
+ await assertSalesInvoiceAccess(auth,action);const c=getSupabaseConfig();if(!c)throw Error('Supabase no está configurado.');const r=await fetchSupabase(new URL('/rest/v1/rpc/'+name,c.url),{method:'POST',headers:{apikey:c.anonKey,Authorization:auth,'Content-Type':'application/json'},body:JSON.stringify(p)}),raw=await r.text(),data=raw?JSON.parse(raw):null;
+ if(!r.ok){const status=r.status===401?401:r.status===403||data?.code==='42501'?403:['55000','23503','23505'].includes(data?.code)?409:['22023','22P02','22003','22007','22008','23514','23502'].includes(data?.code)?400:500;throw Object.assign(new Error(status===403?'El rol activo no puede realizar esta operación.':status===409?'La factura está protegida por su historial, origen o período contable.':status===400?'Revise los campos, impuestos y respaldos de la factura.':'No fue posible procesar la factura de venta.'),{status});}return data;
+}
+export function denySalesInvoiceCatalogWrite(){throw Object.assign(new Error('Utilice el proceso protegido de facturación; no se permite CRUD directo.'),{status:403});}
