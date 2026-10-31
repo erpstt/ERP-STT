@@ -1,5 +1,6 @@
-﻿import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
-import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
+import {supplierInvoiceRpc,assertSupplierInvoiceAccess} from '../purchasing-catalogs/supplier-invoice-security.service.js';
+import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
+
 import { renderBankReconciliationPdf } from './accounting-reports.service.js';
 
 type ReportRow={
@@ -17,13 +18,7 @@ type ReportRow={
 type Report={header:Record<string,unknown>;rows:ReportRow[];summary:Record<string,number>;total:number;page:number;pageSize:number};
 type ExportFile={fileName:string;mimeType:string;buffer:Buffer};
 
-async function rpc<T>(authorization:string,name:string,input:Record<string,unknown>={}){
-  const config=getSupabaseConfig();if(!config)throw Error('Supabase no está configurado.');
-  const response=await fetchSupabase(new URL(`/rest/v1/rpc/${name}`,config.url),{method:'POST',headers:{apikey:config.anonKey,Authorization:authorization,'Content-Type':'application/json'},body:JSON.stringify(input)});
-  const raw=await response.text();let payload:unknown=null;try{payload=raw?JSON.parse(raw):null}catch{payload=raw}
-  if(!response.ok)throw Error(typeof payload==='object'&&payload&&'message'in payload?String(payload.message):'No fue posible generar el reporte de facturas de proveedor liquidadas.');
-  return payload as T;
-}
+async function rpc<T>(authorization:string,name:string,input:Record<string,unknown>={}){return supplierInvoiceRpc<T>(authorization,name,input,'view','reports:accounting-reports');}
 
 function cleanFilters(input:Record<string,unknown>,exportAll=false){
   const periodMonth=String(input.periodMonth??'');if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(periodMonth))throw Error('Seleccione un mes de liquidación válido.');
@@ -34,8 +29,8 @@ function cleanFilters(input:Record<string,unknown>,exportAll=false){
 }
 
 export const settledSupplierInvoiceReportOptions=(authorization:string)=>rpc<Record<string,unknown>>(authorization,'settled_supplier_invoice_report_options');
-export const runSettledSupplierInvoiceReport=(authorization:string,input:Record<string,unknown>)=>rpc<Report>(authorization,'run_settled_supplier_invoice_report',{p_filters:cleanFilters(input)});
-async function fullReport(authorization:string,input:Record<string,unknown>){return rpc<Report>(authorization,'run_settled_supplier_invoice_report',{p_filters:cleanFilters(input,true)});}
+export const runSettledSupplierInvoiceReport=async(authorization:string,input:Record<string,unknown>)=>{await assertSupplierInvoiceAccess(authorization,'view','reports:accounting-reports');return rpc<Report>(authorization,'run_settled_supplier_invoice_report',{p_filters:cleanFilters(input)});};
+async function fullReport(authorization:string,input:Record<string,unknown>){await assertSupplierInvoiceAccess(authorization,'view','reports:accounting-reports');return rpc<Report>(authorization,'run_settled_supplier_invoice_report',{p_filters:cleanFilters(input,true)});}
 
 const esc=(value:unknown)=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]||char));
 const number=(value:unknown)=>Number(value||0);

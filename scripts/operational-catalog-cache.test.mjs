@@ -35,7 +35,7 @@ function bearer(user, session) {
 
 const firstAuthorization = bearer('user-1', 'session-1');
 const secondAuthorization = bearer('user-1', 'session-2');
-test.beforeEach(async()=>{for(const auth of[firstAuthorization,secondAuthorization])await primeRoleAccessCache(auth,{isAdmin:false,grants:['fixed-assets:assets','fixed-assets:asset-categories','banking:bank-statements','banking:bank-accounts'].map(resourceKey=>({resourceKey,canView:true,canCreate:true,canEdit:true,canDelete:true}))});});
+test.beforeEach(async()=>{for(const auth of[firstAuthorization,secondAuthorization])await primeRoleAccessCache(auth,{isAdmin:false,grants:['purchasing:supplier-invoices','fixed-assets:assets','fixed-assets:asset-categories','banking:bank-statements','banking:bank-accounts'].map(resourceKey=>({resourceKey,canView:true,canCreate:true,canEdit:true,canDelete:true}))});});
 
 function invalidateOperationalCatalogs() {
   sales.invalidateSalesCatalogCache('invoices');

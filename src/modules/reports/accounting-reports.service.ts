@@ -8,6 +8,7 @@ import {
 } from '../../core/performance/operational-read-cache.js';
 import { renderPdf } from '../../core/security/pdf-renderer.js';
 import { reverseManualJournal } from '../accounting-catalogs/journal-entry.service.js';
+import {supplierInvoiceRpc} from '../purchasing-catalogs/supplier-invoice-security.service.js';
 
 const accountingOptionsCache=new ScopedReadCache<Record<string,unknown>>({defaultTtlMs:90_000,maxEntries:2_000});
 const accountingOptionsCacheNamespace=registerOperationalReadCacheNamespace('reports-accounting-options');
@@ -47,12 +48,12 @@ export function runAccountingReport(authorization:string,report:string,filters:R
   if(report==='bank-reconciliation')return reconciliationRpc<Record<string,unknown>>(authorization,'run_bank_reconciliation_report',{p_filters:scopedFilters},'reports:accounting-reports','view');
   if(report==='bank-balances')return rpc<Record<string,unknown>>(authorization,'run_bank_balance_period_report',{p_filters:scopedFilters});
   if(report==='sales-transactions')return rpc<Record<string,unknown>>(authorization,'run_sales_transaction_report',{p_filters:scopedFilters});
-  if(report==='purchase-transactions')return rpc<Record<string,unknown>>(authorization,'run_purchase_transaction_report',{p_filters:scopedFilters});
+  if(report==='purchase-transactions')return supplierInvoiceRpc<Record<string,unknown>>(authorization,'run_purchase_transaction_report',{p_filters:scopedFilters},'view','reports:accounting-reports');
   return rpc<Record<string,unknown>>(authorization,'run_accounting_report',{p_report:report,p_filters:scopedFilters});
 }
 export function purchaseTransactionSupport(authorization:string,supportId:number){
   if(!Number.isSafeInteger(supportId)||supportId<=0)throw new Error('El respaldo solicitado no es válido.');
-  return rpc<Record<string,unknown>>(authorization,'purchase_transaction_support',{p_support_id:supportId});
+  return supplierInvoiceRpc<Record<string,unknown>>(authorization,'purchase_transaction_support',{p_support_id:supportId},'view','reports:accounting-reports');
 }
 export const reverseJournalEntry=reverseManualJournal;
 export function pendingInvoiceReversalOptions(authorization:string,journalId:number,reversalDate:string){return rpc<Record<string,unknown>>(authorization,'pending_invoice_reversal_options',{p_journal_id:journalId,p_reversal_date:reversalDate});}

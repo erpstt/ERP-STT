@@ -1,0 +1,98 @@
+{
+  "/api/accounting/chart-accounts": [
+    {
+      "account_id": 10,
+      "account_number": "631001",
+      "account_name": "Servicios profesionales",
+      "category": "Gasto",
+      "accepts_entries": true,
+      "is_inactive": false,
+      "subsidiary_ids": [
+        1
+      ]
+    },
+    {
+      "account_id": 20,
+      "account_number": "211001",
+      "account_name": "Cuentas por Pagar Proveedores",
+      "category": "Pasivo",
+      "nature": "Acreedora",
+      "accepts_entries": true,
+      "is_inactive": false,
+      "subsidiary_ids": [
+        1
+      ]
+    }
+  ],
+  "/api/accounting/account-groups": [],
+  "/api/configuration/tax-codes": [],
+  "/api/configuration/tax-types": [],
+  "/api/organization/departments": [],
+  "/api/organization/classes": [],
+  "/api/organization/cost-centers": [],
+  "/api/organization/financial-creditors": [],
+  "/api/organization/related-companies": [],
+  "/api/entities/customers": [],
+  "/api/entities/suppliers": [
+    {
+      "supplier_id": 1,
+      "company_name": "Proveedor de prueba",
+      "subsidiary_ids": [
+        1
+      ],
+      "payment_term_id": 1,
+      "is_intercompany": false
+    }
+  ],
+  "/api/configuration/payment-terms": [
+    {
+      "term_id": 1,
+      "term_name": "Contado",
+      "days_due": 0
+    }
+  ],
+  "/api/organization/accounting-periods": [
+    {
+      "fiscal_period_id": 1,
+      "subsidiary_id": 1,
+      "period_name": "octubre 2026",
+      "start_date": "2026-10-01",
+      "end_date": "2026-10-31",
+      "is_closed": false,
+      "ap_closed": false
+    }
+  ],
+  "/api/core/currencies": [
+    {
+      "currency_id": 1,
+      "currency_code": "JMD",
+      "name": "Dólar jamaicano"
+    }
+  ],
+  "/api/configuration/exchange-rates": [],
+  "/api/core/countries": [
+    {
+      "country_id": 1,
+      "country_code_iso2": "JM",
+      "name": "Jamaica"
+    }
+  ],
+  "/api/organization/subsidiaries": [
+    {
+      "subsidiary_id": 1,
+      "name": "Empresa de pruebas",
+      "country_id": 1,
+      "currency_id": 1
+    }
+  ],
+  "/api/organization/locations": [
+    {
+      "location_id": 1,
+      "name": "Oficina principal",
+      "subsidiary_id": 1
+    }
+  ],
+  "/api/purchasing/supplier-invoice-lines": [],
+  "/api/purchasing/supplier-invoices": [],
+  "/api/accounting/journal-supports": []
+}

@@ -35,7 +35,7 @@ import { createJournalEntry, updateJournalEntry } from './modules/accounting-cat
 import { fxRevaluation } from './modules/accounting-catalogs/fx-revaluation.service.js';
 import { importJournalCsv } from './modules/accounting-catalogs/journal-import.service.js';
 import { OpeningBalanceFilesValidationError, openingBalances } from './modules/accounting-catalogs/opening-balances.service.js';
-import { saveSupplierInvoice } from './modules/purchasing-catalogs/supplier-invoice.service.js';
+import { saveSupplierInvoice, supplierInvoiceAccess } from './modules/purchasing-catalogs/supplier-invoice.service.js';
 import { saveSupplierNote } from './modules/purchasing-catalogs/supplier-note.service.js';
 import { saveSalesInvoice, setSalesInvoicePdfLineUnification } from './modules/sales-catalogs/sales-invoice.service.js';
 import { salesWorkflowOptions, salesDocuments, salesDocumentDetail, saveSalesDocument, deleteSalesDocument } from './modules/sales-catalogs/sales-workflow.service.js';
@@ -488,7 +488,7 @@ const server = createServer((request, response) => {
       return json(response,200,await sendExistingUserPasswordLink(authorization,Number(userPasswordLinkRoute[1])));
     }
     const accessUrl=new URL(request.url??'/',`http://${request.headers.host??'localhost'}`),accessRoute=accessUrl.pathname.match(/^\/api\/(core|security|organization|configuration|accounting|banking|treasury|entities|inventory|sales|transaction-engine|purchasing|expenses|fixed-assets|workflow|documents|audit|consolidation|ai)\/([a-z-]+)(?:\/\d+)?$/);
-    if(accessRoute){const resourceKey=`${accessRoute[1]}:${accessRoute[2]}`;if(isRoleAccessResource(resourceKey)){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const accessAction=request.method==='GET'?'view':request.method==='PATCH'||(request.method==='POST'&&resourceKey==='security:user-subsidiaries')?'edit':request.method==='POST'?'create':'delete';await assertRoleAccess(authorization,resourceKey,accessAction);}}
+    if(accessRoute){const resourceKey=request.method==='GET'&&accessRoute[1]==='purchasing'&&['supplier-invoice-lines','supplier-invoice-withholdings'].includes(accessRoute[2]!)?'purchasing:supplier-invoices':`${accessRoute[1]}:${accessRoute[2]}`;if(isRoleAccessResource(resourceKey)){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const accessAction=request.method==='GET'?'view':request.method==='PATCH'||(request.method==='POST'&&resourceKey==='security:user-subsidiaries')?'edit':request.method==='POST'?'create':'delete';await assertRoleAccess(authorization,resourceKey,accessAction);}}
     const coreRoute = request.url?.match(/^\/api\/core\/([a-z-]+)(?:\/(\d+))?$/);
     if (coreRoute) {
       const authorization = request.headers.authorization;
@@ -602,6 +602,7 @@ const server = createServer((request, response) => {
     if(request.method==='POST'&&request.url==='/api/accounting/journals/import'){return json(response,200,await importJournalCsv(request.headers.authorization!,await body(request)as Record<string,unknown>));}
     if(request.method==='POST'&&request.url==='/api/accounting/journal-entry'){const authorization=request.headers.authorization!;return json(response,201,await createJournalEntry(authorization,await body(request)as Record<string,unknown>));}
     const journalEntryUpdate=request.url?.match(/^\/api\/accounting\/journal-entry\/(\d+)$/);if(request.method==='PUT'&&journalEntryUpdate){const authorization=request.headers.authorization!;return json(response,200,await updateJournalEntry(authorization,Number(journalEntryUpdate[1]),await body(request)as Record<string,unknown>));}
+    if(request.method==='GET'&&request.url==='/api/purchasing/supplier-invoice-access')return json(response,200,await supplierInvoiceAccess(request.headers.authorization!));
     if(request.method==='POST'&&request.url==='/api/purchasing/supplier-invoice-entry'){const authorization=request.headers.authorization!;return json(response,201,await saveSupplierInvoice(authorization,await body(request)as Record<string,unknown>));}
     if(request.method==='GET'&&request.url==='/api/purchasing/workflow/options')return json(response,200,await purchaseWorkflowOptions(request.headers.authorization!));
     if(request.method==='POST'&&request.url==='/api/purchasing/workflow/report')return json(response,200,await purchaseDocuments(request.headers.authorization!,await body(request)as Record<string,unknown>));

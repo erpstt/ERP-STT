@@ -1,0 +1,20 @@
+import{readFile,readdir}from'node:fs/promises';import{setupAssetMasterSecurity}from'./setup-asset-master-security.mjs';
+export async function setupSupplierInvoiceSecurity(db){
+ await setupAssetMasterSecurity(db);await db.exec(await readFile(new URL('./supplier-invoice-security.sql',import.meta.url),'utf8'));
+ // Financial writers and GL are original engines; report bodies in this fixture only test access guards.
+ const names=new Set(['save_supplier_invoice','save_supplier_invoice_without_withholding','save_supplier_invoice_without_budget','save_supplier_invoice_without_budget_before_payable_routing','normalize_supplier_invoice_quantities','resolve_supplier_payable_account','ensure_supplier_invoice_payable_account','budget_run','sync_journal_gl_impacts','supplier_invoice_batch_guard','link_supplier_invoice_to_purchase_receipt','capture_fixed_asset_line_trigger','capture_fixed_asset_header_trigger','capture_fixed_asset_gl_trigger','protect_fixed_asset_proposal_source']);
+ const dir=new URL('../../supabase/migrations/',import.meta.url);
+ for(const file of(await readdir(dir)).sort()){
+  if(!file.endsWith('.sql')||file>'20261030235959.sql')continue;const sql=await readFile(new URL(file,dir),'utf8'),events=[];
+  for(const m of sql.matchAll(/create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?([a-z0-9_]+)\s*\([\s\S]*?\$\$[\s\S]*?\$\$\s*;/gi))if(names.has(m[1]))events.push({index:m.index,sql:m[0]});
+  for(const m of sql.matchAll(/alter\s+function\s+(?:public\.)?([a-z0-9_]+)\s*(\([^;]+?\))\s*rename\s+to\s+([a-z0-9_]+)\s*;/gi))if(names.has(m[1])&&names.has(m[3]))events.push({index:m.index,sql:m[0],from:m[1]+m[2],to:m[3]+m[2]});
+  // These two blocks update function definitions only, not historical data.
+  if(['20260917140000_fixed_asset_capitalization_proposals.sql','20260917160000_supplier_invoice_line_quantities.sql'].includes(file))for(const m of sql.matchAll(/do \$\$declare original text;updated text;begin[\s\S]*?end\$\$;/g))events.push({index:m.index,sql:m[0]});
+  for(const e of events.sort((a,b)=>a.index-b.index)){if(e.from){const r=(await db.query('select to_regprocedure($1) a,to_regprocedure($2) b',[e.from,e.to])).rows[0];if(!r.a||r.b)continue;}await db.exec(e.sql);}
+ }
+ await db.exec(`create trigger invoice_receipt before insert or update on supplier_invoice for each row execute function link_supplier_invoice_to_purchase_receipt();create trigger invoice_batch before update or delete on supplier_invoice for each row execute function supplier_invoice_batch_guard();create trigger invoice_line_batch before insert or update or delete on supplier_invoice_line for each row execute function supplier_invoice_batch_guard();
+ create trigger asset_line after insert or update on journal_line for each row execute function capture_fixed_asset_line_trigger();create trigger asset_header after update on journal for each row execute function capture_fixed_asset_header_trigger();create trigger asset_gl after insert or update on gl_impact for each row execute function capture_fixed_asset_gl_trigger();create trigger protect_asset_source_line before update or delete on journal_line for each row execute function protect_fixed_asset_proposal_source();create trigger protect_asset_source_header before update or delete on journal for each row execute function protect_fixed_asset_proposal_source();create trigger protect_asset_source_gl before update or delete on gl_impact for each row execute function protect_fixed_asset_proposal_source();
+ insert into permissions(code) values('purchasing:supplier-invoice:create'),('purchasing:supplier-invoice:update');insert into role_permissions select 1,permission_id from permissions where code like 'purchasing:supplier-invoice:%';`);
+ for(const resource of['purchasing:supplier-invoices','reports:accounting-reports'])await db.query('insert into role_access_matrix values(1,$1,true,true,true,true),(2,$1,true,true,true,true),(3,$1,true,false,false,false)',[resource]);
+ await db.exec('begin');await db.exec(await readFile(new URL('../../supabase/migrations/20261031152728_secure_supplier_invoices.sql',import.meta.url),'utf8'));await db.exec('commit');
+}
