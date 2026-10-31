@@ -1,13 +1,29 @@
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { invalidateFixedAssetCatalogCache } from './fixed-asset-catalogs.module.js';
+import { assertRoleAccess } from '../security-catalogs/role-access-matrix.module.js';
 
 async function rpc(authorization:string,name:string,parameters:Record<string,unknown>={}) {
+  const payload=parameters.p_payload as Record<string,unknown>|undefined;
+  const proposal=name==='fixed_asset_proposal_report'||name==='process_fixed_asset_proposals';
+  const depreciation=name==='fixed_asset_depreciation_preview'||name==='run_fixed_asset_depreciation';
+  if(proposal||depreciation){
+    if(!/^Bearer\s+\S+$/i.test(authorization))throw Object.assign(new Error('Debe iniciar sesión.'),{status:401});
+    await assertRoleAccess(authorization,proposal?'fixed-assets:asset-proposals':'fixed-assets:asset-depreciations',
+      name==='process_fixed_asset_proposals'?(payload?.action==='DISCARD'?'edit':'create'):name==='run_fixed_asset_depreciation'?'create':'view');
+    if(name==='process_fixed_asset_proposals'&&!['CAPITALIZE','DISCARD'].includes(String(payload?.action)))throw Object.assign(new Error('Acción no válida.'),{status:400});
+  }
   const config=getSupabaseConfig();
   if(!config)throw new Error('Supabase no está configurado.');
   const response=await fetchSupabase(new URL(`/rest/v1/rpc/${name}`,config.url),{method:'POST',headers:{apikey:config.anonKey,Authorization:authorization,'Content-Type':'application/json'},body:JSON.stringify(parameters)});
   const text=await response.text();
   const result=text?JSON.parse(text):null;
-  if(!response.ok)throw new Error(result?.message||'No fue posible procesar los activos fijos.');
+  if(!response.ok){
+    if(proposal||depreciation){
+      const status=response.status===401?401:response.status===403||result?.code==='42501'?403:result?.code==='55000'?409:['22023','22P02','22007','22008'].includes(result?.code)?400:500;
+      throw Object.assign(new Error(status===401?'La sesión no es válida.':status===403?'El rol activo no puede realizar esta operación.':status===409?'Revise el estado de los registros y el período contable.':status===400?'Revise los datos de los activos seleccionados.':'No fue posible procesar los activos fijos.'),{status});
+    }
+    throw new Error(result?.message||'No fue posible procesar los activos fijos.');
+  }
   return result;
 }
 
@@ -20,7 +36,7 @@ export async function depreciationPreview(authorization:string,date:string) {
   const result = await rpc(authorization,'fixed_asset_depreciation_preview',{p_date:date});
   if (!result?.period?.id || !result.rows?.some((row:{processed:boolean})=>row.processed)) return result;
   const config = getSupabaseConfig()!;
-  const query = new URLSearchParams({select:'depreciation_id,asset_id',fiscal_period_id:`eq.${result.period.id}`,order:'depreciation_id',limit:'1000'});
+  const query = new URLSearchParams({select:'depreciation_id,asset_id',fiscal_period_id:`eq.${result.period.id}`,is_opening_balance:'eq.false',order:'depreciation_id',limit:'1000'});
   const ids = new Map<string,number>();
   for (let offset=0;;) {
     query.set('offset',String(offset));
