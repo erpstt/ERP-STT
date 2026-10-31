@@ -1,0 +1,22 @@
+alter table currencies add column name text default 'Synthetic currency';
+alter table locations add column subsidiary_id bigint;
+update locations set subsidiary_id=1;
+insert into locations values(2,'Foreign location',2);
+create table payment_methods(payment_method_id bigint primary key);
+insert into payment_methods values(1);
+create table bank_deposit(deposit_id bigint generated always as identity primary key,deposit_number text,
+ bank_account_id bigint,customer_payment_id bigint,deposit_date date,total_amount numeric);
+create table bank_reconciliation(bank_account_id bigint,reconciliation_date date,status text);
+create table journal_support(support_id bigint generated always as identity primary key,journal_id bigint);
+alter table customers add primary key(customer_id);
+alter table suppliers add primary key(supplier_id);
+alter table employees add primary key(employee_id);
+alter table departments add primary key(department_id);
+alter table cost_centers add primary key(cost_center_id);
+alter table classes add primary key(class_id);
+alter table financial_creditors add primary key(financial_creditor_id);
+alter table related_companies add primary key(related_company_id);
+insert into transaction_types values(6,'DEP_BAN','Depósito bancario');
+update role_access_matrix set resource_key='banking:bank-deposits';
+insert into roles values(6,'Deposit deleter',false);insert into user_roles values(1,6);
+insert into role_access_matrix values(6,'banking:bank-deposits',true,false,false,true);
