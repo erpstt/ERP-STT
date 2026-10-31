@@ -15,6 +15,8 @@ before(async()=>{
  await db.exec(await read('../supabase/migrations/20260902150000_manage_bank_deposits.sql'));
  await db.exec('alter table bank_deposit enable row level security;grant all on bank_deposit,bank_deposit_line to authenticated;create policy old_deposit_all on bank_deposit for all to authenticated using(true) with check(true)');
  await db.exec('begin');await db.exec(await read('../supabase/migrations/20261031024434_secure_bank_deposits.sql'));await db.exec('commit');
+ await db.exec(await read('./fixtures/bank-account-security.sql'));
+ await db.exec('begin');await db.exec(await read('../supabase/migrations/20261031031441_secure_bank_account_writes.sql'));await db.exec('commit');
 });
 after(()=>db.close());
 async function tx(t){await db.exec('reset role;begin');t.after(()=>db.exec('rollback;reset role'));}
