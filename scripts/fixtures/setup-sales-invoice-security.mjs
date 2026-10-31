@@ -17,5 +17,5 @@ export async function setupSalesInvoiceSecurity(db){await setupInventoryGlobalSe
  `);
  await db.exec(await read('./sales-invoice-original-functions.sql'));await db.exec(await read('./sales-invoice-original-numbering.sql'));await db.exec(await read('./sales-invoice-original-fx-helpers.sql'));
  await db.exec("create trigger fixture_invoice_number before insert on invoice for each row execute function assign_sales_invoice_number();insert into role_access_matrix values(1,'sales:invoices',true,true,true,true),(2,'sales:invoices',true,true,true,true),(3,'sales:invoices',true,false,false,false)");
- await db.exec('begin');await db.exec(await read('../../supabase/migrations/'+migration));await db.exec('commit');
+ await db.exec('begin');await db.exec(await read('../../supabase/migrations/'+migration));await db.exec(await read('../../supabase/migrations/20261031221758_minimize_sales_invoice_view_context.sql'));await db.exec('commit');
 }
