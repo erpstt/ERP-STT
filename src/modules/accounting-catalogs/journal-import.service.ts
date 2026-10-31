@@ -1,4 +1,5 @@
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
+import { assertJournalAccess, journalRpcFailure } from './journal-entry.service.js';
 
 export const journalCsvOptionalHeaders = ['pais_servicio','entidad','nombre','departamento','centro_costos','clase','acreedor_financiero','compania_relacionada'];
 export const journalCsvHeaders = ['asiento_referencia','tipo_asiento','fecha','moneda','tipo_cambio','nota_asiento','numero_cuenta','debito','credito','nota_linea','mes_servicio', ...journalCsvOptionalHeaders];
@@ -51,6 +52,7 @@ export function normalizeJournalServiceMonths(rows: Record<string, string>[]) {
 }
 
 export async function importJournalCsv(authorization: string, input: Record<string, unknown>) {
+  await assertJournalAccess(authorization,input.preview===true?'view':'create');
   if (typeof input.csv !== 'string' || typeof input.preview !== 'boolean' || !Number.isSafeInteger(input.subsidiaryId) || Number(input.subsidiaryId) <= 0) throw Error('Seleccione un CSV y una subsidiaria válida.');
   const rows = normalizeJournalServiceDimensions(parseJournalCsv(input.csv));
   const config = getSupabaseConfig();
@@ -60,6 +62,6 @@ export async function importJournalCsv(authorization: string, input: Record<stri
     body: JSON.stringify({ p_rows: rows, p_preview: input.preview, p_subsidiary_id: input.subsidiaryId })
   });
   const result = await response.json() as Record<string, unknown>;
-  if (!response.ok) throw Error(String(result.message || 'No fue posible importar los asientos.'));
+  if (!response.ok) throw journalRpcFailure(response.status,result);
   return result;
 }

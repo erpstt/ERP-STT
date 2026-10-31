@@ -6,6 +6,7 @@ import {
   registerOperationalReadCacheNamespace,
 } from '../../core/performance/operational-read-cache.js';
 import { renderPdf } from '../../core/security/pdf-renderer.js';
+import { reverseManualJournal } from '../accounting-catalogs/journal-entry.service.js';
 
 const accountingOptionsCache=new ScopedReadCache<Record<string,unknown>>({defaultTtlMs:90_000,maxEntries:2_000});
 const accountingOptionsCacheNamespace=registerOperationalReadCacheNamespace('reports-accounting-options');
@@ -52,7 +53,7 @@ export function purchaseTransactionSupport(authorization:string,supportId:number
   if(!Number.isSafeInteger(supportId)||supportId<=0)throw new Error('El respaldo solicitado no es válido.');
   return rpc<Record<string,unknown>>(authorization,'purchase_transaction_support',{p_support_id:supportId});
 }
-export function reverseJournalEntry(authorization:string,journalId:number){return rpc<number>(authorization,'reverse_journal_entry',{target_journal_id:journalId});}
+export const reverseJournalEntry=reverseManualJournal;
 export function pendingInvoiceReversalOptions(authorization:string,journalId:number,reversalDate:string){return rpc<Record<string,unknown>>(authorization,'pending_invoice_reversal_options',{p_journal_id:journalId,p_reversal_date:reversalDate});}
 export function reversePendingInvoiceJournal(authorization:string,journalId:number,payload:Record<string,unknown>){return rpc<Record<string,unknown>>(authorization,'reverse_pending_invoice_journal',{p_journal_id:journalId,p_payload:payload});}
 function assertAnnualPendingInvoiceReclassificationDate(value:unknown){
