@@ -14,6 +14,7 @@ async function api(path) {
   return data;
 }
 
+const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money = (value, symbol) => `${symbol} ${Number(value || 0).toLocaleString('es-CR', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2
@@ -25,18 +26,8 @@ const month = value => /^\d{4}-(0[1-9]|1[0-2])$/.test(String(value || ''))
   : '—';
 
 try {
-  const paths = [
-    '/api/sales/credit-notes',
-    '/api/sales/debit-notes',
-    '/api/sales/sales-note-lines',
-    '/api/sales/invoices',
-    '/api/entities/customers',
-    '/api/inventory/products',
-    '/api/core/currencies',
-    '/api/core/countries'
-  ];
-  const [credits, debits, noteLines, invoices, customers, products, currencies, countries] =
-    await Promise.all(paths.map(api));
+  const data=await api('/api/sales/note-context/'+kind+'?action=view&id='+encodeURIComponent(id));
+  const {credits,debits,noteLines,invoices,customers,products,currencies,countries}=data;
   const key = kind === 'CREDIT' ? 'cn_id' : 'dn_id';
   const note = (kind === 'CREDIT' ? credits : debits)
     .find(row => String(row[key]) === String(id));
@@ -44,9 +35,7 @@ try {
 
   const invoice = invoices.find(row => String(row.invoice_id) === String(note.invoice_id)) || {};
   const customer = customers.find(row => String(row.customer_id) === String(note.customer_id)) || {};
-  const sub = invoice.subsidiary_id
-    ? await api(`/api/organization/subsidiaries/${invoice.subsidiary_id}`)
-    : {};
+  const sub=data.subsidiaries[0]||{};
   const currency = currencies.find(row => String(row.currency_id) === String(note.currency_id)) || {};
   const symbol = currency.symbol || currency.currency_code || '';
   const lines = noteLines.filter(row => row.note_kind === kind && String(row.note_id) === String(id));
@@ -74,11 +63,12 @@ try {
     const country = countries.find(item => String(item.country_id) === String(line.service_country_id));
     subtotal += Number(line.amount);
     tax += Number(line.tax_amount);
-    return `<tr><td><strong>${product.display_name || 'Producto'}</strong>${line.note ? `<span class="product-code">${line.note}</span>` : ''}</td><td>${country?.name || '—'}</td><td>${month(line.service_month)}</td><td class="number">${line.quantity}</td><td class="number">${money(line.unit_price, symbol)}</td><td class="number">${money(line.amount, symbol)}</td><td class="number">${money(line.tax_amount, symbol)}</td><td class="number">${money(line.gross_amount, symbol)}</td></tr>`;
+    return `<tr><td><strong>${esc(product.display_name || 'Producto')}</strong>${line.note ? `<span class="product-code">${esc(line.note)}</span>` : ''}</td><td>${esc(country?.name || '—')}</td><td>${month(line.service_month)}</td><td class="number">${line.quantity}</td><td class="number">${money(line.unit_price, symbol)}</td><td class="number">${money(line.amount, symbol)}</td><td class="number">${money(line.tax_amount, symbol)}</td><td class="number">${money(line.gross_amount, symbol)}</td></tr>`;
   }).join('');
   $('subtotal').textContent = money(subtotal, symbol);
   $('tax').textContent = money(tax, symbol);
   $('total').textContent = money(note.amount, symbol);
+  $('edit').hidden=!data.access?.canEdit;
   $('edit').href = `/sales-note-entry.html?kind=${kind}&id=${id}`;
   $('invoice').hidden = false;
   $('print').onclick = () => print();
