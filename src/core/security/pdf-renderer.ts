@@ -43,6 +43,47 @@ const configuredConcurrency = Number(process.env.PDF_RENDER_CONCURRENCY ?? 2);
 const gate = new PdfRenderGate(Number.isInteger(configuredConcurrency) ? Math.min(4, Math.max(1, configuredConcurrency)) : 2, 8);
 const raster = /^data:image\/(?:png|jpeg|gif|webp);base64,[A-Za-z0-9+/=\r\n]+$/i;
 
+/** El destino remoto solo puede ser un servicio privado de Railway configurado por operación. */
+export function pdfRendererConfig(): { url: URL; token: string } | null {
+  const raw = process.env.PDF_RENDERER_URL, token = process.env.PDF_RENDERER_TOKEN;
+  if (!raw && !token) return null;
+  try {
+    const url = new URL(raw ?? '');
+    if (!['http:', 'https:'].includes(url.protocol) || !url.hostname.endsWith('.railway.internal') || url.username || url.password || url.search || url.hash || url.pathname !== '/' || !/^[A-Za-z0-9_-]{32,128}$/.test(token ?? '')) throw new Error();
+    return { url: new URL('/render', url), token: token! };
+  } catch { throw new PdfRenderError('La configuración del renderer privado no es válida. Contacte al administrador.'); }
+}
+
+export async function renderPdf(html: string): Promise<Buffer> {
+  const remote = pdfRendererConfig();
+  if (!remote) return renderSafePdf(html);
+  const content = preparePdfHtml(html), release = await gate.acquire();
+  const controller = new AbortController(), deadline = setTimeout(() => controller.abort(), 60_000);
+  try {
+    const response = await fetch(remote.url, { method: 'POST', redirect: 'error', headers: { Authorization: `Bearer ${remote.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ html: content }), signal: controller.signal });
+    if (!response.ok || response.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/pdf' || !response.body) {
+      await response.body?.cancel(); throw new PdfRenderError();
+    }
+    const maximum = 24 * 1024 * 1024;
+    if (Number(response.headers.get('content-length') ?? 0) > maximum) { await response.body.cancel(); throw new PdfRenderError(); }
+    const reader = response.body.getReader(), chunks: Uint8Array[] = [];
+    let size = 0;
+    for (;;) {
+      const item = await reader.read();
+      if (item.done) break;
+      size += item.value.byteLength;
+      if (size > maximum) { await reader.cancel(); throw new PdfRenderError(); }
+      chunks.push(item.value);
+    }
+    const pdf = Buffer.concat(chunks, size);
+    if (pdf.subarray(0, 4).toString() !== '%PDF') throw new PdfRenderError();
+    return pdf;
+  } catch (cause) {
+    if (cause instanceof PdfRenderError) throw cause;
+    throw new PdfRenderError();
+  } finally { clearTimeout(deadline); release(); }
+}
+
 /** Solo estilos locales e imágenes raster embebidas; ninguna URL externa o de archivo. */
 export function preparePdfHtml(html: string): string {
   if (!/^<!doctype html>/i.test(html) || Buffer.byteLength(html, 'utf8') > 4_000_000) {
@@ -132,12 +173,16 @@ export async function renderSafePdf(html: string): Promise<Buffer> {
   let profile: string | undefined, child: ReturnType<typeof spawn> | undefined, protocol: ChromeProtocol | undefined;
   let deadline: NodeJS.Timeout | undefined;
   let stage = 'launch';
+  let sandboxDenied = false;
   try {
     profile = await mkdtemp(join(tmpdir(), 'gentia-pdf-'));
     await mkdir(join(profile, 'home', 'AppData', 'Local'), { recursive: true });
     await mkdir(join(profile, 'home', 'AppData', 'Roaming'), { recursive: true });
     child = spawn(chrome, ['--headless', '--remote-debugging-address=127.0.0.1', '--remote-debugging-port=0', `--user-data-dir=${profile}`, '--disable-background-networking', '--disable-component-update', '--disable-sync', '--disable-extensions', '--disable-dev-shm-usage', '--no-first-run', '--no-default-browser-check', 'about:blank'], {
-      windowsHide: true, env: pdfProcessEnvironment(profile), stdio: 'ignore',
+      windowsHide: true, env: pdfProcessEnvironment(profile), stdio: ['ignore', 'ignore', 'pipe'],
+    });
+    child.stderr?.on('data', chunk => {
+      if (stage === 'launch' && /No usable sandbox|Failed to move to new namespace|Operation not permitted|Permission denied/i.test(String(chunk))) sandboxDenied = true;
     });
     let failed = false;
     child.once('error', () => { failed = true; });
@@ -174,7 +219,7 @@ export async function renderSafePdf(html: string): Promise<Buffer> {
     return pdf;
   } catch (cause) {
     if (process.env.PDF_RENDER_DIAGNOSTICS === 'true') {
-      console.error('[PDF]', stage, child?.exitCode, cause instanceof Error ? cause.name : 'Error');
+      console.error('[PDF]', stage, child?.exitCode, sandboxDenied ? 'SandboxDenied' : cause instanceof Error ? cause.name : 'Error');
     }
     if (cause instanceof PdfRenderError) throw cause;
     throw new PdfRenderError();

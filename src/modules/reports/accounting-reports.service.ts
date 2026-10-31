@@ -5,7 +5,7 @@ import {
   operationalSessionScope,
   registerOperationalReadCacheNamespace,
 } from '../../core/performance/operational-read-cache.js';
-import { renderSafePdf } from '../../core/security/pdf-renderer.js';
+import { renderPdf } from '../../core/security/pdf-renderer.js';
 
 const accountingOptionsCache=new ScopedReadCache<Record<string,unknown>>({defaultTtlMs:90_000,maxEntries:2_000});
 const accountingOptionsCacheNamespace=registerOperationalReadCacheNamespace('reports-accounting-options');
@@ -70,6 +70,6 @@ export async function bankReconciliationAction(authorization:string,action:strin
 
 export async function renderBankReconciliationPdf(input:Record<string,unknown>){
  const safeName=String(input.fileName??'reporte.pdf').replace(/[^a-zA-Z0-9._-]/g,'-').slice(0,120)||'reporte.pdf';
- const pdf=await renderSafePdf(String(input.html??''));
+ const pdf=await renderPdf(String(input.html??''));
  return{fileName:safeName.toLowerCase().endsWith('.pdf')?safeName:`${safeName}.pdf`,mimeType:'application/pdf',base64:pdf.toString('base64')};
 }

@@ -28,7 +28,7 @@
     "test:static": "npm run build && node --test scripts/static-delivery.test.mjs scripts/http-response-compression.test.mjs scripts/supabase-client-timeout.test.mjs",
     "test:performance": "npm run build && node --test scripts/http-response-compression.test.mjs scripts/request-access-cache.test.mjs scripts/request-access-rpc.test.mjs scripts/organization-catalog-relations.test.mjs scripts/operational-catalog-cache.test.mjs scripts/subsidiary-payload-optimization.test.mjs scripts/performance-observability.test.mjs scripts/read-cache-integration.test.mjs scripts/hot-read-paths.test.mjs scripts/server-performance-routes.test.mjs scripts/supabase-concurrency-gate.test.mjs scripts/production-120-session-load.test.mjs",
     "audit:frontend": "node scripts/frontend-performance-audit.mjs",
-    "test:pdf-security": "npm run build && node --test scripts/pdf-security.test.mjs"
+    "test:pdf-security": "npm run build && node --test scripts/pdf-security.test.mjs scripts/pdf-worker.test.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",

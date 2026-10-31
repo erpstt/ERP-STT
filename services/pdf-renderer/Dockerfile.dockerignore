@@ -1,0 +1,12 @@
+# Solo este Dockerfile: no cambia el contexto del constructor actual del ERP.
+**
+!package.json
+!package-lock.json
+!tsconfig.json
+!src/
+!src/**
+!services/
+!services/pdf-renderer/
+!services/pdf-renderer/**
+services/pdf-renderer/node_modules/
+services/pdf-renderer/.env*
