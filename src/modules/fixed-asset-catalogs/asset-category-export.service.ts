@@ -1,3 +1,4 @@
+import {assertAssetMasterAccess} from './asset-master-access.service.js';
 import type ExcelJS from 'exceljs';
 import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
 import { renderBankReconciliationPdf } from '../reports/accounting-reports.service.js';
@@ -214,6 +215,7 @@ export async function loadAssetCategoryExportData(
   authorization: string,
   input: Record<string, unknown>
 ): Promise<AssetCategoryExportPayload> {
+  await assertAssetMasterAccess(authorization,'fixed-assets:asset-categories','view');
   const filters = normalizeFilters(input);
   const report = (await assetCategoryReport(authorization, filters) ?? {}) as Json;
   const subsidiary = (report.subsidiary ?? {}) as Json;
@@ -267,6 +269,7 @@ export async function exportAssetCategories(
   formatValue: string,
   input: Record<string, unknown>
 ): Promise<ExportFile> {
+  await assertAssetMasterAccess(authorization,'fixed-assets:asset-categories','view');
   const rawFormat = formatValue.toLowerCase();
   const format: AssetCategoryExportFormat = rawFormat === 'excel' ? 'xlsx' : rawFormat as AssetCategoryExportFormat;
   if (!['csv', 'xlsx', 'pdf'].includes(format)) throw new Error('Seleccione un formato CSV, Excel o PDF válido.');

@@ -1,8 +1,10 @@
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { invalidateFixedAssetCatalogCache } from './fixed-asset-catalogs.module.js';
 import { assertRoleAccess } from '../security-catalogs/role-access-matrix.module.js';
+import { assetMasterRpc, assertAssetMasterAccess } from './asset-master-access.service.js';
 
 async function rpc(authorization:string,name:string,parameters:Record<string,unknown>={}) {
+  if(['fixed_asset_report','fixed_asset_detail','fixed_asset_analytics','save_fixed_asset'].includes(name))return assetMasterRpc(authorization,name==='fixed_asset_analytics'?'fixed-assets:reports':'fixed-assets:assets',name==='save_fixed_asset'?(parameters.p_asset_id===null?'create':'edit'):'view',name,parameters);
   const payload=parameters.p_payload as Record<string,unknown>|undefined;
   const proposal=name==='fixed_asset_proposal_report'||name==='process_fixed_asset_proposals';
   const depreciation=name==='fixed_asset_depreciation_preview'||name==='run_fixed_asset_depreciation';
@@ -31,7 +33,7 @@ export const fixedAssetOptions=(authorization:string)=>rpc(authorization,'fixed_
 export const fixedAssetProposalReport=(authorization:string,filters:Record<string,unknown>)=>rpc(authorization,'fixed_asset_proposal_report',{p_filters:filters});
 export async function processFixedAssetProposals(authorization:string,payload:Record<string,unknown>){const result=await rpc(authorization,'process_fixed_asset_proposals',{p_payload:payload});invalidateFixedAssetCatalogCache('assets');return result;}
 export const fixedAssetReport=(authorization:string,filters:Record<string,unknown>)=>rpc(authorization,'fixed_asset_report',{p_filters:filters});
-export async function saveFixedAsset(authorization:string,payload:Record<string,unknown>,id?:number){const result=await rpc(authorization,'save_fixed_asset',{p_payload:payload,p_asset_id:id||null});invalidateFixedAssetCatalogCache('assets');return result;}
+export async function saveFixedAsset(authorization:string,payload:Record<string,unknown>,id?:number){const result=await rpc(authorization,'save_fixed_asset',{p_payload:payload,p_asset_id:id??null});invalidateFixedAssetCatalogCache('assets');return result;}
 export async function depreciationPreview(authorization:string,date:string) {
   const result = await rpc(authorization,'fixed_asset_depreciation_preview',{p_date:date});
   if (!result?.period?.id || !result.rows?.some((row:{processed:boolean})=>row.processed)) return result;
@@ -54,6 +56,7 @@ export async function depreciationPreview(authorization:string,date:string) {
 }
 export async function runDepreciation(authorization:string,payload:Record<string,unknown>){const result=await rpc(authorization,'run_fixed_asset_depreciation',{p_date:payload.date,p_asset_ids:payload.assetIds});invalidateFixedAssetCatalogCache('assets');return result;}
 export async function fixedAssetDetail(authorization:string,id:number){
+  await assertAssetMasterAccess(authorization,'fixed-assets:assets','view');
   const [detail,origins]=await Promise.all([rpc(authorization,'fixed_asset_detail',{p_asset_id:id}),rpc(authorization,'fixed_asset_proposal_origins',{p_asset_id:id})]);
   return {...detail,origins};
 }

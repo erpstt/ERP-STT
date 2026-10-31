@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';import{test}from'node:test';import{createServer}from'node:http';import{readFile}from'node:fs/promises';import{resolve,extname,sep}from'node:path';import{chromium}from'@playwright/test';
+test('pantallas maestro/categorias respetan lectura, creacion, edicion y borrado; costo depreciado bloqueado',{timeout:40000},async t=>{
+ const root=resolve('public'),server=createServer(async(req,res)=>{try{const p=resolve(root,'.'+new URL(req.url,'http://localhost').pathname);if(!p.startsWith(root+sep))throw Error();res.setHeader('Content-Type',extname(p)==='.js'?'text/javascript':extname(p)==='.css'?'text/css':'text/html');res.end(await readFile(p));}catch{res.writeHead(404);res.end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>{server.closeAllConnections();server.close(r);}));const browser=await chromium.launch({headless:true});t.after(()=>browser.close());let mutations=0;
+ for(const screen of['fixed-assets','asset-categories'])for(const role of['reader','creator','editor','deleter']){const page=await browser.newPage();await page.addInitScript(()=>{localStorage.setItem('nexo_token','synthetic-ui-token');localStorage.setItem('nexo_device_token','synthetic-ui-device-token');window.NexoRecordAudit={show(){}};});
+  const permissions={canCreate:role==='creator',canEdit:role==='editor',canDelete:role==='deleter'};
+  await page.route('**/api/**',async route=>{const path=new URL(route.request().url()).pathname;let result;
+   if(path.endsWith('/workflow-options'))result={subsidiary:{name:'Synthetic'},currency:{id:1,code:'CRC',name:'Synthetic currency'},categories:[{id:1,code:'CAT',name:'Synthetic'}],locations:[{id:1,name:'Synthetic'}],departments:[],costs:[],classes:[]};
+   else if(path.endsWith('/asset-category-options'))result={assetAccounts:[{id:201,name:'Synthetic PPE'}],depreciationAccounts:[{id:202,name:'Synthetic accumulated'}],expenseAccounts:[{id:203,name:'Synthetic expense'}]};
+   else if(path.endsWith('/workflow-report'))result={permissions,rows:[{id:1,number:'ACT-1',name:'Synthetic',categoryId:1,locationId:1,currencyId:1,cost:1200,bookValue:1100,accumulated:100,purchaseDate:'2026-10-01',serviceDate:'2026-10-01',status:'ACTIVO'}]};
+   else if(path.endsWith('/asset-category-report'))result={permissions,rows:[{id:1,code:'CAT-1',name:'Synthetic',usefulLife:12,method:'Línea Recta',residual:0,active:true,assets:1,assetAccountId:201,depreciationAccountId:202,expenseAccountId:203}]};
+   else if(path.endsWith('/workflow-manage/1')&&route.request().method()==='GET')result={asset:{hasDepreciations:true}};
+   else{mutations++;await route.abort();return;}await route.fulfill({json:result});
+  });
+  await page.goto(`http://127.0.0.1:${server.address().port}/${screen}.html`);await page.locator('#count').filter({hasText:'1 registro'}).waitFor();assert.equal(await page.locator('#new').isHidden(),!permissions.canCreate);assert.equal(await page.locator('[data-edit]').isDisabled(),!permissions.canEdit);if(screen==='asset-categories')assert.equal(await page.locator('[data-delete]').isDisabled(),!permissions.canDelete);
+  if(role==='creator'||role==='editor'){await page.locator(role==='creator'?'#new':'[data-edit]').click();assert.equal(await page.locator('#modal').isVisible(),true);if(screen==='fixed-assets'&&role==='editor')assert.equal(await page.locator('#cost').isDisabled(),true);await page.locator('#cancel').click();}await page.close();
+ }assert.equal(mutations,0);
+});

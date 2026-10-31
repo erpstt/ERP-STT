@@ -20,6 +20,7 @@ import { saveSalesInvoice } from '../dist/modules/sales-catalogs/sales-invoice.s
 import { saveSupplierInvoice } from '../dist/modules/purchasing-catalogs/supplier-invoice.service.js';
 import { saveFixedAsset } from '../dist/modules/fixed-asset-catalogs/fixed-assets.service.js';
 import { saveAssetCategory } from '../dist/modules/fixed-asset-catalogs/asset-category.service.js';
+import {primeRoleAccessCache,invalidateRoleAccessCaches} from '../dist/modules/security-catalogs/role-access-matrix.module.js';
 
 const originalFetch = globalThis.fetch;
 const originalUrl = process.env.SUPABASE_URL;
@@ -34,6 +35,7 @@ function bearer(user, session) {
 
 const firstAuthorization = bearer('user-1', 'session-1');
 const secondAuthorization = bearer('user-1', 'session-2');
+test.beforeEach(async()=>{for(const auth of[firstAuthorization,secondAuthorization])await primeRoleAccessCache(auth,{isAdmin:false,grants:['fixed-assets:assets','fixed-assets:asset-categories','banking:bank-statements','banking:bank-accounts'].map(resourceKey=>({resourceKey,canView:true,canCreate:true,canEdit:true,canDelete:true}))});});
 
 function invalidateOperationalCatalogs() {
   sales.invalidateSalesCatalogCache('invoices');
@@ -45,6 +47,7 @@ function invalidateOperationalCatalogs() {
 }
 
 test.afterEach(() => {
+  invalidateRoleAccessCaches();
   globalThis.fetch = originalFetch;
   invalidateEntityListCache();
   invalidateOrganizationListCache();

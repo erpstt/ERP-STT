@@ -1,3 +1,4 @@
+let permissions={};
 const $ = (id) => document.getElementById(id);
 const token = localStorage.getItem('nexo_token') || sessionStorage.getItem('nexo_token');
 const device = localStorage.getItem('nexo_device_token') || sessionStorage.getItem('nexo_device_token');
@@ -49,6 +50,7 @@ async function load() {
       method: 'POST',
       body: JSON.stringify({ search: $('search').value.trim(), status: $('filterStatus').value })
     });
+    permissions=result.permissions||{};$('new').hidden=!permissions.canCreate;
     rows = result.rows || [];
     $('count').textContent = `${rows.length} registro${rows.length === 1 ? '' : 's'}`;
     $('rows').innerHTML = rows.map((row) => `<tr>
@@ -62,7 +64,7 @@ async function load() {
       <td>${esc(row.expenseAccount)}</td>
       <td>${row.assets}</td>
       <td><span class="status ${row.active ? 'open' : ''}">${row.active ? 'ACTIVA' : 'INACTIVA'}</span></td>
-      <td><div class="row-actions"><button data-edit="${row.id}">Editar</button><button class="delete" data-delete="${row.id}" data-assets="${row.assets}">Eliminar</button></div></td>
+      <td><div class="row-actions"><button ${permissions.canEdit?'':'disabled'} data-edit="${row.id}">Editar</button><button ${permissions.canDelete?'':'disabled'} class="delete" data-delete="${row.id}" data-assets="${row.assets}">Eliminar</button></div></td>
     </tr>`).join('') || '<tr><td colspan="11">No se encontraron categorías.</td></tr>';
 
     document.querySelectorAll('[data-edit]').forEach((button) => {
@@ -138,7 +140,7 @@ function updateMethod() {
   if (disabled) $('life').value = 1;
 }
 
-function open(id = null) {window.NexoRecordAudit.show('asset_category',id,'#entry');
+function open(id = null) {if(!(id?permissions.canEdit:permissions.canCreate))return;window.NexoRecordAudit.show('asset_category',id,'#entry');
   editing = id;
   const current = rows.find((row) => String(row.id) === String(id));
   $('entry').reset();
