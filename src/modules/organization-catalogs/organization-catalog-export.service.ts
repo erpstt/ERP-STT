@@ -98,6 +98,7 @@ async function referenceRows(reference: string, authorization: string): Promise<
 }
 
 async function loadReferences(catalog: OrganizationCatalog, authorization: string): Promise<ReferenceIndex> {
+  if(catalog.slug==='locations'){const {inventoryMasterRpc}=await import('../inventory-catalogs/inventory-master.service.js');const {options}=await inventoryMasterRpc(authorization,'locations','view');return new Map(Object.entries(options as Record<string,Json[]>).map(([key,rows])=>[key,new Map(rows.map(row=>[String(row[referencePrimaryKey(key)]),label(row)]))]));}
   const references = [...new Set(catalog.fields.map(field => field.reference).filter((value): value is string => Boolean(value)))];
   const entries = await Promise.all(references.map(async reference => {
     const rows = await referenceRows(reference, authorization);

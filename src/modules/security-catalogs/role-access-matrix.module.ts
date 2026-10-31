@@ -26,12 +26,13 @@ export interface AccessResource { key:string; moduleKey:string; moduleName:strin
 export interface AccessModule { key:string; name:string; resources:AccessResource[]; }
 
 const viewOnly = new Set([
+  'product-subsidiaries',
   'stock','stock-adjustments','stock-lots','stock-serials','stock-reservations','stock-transfers','stock-movements',
   'permissions','sessions','devices','login-history','password-history','gl-impacts','audit-logs','system-logs',
   'consolidated-trial-balances','consolidated-financial-statements'
 ]);
 const viewAndEditOnly = new Set(['user-subsidiaries']);
-const noDelete = new Set(['users','roles','menus','journals','invoices','supplier-invoices','credit-notes','debit-notes','supplier-credit-notes','supplier-debit-notes']);
+const noDelete = new Set(['products','product-suppliers','product-images','barcodes','warehouse-locations','bins','item-location-configurations','locations','users','roles','menus','journals','invoices','supplier-invoices','credit-notes','debit-notes','supplier-credit-notes','supplier-debit-notes']);
 const catalogs = (moduleKey:string,moduleName:string,items:Catalog[]) => items.map(item => ({
   key:`${moduleKey}:${item.slug}`, moduleKey, moduleName, optionName:item.title,
   actions:(viewOnly.has(item.slug)?['view']:viewAndEditOnly.has(item.slug)?['view','edit']:noDelete.has(item.slug)?['view','create','edit']:['view','create','edit','delete']) as Action[]
