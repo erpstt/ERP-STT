@@ -34,6 +34,7 @@ import { authController } from './modules/auth/auth.module.js';
 import { createCountry, deleteCountry, listCountries, updateCountry } from './modules/countries/countries.module.js';
 import { createCatalogRow, deleteCatalogRow, getCoreCatalog, listCatalogRows, updateCatalogRow } from './modules/core-catalogs/core-catalogs.module.js';
 import{coreDictionaries,coreDictionaryRpc}from'./modules/core-catalogs/core-dictionary.service.js';
+import{numberSequenceRpc}from'./modules/core-catalogs/number-sequence.service.js';
 import { createSecurityRow, deleteSecurityRow, getSecurityCatalog, listSecurityRows, listUserSubsidiaryOptions, updateSecurityRow } from './modules/security-catalogs/security-catalogs.module.js';
 import { assertRoleAccess, isRoleAccessResource, myRoleAccess, roleAccessMatrix, saveRoleAccessMatrix } from './modules/security-catalogs/role-access-matrix.module.js';
 import { listSubsidiaryApprovers, createOrganizationRow, deleteOrganizationRow, getOrganizationCatalog, getOrganizationRow, listOrganizationRows, updateOrganizationRow } from './modules/organization-catalogs/organization-catalogs.module.js';
@@ -504,6 +505,7 @@ const server = createServer((request, response) => {
     const accessUrl=new URL(request.url??'/',`http://${request.headers.host??'localhost'}`),accessRoute=accessUrl.pathname.match(/^\/api\/(core|security|organization|configuration|accounting|banking|treasury|entities|inventory|sales|transaction-engine|purchasing|expenses|fixed-assets|workflow|documents|audit|consolidation|ai)\/([a-z-]+)(?:\/\d+)?$/);
     if(accessRoute){const resourceKey=request.method==='GET'&&accessRoute[1]==='sales'&&['sales-invoice-lines','sales-invoice-withholdings'].includes(accessRoute[2]!)?'sales:invoices':request.method==='GET'&&accessRoute[1]==='purchasing'&&['supplier-invoice-lines','supplier-invoice-withholdings'].includes(accessRoute[2]!)?'purchasing:supplier-invoices':`${accessRoute[1]}:${accessRoute[2]}`;if(isRoleAccessResource(resourceKey)&&!/^\/api\/sales\/invoices\/\d+\/(pdf|email|pdf-line-unification)(?:\?|$)/.test(request.url??'')&&!(request.method==='GET'&&['sales:sales-note-lines','purchasing:supplier-note-lines','inventory:stock-movements'].includes(resourceKey))){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const accessAction=request.method==='GET'?'view':request.method==='PATCH'||(request.method==='PUT'&&['purchasing:supplier-payments','sales:customer-payments'].includes(resourceKey))||(request.method==='POST'&&resourceKey==='security:user-subsidiaries')?'edit':request.method==='POST'?'create':'delete';await assertRoleAccess(authorization,resourceKey,accessAction);}}
     if(request.method==='GET'&&accessUrl.pathname==='/api/core/catalog-access')return json(response,200,await coreDictionaryRpc(request.headers.authorization!,'core_dictionary_access',{p_catalog:accessUrl.searchParams.get('catalog')}));
+    if(request.method==='GET'&&accessUrl.pathname==='/api/core/sequence-access')return json(response,200,await numberSequenceRpc(request.headers.authorization!,'number_sequence_access'));
     const coreRoute = request.url?.match(/^\/api\/core\/([a-z-]+)(?:\/(\d+))?$/);
     if (coreRoute) {
       const authorization = request.headers.authorization;
@@ -513,7 +515,7 @@ const server = createServer((request, response) => {
       if (request.method === 'GET' && id === null) return json(response, 200, await listCatalogRows(catalog, authorization));
       if (request.method === 'POST' && id === null) return json(response, 201, await createCatalogRow(catalog, authorization, await body(request) as Record<string, unknown>));
       if (request.method === 'PATCH' && id !== null) return json(response, 200, await updateCatalogRow(catalog, authorization, id, await body(request) as Record<string, unknown>));
-      if (request.method === 'DELETE' && id !== null) { await deleteCatalogRow(catalog, authorization, id,coreDictionaries.has(catalog.slug)?((await body(request))as Record<string,unknown>)._revision:undefined); return json(response, 200, { success: true }); }
+      if (request.method === 'DELETE' && id !== null) { await deleteCatalogRow(catalog, authorization, id,(coreDictionaries.has(catalog.slug)||catalog.slug==='number-sequences')?((await body(request))as Record<string,unknown>)._revision:undefined); return json(response, 200, { success: true }); }
     }
     const securityAccessUrl=new URL(request.url??'/',`http://${request.headers.host??'localhost'}`);
     if(securityAccessUrl.pathname==='/api/security/my-role-access'&&request.method==='GET'){
