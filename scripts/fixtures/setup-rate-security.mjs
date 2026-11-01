@@ -1,5 +1,5 @@
 import{readFile}from'node:fs/promises';import{setupSessionBoundarySecurity}from'./setup-session-boundary-security.mjs';
-export const migration='20261101203445_secure_exchange_rate_boundary.sql',activation='20261101203505_activate_exchange_rate_boundary_after_server.sql';
+export const migration='20261101203445_secure_exchange_rate_boundary.sql',activation='20261101203902_activate_exchange_rate_boundary_after_server.sql';
 export async function setupRateSecurity(db){await setupSessionBoundarySecurity(db);await installRateSecurity(db);}
 export async function installRateSecurity(db){
  await db.exec(`alter table currencies add column if not exists name text;update currencies set name=currency_code;insert into currencies(currency_id,currency_code,name)values(3,'COP','Synthetic COP');
