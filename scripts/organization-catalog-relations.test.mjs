@@ -42,47 +42,11 @@ test('collectRelationPages recupera relaciones posteriores al límite de 1.000 f
   assert.deepEqual(offsets, [0, 500, 1000, 1500]);
 });
 
-test('el listado de subsidiarias excluye logos pesados y el detalle conserva el registro completo', async () => {
-  const queries = [];
-  globalThis.fetch = async input => {
-    const url = new URL(String(input));
-    queries.push(url);
-    if (url.pathname.endsWith('/subsidiaries')) {
-      const detail = url.searchParams.get('subsidiary_id') === 'eq.7';
-      const complete = url.searchParams.get('select') === '*';
-      return Response.json([{
-        subsidiary_id: 7,
-        name: 'Empresa de pruebas',
-        legal_name: 'Empresa de pruebas S.A.',
-        currency_id: 2,
-        ...(detail || complete ? { logo_url: 'data:image/png;base64,LOGO' } : {}),
-      }]);
-    }
-    if (url.pathname.endsWith('/subsidiary_currencies')) {
-      return Response.json([{ subsidiary_id: 7, currency_id: 2, is_primary: true }]);
-    }
-    throw new Error(`Solicitud inesperada: ${url}`);
-  };
-
-  const catalog = getOrganizationCatalog('subsidiaries');
-  const complete = await listOrganizationRows(catalog, 'Bearer test');
-  const list = await listOrganizationRows(catalog, 'Bearer test', true);
-  const detail = await getOrganizationRow(catalog, 'Bearer test', 7);
-  const completeQuery = queries.find(url => url.pathname.endsWith('/subsidiaries') && url.searchParams.get('select') === '*');
-  const listQuery = queries.find(url => url.pathname.endsWith('/subsidiaries') && !url.searchParams.has('subsidiary_id') && url.searchParams.get('select') !== '*');
-  const detailQuery = queries.find(url => url.pathname.endsWith('/subsidiaries') && url.searchParams.has('subsidiary_id'));
-
-  assert.ok(completeQuery);
-  assert.equal(complete[0].logo_url, 'data:image/png;base64,LOGO');
-  assert.ok(listQuery);
-  assert.equal(listQuery.searchParams.get('select').includes('logo_url'), false);
-  assert.equal(list[0].logo_url, undefined);
-  assert.deepEqual(list[0].allowed_currency_ids, [2]);
-  assert.equal(detailQuery.searchParams.get('select'), '*');
-  assert.equal(detail.logo_url, 'data:image/png;base64,LOGO');
-  assert.deepEqual(detail.allowed_currency_ids, [2]);
+test('subsidiarias lista sin logo y obtiene detalle completo por RPC con JWT público',async()=>{
+ await primeRoleAccessCache('Bearer companies-relations',{isAdmin:false,grants:[{resourceKey:'organization:subsidiaries',canView:true}]});const calls=[],summary={subsidiary_id:7,name:'Synthetic',allowed_currency_ids:[2],secondary_currency_ids:[],_revision:'SYN'};
+ globalThis.fetch=async(input,init)=>{const path=new URL(String(input)).pathname;calls.push(path);assert.equal(new Headers(init.headers).get('Authorization'),'Bearer companies-relations');assert.equal(new Headers(init.headers).get('apikey'),'test-key');if(path.endsWith('/organization_master_list'))return Response.json([summary]);assert.ok(path.endsWith('/organization_company_detail'));assert.deepEqual(JSON.parse(init.body),{p_id:7});return Response.json({...summary,logo_url:'data:image/png;base64,U1lO'});};
+ const c=getOrganizationCatalog('subsidiaries'),a=await listOrganizationRows(c,'Bearer companies-relations'),b=await listOrganizationRows(c,'Bearer companies-relations',true),d=await getOrganizationRow(c,'Bearer companies-relations',7);assert.equal(a[0].logo_url,undefined);assert.equal(b[0].logo_url,undefined);assert.equal(d.logo_url,'data:image/png;base64,U1lO');assert.equal(calls.length,3);
 });
-
 
 test('departamentos conserva más de mil asignaciones por RPC y JWT público', async () => {
  await primeRoleAccessCache('Bearer dimensions', {isAdmin:false,grants:[{resourceKey:'organization:departments',canView:true,canEdit:true}]});
