@@ -65,7 +65,8 @@
     "test:employee-master-security": "npm run build && node --test scripts/employee-master-sql-security.test.mjs scripts/employee-master-api-security.test.mjs scripts/employee-master-ui-security.test.mjs",
     "test:organization-master-security": "npm run build && node --test scripts/organization-master-sql-security.test.mjs scripts/organization-master-api-security.test.mjs scripts/organization-master-ui-security.test.mjs scripts/organization-catalog-relations.test.mjs",
     "test:cost-class-master-security": "npm run build && node --test scripts/cost-class-master-sql-security.test.mjs scripts/cost-class-master-api-security.test.mjs scripts/cost-class-master-ui-security.test.mjs",
-    "test:financial-entity-master-security": "npm run build && node --test scripts/financial-entity-master-sql-security.test.mjs scripts/financial-entity-master-api-security.test.mjs scripts/financial-entity-master-ui-security.test.mjs"
+    "test:financial-entity-master-security": "npm run build && node --test scripts/financial-entity-master-sql-security.test.mjs scripts/financial-entity-master-api-security.test.mjs scripts/financial-entity-master-ui-security.test.mjs",
+    "test:fiscal-structure-security": "npm run build && node --test scripts/fiscal-structure-sql-security.test.mjs scripts/fiscal-structure-api-security.test.mjs scripts/fiscal-structure-ui-security.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
