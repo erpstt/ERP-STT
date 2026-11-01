@@ -72,7 +72,8 @@
     "test:session-boundary-security": "npm run build && node --test scripts/session-boundary-sql-security.test.mjs scripts/session-boundary-api-security.test.mjs scripts/session-boundary-http-security.test.mjs scripts/session-boundary-ui-security.test.mjs",
     "test:rate-security": "npm run build && node --test scripts/rate-security-sql.test.mjs scripts/rate-security-api.test.mjs scripts/rate-security-http.test.mjs scripts/rate-security-ui.test.mjs",
     "test:core-dictionary-security": "npm run build && node --test scripts/core-dictionary-sql.test.mjs scripts/core-dictionary-api.test.mjs scripts/core-dictionary-http.test.mjs scripts/core-dictionary-ui.test.mjs",
-    "test:sequence-security": "npm run build && node --test scripts/sequence-security-sql.test.mjs scripts/sequence-security-api.test.mjs scripts/sequence-security-http.test.mjs scripts/sequence-security-ui.test.mjs"
+    "test:sequence-security": "npm run build && node --test scripts/sequence-security-sql.test.mjs scripts/sequence-security-api.test.mjs scripts/sequence-security-http.test.mjs scripts/sequence-security-ui.test.mjs",
+    "test:transaction-type-security": "npm run build && node --test scripts/transaction-type-sql.test.mjs scripts/transaction-type-api.test.mjs scripts/transaction-type-http.test.mjs scripts/transaction-type-ui.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
