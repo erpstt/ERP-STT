@@ -1,3 +1,4 @@
+import{accessAdminRpc}from'./access-admin.service.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { invalidateReadCacheNamespace, ScopedReadCache } from '../../core/performance/scoped-read-cache.js';
 import { coreCatalogs } from '../core-catalogs/core-catalogs.module.js';
@@ -133,7 +134,7 @@ export async function saveRoleAccessMatrix(token:string,input:Record<string,unkn
   });
   const permissionIds=[...new Set((Array.isArray(input.specialPermissionIds)?input.specialPermissionIds:[]).map(Number))];
   if(permissionIds.some(id=>!Number.isInteger(id)||id<=0))throw new Error('La selección de permisos especiales no es válida.');
-  const result=await rpc(token,'security_save_role_access_matrix',{p_role_id:roleId,p_entries:entries,p_permission_ids:permissionIds});invalidateRoleAccessCaches();return result;
+  const result=await accessAdminRpc(token,'security_save_access_matrix',{p_role_id:roleId,p_entries:entries,p_permission_ids:permissionIds,p_revision:input._revision??null});invalidateRoleAccessCaches();return result;
 }
 export const myRoleAccess=(token:string)=>myRoleAccessCache.getOrLoad({namespace:myRoleAccessNamespace,scope:accessCacheScope(token),loader:async()=>completeRoleAccess(await rpc<Omit<MyRoleAccessData,'modules'>>(token,'security_my_role_access'))});
 export async function assertRoleAccess(token:string,resourceKey:string,action:Action){

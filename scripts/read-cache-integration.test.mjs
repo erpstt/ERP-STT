@@ -120,7 +120,7 @@ test('cambiar empresas de un usuario invalida empresas y subsidiarias resumidas'
   let syncCalls = 0;
   globalThis.fetch = async (input, init = {}) => {
     const url = new URL(String(input));
-    if (url.pathname.endsWith('/rpc/security_sync_user_subsidiaries')) { syncCalls += 1; return Response.json({ userId: 4, subsidiaryIds: [7] }); }
+    if (url.pathname.endsWith('/rpc/security_save_access_master')) { syncCalls += 1; return Response.json({ userId: 4, subsidiaryIds: [7] }); }
     if(url.pathname.endsWith('/organization_master_list')) {subsidiaryReads++;return Response.json([{subsidiary_id:7,name:'Empresa',_revision:'SYN'}]);}
     if (url.pathname.endsWith('/users')) { companyUserReads += 1; return Response.json([{ user_id: 4 }]); }
     if (url.pathname.endsWith('/user_subsidiaries')) return Response.json([{ subsidiary_id: 7 }]);

@@ -1,3 +1,4 @@
+import{accessAdminRpc}from'./modules/security-catalogs/access-admin.service.js';
 import{organizationMasters,organizationMasterRpc}from'./modules/organization-catalogs/organization-master.service.js';
 import{entityMasters,entityMasterRpc}from'./modules/entity-catalogs/entity-master.service.js';
 import{taxCatalogs,taxCatalogRpc}from'./modules/configuration-catalogs/tax-catalog.service.js';
@@ -522,6 +523,7 @@ const server = createServer((request, response) => {
       await assertRoleAccess(authorization,'security:user-subsidiaries','view');
       return json(response,200,await listUserSubsidiaryOptions(authorization));
     }
+    if(securityAccessUrl.pathname==='/api/security/master/options'&&request.method==='GET'){const auth=request.headers.authorization;if(!auth?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesi?n.');return json(response,200,await accessAdminRpc(auth,'security_access_master_options',{p_catalog:securityAccessUrl.searchParams.get('catalog')}));}
     const securityRoute = request.url?.match(/^\/api\/security\/([a-z-]+)(?:\/(\d+))?$/);
     if (securityRoute) {
       const authorization = request.headers.authorization;
@@ -538,7 +540,7 @@ const server = createServer((request, response) => {
         return json(response, 201, await createSecurityRow(catalog, authorization, input));
       }
       if (request.method === 'PATCH' && id !== null) return json(response, 200, await updateSecurityRow(catalog, authorization, id, await body(request) as Record<string, unknown>));
-      if (request.method === 'DELETE' && id !== null) { await deleteSecurityRow(catalog, authorization, id); return json(response, 200, { success: true }); }
+      if (request.method === 'DELETE' && id !== null) { await deleteSecurityRow(catalog, authorization, id,await body(request)as Record<string,unknown>); return json(response, 200, { success: true }); }
     }
     const upApproverUrl=new URL(request.url??'/','http://localhost');
     if(request.method==='GET'&&upApproverUrl.pathname==='/api/v1/cost-centers/up-approver-options')return json(response,200,await upApproverOptions(request.headers.authorization!));

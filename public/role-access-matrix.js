@@ -4,7 +4,7 @@ const actionField={view:'canView',create:'canCreate',edit:'canEdit',delete:'canD
 
 createApp({
   data:()=>({
-    loading:true,saving:false,roles:[],modules:[],specialPermissions:[],selectedRoleId:0,loadedRoleId:0,
+    revision:null,loading:true,saving:false,roles:[],modules:[],specialPermissions:[],selectedRoleId:0,loadedRoleId:0,
     administratorRole:false,grants:{},search:'',activeTab:'standard',expanded:new Set(),dirty:false,
     message:'',messageType:'success',actions:[
       {key:'view',label:'Acceso'},{key:'create',label:'Crear'},{key:'edit',label:'Editar'},{key:'delete',label:'Eliminar'}
@@ -38,13 +38,13 @@ createApp({
       if(!response.ok)throw new Error(data.error?.message||'No fue posible completar la operación.');
       return data;
     },
-    hydrate(data){
+    hydrate(data){this.revision=data._revision;
       this.roles=data.roles||this.roles;this.modules=data.modules||[];this.specialPermissions=(data.specialPermissions||[]).map(item=>({...item,enabled:Boolean(item.enabled)}));
       this.administratorRole=Boolean(data.isAdministratorRole);this.loadedRoleId=Number(data.selectedRoleId||this.selectedRoleId);this.selectedRoleId=this.loadedRoleId;
       const legacy=(data.grants||[]).some(grant=>grant.resourceKey==='legacy:all');this.grants={};
       for(const module of this.modules)for(const resource of module.resources){
         const saved=(data.grants||[]).find(grant=>grant.resourceKey===resource.key);
-        this.grants[resource.key]=saved?{...saved}:{resourceKey:resource.key,canView:legacy||this.administratorRole,canCreate:(legacy||this.administratorRole)&&resource.actions.includes('create'),canEdit:(legacy||this.administratorRole)&&resource.actions.includes('edit'),canDelete:(legacy||this.administratorRole)&&resource.actions.includes('delete')};
+        this.grants[resource.key]=saved?{...saved}:{resourceKey:resource.key,canView:(legacy&&!resource.key.startsWith('security:'))||this.administratorRole,canCreate:((legacy&&!resource.key.startsWith('security:'))||this.administratorRole)&&resource.actions.includes('create'),canEdit:((legacy&&!resource.key.startsWith('security:'))||this.administratorRole)&&resource.actions.includes('edit'),canDelete:((legacy&&!resource.key.startsWith('security:'))||this.administratorRole)&&resource.actions.includes('delete')};
       }
       this.expanded=new Set(this.modules.map(module=>module.key));this.dirty=false;
     },
@@ -82,7 +82,7 @@ createApp({
     async save(){
       this.saving=true;this.message='';const roleName=this.selectedRole?.name||'seleccionado';
       try{
-        await this.api('/api/security/role-access-matrix',{method:'POST',body:JSON.stringify({roleId:this.selectedRoleId,entries:Object.values(this.grants),specialPermissionIds:this.specialPermissions.filter(permission=>permission.enabled).map(permission=>permission.permissionId)})});
+        await this.api('/api/security/role-access-matrix',{method:'POST',body:JSON.stringify({roleId:this.selectedRoleId,_revision:this.revision,entries:Object.values(this.grants),specialPermissionIds:this.specialPermissions.filter(permission=>permission.enabled).map(permission=>permission.permissionId)})});
         await this.load(false);this.message=`Permisos del rol ${roleName} guardados correctamente.`;this.messageType='success';
       }catch(error){this.message=error.message;this.messageType='error';}
       finally{this.saving=false;}

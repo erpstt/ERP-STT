@@ -85,6 +85,7 @@ export async function createSecurityUser(authorization:string,input:CreateUserIn
   const email=emailValue(input.email),firstName=nameValue(input.first_name,'Nombre'),lastName=nameValue(input.last_name,'Apellidos'),timezoneId=timezoneValue(input.timezone_id),isActive=bool(input.is_active,true),requestedNotification=bool(input.notify_user??input.notifyUser,true),shouldNotify=requestedNotification&&isActive;
   // The route authorizes security:users:create and the SECURITY DEFINER RPC
   // validates the same permission again while preserving the human audit actor.
+  await actorRpc(authorization,'security_assert_role_access',{p_resource_key:'security:users',p_action:'create'});
   const existing=await serviceRest<Array<{user_id:number}>>(`users?select=user_id&email=eq.${encodeURIComponent(email)}&limit=1`);if(existing.length)throw new UserProvisioningError('Ya existe un usuario con ese correo electrónico.',409);
   const metadata={first_name:firstName,last_name:lastName,invited_by_erp:true};let identity:{id:string;email:string}|null=null,stateHash='',activationLink='',expiresAt='';
   try{
