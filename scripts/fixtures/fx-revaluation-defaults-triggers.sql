@@ -1,0 +1,11 @@
+alter table public.fx_revaluation_runs alter column auto_reverse set default true;
+alter table public.fx_revaluation_runs alter column status set default 'PENDIENTE'::text;
+alter table public.fx_revaluation_runs alter column snapshot set default '[]'::jsonb;
+alter table public.fx_revaluation_runs alter column created_at set default now();
+alter table public.fx_revaluation_settings alter column gain_taxable set default false;
+alter table public.fx_revaluation_settings alter column loss_deductible set default false;
+alter table public.fx_revaluation_settings alter column updated_at set default now();
+CREATE TRIGGER fx_local_only_gl BEFORE INSERT OR UPDATE ON public.gl_impact FOR EACH ROW EXECUTE FUNCTION fx_local_only_gl();
+CREATE TRIGGER fx_protect_journal BEFORE INSERT OR DELETE OR UPDATE ON public.journal FOR EACH ROW EXECUTE FUNCTION fx_protect_journals();
+CREATE TRIGGER zz_fx_journal_type AFTER INSERT OR UPDATE ON public.journal FOR EACH ROW EXECUTE FUNCTION fx_journal_type();
+CREATE TRIGGER fx_protect_lines BEFORE INSERT OR DELETE OR UPDATE ON public.journal_line FOR EACH ROW EXECUTE FUNCTION fx_protect_journals();
