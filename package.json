@@ -63,7 +63,8 @@
     "test:tax-catalog-security": "npm run build && node --test scripts/tax-catalog-sql-security.test.mjs scripts/tax-catalog-api-security.test.mjs scripts/tax-catalog-ui-security.test.mjs",
     "test:entity-master-security": "npm run build && node --test scripts/entity-master-sql-security.test.mjs scripts/entity-master-api-security.test.mjs scripts/entity-master-ui-security.test.mjs scripts/entity-catalog-relations.test.mjs",
     "test:employee-master-security": "npm run build && node --test scripts/employee-master-sql-security.test.mjs scripts/employee-master-api-security.test.mjs scripts/employee-master-ui-security.test.mjs",
-    "test:organization-master-security": "npm run build && node --test scripts/organization-master-sql-security.test.mjs scripts/organization-master-api-security.test.mjs scripts/organization-master-ui-security.test.mjs scripts/organization-catalog-relations.test.mjs"
+    "test:organization-master-security": "npm run build && node --test scripts/organization-master-sql-security.test.mjs scripts/organization-master-api-security.test.mjs scripts/organization-master-ui-security.test.mjs scripts/organization-catalog-relations.test.mjs",
+    "test:cost-class-master-security": "npm run build && node --test scripts/cost-class-master-sql-security.test.mjs scripts/cost-class-master-api-security.test.mjs scripts/cost-class-master-ui-security.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",

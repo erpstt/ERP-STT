@@ -1,3 +1,4 @@
+import{organizationMasterRpc}from'./organization-master.service.js';
 import type ExcelJS from 'exceljs';
 import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
@@ -140,12 +141,8 @@ export async function exportCostCenters(authorization: string, formatValue: stri
   const format = formatValue.toLowerCase() as ExportFormat;
   if (!['csv', 'xlsx'].includes(format)) throw new Error('Seleccione un formato CSV o Excel válido.');
   const catalog = getOrganizationCatalog('cost-centers');
-  const [costCenters, subsidiaries, customers, classes] = await Promise.all([
-    listOrganizationRows(catalog, authorization),
-    rest<Json[]>(authorization, 'subsidiaries?select=subsidiary_id,name'),
-    rest<Json[]>(authorization, 'customers?select=customer_id,company_name'),
-    rest<Json[]>(authorization, 'classes?select=class_id,name'),
-  ]);
+  const [costCenters, options] = await Promise.all([listOrganizationRows(catalog,authorization),organizationMasterRpc(authorization,'cost-centers','options')]);
+  const subsidiaries=options.references['organization/subsidiaries'] as Json[],customers=options.references['entities/customers'] as Json[],classes=options.references['organization/classes'] as Json[];
   const subsidiaryMap = new Map(subsidiaries.map(row => [String(row.subsidiary_id), String(row.name ?? '')]));
   const customerMap = new Map(customers.map(row => [String(row.customer_id), String(row.company_name ?? '')]));
   const classMap = new Map(classes.map(row => [String(row.class_id), String(row.name ?? '')]));

@@ -1,3 +1,4 @@
+import{assertOrganizationMasterAccess}from'./organization-master.service.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 
 async function rpc<T>(authorization:string,name:string,parameters:Record<string,unknown>={}){
@@ -31,6 +32,7 @@ export function listCostCentersByUpApprover(authorization:string,approverId:numb
   return rpc<Record<string,unknown>>(authorization,'up_cost_centers_by_approver',{p_approver_id:approverId});
 }
 
-export function reassignCostCenterUpApprover(authorization:string,payload:Record<string,unknown>){
+export async function reassignCostCenterUpApprover(authorization:string,payload:Record<string,unknown>){
+  await assertOrganizationMasterAccess(authorization,'cost-centers','edit');
   return rpc<Record<string,unknown>>(authorization,'up_reassign_cost_centers',{p:payload});
 }
