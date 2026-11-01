@@ -52,7 +52,8 @@
     "test:inventory-global-security": "npm run build && node --test scripts/inventory-global-sql-security.test.mjs scripts/inventory-global-api-security.test.mjs scripts/inventory-global-ui-security.test.mjs",
     "test:sales-invoice-security": "npm run build && node --test scripts/sales-invoice-sql-security.test.mjs scripts/sales-invoice-api-security.test.mjs scripts/sales-invoice-ui-security.test.mjs",
     "test:sales-note-security": "npm run build && node --test scripts/sales-note-sql-security.test.mjs scripts/sales-note-api-security.test.mjs scripts/sales-note-ui-security.test.mjs",
-    "test:customer-payment-security": "npm run build && node --test scripts/customer-payment-sql-security.test.mjs scripts/customer-payment-api-security.test.mjs scripts/customer-payment-ui-security.test.mjs"
+    "test:customer-payment-security": "npm run build && node --test scripts/customer-payment-sql-security.test.mjs scripts/customer-payment-api-security.test.mjs scripts/customer-payment-ui-security.test.mjs",
+    "test:sales-workflow-security": "npm run build && node --test scripts/sales-workflow-sql-security.test.mjs scripts/sales-workflow-api-security.test.mjs scripts/sales-workflow-ui-security.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
