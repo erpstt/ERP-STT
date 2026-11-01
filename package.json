@@ -61,7 +61,8 @@
     "test:workflow-config-security": "npm run build && node --test scripts/workflow-config-sql-security.test.mjs scripts/workflow-config-api-security.test.mjs scripts/workflow-config-ui-security.test.mjs",
     "test:approval-inbox-security": "npm run build && node --test scripts/approval-inbox-sql-security.test.mjs scripts/approval-inbox-api-security.test.mjs scripts/approval-inbox-ui-security.test.mjs scripts/approval-notifications.test.mjs",
     "test:tax-catalog-security": "npm run build && node --test scripts/tax-catalog-sql-security.test.mjs scripts/tax-catalog-api-security.test.mjs scripts/tax-catalog-ui-security.test.mjs",
-    "test:entity-master-security": "npm run build && node --test scripts/entity-master-sql-security.test.mjs scripts/entity-master-api-security.test.mjs scripts/entity-master-ui-security.test.mjs scripts/entity-catalog-relations.test.mjs"
+    "test:entity-master-security": "npm run build && node --test scripts/entity-master-sql-security.test.mjs scripts/entity-master-api-security.test.mjs scripts/entity-master-ui-security.test.mjs scripts/entity-catalog-relations.test.mjs",
+    "test:employee-master-security": "npm run build && node --test scripts/employee-master-sql-security.test.mjs scripts/employee-master-api-security.test.mjs scripts/employee-master-ui-security.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",

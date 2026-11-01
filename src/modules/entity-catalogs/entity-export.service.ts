@@ -264,7 +264,7 @@ export function buildEntityCatalogPdfHtml(catalog: EntityExportCatalog, payload:
 }
 
 async function loadEntityExportData(authorization: string, catalog: EntityExportCatalog, search: string): Promise<EntityExportPayload> {
-  if(catalog==='customers'||catalog==='suppliers')await assertEntityMasterAccess(authorization,catalog,'view');
+  if(['customers','suppliers','employees'].includes(catalog))await assertEntityMasterAccess(authorization,catalog,'view');
   const config = getSupabaseConfig();
   if (!config) throw new Error('Supabase no está configurado.');
   const response = await fetchSupabase(new URL('/rest/v1/rpc/entity_catalog_export_data', config.url), {
