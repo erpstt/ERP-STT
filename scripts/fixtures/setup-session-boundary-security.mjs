@@ -1,5 +1,5 @@
 import{readFile}from'node:fs/promises';import{createHash}from'node:crypto';import{setupAccessAdminSecurity}from'./setup-access-admin-security.mjs';
-export const expandMigration='20261101193641_secure_session_device_boundary.sql',activationMigration='20261101193756_activate_session_device_boundary_after_server.sql';
+export const expandMigration='20261101193641_secure_session_device_boundary.sql',activationMigration='20261101194246_activate_session_device_boundary_after_server.sql';
 export const hash=s=>createHash('sha256').update(s).digest('hex');export const authId=u=>'00000000-0000-0000-0000-'+String(u).padStart(12,'0');export const authSession=u=>'11111111-0000-4000-8000-'+String(u).padStart(12,'0');
 export async function setupSessionBoundarySecurity(db){await setupAccessAdminSecurity(db);await installSessionBoundarySecurity(db);}
 export async function installSessionBoundarySecurity(db){await db.exec(`create table auth.sessions(id uuid primary key,user_id uuid,not_after timestamptz,created_at timestamptz default now());
