@@ -1,5 +1,5 @@
 import{readFile}from'node:fs/promises';import{setupTransactionTypeSecurity}from'./setup-transaction-type-security.mjs';
-export const migration='20261101234503_secure_status_catalog.sql',activation='20261101234514_activate_status_boundary_after_server.sql';
+export const migration='20261101234503_secure_status_catalog.sql',activation='20261101234936_activate_status_boundary_after_server.sql';
 export async function setupStatusMasterSecurity(db){await setupTransactionTypeSecurity(db);await installStatusMasterSecurity(db);}
 export async function installStatusMasterSecurity(db){await db.exec(`create table status(status_id bigint generated always as identity primary key,code varchar(30)not null,name text not null,module text not null,description text,unique(code,module));
  insert into status(code,name,module,description)values('APROBADO','Approved','Transacciones','Synthetic description'),('BORRADOR','Draft','Transacciones',null),('PERIODO_ABIERTO','Open period','Contabilidad',null);
