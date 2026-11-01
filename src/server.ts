@@ -1,3 +1,4 @@
+import{organizationMasters,organizationMasterRpc}from'./modules/organization-catalogs/organization-master.service.js';
 import{entityMasters,entityMasterRpc}from'./modules/entity-catalogs/entity-master.service.js';
 import{taxCatalogs,taxCatalogRpc}from'./modules/configuration-catalogs/tax-catalog.service.js';
 import{inventoryGlobalRpc}from'./modules/inventory-catalogs/inventory-global.service.js';
@@ -561,6 +562,7 @@ const server = createServer((request, response) => {
       await assertRoleAccess(authorization,`organization:${organizationExportRoute[1]}`,'view');
       return download(response,await exportOrganizationCatalog(authorization,organizationExportRoute[1],upApproverUrl.searchParams.get('format')||'',upApproverUrl.searchParams.get('search')||''));
     }
+    if(request.method==='GET'&&upApproverUrl.pathname==='/api/organization/master/options')return json(response,200,await organizationMasterRpc(request.headers.authorization!,upApproverUrl.searchParams.get('catalog')||'','options'));
     const organizationRoute = upApproverUrl.pathname.match(/^\/api\/organization\/([a-z-]+)(?:\/(\d+))?$/);
     if (organizationRoute) {
       const authorization = request.headers.authorization;
@@ -571,7 +573,7 @@ const server = createServer((request, response) => {
       if (request.method === 'GET' && id !== null) return json(response, 200, await getOrganizationRow(catalog, authorization, id));
       if (request.method === 'POST' && id === null) return json(response, 201, await createOrganizationRow(catalog, authorization, await body(request) as Record<string, unknown>));
       if (request.method === 'PATCH' && id !== null) return json(response, 200, await updateOrganizationRow(catalog, authorization, id, await body(request) as Record<string, unknown>));
-      if (request.method === 'DELETE' && id !== null) { await deleteOrganizationRow(catalog, authorization, id); return json(response, 200, { success: true }); }
+      if (request.method === 'DELETE' && id !== null) { await deleteOrganizationRow(catalog, authorization, id,organizationMasters.has(catalog.slug)?await body(request)as Record<string,unknown>:{}); return json(response, 200, { success: true }); }
     }
     if(request.method==='POST'&&request.url==='/api/configuration/exchange-rates/obtener-rd'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para consultar el tipo de cambio.');await assertExchangeRateAccess(authorization,'DOP');return json(response,200,await consultarYGuardarTipoDeCambioRD(authorization,await body(request) as {monedaOrigen?:string;monedaDestino?:string;fechaEfectiva?:Date|string}));}
     if(request.method==='POST'&&request.url==='/api/configuration/exchange-rates/obtener-cr'){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para consultar el tipo de cambio.');await assertExchangeRateAccess(authorization,'CRC');return json(response,200,await consultarYGuardarTipoDeCambioCR(authorization,await body(request) as {monedaOrigen?:string;monedaDestino?:string;fechaEfectiva?:Date|string}));}

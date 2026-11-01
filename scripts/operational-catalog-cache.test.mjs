@@ -92,33 +92,10 @@ test('clientes se cachean por sesión y una eliminación invalida todas las vist
   assert.equal(customerReads, 4, 'Un CRUD debe invalidar el catálogo para todas las sesiones del proceso.');
 });
 
-test('departamentos reutiliza la lectura por sesión e invalida al modificar el catálogo', async () => {
-  let reads = 0;
-  let deletes = 0;
-  globalThis.fetch = async (input, init = {}) => {
-    const url = new URL(String(input));
-    const method = init.method ?? 'GET';
-    if (!url.pathname.endsWith('/departments')) throw new Error(`Solicitud inesperada: ${method} ${url}`);
-    if (method === 'DELETE') { deletes += 1; return new Response(null, { status: 204 }); }
-    reads += 1;
-    return Response.json([{
-      department_id: 80,
-      name: 'CONTABILIDAD',
-      department_subsidiaries: [{ subsidiary_id: 7 }],
-    }]);
-  };
-
-  const catalog = getOrganizationCatalog('departments');
-  await listOrganizationRows(catalog, firstAuthorization);
-  await listOrganizationRows(catalog, firstAuthorization);
-  await listOrganizationRows(catalog, secondAuthorization);
-  assert.equal(reads, 2);
-
-  await deleteOrganizationRow(catalog, firstAuthorization, 80);
-  await listOrganizationRows(catalog, firstAuthorization);
-  await listOrganizationRows(catalog, secondAuthorization);
-  assert.equal(deletes, 1);
-  assert.equal(reads, 4);
+test('departamentos revalida cada consulta y usa RPC para eliminar',async()=>{
+ for(const auth of[firstAuthorization,secondAuthorization])await primeRoleAccessCache(auth,{isAdmin:false,grants:[{resourceKey:'organization:departments',canView:true,canDelete:true}]});let reads=0,deletes=0;
+ globalThis.fetch=async(input,init)=>{const path=new URL(String(input)).pathname;if(path.endsWith('/delete_organization_master')){deletes++;assert.equal(JSON.parse(init.body).p_revision,'SYN');return Response.json(true);}assert.ok(path.endsWith('/organization_master_list'));reads++;return Response.json([{department_id:80,name:'SYN',subsidiary_ids:[7],_revision:'SYN'}]);};
+ const c=getOrganizationCatalog('departments');await listOrganizationRows(c,firstAuthorization);await listOrganizationRows(c,firstAuthorization);await listOrganizationRows(c,secondAuthorization);assert.equal(reads,3);await deleteOrganizationRow(c,firstAuthorization,80,{_revision:'SYN'});await listOrganizationRows(c,firstAuthorization);await listOrganizationRows(c,secondAuthorization);assert.equal(reads,5);assert.equal(deletes,1);
 });
 
 test('facturas de venta revalidan cada lectura; otros catálogos reutilizan solo dentro de sesión', async () => {

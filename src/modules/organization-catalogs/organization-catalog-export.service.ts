@@ -1,3 +1,4 @@
+import{organizationMasters,organizationMasterRpc}from'./organization-master.service.js';
 import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { exportCostCenters } from './cost-center-export.service.js';
@@ -98,7 +99,7 @@ async function referenceRows(reference: string, authorization: string): Promise<
 }
 
 async function loadReferences(catalog: OrganizationCatalog, authorization: string): Promise<ReferenceIndex> {
-  if(catalog.slug==='locations'){const {inventoryMasterRpc}=await import('../inventory-catalogs/inventory-master.service.js');const {options}=await inventoryMasterRpc(authorization,'locations','view');return new Map(Object.entries(options as Record<string,Json[]>).map(([key,rows])=>[key,new Map(rows.map(row=>[String(row[referencePrimaryKey(key)]),label(row)]))]));}
+  if(organizationMasters.has(catalog.slug)){const {references:options}=await organizationMasterRpc(authorization,catalog.slug,'options');return new Map(Object.entries(options as Record<string,Json[]>).map(([key,rows])=>[key,new Map(rows.map(row=>[String(row[referencePrimaryKey(key)]),label(row)]))]));}
   const references = [...new Set(catalog.fields.map(field => field.reference).filter((value): value is string => Boolean(value)))];
   const entries = await Promise.all(references.map(async reference => {
     const rows = await referenceRows(reference, authorization);
