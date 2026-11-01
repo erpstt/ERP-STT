@@ -1,3 +1,5 @@
+import{primeRoleAccessCache}from'../dist/modules/security-catalogs/role-access-matrix.module.js';
+await primeRoleAccessCache('Bearer test',{isAdmin:false,grants:[{resourceKey:'accounting:opening-balances',canView:true,canCreate:true,canEdit:false,canDelete:false}]});
 import test from 'node:test';
 import assert from 'node:assert/strict';
 

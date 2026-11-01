@@ -741,8 +741,7 @@ const server = createServer((request, response) => {
       const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para administrar saldos iniciales.');
       if(request.method!=='POST')return error(response,405,'Método no permitido.');
       const openingAction=openingRoute[1];
-      const openingPermission=['options','preview'].includes(openingAction)?'view':openingAction==='reverse'?'delete':'create';
-      await assertRoleAccess(authorization,'accounting:opening-balances',openingPermission);
+      // The service authorizes HTTP and internal callers.
       try{return json(response,200,await openingBalances(authorization,openingAction,await body(request)as Record<string,unknown>));}
       catch(cause){
         if(cause instanceof OpeningBalanceFilesValidationError)return json(response,422,{error:{status:422,code:cause.code,message:cause.message,files:cause.files}});

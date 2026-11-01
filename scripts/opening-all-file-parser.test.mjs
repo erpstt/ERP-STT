@@ -1,3 +1,5 @@
+import{primeRoleAccessCache}from'../dist/modules/security-catalogs/role-access-matrix.module.js';
+await primeRoleAccessCache('Bearer test',{isAdmin:false,grants:[{resourceKey:'accounting:opening-balances',canView:true,canCreate:true,canEdit:false,canDelete:false}]});
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -135,7 +137,7 @@ test('CxC identifica archivo, fila, campo y columna cuando la equivalencia hist�
   ].join('\n');
 
   await assert.rejects(
-    openingBalances('', 'validate', { openingDate: '2026-09-30', ar, arFileName: 'Cartera histórica.csv' }),
+    openingBalances('Bearer test', 'validate', { openingDate: '2026-09-30', ar, arFileName: 'Cartera histórica.csv' }),
     error => {
       assert.ok(error instanceof OpeningBalanceFilesValidationError);
       assert.equal(error.files[0].key, 'ar');
@@ -259,7 +261,7 @@ test('acumula los errores de varios archivos con nombre, origen y posición', as
   const invalidPending = 'referencia_pendiente,,fecha_origen\nPEN-1,ACTUAL,2026-09-30';
 
   await assert.rejects(
-    openingBalances('', 'validate', {
+    openingBalances('Bearer test', 'validate', {
       openingDate: '2026-09-30',
       gl: invalidWorkbook,
       glFileName: invalidWorkbook.fileName,
@@ -370,7 +372,7 @@ test('los errores de fecha identifican archivo, fila, campo, columna y valor en 
   ].join('\n');
 
   await assert.rejects(
-    openingBalances('', 'validate', {
+    openingBalances('Bearer test', 'validate', {
       openingDate: '2026-09-30',
       ar,
       arFileName: 'Levantamiento de saldos - CxC.csv',

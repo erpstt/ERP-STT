@@ -534,7 +534,8 @@ class OpeningBalanceProcessingTimeoutError extends Error{
 function openingRpcFailure(name:string,result:OpeningRpcFailure|null){
  const code=String(result?.code??''),message=String(result?.message??'');
  if(code==='57014'||/canceling statement due to statement timeout/i.test(message))return new OpeningBalanceProcessingTimeoutError(name);
- return Error(message||'No fue posible procesar la apertura.');
+ const status=code==='42501'?403:['55000','P0001','23503','23505'].includes(code)?409:['22023','22P02','22003','22007','22008','23514'].includes(code)?400:500;
+ return Object.assign(Error(status===403?'El rol activo no puede realizar esta operación.':status===409?'Revise el estado, origen y conciliación de la apertura.':status===400?'Revise los datos y archivos de la apertura.':'No fue posible procesar la apertura.'),{status,openingValidationMessage:name==='opening_balance_validate'&&['P0001','22023',''].includes(code)?message:undefined});
 }
 
 async function rpc(auth:string,name:string,p:Record<string,unknown>={}){
@@ -656,7 +657,7 @@ function openingPrefixedRpcError(message:string){
 }
 
 function openingRpcFileErrors(cause:unknown,sources:OpeningValidationSource[]):OpeningBalanceFileValidation[]{
- const message=cause instanceof Error?cause.message:String(cause??'').trim();if(!message)return[];
+ const message=cause instanceof Error?String((cause as Error&{openingValidationMessage?:string}).openingValidationMessage??cause.message):String(cause??'').trim();if(!message)return[];
  const prefixed=openingPrefixedRpcError(message);
  if(prefixed){
   const source=sources.find(candidate=>candidate.key===prefixed.key);if(!source||!source.rows.length)return[];
@@ -673,7 +674,17 @@ function openingRpcFileErrors(cause:unknown,sources:OpeningValidationSource[]):O
  return openingDimensionFileErrors(dimension,sources.filter(source=>['gl','ar','ap','pending'].includes(source.key)));
 }
 
+export async function assertOpeningBalanceAccess(auth:string,action:string){
+ if(!/^Bearer\s+\S+$/i.test(auth))throw Object.assign(Error('Debe iniciar sesión.'),{status:401});
+ const permission=action==='validate'||action==='post'?'create':action==='reverse'?'delete':action==='options'||action==='preview'?'context':null;
+ if(!permission)throw Object.assign(Error('Acción inválida.'),{status:400});
+ const{assertRoleAccess}=await import('../security-catalogs/role-access-matrix.module.js');
+ for(const a of permission==='context'?['view','create','delete']as const:[permission]as const){try{await assertRoleAccess(auth,'accounting:opening-balances',a);return;}catch(e){if((e as {status?:number}).status!==403)throw e;}}
+ throw Object.assign(Error('Sin permiso para esta operación de apertura.'),{status:403});
+}
 export async function openingBalances(auth:string,action:string,p:Record<string,unknown>={}){
+ await assertOpeningBalanceAccess(auth,action);
+ if(['preview','post','reverse'].includes(action)&&(!Number.isSafeInteger(Number(p.runId))||Number(p.runId)<=0))throw Object.assign(Error('Lote inválido.'),{status:400});
  if(action==='validate'){
   const openingDate=String(p.openingDate||'');
   const uploads=[

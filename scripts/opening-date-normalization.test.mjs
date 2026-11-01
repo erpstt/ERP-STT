@@ -1,3 +1,5 @@
+import{primeRoleAccessCache}from'../dist/modules/security-catalogs/role-access-matrix.module.js';
+await primeRoleAccessCache('Bearer test',{isAdmin:false,grants:[{resourceKey:'accounting:opening-balances',canView:true,canCreate:true,canEdit:false,canDelete:false}]});
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -60,7 +62,7 @@ test('un error de fecha identifica archivo, fila, campo, columna y valor exactos
   ]);
 
   await assert.rejects(
-    openingBalances('', 'validate', {
+    openingBalances('Bearer test', 'validate', {
       openingDate: '2022-01-31',
       ar,
       arFileName: 'cxc-apertura.csv',

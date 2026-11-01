@@ -353,7 +353,7 @@ async function init(){
   $('transition').value=String(existingRun?.transition_account_id||transitionAccounts[0].id);
   if(existingRun){runId=existingRun.id;$('date').value=existingRun.opening_date;$('type').value=existingRun.load_type;show(await api('preview',{runId}));}
   if(!canCreate)setMessage(canReverse?'Su rol puede consultar y reversar una apertura contabilizada, pero no validar ni contabilizar cargas.':'Modo de consulta: su rol puede revisar la apertura, pero no validarla, contabilizarla ni reversarla.','working');
- }catch(error){setMessage(error.message);}
+ }catch(error){canCreate=false;canReverse=false;for(const id of ['validate','post','reverse','date','type','transition','gl','ar','ap','fa','pending','banks'])$(id).disabled=true;setMessage(error.message);}
 }
 
 function invalidateValidation(){
