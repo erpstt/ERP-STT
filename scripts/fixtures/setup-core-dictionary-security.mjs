@@ -1,5 +1,5 @@
 import{readFile}from'node:fs/promises';import{setupRateSecurity}from'./setup-rate-security.mjs';
-export const migration='20261101210345_secure_country_currency_catalogs.sql',activation='20261101210408_activate_country_currency_catalogs_after_server.sql';
+export const migration='20261101210345_secure_country_currency_catalogs.sql',activation='20261101210752_activate_country_currency_catalogs_after_server.sql';
 export async function setupCoreDictionarySecurity(db){await setupRateSecurity(db);await installCoreDictionarySecurity(db);}
 export async function installCoreDictionarySecurity(db){
  await db.exec(`alter table currencies alter column currency_id add generated always as identity(start with 100);alter table currencies add column if not exists symbol varchar(10),add column if not exists fx_rate_precision smallint default 6;update currencies set symbol='$';alter table currencies add unique(currency_code);
