@@ -1,4 +1,4 @@
-import {fetchSupabase,getSupabaseConfig} from '../../core/database/supabase.client.js';
+import{assertBudgetAccess,budgetRpc}from'./budget-security.service.js';
 const functions:Record<string,string>={options:'budget_options',headers:'budget_save_header',lines:'budget_save_lines',action:'budget_header_action',transfers:'budget_transfer_request',override:'budget_override_action','check-availability':'budget_check_availability','execution-report':'budget_report'};
 export function parseBudgetCsv(text:string):string[][]{
  const rows:string[][]=[];let row:string[]=[],field='',quoted=false;
@@ -6,6 +6,8 @@ export function parseBudgetCsv(text:string):string[][]{
  if(quoted)throw Error('El CSV contiene comillas sin cerrar.');row.push(field);if(row.some(v=>v.trim()))rows.push(row);return rows;
 }
 export async function budgetAction(auth:string,action:string,input:Record<string,unknown>){
+ await assertBudgetAccess(auth,action,input);
+ if(input.id!==undefined&&input.id!==null&&input.id!==''&&(!Number.isSafeInteger(Number(input.id))||Number(input.id)<=0))throw Object.assign(Error('Identificador inválido.'),{status:400});
  if(action==='import-excel'){
   const encoded=String(input.base64||'');if(encoded.length>7_000_000)throw Error('El archivo supera 5 MB.');
   const buffer=Buffer.from(encoded,'base64');let matrix:unknown[][];
@@ -19,7 +21,5 @@ export async function budgetAction(auth:string,action:string,input:Record<string
   input={id:input.id,revision:input.revision,lines};action='lines';
  }
  const fn=functions[action];if(!fn)throw Error('Acción presupuestaria inválida.');
- const config=getSupabaseConfig();if(!config)throw Error('Supabase no está configurado.');
- const response=await fetchSupabase(new URL(`/rest/v1/rpc/${fn}`,config.url),{method:'POST',headers:{apikey:config.anonKey,Authorization:auth,'Content-Type':'application/json'},body:JSON.stringify(action==='options'?{}:{p:input})});
- const data=await response.json();if(!response.ok){const error=new Error(data?.message||'No fue posible completar la operación presupuestaria.')as Error&{status?:number};error.status=data?.code==='PT422'?422:data?.code==='42501'?403:400;throw error;}return data;
+ return budgetRpc(auth,fn,action==='options'?{}:{p:input});
 }

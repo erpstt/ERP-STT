@@ -1,6 +1,8 @@
+import {primeRoleAccessCache} from '../dist/modules/security-catalogs/role-access-matrix.module.js';
 import assert from 'node:assert/strict';
 import {budgetAction,parseBudgetCsv} from '../dist/modules/budget/budget.service.js';
 process.env.SUPABASE_URL='https://budget-test.invalid';process.env.SUPABASE_ANON_KEY='test';
+await primeRoleAccessCache('Bearer test',{isAdmin:false,grants:[{resourceKey:'accounting:budgets',canView:true,canCreate:true,canEdit:true,canDelete:true}]});
 let sent;
 globalThis.fetch=async(url,init)=>{sent=JSON.parse(init.body);return Response.json({id:1});};
 assert.deepEqual(parseBudgetCsv('a,b\r\n"uno,dos","tres""cuatro"'),[['a','b'],['uno,dos','tres"cuatro']]);
