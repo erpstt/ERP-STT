@@ -1,3 +1,5 @@
+import{canonicalRequestTarget}from'./core/security/request-path.js';
+import{withDeviceContext}from'./core/security/device-context.js';
 import{accessAdminRpc}from'./modules/security-catalogs/access-admin.service.js';
 import{organizationMasters,organizationMasterRpc}from'./modules/organization-catalogs/organization-master.service.js';
 import{entityMasters,entityMasterRpc}from'./modules/entity-catalogs/entity-master.service.js';
@@ -274,9 +276,10 @@ const server = createServer((request, response) => {
             response.once('finish',done);response.once('close',done);
           }),
     },
-    () => withSupabaseRequestSignal(requestAbort.signal,() => withAuditExecution(async () => {
+    () => withSupabaseRequestSignal(requestAbort.signal,() => withDeviceContext(Array.isArray(request.headers['x-device-token'])?request.headers['x-device-token'][0]:request.headers['x-device-token'],() => withAuditExecution(async () => {
   applySecurityHeaders(request, response);
   try {
+    request.url=canonicalRequestTarget(request.url);
     if (request.method === 'GET' && request.url === '/api/health') {
       return json(response, 200, { status: 'ok', timestamp: new Date().toISOString(), uptimeSeconds: Math.round(process.uptime()) });
     }
@@ -494,6 +497,8 @@ const server = createServer((request, response) => {
       await assertRoleAccess(authorization,'security:users','edit');
       return json(response,200,await sendExistingUserPasswordLink(authorization,Number(userPasswordLinkRoute[1])));
     }
+    const connectionRevoke=request.url?.match(/^\/api\/security\/connections\/(sessions|devices)\/([1-9][0-9]*)$/);
+    if(connectionRevoke&&request.method==='DELETE')return json(response,200,await accessAdminRpc(request.headers.authorization!,'security_revoke_connection',{p_catalog:connectionRevoke[1],p_id:Number(connectionRevoke[2]),p_revision:((await body(request))as Record<string,unknown>)._revision??null}));
     const accessUrl=new URL(request.url??'/',`http://${request.headers.host??'localhost'}`),accessRoute=accessUrl.pathname.match(/^\/api\/(core|security|organization|configuration|accounting|banking|treasury|entities|inventory|sales|transaction-engine|purchasing|expenses|fixed-assets|workflow|documents|audit|consolidation|ai)\/([a-z-]+)(?:\/\d+)?$/);
     if(accessRoute){const resourceKey=request.method==='GET'&&accessRoute[1]==='sales'&&['sales-invoice-lines','sales-invoice-withholdings'].includes(accessRoute[2]!)?'sales:invoices':request.method==='GET'&&accessRoute[1]==='purchasing'&&['supplier-invoice-lines','supplier-invoice-withholdings'].includes(accessRoute[2]!)?'purchasing:supplier-invoices':`${accessRoute[1]}:${accessRoute[2]}`;if(isRoleAccessResource(resourceKey)&&!/^\/api\/sales\/invoices\/\d+\/(pdf|email|pdf-line-unification)(?:\?|$)/.test(request.url??'')&&!(request.method==='GET'&&['sales:sales-note-lines','purchasing:supplier-note-lines','inventory:stock-movements'].includes(resourceKey))){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const accessAction=request.method==='GET'?'view':request.method==='PATCH'||(request.method==='PUT'&&['purchasing:supplier-payments','sales:customer-payments'].includes(resourceKey))||(request.method==='POST'&&resourceKey==='security:user-subsidiaries')?'edit':request.method==='POST'?'create':'delete';await assertRoleAccess(authorization,resourceKey,accessAction);}}
     const coreRoute = request.url?.match(/^\/api\/core\/([a-z-]+)(?:\/(\d+))?$/);
@@ -840,7 +845,7 @@ const server = createServer((request, response) => {
     if (cause instanceof UserProvisioningError && cause.retryAfterSeconds) response.setHeader('Retry-After', String(cause.retryAfterSeconds));
     error(response, cause instanceof SessionAuthenticationError ? 401 : (cause as {status?:number})?.status || (cause instanceof Error&&/^Saldo presupuestario/.test(cause.message)?422:400), cause instanceof Error ? cause.message : 'No fue posible procesar la solicitud.');
   }
-    }))
+    })))
   ).catch(cause => {
     if (!response.headersSent) error(response, 500, cause instanceof Error ? cause.message : 'No fue posible procesar la solicitud.');
     else if (!response.writableEnded) response.destroy(cause instanceof Error ? cause : undefined);

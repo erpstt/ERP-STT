@@ -1,3 +1,4 @@
+import{deviceContextHeaders}from'../security/device-context.js';
 /**
  * Punto único para inicializar el SDK de Supabase cuando se agregue la dependencia.
  * Mantenerlo aislado evita que los módulos dependan directamente de infraestructura.
@@ -140,7 +141,7 @@ export function supabaseApiHeaders(input?: HeadersInit): Headers {
 export async function fetchSupabase(input: URL | string, init?: RequestInit): Promise<Response> {
   const metricStarted = performance.now();
   let attempts = 0;
-  const request = { ...init, headers: auditRequestHeaders(supabaseApiHeaders(init?.headers)) };
+  const request = { ...init, headers: deviceContextHeaders(auditRequestHeaders(supabaseApiHeaders(init?.headers))) };
   const delays = ['GET', 'HEAD'].includes((init?.method ?? 'GET').toUpperCase()) ? [0, 300, 900, 1800] : [0];
   const configuredTimeout = Number(process.env.SUPABASE_REQUEST_TIMEOUT_MS ?? 20_000);
   const timeoutMs = Number.isFinite(configuredTimeout) && configuredTimeout >= 1_000 ? configuredTimeout : 20_000;

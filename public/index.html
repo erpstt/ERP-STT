@@ -496,9 +496,9 @@
 <b>Editar</b>
 </button>
 <button v-if="activeCatalog.allowAudit !== false" class="icon-action view" title="Ver quién creó o modificó este registro" @click="openRecordAudit(row)"><b>Autoría</b></button>
-<button v-if="canCurrentAction('delete')&&((!activeCatalog.securityMaster&&!activeCatalog.taxCatalog&&!activeCatalog.entityMaster&&!activeCatalog.organizationMaster)||row._actions?.canDelete===true)&&activeCatalog.allowDelete !== false" class="icon-action delete" :title="activeCatalog.slug === 'sessions' ? 'Revocar' : 'Eliminar'" @click="requestDelete(row)">
+<button v-if="canCurrentAction('delete')&&((!activeCatalog.securityMaster&&!activeCatalog.taxCatalog&&!activeCatalog.entityMaster&&!activeCatalog.organizationMaster)||row._actions?.canDelete===true)&&activeCatalog.allowDelete !== false" class="icon-action delete" :title="['sessions','devices'].includes(activeCatalog.slug) ? 'Revocar' : 'Eliminar'" @click="requestDelete(row)">
 <span>⌫</span>
-<b>{{ activeCatalog.slug === 'sessions' ? 'Revocar' : 'Eliminar' }}</b>
+<b>{{ ['sessions','devices'].includes(activeCatalog.slug) ? 'Revocar' : 'Eliminar' }}</b>
 </button>
 </td>
 </tr>
@@ -681,11 +681,12 @@
 <div class="modal-actions"><button class="button-secondary" @click="closeRecordDialog">Cerrar</button><button class="button-primary" @click="openRecordForm(recordDialog.values)">Editar cliente</button></div>
 </div>
         <div v-else class="delete-confirm">
-<p>¿Deseas eliminar <strong>{{ recordDialog.label }}</strong>? Esta acción no se puede deshacer.</p>
+<p v-if="activeCatalog.connectionCatalog">¿Deseas revocar <strong>{{ recordDialog.label }}</strong>? {{ activeCatalog.slug==='devices' ? 'Se bloquearán todas las sesiones vinculadas a este dispositivo.' : 'Esta sesión dejará de tener acceso al ERP.' }}</p>
+<p v-else>¿Deseas eliminar <strong>{{ recordDialog.label }}</strong>? Esta acción no se puede deshacer.</p>
 <p v-if="dialogError" class="dialog-error">{{ dialogError }}</p>
 <div class="modal-actions">
 <button class="button-secondary" @click="closeRecordDialog">Cancelar</button>
-<button class="button-danger" :disabled="dialogSaving" @click="confirmDelete">{{ dialogSaving ? 'Eliminando…' : 'Sí, eliminar' }}</button>
+<button class="button-danger" :disabled="dialogSaving" @click="confirmDelete">{{ activeCatalog.connectionCatalog ? (dialogSaving ? 'Revocando…' : 'Sí, revocar') : (dialogSaving ? 'Eliminando…' : 'Sí, eliminar') }}</button>
 </div>
 </div>
       </section>
@@ -694,7 +695,7 @@
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
 <script type="module" src="/i18n.js?v=20261029-global"></script>
-<script type="module" src="/app.js?v=20261101-c04-access-admin">
+<script type="module" src="/app.js?v=20261101-session-device">
 </script>
 <script src="/approval-notifications.js?v=20261101-c04-approval-inbox"></script></body>
 </html>

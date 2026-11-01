@@ -327,7 +327,7 @@ export async function completePasswordRecovery(
       body: JSON.stringify({ user_id: userId, password_hash: await hashPassword(newPassword) })
     });
   } catch { maintenanceFailure = true; }
-  try { await serviceRest(`sessions?user_id=eq.${userId}`, { method: 'DELETE' }); }
+  try { await serviceRest('rpc/security_revoke_user_sessions', { method: 'POST', body:JSON.stringify({p_user_id:userId}) }); }
   catch { maintenanceFailure = true; }
   if (maintenanceFailure) console.error('[PasswordRecovery] La contraseña cambió, pero falló el mantenimiento del historial o las sesiones.');
   await fetchSupabase(new URL('/auth/v1/logout?scope=global', config.url), {

@@ -68,7 +68,8 @@
     "test:financial-entity-master-security": "npm run build && node --test scripts/financial-entity-master-sql-security.test.mjs scripts/financial-entity-master-api-security.test.mjs scripts/financial-entity-master-ui-security.test.mjs",
     "test:fiscal-structure-security": "npm run build && node --test scripts/fiscal-structure-sql-security.test.mjs scripts/fiscal-structure-api-security.test.mjs scripts/fiscal-structure-ui-security.test.mjs",
     "test:company-master-security": "npm run build && node --test scripts/company-master-sql-security.test.mjs scripts/company-master-api-security.test.mjs scripts/company-master-ui-security.test.mjs scripts/organization-catalog-relations.test.mjs",
-    "test:access-admin-security": "npm run build && node --test scripts/access-admin-sql-security.test.mjs scripts/access-admin-api-security.test.mjs scripts/access-admin-ui-security.test.mjs scripts/user-subsidiary-bulk.test.mjs"
+    "test:access-admin-security": "npm run build && node --test scripts/access-admin-sql-security.test.mjs scripts/access-admin-api-security.test.mjs scripts/access-admin-ui-security.test.mjs scripts/user-subsidiary-bulk.test.mjs",
+    "test:session-boundary-security": "npm run build && node --test scripts/session-boundary-sql-security.test.mjs scripts/session-boundary-api-security.test.mjs scripts/session-boundary-http-security.test.mjs scripts/session-boundary-ui-security.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",

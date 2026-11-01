@@ -1,17 +1,7 @@
-import { createHash } from 'node:crypto';
 import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
 
-const tokenHash = (token: string) => createHash('sha256').update(token).digest('hex');
 const bearerToken = (authorization: string) => authorization.replace(/^Bearer\s+/i, '').trim();
 export class SessionAuthenticationError extends Error {}
-
-function jwtExpiration(token: string) {
-  try {
-    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')) as { exp?: number };
-    if (!payload.exp) throw new Error();
-    return new Date(payload.exp * 1000).toISOString();
-  } catch { throw new Error('El token de sesión no contiene una fecha de expiración válida.'); }
-}
 
 async function rest<T>(path: string, authorization: string, init: RequestInit = {}): Promise<T> {
   const config = getSupabaseConfig();
@@ -23,23 +13,17 @@ async function rest<T>(path: string, authorization: string, init: RequestInit = 
   return payload as T;
 }
 
-export async function registerSession(authorization: string, userId: number, ipAddress: string | null) {
-  const token = bearerToken(authorization);
-  await rest('sessions?on_conflict=session_token', authorization, { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ user_id: userId, session_token: tokenHash(token), ip_address: ipAddress, expires_at: jwtExpiration(token) }) });
-  await rest('login_history', authorization, { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ user_id: userId, ip_address: ipAddress, status: 'EXITOSO' }) });
-}
-
 export async function assertActiveSession(authorization: string) {
   const token = bearerToken(authorization);
   if (!token) throw new SessionAuthenticationError('Debe iniciar sesión.');
-  const rows = await rest<Array<{ session_id: number }>>(`sessions?select=session_id&session_token=eq.${tokenHash(token)}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&limit=1`, authorization);
-  if (!rows.length) throw new SessionAuthenticationError('La sesión expiró o fue revocada. Inicie sesión nuevamente.');
+  const id=await rest<number|null>('rpc/app_user_id',authorization,{method:'POST',body:'{}'});
+  if(!id)throw new SessionAuthenticationError('La sesion expiro o fue revocada.');
 }
 
 export async function revokeCurrentSession(authorization: string) {
   const token = bearerToken(authorization);
   if (!token) return;
-  await rest(`sessions?session_token=eq.${tokenHash(token)}`, authorization, { method: 'DELETE' });
+  await rest('rpc/security_logout_session',authorization,{method:'POST',body:'{}'});
   const config = getSupabaseConfig();
-  if (config) await fetchSupabase(new URL('/auth/v1/logout', config.url), { method: 'POST', headers: { apikey: config.anonKey, Authorization: authorization } }).catch(() => undefined);
+  if (config) await fetchSupabase(new URL('/auth/v1/logout?scope=local', config.url), { method: 'POST', headers: { apikey: config.anonKey, Authorization: authorization } }).catch(() => undefined);
 }

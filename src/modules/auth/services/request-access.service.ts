@@ -4,7 +4,6 @@ import { SessionAuthenticationError } from './session.service.js';
 import { primeRoleAccessCache } from '../../security-catalogs/role-access-matrix.module.js';
 import {
   configuredRequestAccessCacheMaxEntries,
-  configuredRequestAccessCacheTtlMs,
   PositiveRequestAccessCache,
 } from './request-access-cache.js';
 
@@ -27,7 +26,7 @@ interface RequestRoleAccess {
 
 const sha256 = (value: string) => createHash('sha256').update(value).digest('hex');
 const positiveAccessCache = new PositiveRequestAccessCache({
-  ttlMs: configuredRequestAccessCacheTtlMs(),
+  ttlMs: 0,
   maxEntries: configuredRequestAccessCacheMaxEntries(),
 });
 

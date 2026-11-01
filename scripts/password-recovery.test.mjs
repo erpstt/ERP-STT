@@ -108,7 +108,7 @@ test('completa la recuperación, registra el historial y revoca sesiones', async
     if (url.pathname === '/rest/v1/rpc/consume_password_recovery_grant') return json(true);
     if (url.pathname === '/auth/v1/user' && init.method === 'PUT') return json({ id: authUserId, email });
     if (url.pathname === '/rest/v1/password_history' && init.method === 'POST') return new Response(null, { status: 201 });
-    if (url.pathname === '/rest/v1/sessions' && init.method === 'DELETE') return new Response(null, { status: 204 });
+    if (url.pathname === '/rest/v1/rpc/security_revoke_user_sessions' && init.method === 'POST') return new Response(null, { status: 204 });
     if (url.pathname === '/auth/v1/logout' && init.method === 'POST') return new Response(null, { status: 204 });
     throw new Error(`Solicitud inesperada: ${url.pathname}`);
   };
@@ -127,7 +127,7 @@ test('completa la recuperación, registra el historial y revoca sesiones', async
   const update = calls.find(call => call.url.pathname === '/auth/v1/user' && call.init.method === 'PUT');
   assert.deepEqual(JSON.parse(String(update.init.body)), { password: 'Clave nueva segura 2026!' });
   assert.ok(calls.some(call => call.url.pathname === '/rest/v1/password_history' && call.init.method === 'POST'));
-  assert.ok(calls.some(call => call.url.pathname === '/rest/v1/sessions' && call.init.method === 'DELETE'));
+  assert.ok(calls.some(call => call.url.pathname === '/rest/v1/rpc/security_revoke_user_sessions' && call.init.method === 'POST'));
   assert.ok(calls.some(call => call.url.pathname === '/auth/v1/logout' && call.url.searchParams.get('scope') === 'global'));
   const erpLookup = calls.find(call => call.url.pathname === '/rest/v1/users');
   assert.equal(erpLookup.url.searchParams.get('auth_user_id'), `eq.${authUserId}`);
@@ -148,7 +148,7 @@ test('acepta recovery string y otp objeto reciente cuando el grant está vigente
     if (url.pathname === '/rest/v1/rpc/consume_password_recovery_grant') { consumed++; return json(true); }
     if (url.pathname === '/auth/v1/user' && init.method === 'PUT') { updated++; return json({ id: authUserId, email }); }
     if (url.pathname === '/rest/v1/password_history' && init.method === 'POST') return new Response(null, { status: 201 });
-    if (url.pathname === '/rest/v1/sessions' && init.method === 'DELETE') return new Response(null, { status: 204 });
+    if (url.pathname === '/rest/v1/rpc/security_revoke_user_sessions' && init.method === 'POST') return new Response(null, { status: 204 });
     if (url.pathname === '/auth/v1/logout' && init.method === 'POST') return new Response(null, { status: 204 });
     throw new Error(`Solicitud inesperada: ${url.pathname}`);
   };
