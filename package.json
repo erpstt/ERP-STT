@@ -54,7 +54,8 @@
     "test:sales-note-security": "npm run build && node --test scripts/sales-note-sql-security.test.mjs scripts/sales-note-api-security.test.mjs scripts/sales-note-ui-security.test.mjs",
     "test:customer-payment-security": "npm run build && node --test scripts/customer-payment-sql-security.test.mjs scripts/customer-payment-api-security.test.mjs scripts/customer-payment-ui-security.test.mjs",
     "test:sales-workflow-security": "npm run build && node --test scripts/sales-workflow-sql-security.test.mjs scripts/sales-workflow-api-security.test.mjs scripts/sales-workflow-ui-security.test.mjs",
-    "test:opening-balance-security": "npm run build && node --test scripts/opening-balance-sql-security.test.mjs scripts/opening-balance-api-security.test.mjs scripts/opening-balance-ui-security.test.mjs"
+    "test:opening-balance-security": "npm run build && node --test scripts/opening-balance-sql-security.test.mjs scripts/opening-balance-api-security.test.mjs scripts/opening-balance-ui-security.test.mjs",
+    "test:pending-invoice-security": "npm run build && node --test scripts/pending-invoice-sql-security.test.mjs scripts/pending-invoice-api-security.test.mjs scripts/pending-invoice-ui-security.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",

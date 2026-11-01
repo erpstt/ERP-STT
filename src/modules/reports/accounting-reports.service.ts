@@ -1,3 +1,4 @@
+import{pendingInvoiceRpc,assertPendingSource,assertPendingInvoiceAccess}from'./pending-invoice-security.service.js';
 import {reconciliationRpc,requireReconciliationAccess} from '../banking-catalogs/bank-reconciliation-security.service.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { ScopedReadCache } from '../../core/performance/scoped-read-cache.js';
@@ -42,7 +43,7 @@ export function runAccountingReport(authorization:string,report:string,filters:R
   if(!reports.has(report))throw new Error('El reporte solicitado no existe.');
   const scopedFilters=report==='income-statement'?{...filters,accountId:null}:filters;
   if(report==='income-statement'&&scopedFilters.columnView&&scopedFilters.columnView!=='TOTAL')return rpc<Record<string,unknown>>(authorization,'run_income_statement_matrix',{p_filters:scopedFilters});
-  if(report==='pending-invoice-control')return rpc<Record<string,unknown>>(authorization,'run_pending_invoice_control_report',{p_filters:scopedFilters});
+  if(report==='pending-invoice-control')return pendingInvoiceRpc(authorization,'run_pending_invoice_control_report',{p_filters:scopedFilters},'report');
   if(report==='journal')return rpc<Record<string,unknown>>(authorization,'run_general_journal_report',{p_filters:scopedFilters});
   if(report==='receivables-aging'||report==='payables-aging')return rpc<Record<string,unknown>>(authorization,'run_aging_report',{p_kind:report==='receivables-aging'?'AR':'AP',p_filters:scopedFilters});
   if(report==='bank-reconciliation')return reconciliationRpc<Record<string,unknown>>(authorization,'run_bank_reconciliation_report',{p_filters:scopedFilters},'reports:accounting-reports','view');
@@ -56,18 +57,18 @@ export function purchaseTransactionSupport(authorization:string,supportId:number
   return supplierInvoiceRpc<Record<string,unknown>>(authorization,'purchase_transaction_support',{p_support_id:supportId},'view','reports:accounting-reports');
 }
 export const reverseJournalEntry=reverseManualJournal;
-export function pendingInvoiceReversalOptions(authorization:string,journalId:number,reversalDate:string){return rpc<Record<string,unknown>>(authorization,'pending_invoice_reversal_options',{p_journal_id:journalId,p_reversal_date:reversalDate});}
-export function reversePendingInvoiceJournal(authorization:string,journalId:number,payload:Record<string,unknown>){return rpc<Record<string,unknown>>(authorization,'reverse_pending_invoice_journal',{p_journal_id:journalId,p_payload:payload});}
+export async function pendingInvoiceReversalOptions(authorization:string,journalId:number,reversalDate:string){await assertPendingInvoiceAccess(authorization,'reverse');assertPendingSource(journalId);return pendingInvoiceRpc(authorization,'pending_invoice_reversal_options',{p_journal_id:journalId,p_reversal_date:reversalDate},'reverse');}
+export async function reversePendingInvoiceJournal(authorization:string,journalId:number,payload:Record<string,unknown>){await assertPendingInvoiceAccess(authorization,'reverse');assertPendingSource(journalId);return pendingInvoiceRpc(authorization,'reverse_pending_invoice_journal',{p_journal_id:journalId,p_payload:payload},'reverse');}
 function assertAnnualPendingInvoiceReclassificationDate(value:unknown){
   const date=String(value??'').trim();
-  if(!/^\d{4}-01-01$/.test(date))throw new Error('La reclasificación anual debe registrarse con fecha 01 de enero.');
+  if(!/^\d{4}-01-01$/.test(date))throw Object.assign(new Error('La reclasificación anual debe registrarse con fecha 01 de enero.'),{status:400});
   return date;
 }
-export function previewPendingInvoiceReclassification(authorization:string,reclassificationDate:unknown){
-  return rpc<Record<string,unknown>>(authorization,'pending_invoice_reclassification_preview',{p_reclassification_date:assertAnnualPendingInvoiceReclassificationDate(reclassificationDate)});
+export async function previewPendingInvoiceReclassification(authorization:string,reclassificationDate:unknown){
+  await assertPendingInvoiceAccess(authorization,'preview');return pendingInvoiceRpc(authorization,'pending_invoice_reclassification_preview',{p_reclassification_date:assertAnnualPendingInvoiceReclassificationDate(reclassificationDate)},'preview');
 }
-export function executePendingInvoiceReclassification(authorization:string,reclassificationDate:unknown){
-  return rpc<Record<string,unknown>>(authorization,'pending_invoice_reclassification_execute',{p_reclassification_date:assertAnnualPendingInvoiceReclassificationDate(reclassificationDate)});
+export async function executePendingInvoiceReclassification(authorization:string,reclassificationDate:unknown){
+  await assertPendingInvoiceAccess(authorization,'execute');return pendingInvoiceRpc(authorization,'pending_invoice_reclassification_execute',{p_reclassification_date:assertAnnualPendingInvoiceReclassificationDate(reclassificationDate)},'execute');
 }
 export async function bankReconciliationAction(authorization:string,action:string,input:Record<string,unknown>){await requireReconciliationAccess(authorization,action==='import'?'banking:bank-statements':action==='close-report'?'reports:accounting-reports':'banking:bank-reconciliations',action==='import'?'create':action==='close-report'?'view':'edit');const names:Record<string,string>={import:'import_bank_statement',auto:'auto_match_bank_reconciliation',match:'match_bank_transaction',close:'close_bank_reconciliation','close-report':'bank_reconciliation_close_report'};if(!names[action])throw new Error('Acción bancaria no válida.');if(action==='import'&&typeof input.p_file_base64==='string'){const encoded=input.p_file_base64;if(encoded.length>8_000_000)throw new Error('El archivo Excel supera el límite permitido de 5 MB.');const {default:readXlsxFile}=await import('read-excel-file/node');const matrix=await readXlsxFile(Buffer.from(encoded,'base64')) as unknown as unknown[][],headers=(matrix.shift()??[]).map(value=>String(value??'').trim().toLowerCase()),cell=(row:unknown[],names:string[])=>row[headers.findIndex(header=>names.some(name=>header.includes(name)))],dateValue=(value:unknown)=>value instanceof Date?value.toISOString().slice(0,10):String(value??'').slice(0,10);input.p_lines=matrix.map(row=>({date:dateValue(cell(row,['fecha','date'])),valueDate:dateValue(cell(row,['valor','value'])),reference:String(cell(row,['referencia','reference','cheque'])??''),description:String(cell(row,['nota','descrip','concept','memo'])??''),beneficiary:String(cell(row,['benefici','nombre','name'])??''),amount:Number(cell(row,['monto','amount','importe'])??0)})).filter(row=>/^\d{4}-\d{2}-\d{2}$/.test(row.date)&&Number.isFinite(row.amount)&&row.amount!==0);delete input.p_file_base64;if(!(input.p_lines as unknown[]).length)throw new Error('El archivo Excel no contiene movimientos reconocibles.');}if(action==='import'){const lines=Array.isArray(input.p_lines)?input.p_lines as Record<string,unknown>[]:[],opening=Number(input.p_opening_balance??0);if(!Number.isFinite(opening))throw Object.assign(new Error('El saldo inicial debe ser finito.'),{status:400});input.p_opening_balance=opening;if(input.p_closing_balance===null||input.p_closing_balance===undefined||input.p_closing_balance==='')input.p_closing_balance=Number(input.p_opening_balance)+lines.reduce((sum,line)=>sum+Number(line.amount||0),0);}return reconciliationRpc(authorization,names[action],input,action==='import'?'banking:bank-statements':action==='close-report'?'reports:accounting-reports':'banking:bank-reconciliations',action==='import'?'create':action==='close-report'?'view':'edit');}
 

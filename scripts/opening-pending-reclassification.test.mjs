@@ -147,14 +147,12 @@ test('Control de Pendientes expone filtro, columna y botón protegido de reclasi
   assert.match(accessMatrix, /pending-invoice-reclassification['"],\['view','create'\]/);
 });
 
-test('API y servicio exigen permiso y fecha contable 01-01', async () => {
+test('API conserva rutas y servicio valida fecha contable 01-01', async () => {
   const [server, service] = await Promise.all([
     readFile(new URL('../src/server.ts', import.meta.url), 'utf8'),
     readFile(new URL('../src/modules/reports/accounting-reports.service.ts', import.meta.url), 'utf8'),
   ]);
   assert.match(server, /pending-invoice-reclassification/);
-  assert.match(server,
-    /assertRoleAccess\(authorization,'accounting:pending-invoice-reclassification',pendingReclassificationRoute\[1\]==='preview'\?'view':'create'\)/);
   assert.match(service, /\^\\d\{4\}-01-01\$/);
   assert.match(service, /pending_invoice_reclassification_preview/);
   assert.match(service, /pending_invoice_reclassification_execute/);

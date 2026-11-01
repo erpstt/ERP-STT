@@ -465,20 +465,19 @@ const server = createServer((request, response) => {
      // apertura. No son asientos fuente: el RPC los resuelve contra el auxiliar
      // y crea el asiento real únicamente cuando se registra la reversión.
      const pendingReversalUrl=new URL(request.url??'/',`http://${request.headers.host??'localhost'}`),pendingReversalRoute=pendingReversalUrl.pathname.match(/^\/api\/reports\/accounting\/pending-invoices\/(-?\d+)\/(reversal-options|reverse)$/);
-     if(pendingReversalRoute){const journalId=Number(pendingReversalRoute[1]);if(request.method==='GET'&&pendingReversalRoute[2]==='reversal-options')return json(response,200,await pendingInvoiceReversalOptions(request.headers.authorization!,journalId,pendingReversalUrl.searchParams.get('date')??''));if(request.method==='POST'&&pendingReversalRoute[2]==='reverse'){try{return json(response,201,await reversePendingInvoiceJournal(request.headers.authorization!,journalId,await body(request)as Record<string,unknown>))}catch(cause){return error(response,422,cause instanceof Error?cause.message:'No fue posible reversar el pendiente.')}}}
+     if(pendingReversalRoute){const journalId=Number(pendingReversalRoute[1]);if(request.method==='GET'&&pendingReversalRoute[2]==='reversal-options')return json(response,200,await pendingInvoiceReversalOptions(request.headers.authorization!,journalId,pendingReversalUrl.searchParams.get('date')??''));if(request.method==='POST'&&pendingReversalRoute[2]==='reverse'){try{return json(response,201,await reversePendingInvoiceJournal(request.headers.authorization!,journalId,await body(request)as Record<string,unknown>))}catch(cause){throw cause;}}}
      const pendingReclassificationRoute=pendingReversalUrl.pathname.match(/^\/api\/(?:accounting\/pending-invoice-reclassification|reports\/accounting\/pending-invoices\/reclassification)\/(preview|execute)$/);
      if(pendingReclassificationRoute){
        if(request.method!=='POST')return error(response,405,'Método no permitido.');
        const authorization=request.headers.authorization;
        if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');
-       await assertRoleAccess(authorization,'accounting:pending-invoice-reclassification',pendingReclassificationRoute[1]==='preview'?'view':'create');
        const input=await body(request)as Record<string,unknown>,reclassificationDate=input.reclassificationDate??input.reclassification_date;
        try{
          const result=pendingReclassificationRoute[1]==='preview'
            ?await previewPendingInvoiceReclassification(authorization,reclassificationDate)
            :await executePendingInvoiceReclassification(authorization,reclassificationDate);
          return json(response,pendingReclassificationRoute[1]==='preview'?200:201,result);
-       }catch(cause){return error(response,422,cause instanceof Error?cause.message:'No fue posible reclasificar los pendientes de facturar.');}
+       }catch(cause){throw cause;}
      }
      const purchaseTransactionSupportRoute=request.url?.match(/^\/api\/reports\/accounting\/purchase-transactions\/supports\/(\d+)$/);
      if(request.method==='GET'&&purchaseTransactionSupportRoute){return json(response,200,await purchaseTransactionSupport(request.headers.authorization!,Number(purchaseTransactionSupportRoute[1])));}
