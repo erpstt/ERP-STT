@@ -1,5 +1,5 @@
 import{readFile}from'node:fs/promises';import{setupCoreDictionarySecurity}from'./setup-core-dictionary-security.mjs';
-export const migration='20261101213845_secure_number_sequence_catalog.sql',activation='20261101213912_activate_number_sequence_boundary_after_server.sql';
+export const migration='20261101213845_secure_number_sequence_catalog.sql',activation='20261101214356_activate_number_sequence_boundary_after_server.sql';
 export async function setupSequenceSecurity(db){await setupCoreDictionarySecurity(db);await installSequenceSecurity(db);}
 export async function installSequenceSecurity(db){await db.exec(`
  create sequence customer_number_seq;create sequence supplier_number_seq;create sequence employee_number_seq;create sequence product_code_seq;create sequence item_type_code_seq;create sequence uom_code_seq;create sequence transaction_type_code_seq;create sequence financial_creditor_code_seq;create sequence related_company_code_seq;
@@ -18,7 +18,7 @@ export async function installSequenceSecurity(db){await db.exec(`
  insert into role_access_matrix(role_id,resource_key,can_view,can_create,can_edit,can_delete)values(1,'accounting:journals',true,true,false,false),(3,'accounting:journals',true,true,false,false);
  grant all on number_sequences,transaction_types to anon,authenticated,service_role;grant usage,select,update on all sequences in schema public to anon,authenticated,service_role;
  set check_function_bodies=off;`);
- await db.exec(await readFile(new URL('./sequence-original-functions.sql',import.meta.url),'utf8'));
+ await db.exec((await readFile(new URL('./sequence-original-functions.sql',import.meta.url),'utf8')).replaceAll('\r\n','\n'));
  for(const n of[migration,activation])await db.exec(await readFile(new URL('../../supabase/migrations/'+n,import.meta.url),'utf8'));
  await db.exec(`set check_function_bodies=on;
  create function trusted_allocate(tt bigint,sid bigint)returns text language plpgsql security definer set search_path=pg_catalog,public,pg_temp as $$begin perform sequence_security_private.actor();if not exists(select 1 from role_access_matrix where role_id=public.app_active_role_id()and resource_key='accounting:journals'and can_view and can_create)then raise exception using errcode='42501',message='Synthetic document permission required';end if;return public.next_transaction_number(tt,sid);end$$;
