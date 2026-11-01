@@ -47,7 +47,7 @@ test('missing requested date cannot be saved using a rate from another date',asy
   t.mock.method(globalThis,'fetch',async()=>response([{fecha:'2026-09-07',valorDatoPorPeriodo:450}]));
   await assert.rejects(obtenerTipoDeCambioCR('USD','CRC','2026-09-08'),/no publicó/);
 });
-test('manual Costa Rica action persists USD/CRC regardless of active subsidiary currency',async t=>{
+test('manual Costa Rica action persists official USD/CRC through protected RPC',async t=>{
   env(t,'BCCR_TOKEN','test-token');
   env(t,'SUPABASE_URL','https://example.invalid');
   env(t,'SUPABASE_ANON_KEY','test');
@@ -56,9 +56,9 @@ test('manual Costa Rica action persists USD/CRC regardless of active subsidiary 
     const url=new URL(raw);
     if(url.hostname==='apim.bccr.fi.cr')return response([{fecha:'2026-09-08',valorDatoPorPeriodo:url.pathname.includes('/317/')?446.5:453.38}]);
     if(url.pathname==='/rest/v1/currencies'){const code=url.searchParams.get('currency_code').slice(3);return new Response(JSON.stringify([{currency_code:code,currency_id:code==='USD'?1:2}]));}
-    assert.equal(url.pathname,'/rest/v1/exchange_rates');assert.equal(init.method,'POST');
-    assert.equal(url.searchParams.get('on_conflict'),'from_currency_id,to_currency_id,effective_date');
-    stored=JSON.parse(init.body);return new Response(JSON.stringify([{exchange_rate_id:99,...stored}]));
+    if(url.pathname==='/rest/v1/rpc/exchange_rate_source_context')return Response.json({id:null,revision:null});
+    assert.equal(url.pathname,'/rest/v1/rpc/save_exchange_rate');assert.equal(init.method,'POST');
+    const p=JSON.parse(init.body);assert.equal(p.p_catalog,'exchange-rates');assert.equal(p.p_id,null);const{_revision,...values}=p.p_payload;stored=values;return Response.json({exchange_rate_id:99,...stored});
   });
   const result=await consultarYGuardarTipoDeCambioCR('Bearer test',{fechaEfectiva:'2026-09-08'});
   assert.equal(result.guardado,true);assert.deepEqual(stored,{from_currency_id:1,to_currency_id:2,effective_date:'2026-09-08',spot_rate:453.38});

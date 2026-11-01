@@ -1,3 +1,4 @@
+import{saveFetchedRate}from'../rate-security.service.js';
 import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
 
 const BCRD_PAGE='https://www.bancentral.gov.do/SectorExterno/CertificacionTasas';
@@ -38,13 +39,13 @@ export async function consultarYGuardarTipoDeCambioRD(authorization:string,input
  const origin=await currency(authorization,(input.monedaOrigen||'USD').trim().toUpperCase());const destination=input.monedaDestino?await currency(authorization,input.monedaDestino.trim().toUpperCase()):await localCurrency(authorization);
  const rate=await obtenerTipoDeCambioRD(origin.currency_code,destination.currency_code,input.fechaEfectiva);
  if(origin.currency_id===destination.currency_id)return{...rate,guardado:false};
- const rows=await rest<Array<Record<string,unknown>>>('exchange_rates?on_conflict=from_currency_id,to_currency_id,effective_date',authorization,{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify({from_currency_id:origin.currency_id,to_currency_id:destination.currency_id,effective_date:rate.fechaEfectiva,spot_rate:rate.tipoCambio})});
- return{...rate,guardado:true,registro:rows[0]};
+ const saved=await saveFetchedRate(authorization,undefined,origin.currency_id,destination.currency_id,rate.fechaEfectiva,rate.tipoCambio);
+ return{...rate,guardado:true,registro:saved};
 }
 
 export async function consultarYGuardarTipoDeCambioRDAutomatico(fechaEfectiva?:Date|string){
  const serviceKey=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!serviceKey)throw new Error('SUPABASE_SERVICE_ROLE_KEY no está configurada para la automatización.');
  const authorization=`Bearer ${serviceKey}`;const [origin,destination]=await Promise.all([currency(authorization,'USD'),currency(authorization,'DOP')]);const rate=await obtenerTipoDeCambioRD('USD','DOP',fechaEfectiva);
- const rows=await rest<Array<Record<string,unknown>>>('exchange_rates?on_conflict=from_currency_id,to_currency_id,effective_date',authorization,{method:'POST',headers:{apikey:serviceKey,Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify({from_currency_id:origin.currency_id,to_currency_id:destination.currency_id,effective_date:rate.fechaEfectiva,spot_rate:rate.tipoCambio})});
- return{...rate,guardado:true,registro:rows[0]};
+ const saved=await saveFetchedRate(authorization,serviceKey,origin.currency_id,destination.currency_id,rate.fechaEfectiva,rate.tipoCambio);
+ return{...rate,guardado:true,registro:saved};
 }

@@ -1,3 +1,4 @@
+import{saveFetchedRate}from'../rate-security.service.js';
 import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
 
 const BNA_HISTORY_URL = 'https://www.bna.com.ar/Cotizador/HistoricoPrincipales';
@@ -84,8 +85,8 @@ async function localCurrency(auth: string) {
   return currencies[0];
 }
 async function save(auth: string, key: string | undefined, origin: CurrencyRow, destination: CurrencyRow, rate: Awaited<ReturnType<typeof obtenerTipoDeCambioAR>>) {
-  const rows = await rest<Array<Record<string, unknown>>>('exchange_rates?on_conflict=from_currency_id,to_currency_id,effective_date', auth, { method: 'POST', headers: { ...(key ? { apikey: key } : {}), Prefer: 'resolution=merge-duplicates,return=representation' }, body: JSON.stringify({ from_currency_id: origin.currency_id, to_currency_id: destination.currency_id, effective_date: rate.fechaEfectiva, spot_rate: rate.tipoCambio }) });
-  return { ...rate, guardado: true, registro: rows[0] };
+  const saved=await saveFetchedRate(auth,key,origin.currency_id,destination.currency_id,rate.fechaEfectiva,rate.tipoCambio);
+  return { ...rate, guardado: true, registro: saved };
 }
 export async function consultarYGuardarTipoDeCambioAR(auth: string, input: { monedaOrigen?: string; monedaDestino?: string; fechaEfectiva?: Date | string }) {
   const origin = await currency(auth, (input.monedaOrigen || 'USD').trim().toUpperCase());

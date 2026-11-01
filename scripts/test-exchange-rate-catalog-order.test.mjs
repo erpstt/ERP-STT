@@ -17,7 +17,7 @@ test('tipos de cambio solicitan fecha descendente con ID como desempate estable'
   globalThis.fetch=async input=>{
     const url=new URL(String(input)),table=url.pathname.split('/').at(-1);
     requested.push(url);
-    if(table==='exchange_rates')return Response.json([
+    if(table==='exchange_rate_catalog')return Response.json([
       {exchange_rate_id:9,effective_date:'2026-10-29',to_currency_id:2},
       {exchange_rate_id:8,effective_date:'2026-10-29',to_currency_id:3},
       {exchange_rate_id:7,effective_date:'2026-10-28',to_currency_id:2}
@@ -32,8 +32,8 @@ test('tipos de cambio solicitan fecha descendente con ID como desempate estable'
   };
   const payload=Buffer.from(JSON.stringify({session_id:'exchange-rate-order'})).toString('base64url');
   const rows=await listConfigurationRows(getConfigurationCatalog('exchange-rates'),`Bearer e30.${payload}.test`);
-  const catalogRequest=requested.find(url=>url.pathname.endsWith('/exchange_rates'));
-  assert.equal(catalogRequest?.searchParams.get('order'),'effective_date.desc,exchange_rate_id.desc');
+  const catalogRequest=requested.find(url=>url.pathname.endsWith('/exchange_rate_catalog'));
+  assert.ok(catalogRequest);assert.equal(catalogRequest.search,'');
   assert.deepEqual(rows.map(row=>row.exchange_rate_id),[9,8,7]);
 
   await listConfigurationRows(getConfigurationCatalog('payment-terms'),`Bearer e30.${payload}.test`);
