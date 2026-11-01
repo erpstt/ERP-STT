@@ -73,7 +73,8 @@
     "test:rate-security": "npm run build && node --test scripts/rate-security-sql.test.mjs scripts/rate-security-api.test.mjs scripts/rate-security-http.test.mjs scripts/rate-security-ui.test.mjs",
     "test:core-dictionary-security": "npm run build && node --test scripts/core-dictionary-sql.test.mjs scripts/core-dictionary-api.test.mjs scripts/core-dictionary-http.test.mjs scripts/core-dictionary-ui.test.mjs",
     "test:sequence-security": "npm run build && node --test scripts/sequence-security-sql.test.mjs scripts/sequence-security-api.test.mjs scripts/sequence-security-http.test.mjs scripts/sequence-security-ui.test.mjs",
-    "test:transaction-type-security": "npm run build && node --test scripts/transaction-type-sql.test.mjs scripts/transaction-type-api.test.mjs scripts/transaction-type-http.test.mjs scripts/transaction-type-ui.test.mjs"
+    "test:transaction-type-security": "npm run build && node --test scripts/transaction-type-sql.test.mjs scripts/transaction-type-api.test.mjs scripts/transaction-type-http.test.mjs scripts/transaction-type-ui.test.mjs",
+    "test:status-master-security": "npm run build && node --test scripts/status-master-sql.test.mjs scripts/status-master-api.test.mjs scripts/status-master-http.test.mjs scripts/status-master-ui.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
