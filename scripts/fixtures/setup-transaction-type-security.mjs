@@ -1,5 +1,5 @@
 import{readFile}from'node:fs/promises';import{setupSequenceSecurity}from'./setup-sequence-security.mjs';
-export const migration='20261101220448_secure_transaction_type_catalog.sql',activation='20261101220458_activate_transaction_type_boundary_after_server.sql';
+export const migration='20261101220448_secure_transaction_type_catalog.sql',activation='20261101220852_activate_transaction_type_boundary_after_server.sql';
 export async function setupTransactionTypeSecurity(db){await setupSequenceSecurity(db);await installTransactionTypeSecurity(db);}
 export async function installTransactionTypeSecurity(db){await db.exec(`alter table transaction_types add column module_category text not null default 'Contabilidad',add column description text not null default 'Synthetic description';
  alter table "transaction"add constraint synthetic_transaction_type_fk foreign key(transaction_type_id)references transaction_types;
