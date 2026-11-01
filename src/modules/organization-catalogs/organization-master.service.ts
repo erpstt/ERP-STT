@@ -1,5 +1,5 @@
 import{fetchSupabase,getSupabaseConfig}from'../../core/database/supabase.client.js';
-export const organizationMasters=new Set(['departments','locations','classes','cost-centers']);
+export const organizationMasters=new Set(['departments','locations','classes','cost-centers','financial-creditors','related-companies']);
 export async function assertOrganizationMasterAccess(auth:string,k:string,a:'view'|'create'|'edit'|'delete'){
  if(!/^Bearer\s+\S+$/i.test(auth))throw Object.assign(Error('Debe iniciar sesión.'),{status:401});if(!organizationMasters.has(k))throw Object.assign(Error('Catálogo inválido.'),{status:400});
  const{assertRoleAccess,myRoleAccess}=await import('../security-catalogs/role-access-matrix.module.js');if(a==='view'){await assertRoleAccess(auth,'organization:'+k,a);return;}
