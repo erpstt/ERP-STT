@@ -77,7 +77,7 @@ test('la matriz de permisos se cachea y una asignación de rol la invalida', asy
   globalThis.fetch = async (input, init = {}) => {
     const url = new URL(String(input));
     if (url.pathname.endsWith('/rpc/security_my_role_access')) { myAccessCalls += 1; return Response.json({ isAdmin: false, grants: [{ resourceKey: 'core:languages', canView: true, canCreate: false, canEdit: false, canDelete: false }] }); }
-    if (url.pathname.endsWith('/user_roles') && init.method === 'POST') { assignments += 1; return Response.json([{ id: 1 }]); }
+    if (url.pathname.endsWith('/rpc/security_save_access_master') && init.method === 'POST') { assert.equal(JSON.parse(init.body).p_catalog,'user-roles');assignments += 1; return Response.json({ id: 1 }); }
     throw new Error(`Solicitud inesperada: ${init.method ?? 'GET'} ${url}`);
   };
   await myRoleAccess(authorization);

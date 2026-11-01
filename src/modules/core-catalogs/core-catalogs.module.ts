@@ -1,4 +1,5 @@
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
+import{coreDictionaries,coreDictionaryRpc}from'./core-dictionary.service.js';
 import { invalidateReadCacheNamespace, ScopedReadCache } from '../../core/performance/scoped-read-cache.js';
 
 const languageCache = new ScopedReadCache<Record<string, unknown>[]>({ defaultTtlMs: 300_000 });
@@ -50,9 +51,9 @@ async function request<T>(catalog: CatalogDefinition, accessToken: string, query
   return payload as T;
 }
 
-export const listCatalogRows = (catalog: CatalogDefinition, token: string) => catalog.slug==='languages'
+export const listCatalogRows = (catalog: CatalogDefinition, token: string) => coreDictionaries.has(catalog.slug)?coreDictionaryRpc(token,'core_dictionary_catalog',{p_catalog:catalog.slug}):catalog.slug==='languages'
   ? languageCache.getOrLoad({namespace:languageCacheNamespace,scope:['all'],loader:()=>request<Record<string, unknown>[]>(catalog, token, `?select=*&order=${catalog.primaryKey}.asc`)})
   : request<Record<string, unknown>[]>(catalog, token, `?select=*&order=${catalog.primaryKey}.asc`);
-export async function createCatalogRow(catalog: CatalogDefinition, token: string, input: Record<string, unknown>) { const rows = await request<Record<string, unknown>[]>(catalog, token, '', { method:'POST', headers:{Prefer:'return=representation'}, body:JSON.stringify(sanitize(catalog,input)) });if(catalog.slug==='languages')invalidateCoreLanguageCache();return rows[0]; }
-export async function updateCatalogRow(catalog: CatalogDefinition, token: string, id: number, input: Record<string, unknown>) { const rows = await request<Record<string, unknown>[]>(catalog, token, `?${catalog.primaryKey}=eq.${id}`, { method:'PATCH', headers:{Prefer:'return=representation'}, body:JSON.stringify(sanitize(catalog,input)) });if(catalog.slug==='languages')invalidateCoreLanguageCache();return rows[0]; }
-export async function deleteCatalogRow(catalog: CatalogDefinition, token: string, id: number) {const result=await request<null>(catalog, token, `?${catalog.primaryKey}=eq.${id}`, { method:'DELETE' });if(catalog.slug==='languages')invalidateCoreLanguageCache();return result;}
+export async function createCatalogRow(catalog: CatalogDefinition, token: string, input: Record<string, unknown>) {if(coreDictionaries.has(catalog.slug))return coreDictionaryRpc(token,'save_core_dictionary',{p_catalog:catalog.slug,p_id:null,p_payload:input}); const rows = await request<Record<string, unknown>[]>(catalog, token, '', { method:'POST', headers:{Prefer:'return=representation'}, body:JSON.stringify(sanitize(catalog,input)) });if(catalog.slug==='languages')invalidateCoreLanguageCache();return rows[0]; }
+export async function updateCatalogRow(catalog: CatalogDefinition, token: string, id: number, input: Record<string, unknown>) {if(coreDictionaries.has(catalog.slug))return coreDictionaryRpc(token,'save_core_dictionary',{p_catalog:catalog.slug,p_id:id,p_payload:input}); const rows = await request<Record<string, unknown>[]>(catalog, token, `?${catalog.primaryKey}=eq.${id}`, { method:'PATCH', headers:{Prefer:'return=representation'}, body:JSON.stringify(sanitize(catalog,input)) });if(catalog.slug==='languages')invalidateCoreLanguageCache();return rows[0]; }
+export async function deleteCatalogRow(catalog: CatalogDefinition, token: string, id: number,revision?:unknown) {if(coreDictionaries.has(catalog.slug))return coreDictionaryRpc(token,'delete_core_dictionary',{p_catalog:catalog.slug,p_id:id,p_revision:revision??null});const result=await request<null>(catalog, token, `?${catalog.primaryKey}=eq.${id}`, { method:'DELETE' });if(catalog.slug==='languages')invalidateCoreLanguageCache();return result;}

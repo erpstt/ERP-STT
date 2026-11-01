@@ -70,7 +70,8 @@
     "test:company-master-security": "npm run build && node --test scripts/company-master-sql-security.test.mjs scripts/company-master-api-security.test.mjs scripts/company-master-ui-security.test.mjs scripts/organization-catalog-relations.test.mjs",
     "test:access-admin-security": "npm run build && node --test scripts/access-admin-sql-security.test.mjs scripts/access-admin-api-security.test.mjs scripts/access-admin-ui-security.test.mjs scripts/user-subsidiary-bulk.test.mjs",
     "test:session-boundary-security": "npm run build && node --test scripts/session-boundary-sql-security.test.mjs scripts/session-boundary-api-security.test.mjs scripts/session-boundary-http-security.test.mjs scripts/session-boundary-ui-security.test.mjs",
-    "test:rate-security": "npm run build && node --test scripts/rate-security-sql.test.mjs scripts/rate-security-api.test.mjs scripts/rate-security-http.test.mjs scripts/rate-security-ui.test.mjs"
+    "test:rate-security": "npm run build && node --test scripts/rate-security-sql.test.mjs scripts/rate-security-api.test.mjs scripts/rate-security-http.test.mjs scripts/rate-security-ui.test.mjs",
+    "test:core-dictionary-security": "npm run build && node --test scripts/core-dictionary-sql.test.mjs scripts/core-dictionary-api.test.mjs scripts/core-dictionary-http.test.mjs scripts/core-dictionary-ui.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
