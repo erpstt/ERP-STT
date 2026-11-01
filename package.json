@@ -59,7 +59,8 @@
     "test:fx-revaluation-security": "npm run build && node --test scripts/fx-revaluation-sql-security.test.mjs scripts/fx-revaluation-api-security.test.mjs scripts/fx-revaluation-ui-security.test.mjs",
     "test:budget-security": "npm run build && node --test scripts/budget-sql-security.test.mjs scripts/budget-api-security.test.mjs scripts/budget-ui-security.test.mjs",
     "test:workflow-config-security": "npm run build && node --test scripts/workflow-config-sql-security.test.mjs scripts/workflow-config-api-security.test.mjs scripts/workflow-config-ui-security.test.mjs",
-    "test:approval-inbox-security": "npm run build && node --test scripts/approval-inbox-sql-security.test.mjs scripts/approval-inbox-api-security.test.mjs scripts/approval-inbox-ui-security.test.mjs scripts/approval-notifications.test.mjs"
+    "test:approval-inbox-security": "npm run build && node --test scripts/approval-inbox-sql-security.test.mjs scripts/approval-inbox-api-security.test.mjs scripts/approval-inbox-ui-security.test.mjs scripts/approval-notifications.test.mjs",
+    "test:tax-catalog-security": "npm run build && node --test scripts/tax-catalog-sql-security.test.mjs scripts/tax-catalog-api-security.test.mjs scripts/tax-catalog-ui-security.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
