@@ -1,0 +1,3 @@
+import{readFile}from'node:fs/promises';import{setupWorkflowConfigSecurity}from'./setup-workflow-config-security.mjs';
+export const migration='20261101132806_secure_approval_inbox.sql';
+export async function setupApprovalInboxSecurity(db){await setupWorkflowConfigSecurity(db);const read=p=>readFile(new URL(p,import.meta.url),'utf8');await db.exec('set check_function_bodies=off');await db.exec(await read('./approval-inbox-original-functions.sql'));await db.exec('set check_function_bodies=on');await db.exec(`insert into role_access_matrix values(4,'workflow:approval-inbox',true,false,false,false),(3,'workflow:approval-inbox',true,false,false,false);`);await db.exec('begin');await db.exec(await read('../../supabase/migrations/'+migration));await db.exec('commit');}

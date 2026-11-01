@@ -67,6 +67,12 @@ async function runNextTimer(state) {
   return next[1].delay;
 }
 
+async function start(state,fetch=state.fetch){const source=await readFile(new URL('../public/approval-notifications.js',import.meta.url),'utf8');vm.runInNewContext(source,{AbortController,CustomEvent:class{},Intl,Promise,clearTimeout:state.clearTimeout,document:state.document,fetch,localStorage:state.localStorage,sessionStorage:state.sessionStorage,window:state.window});}
+
+test('cambiar subsidiaria descarta respuestas tardias de la campana anterior',async()=>{const state=environment();state.localStorage.setItem('nexo_token','synthetic');state.localStorage.setItem('nexo_company','1');let resolveOld,approvalCalls=0;await start(state,async url=>({ok:true,json:async()=>url.includes('inbox')?(++approvalCalls===1?new Promise(r=>{resolveOld=r;}):[{},{}]):{notifications:[]}}));await runNextTimer(state);const old=state.appended.find(e=>e.tagName==='button');state.localStorage.setItem('nexo_company','2');state.listeners.get('window:nexo:approval-context-changed')();assert.equal(old.removed,true);await runNextTimer(state);const current=state.appended.filter(e=>e.tagName==='button'&&e.className.includes('approval')&&!e.removed).at(-1);assert.equal(current.count.textContent,'2');resolveOld(Array(99).fill({}));await new Promise(r=>setImmediate(r));await new Promise(r=>setImmediate(r));assert.equal(current.count.textContent,'2');});
+
+test('denegacion del permiso borra contador y oculta campana de aprobaciones',async()=>{const state=environment();state.localStorage.setItem('nexo_token','synthetic');await start(state,async url=>({ok:!url.includes('inbox'),json:async()=>({notifications:[]})}));await runNextTimer(state);const approval=state.appended.find(e=>e.tagName==='button');assert.equal(approval.hidden,true);assert.equal(approval.count.textContent,'0');});
+
 test('las notificaciones esperan la sesión, consultan al autenticarse y se pausan en segundo plano', async () => {
   const state = environment();
   const source = await readFile(new URL('../public/approval-notifications.js', import.meta.url), 'utf8');
