@@ -1,4 +1,5 @@
 import type ExcelJS from 'exceljs';
+import { assertEntityMasterAccess } from './entity-master.service.js';
 import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { renderBankReconciliationPdf } from '../reports/accounting-reports.service.js';
@@ -263,6 +264,7 @@ export function buildEntityCatalogPdfHtml(catalog: EntityExportCatalog, payload:
 }
 
 async function loadEntityExportData(authorization: string, catalog: EntityExportCatalog, search: string): Promise<EntityExportPayload> {
+  if(catalog==='customers'||catalog==='suppliers')await assertEntityMasterAccess(authorization,catalog,'view');
   const config = getSupabaseConfig();
   if (!config) throw new Error('Supabase no está configurado.');
   const response = await fetchSupabase(new URL('/rest/v1/rpc/entity_catalog_export_data', config.url), {
@@ -274,9 +276,7 @@ async function loadEntityExportData(authorization: string, catalog: EntityExport
   let payload: unknown = null;
   try { payload = raw ? JSON.parse(raw) : null; } catch { payload = raw; }
   if (!response.ok) {
-    const message = typeof payload === 'object' && payload !== null && 'message' in payload
-      ? String(payload.message)
-      : 'No fue posible preparar la exportación del catálogo.';
+    const message = response.status===401?'Debe iniciar sesión.':response.status===403?'No tiene acceso al catálogo seleccionado.':'No fue posible preparar la exportación del catálogo.';
     const error = new Error(message) as Error & { status?: number };
     error.status = response.status === 401 ? 401 : response.status === 403 ? 403 : 400;
     throw error;
