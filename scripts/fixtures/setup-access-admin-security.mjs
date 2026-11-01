@@ -19,5 +19,5 @@ export async function installAccessAdminSecurity(db){const read=p=>readFile(new 
  grant usage,select on all sequences in schema public to authenticated,service_role;
  set check_function_bodies=off;`);
  await db.exec(await read('./access-original-functions.sql'));await db.exec('set check_function_bodies=on');
- await db.exec(await read('../../supabase/migrations/'+migration));
+ await db.exec(await read('../../supabase/migrations/'+migration));await db.exec(await read('../../supabase/migrations/20261101185909_close_anonymous_access_catalog_reads.sql'));
 }
