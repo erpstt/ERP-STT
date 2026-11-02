@@ -1,6 +1,7 @@
+import {render} from '/generated/index-render.js?v=20261102-a03-csp';
 import {safeNavigationUrl,safeImageUrl,configureImage} from './html-safety.js?v=20261102-a03-media';
 import {csvCell as protectedCsvCell} from '/spreadsheet-safety.js?v=20261102-a03-spreadsheet';
-import { createApp } from '/assets/vue.js?v=20261023-performance';
+import { createApp } from "/assets/vue.js?v=20261102-a03-csp";
 import { clearPendingWorkspace, consumePendingWorkspace, getPendingWorkspace, initialWorkspace } from '/workspace-navigation.js?v=20261010-expense-approval';
 import { loadSubsidiaryApprovers } from '/subsidiary-approvers.js';
 const loginViewportQuery=window.matchMedia('(min-width: 900px)');
@@ -270,7 +271,7 @@ const modules = [
   { name: 'Consolidación', icon: icons.consolidate, children: ['Consolidación financiera',...consolidationCatalogs.map(catalog => catalog.title)] }, { name: 'Informes', icon: icons.ledger, children: ['Reportes de Contabilidad','Envíos programados'] }, { name: 'IA', icon: icons.ai, children: aiCatalogs.map(catalog => catalog.title) }
 ];
 
-const app = createApp({
+const app = createApp({render,
   data: () => {const rememberedEmail=localStorage.getItem('nexo_remembered_email')??'',storedLocale=String(localStorage.getItem('gentia_language')??'es').toLowerCase();return { loginVideoEnabled:canPlayLoginVideo(),email:rememberedEmail, password:'', rememberMe:Boolean(rememberedEmail), showPassword:false, isSubmitting:false, formError:'', turnstileEnabled:false,turnstileToken:'',turnstileWidgetId:null,passwordRecovery:createPasswordRecoveryState(rememberedEmail),authenticated:false, sessionReady:false, selectingCompany:false, isSelectingCompany:false, companyError:'', companies:[], activeCompany:null, allowedCurrencyIds:[], roles:[], activeRole:null, roleAccess:{loaded:false,isAdmin:false,legacy:false,grants:{},modules:[]}, isSelectingRole:false, languageOptions:[{languageId:null,locale:'es',code:'SPA',name:'Español'},{languageId:null,locale:'en',code:'ENG',name:'English'},{languageId:null,locale:'pt',code:'POR',name:'Português'}], currentLocale:['es','en','pt'].includes(storedLocale)?storedLocale:'es', isSelectingLanguage:false, languageError:'', languageChangedHandler:null, sidebarOpen:false, workspaceUrl:initialWorkspace(), modules, catalogs, expandedModules:[], currentModule:'CORE', currentSection:'CORE', userName:'equipo', search:'', rows:[], catalogSort:{key:'',direction:''}, referenceOptions:{}, customerCostCenters:[], customerViewTab:'details', subsidiaryFormTab:'company', accountSubsidiarySearch:'', autorentAccountSearch:{active:'',passive:''}, autorentPercentInput:'', tableError:'', tableNotice:'', tableWarning:'', tableLoading:false, catalogExporting:false, costCenterExporting:'', entityExporting:'', dialogSaving:false, dialogError:'', passwordDialog:{open:false,currentPassword:'',newPassword:'',confirmation:'',error:'',saving:false}, recordDialog:{open:false,mode:'form',id:null,values:{},label:''} };},
   mounted() { stopLoginVideoPreferenceWatch=watchLoginVideoPreference(()=>{this.loginVideoEnabled=canPlayLoginVideo()});this.deviceToken();this.languageChangedHandler=event=>{const locale=this.normalizeLanguageLocale(event?.detail?.locale);if(locale){this.currentLocale=locale;this.$forceUpdate();}};window.addEventListener('gentia:language-changed',this.languageChangedHandler);const recoveryDetected=this.initializePasswordRecovery();void this.initializeTurnstile();document.getElementById('app').addEventListener('click',event=>this.handleShellNavigation(event),true);window.addEventListener('nexo:open-workspace',event=>this.handleWorkspaceRequest(event));if(recoveryDetected)this.sessionReady=true;else void this.restoreSession(); },
   beforeUnmount(){stopLoginVideoPreferenceWatch();stopLoginVideoPreferenceWatch=()=>{};if(this.languageChangedHandler)window.removeEventListener('gentia:language-changed',this.languageChangedHandler);},
@@ -681,5 +682,5 @@ const app = createApp({
     async logout(preservePendingWorkspace=false) { this.closeWorkspace(!preservePendingWorkspace);const token=this.token();if(token){await fetch('/api/auth/logout',{method:'POST',headers:{Authorization:`Bearer ${token}`,'X-Device-Token':this.deviceToken()}}).catch(()=>undefined);}for(const key of['nexo_token','nexo_company','nexo_role']){localStorage.removeItem(key);sessionStorage.removeItem(key);}this.authenticated=false;window.dispatchEvent(new CustomEvent('nexo:approval-context-changed'));this.selectingCompany=false;this.activeCompany=null;this.companies=[];this.activeRole=null;this.roles=[];this.password='';this.formError='';this.expandedModules=[];this.currentModule='CORE';this.currentSection='CORE';this.rows=[]; }
   }
 });
-app.config.compilerOptions.isCustomElement = tag => tag === 'record-audit';
+
 app.mount('#app');

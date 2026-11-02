@@ -1,8 +1,9 @@
-import {createApp} from '/assets/vue.js';
+import {render} from '/generated/role-access-matrix-render.js?v=20261102-a03-csp';
+import {createApp} from "/assets/vue.js?v=20261102-a03-csp";
 
 const actionField={view:'canView',create:'canCreate',edit:'canEdit',delete:'canDelete'};
 
-createApp({
+createApp({render,
   data:()=>({
     revision:null,loading:true,saving:false,roles:[],modules:[],specialPermissions:[],selectedRoleId:0,loadedRoleId:0,
     administratorRole:false,grants:{},search:'',activeTab:'standard',expanded:new Set(),dirty:false,

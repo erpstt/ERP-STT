@@ -1,3 +1,4 @@
+import {contentSecurityPolicy} from './core/security/content-security-policy.js';
 import{rateCatalogs,rateRpc}from'./modules/configuration-catalogs/rate-security.service.js';
 import{canonicalRequestTarget}from'./core/security/request-path.js';
 import{withDeviceContext}from'./core/security/device-context.js';
@@ -191,20 +192,7 @@ function applySecurityHeaders(request: IncomingMessage, response: ServerResponse
   response.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()');
   response.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   response.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
-  response.setHeader('Content-Security-Policy', [
-    "default-src 'self'",
-    "base-uri 'self'",
-    "object-src 'none'",
-    "form-action 'self'",
-    "frame-ancestors 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' data: https://fonts.gstatic.com",
-    "img-src 'self' data: blob: https:",
-    "media-src 'self' blob:",
-    "connect-src 'self' https://challenges.cloudflare.com",
-    "frame-src 'self' https://challenges.cloudflare.com"
-  ].join('; '));
+  response.setHeader('Content-Security-Policy', contentSecurityPolicy(request.url ?? '/'));
   if (request.url?.startsWith('/api/')) response.setHeader('Cache-Control', 'private, no-store');
   const forwardedProto = request.headers['x-forwarded-proto'];
   if (process.env.NODE_ENV === 'production' && forwardedProto === 'https') {
