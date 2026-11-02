@@ -1,4 +1,4 @@
-import {escapeHtml} from './html-safety.js?v=20261101-a03-1';
+import {escapeHtml,configureImage} from './html-safety.js?v=20261102-a03-media';
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const kind = params.get('kind') === 'DEBIT' ? 'DEBIT' : 'CREDIT';
@@ -44,10 +44,7 @@ try {
   $('companyName').textContent = sub.name;
   $('companyAddress').textContent = sub.address || '';
   $('footerCompany').textContent = sub.name;
-  if (sub.logo_url) {
-    $('logo').src = sub.logo_url;
-    $('logo').hidden = false;
-  }
+  configureImage($('logo'),sub.logo_url);
   $('type').textContent = kind === 'CREDIT' ? 'NOTA DE CRÉDITO' : 'NOTA DE DÉBITO';
   $('number').textContent = note[kind === 'CREDIT' ? 'cn_number' : 'dn_number'];
   $('customer').textContent = customer.company_name;
@@ -70,7 +67,7 @@ try {
   $('tax').textContent = money(tax, symbol);
   $('total').textContent = money(note.amount, symbol);
   $('edit').hidden=!data.access?.canEdit;
-  $('edit').href = `/sales-note-entry.html?kind=${kind}&id=${id}`;
+  $('edit').href = `/sales-note-entry.html?kind=${kind}&id=${encodeURIComponent(id)}`;
   $('invoice').hidden = false;
   $('print').onclick = () => print();
   $('back').onclick = () => history.back();

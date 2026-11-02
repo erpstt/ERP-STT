@@ -1,3 +1,4 @@
+import {escapeHtml as htmlText,configureImage,configureAttachmentLink} from './html-safety.js?v=20261102-a03-media';
 import { createIndexedLookup } from './frontend-performance.js?v=20261023-second-pass-v3';
 
 const $=id=>document.getElementById(id);
@@ -63,11 +64,7 @@ async function downloadInvoicePdf(invoiceNumber){
   finally{button.disabled=false;button.textContent=label}
 }
 
-function supportUrl(item){
-  const value=item.support_type==='Archivo'?item.file_data:item.support_url;
-  if(item.support_type==='Archivo'&&String(value||'').startsWith('data:'))return value;
-  try{const url=new URL(String(value||''));return ['http:','https:'].includes(url.protocol)?url.href:''}catch{return''}
-}
+
 
 function renderSupports(items){
   const list=$('viewSupports');
@@ -77,7 +74,7 @@ function renderSupports(items){
   if(!items.length){const empty=document.createElement('div');empty.className='invoice-support-empty';empty.innerHTML='<strong>Esta factura no tiene respaldos.</strong><span>Puede agregarlos desde la opción Editar.</span>';list.append(empty);return}
   for(const item of items){
     const row=document.createElement('a'),icon=document.createElement('span'),copy=document.createElement('span'),title=document.createElement('strong'),detail=document.createElement('small');
-    row.className='invoice-support';row.target='_blank';row.rel='noopener';row.href=supportUrl(item)||'#';
+    row.className='invoice-support';row.target='_blank';row.rel='noopener';configureAttachmentLink(row,item);
     icon.className='invoice-support-icon';icon.textContent=item.support_type==='Archivo'?'DOC':'URL';
     title.textContent=item.display_name||item.file_name||'Respaldo';
     detail.textContent=item.support_type==='Archivo'?(item.file_name||'Archivo adjunto'):(item.support_url||'Enlace externo');
@@ -104,7 +101,7 @@ try{
   $('companyName').textContent=subsidiary.name||'Subsidiaria';
   $('companyAddress').textContent=subsidiary.address||'';
   $('footerCompany').textContent=subsidiary.name||'';
-  if(subsidiary.logo_url){$('logo').src=subsidiary.logo_url;$('logo').hidden=false}
+  configureImage($('logo'),subsidiary.logo_url);
   $('invoiceNumber').textContent=invoice.invoice_number;
   $('customerName').textContent=customer.company_name||customer.name||'Cliente';
   $('customerTax').textContent=customer.tax_id?`Identificación fiscal: ${customer.tax_id}`:(customer.tax_identification?`Identificación fiscal: ${customer.tax_identification}`:'');
@@ -122,12 +119,12 @@ try{
     const product=find(products,'product_id',line.product_id)||{},country=find(countries,'country_id',line.service_country_id),tax=find(taxes,'tax_code_id',line.tax_code_id),lineTax=Number(line.tax_amount||0),rate=Number(line.tax_rate||0);
     subtotal+=Number(line.amount||0);taxTotal+=lineTax;
     if(tax&&lineTax){const key=String(rate),group=taxGroups.get(key)||{rate,base:0,tax:0};group.base+=Number(line.amount||0);group.tax+=lineTax;taxGroups.set(key,group)}
-    return `<tr><td><strong>${escapeHtml(product.display_name||'Producto')}</strong>${line.note?`<span class="product-code">${escapeHtml(line.note)}</span>`:''}</td><td class="service-country">${escapeHtml(country?.name)}</td><td class="service-month">${escapeHtml(formatMonth(line.service_month))}</td><td class="number">${Number(line.quantity||0).toLocaleString('es-CR',{maximumFractionDigits:6})}</td><td class="number">${money(line.unit_price)}</td><td class="number">${money(line.amount)}</td><td class="number">${lineTax?money(lineTax):'—'}</td><td class="number"><strong>${money(line.gross_amount)}</strong></td></tr>`;
+    return `<tr><td><strong>${escapeHtml(product.display_name||'Producto')}</strong>${line.note?`<span class="product-code">${escapeHtml(line.note)}</span>`:''}</td><td class="service-country">${escapeHtml(country?.name)}</td><td class="service-month">${escapeHtml(formatMonth(line.service_month))}</td><td class="number">${Number(line.quantity||0).toLocaleString('es-CR',{maximumFractionDigits:6})}</td><td class="number">${htmlText(money(line.unit_price))}</td><td class="number">${htmlText(money(line.amount))}</td><td class="number">${lineTax?htmlText(money(lineTax)):'—'}</td><td class="number"><strong>${htmlText(money(line.gross_amount))}</strong></td></tr>`;
   }).join('')||'<tr><td colspan="8">La factura no contiene líneas.</td></tr>';
-  $('taxBreakdown').innerHTML=taxGroups.size?[...taxGroups.values()].map(group=>`<div class="tax-row"><span>Base: ${money(group.base)}<br><small>Tasa: ${group.rate.toLocaleString('es-CR')}%</small></span><strong><small>Valor</small><br>${money(group.tax)}</strong></div>`).join(''):'<span class="tax-empty">Factura sin impuestos.</span>';
+  $('taxBreakdown').innerHTML=taxGroups.size?[...taxGroups.values()].map(group=>`<div class="tax-row"><span>Base: ${htmlText(money(group.base))}<br><small>Tasa: ${group.rate.toLocaleString('es-CR')}%</small></span><strong><small>Valor</small><br>${htmlText(money(group.tax))}</strong></div>`).join(''):'<span class="tax-empty">Factura sin impuestos.</span>';
   const invoiceWithholdings=withholdings.filter(row=>String(row.invoice_id)===String(invoiceId));
   const withholdingTotal=invoiceWithholdings.reduce((sum,row)=>sum+Number(row.withholding_amount||0),0);
-  $('withholdingBreakdown').innerHTML=invoiceWithholdings.length?invoiceWithholdings.map(row=>{const tax=find(taxes,'tax_code_id',row.tax_code_id)||{};return `<div class="tax-row"><span><b>${escapeHtml(tax.code_name||'Retención')}</b><br><small>${escapeHtml(row.calculation_base)} · ${Number(row.rate_percentage||0).toLocaleString('es-CR')}% · ${escapeHtml(row.application_moment)}</small></span><strong>${money(row.withholding_amount)}</strong></div>`}).join(''):'<span class="tax-empty">Factura sin retenciones.</span>';
+  $('withholdingBreakdown').innerHTML=invoiceWithholdings.length?invoiceWithholdings.map(row=>{const tax=find(taxes,'tax_code_id',row.tax_code_id)||{};return `<div class="tax-row"><span><b>${escapeHtml(tax.code_name||'Retención')}</b><br><small>${escapeHtml(row.calculation_base)} · ${Number(row.rate_percentage||0).toLocaleString('es-CR')}% · ${escapeHtml(row.application_moment)}</small></span><strong>${htmlText(money(row.withholding_amount))}</strong></div>`}).join(''):'<span class="tax-empty">Factura sin retenciones.</span>';
   $('subtotal').textContent=money(subtotal);$('taxTotal').textContent=money(taxTotal);$('withholdingTotal').textContent=money(withholdingTotal);$('total').textContent=money(invoice.total_amount);$('receivableTotal').textContent=money(invoice.receivable_amount||invoice.total_amount);
   document.title=`Factura ${invoice.invoice_number}`;
   $('invoice').hidden=false;

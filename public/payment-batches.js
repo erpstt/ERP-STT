@@ -1,3 +1,4 @@
+import {safeNavigationUrl} from './html-safety.js?v=20261102-a03-media';
 const $=id=>document.getElementById(id);
 const token=localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo_token')||'';
 const device=localStorage.getItem('nexo_device_token')||sessionStorage.getItem('nexo_device_token')||'';
@@ -212,8 +213,8 @@ function dispositionFilename(response,fallback){
 }
 function saveBlob(blob,name){const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=name;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
 async function downloadUrl(url,fallback){
-  const target=new URL(url,location.origin);
-  if(target.origin!==location.origin){const link=document.createElement('a');link.href=target.href;link.target='_blank';link.rel='noopener';link.download=fallback||'';document.body.append(link);link.click();link.remove();return}
+  const safe=safeNavigationUrl(url);if(!safe)throw Error('El enlace de descarga no es v\u00e1lido.');const target=new URL(safe);
+  if(target.origin!==location.origin){const link=document.createElement('a');link.href=target.href;link.target='_blank';link.rel='noopener noreferrer';link.download=fallback||'';document.body.append(link);link.click();link.remove();return}
   const response=await fetch(target.href,{headers:headers(false)});
   if(!response.ok){const raw=await response.text();let result={};try{result=JSON.parse(raw)}catch{}throw Error(result?.error?.message||result?.message||'El lote se generó, pero no fue posible descargar el archivo.')}
   saveBlob(await response.blob(),dispositionFilename(response,fallback||'lote-pagos'));

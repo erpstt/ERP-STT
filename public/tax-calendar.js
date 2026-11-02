@@ -1,3 +1,4 @@
+import {safeHttpUrl} from './html-safety.js?v=20261102-a03-media';
 const $ = id => document.getElementById(id);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
 const token = () => localStorage.getItem('nexo_token') || sessionStorage.getItem('nexo_token') || '';
@@ -202,7 +203,7 @@ function renderWeek() {
 }
 function documentCell(event) {
   if(event.documentType==='file_upload')return `<button class="button ghost" type="button" data-document="${escapeHtml(event.id)}">Descargar archivo</button>`;
-  if(event.documentType==='external_url'&&/^https:\/\//i.test(event.externalLink||''))return `<a class="document-pill" href="${escapeHtml(event.externalLink)}" target="_blank" rel="noopener noreferrer">Abrir enlace</a>`;
+  if(event.documentType==='external_url'&&/^https:\/\//i.test(safeHttpUrl(event.externalLink)))return `<a class="document-pill" href="${escapeHtml(safeHttpUrl(event.externalLink))}" target="_blank" rel="noopener noreferrer">Abrir enlace</a>`;
   return '<span class="document-pill">Sin respaldo</span>';
 }
 function renderTable() {
@@ -292,8 +293,8 @@ function showExistingDocument(detail) {
   if(event.documentType==='file_upload'&&document){
     container.innerHTML=`<div><strong>${escapeHtml(document.fileName)}</strong><small>${escapeHtml(document.mimeType)} · ${escapeHtml(formatBytes(document.fileSize))}</small></div><button class="button secondary" id="downloadExisting" type="button">Descargar</button>`;
     container.hidden=false;$('downloadExisting').onclick=()=>void downloadDocument(event.id,document.fileName);
-  }else if(event.documentType==='external_url'&&event.externalLink){
-    container.innerHTML=`<div><strong>Enlace externo registrado</strong><small>${escapeHtml(event.externalLink)}</small></div><a class="button secondary" href="${escapeHtml(event.externalLink)}" target="_blank" rel="noopener noreferrer">Abrir enlace</a>`;
+  }else if(event.documentType==='external_url'&&safeHttpUrl(event.externalLink)){
+    container.innerHTML=`<div><strong>Enlace externo registrado</strong><small>${escapeHtml(event.externalLink)}</small></div><a class="button secondary" href="${escapeHtml(safeHttpUrl(event.externalLink))}" target="_blank" rel="noopener noreferrer">Abrir enlace</a>`;
     container.hidden=false;
   }else{container.hidden=true;container.innerHTML='';}
 }

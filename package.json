@@ -83,7 +83,8 @@
     "test:xss-report-security": "npm run build && node --test scripts/html-safety.test.mjs scripts/xss-report-security.test.mjs scripts/xss-report-ui.test.mjs",
     "test:spreadsheet-security": "npm run build && node --test scripts/spreadsheet-security.test.mjs scripts/html-safety.test.mjs scripts/xss-report-security.test.mjs scripts/xss-report-ui.test.mjs",
     "test:catalog-csv-security": "npm run build && node --test scripts/catalog-csv-security.test.mjs scripts/catalog-csv-browser.test.mjs scripts/cost-center-export.test.mjs scripts/organization-catalog-export.test.mjs scripts/entity-catalog-export.test.mjs",
-    "test:scheduled-export-security": "npm run build && node --test scripts/scheduled-export-security.test.mjs"
+    "test:scheduled-export-security": "npm run build && node --test scripts/scheduled-export-security.test.mjs",
+    "test:media-security": "npm run build && node --test scripts/html-safety.test.mjs scripts/media-safety.test.mjs scripts/media-browser-security.test.mjs scripts/media-view-ui.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",

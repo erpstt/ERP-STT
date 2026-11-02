@@ -23,7 +23,7 @@ function declarations(file,names){
  }assert.ok(found,file+': '+name);}
  return out.join('\n');
 }
-const prelude=`const $=id=>document.getElementById(id),htmlText=window.__escapeHtml,escapeHtml=htmlText,esc=htmlText,csvCell=window.__spreadsheet.csvCell,reportWorkbook=window.__spreadsheet.reportWorkbook,reportNumber=window.__spreadsheet.reportNumber;`;
+const prelude=`const $=id=>document.getElementById(id),htmlText=window.__escapeHtml,escapeHtml=htmlText,esc=htmlText,csvCell=window.__spreadsheet.csvCell,reportWorkbook=window.__spreadsheet.reportWorkbook,reportNumber=window.__spreadsheet.reportNumber,safeNavigationUrl=window.__htmlSafety.safeNavigationUrl;`;
 async function execute(page,code,input={}){return page.evaluate(({code,input})=>new Function('input',code)(input),{code:prelude+code,input});}
 async function clean(page){await page.waitForTimeout(30);assert.equal(await page.locator('img[src="x"],svg[onload],[onerror],[onfocus],[onmouseover]').count(),0);assert.equal(await page.evaluate(()=>window.__xss===true),false);}
 async function reset(page,body){await page.setContent(body);await page.evaluate(()=>{window.__xss=false;window.__downloads=[];});}
@@ -34,7 +34,7 @@ test('reportes: texto y atributos hostiles, exportaciones e importes originales'
  await new Promise(r=>server.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>{server.closeAllConnections();server.close(r);}));
  const base=`http://127.0.0.1:${server.address().port}`,browser=await chromium.launch({headless:true});t.after(()=>browser.close());const context=await browser.newContext();t.after(()=>context.close());
  const requests=[];await context.route('**/*',route=>{const u=new URL(route.request().url());requests.push(u.pathname);return u.origin===base&&u.pathname.endsWith('.js')?route.continue():route.abort();});
- const page=await context.newPage();await page.goto(base+'/html-safety.js');await page.evaluate(async base=>{window.__escapeHtml=(await import(base+'/html-safety.js')).escapeHtml;window.__spreadsheet=await import(base+'/spreadsheet-safety.js');},base);
+ const page=await context.newPage();await page.goto(base+'/html-safety.js');await page.evaluate(async base=>{window.__htmlSafety=await import(base+'/html-safety.js');window.__escapeHtml=window.__htmlSafety.escapeHtml;window.__spreadsheet=await import(base+'/spreadsheet-safety.js');},base);
 
  await t.test('contabilidad: encabezados, celdas y Excel conservan texto y SUM',async()=>{
   await reset(page,'<table><thead id="thead"></thead><tbody id="tbody"></tbody><tfoot id="tfoot"></tfoot></table><div id="summary"></div><input id="to" value="2026-11-02">');
@@ -90,7 +90,7 @@ test('reportes: texto y atributos hostiles, exportaciones e importes originales'
   await page.evaluate(async({source,attack})=>{
    localStorage.setItem('nexo_token','synthetic-report-session');
    sessionStorage.setItem('nexo_account_statement',JSON.stringify({kind:'AR',report:'receivables-aging',entityId:1,entityName:attack,subsidiary:{id:1,name:attack},currency:{symbol:attack},cutoff:'2026-11-02',filters:{}}));
-   const code=`const htmlText=window.__escapeHtml,fetch=async path=>({ok:true,json:async()=>path.includes('/subsidiaries/')?{name:input.attack}:path.includes('/entities/')?[{customer_id:1,company_name:input.attack}]:{rows:[{document_number:input.attack,issue_date:'2026-01-01',due_date:'2026-02-01',overdue_days:input.attack,original_amount:100,applied_amount:25,pending:75,entity_advances:5,bucket:'1_30'}]}});`+source;
+   const code=`const htmlText=window.__escapeHtml,configureImage=window.__htmlSafety.configureImage,fetch=async path=>({ok:true,json:async()=>path.includes('/subsidiaries/')?{name:input.attack}:path.includes('/entities/')?[{customer_id:1,company_name:input.attack}]:{rows:[{document_number:input.attack,issue_date:'2026-01-01',due_date:'2026-02-01',overdue_days:input.attack,original_amount:100,applied_amount:25,pending:75,entity_advances:5,bucket:'1_30'}]}});`+source;
    await new (Object.getPrototypeOf(async function(){}).constructor)('input',code)({attack});
   },{source,attack});
   assert.equal(await page.locator('#documents td').nth(3).textContent(),attack);assert.equal(await page.locator('#netBalance').textContent(),attack+' 70,00');assert.equal(await page.locator('#statement').isVisible(),true);await clean(page);
