@@ -1,10 +1,9 @@
+import {escapeHtml} from './html-safety.js?v=20261101-a03-1';
 let permissions={};
 const $ = (id) => document.getElementById(id);
 const token = localStorage.getItem('nexo_token') || sessionStorage.getItem('nexo_token');
 const device = localStorage.getItem('nexo_device_token') || sessionStorage.getItem('nexo_device_token');
-const esc = (value) => String(value ?? '—').replace(/[&<>"']/g, (character) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-}[character]));
+const esc = value=>escapeHtml(value??'\u2014');
 
 if (!token) location.replace('/');
 
@@ -32,8 +31,8 @@ async function api(path, options = {}) {
   return result;
 }
 
-const accountOptions = (accounts, emptyLabel) => `<option value="">${emptyLabel}</option>` + accounts
-  .map((account) => `<option value="${account.id}">${esc(account.number)} · ${esc(account.name)}</option>`)
+const accountOptions = (accounts, emptyLabel) => `<option value="">${esc(emptyLabel)}</option>` + accounts
+  .map((account) => `<option value="${esc(account.id)}">${esc(account.number)} · ${esc(account.name)}</option>`)
   .join('');
 
 async function init() {
@@ -56,15 +55,15 @@ async function load() {
     $('rows').innerHTML = rows.map((row) => `<tr>
       <td><b>${esc(row.code)}</b></td>
       <td><b>${esc(row.name)}</b><small>${row.description ? `<br>${esc(row.description)}` : ''}</small></td>
-      <td>${row.method === 'No Depreciable' ? 'No aplica' : `${row.usefulLife} meses`}</td>
+      <td>${row.method === 'No Depreciable'?'No aplica':esc(`${row.usefulLife} meses`)}</td>
       <td>${esc(row.method)}</td>
-      <td>${Number(row.residual || 0).toFixed(2)}%</td>
+      <td>${esc(Number(row.residual || 0).toFixed(2))}%</td>
       <td>${esc(row.assetAccount)}</td>
       <td>${esc(row.depreciationAccount)}</td>
       <td>${esc(row.expenseAccount)}</td>
-      <td>${row.assets}</td>
-      <td><span class="status ${row.active ? 'open' : ''}">${row.active ? 'ACTIVA' : 'INACTIVA'}</span></td>
-      <td><div class="row-actions"><button ${permissions.canEdit?'':'disabled'} data-edit="${row.id}">Editar</button><button ${permissions.canDelete?'':'disabled'} class="delete" data-delete="${row.id}" data-assets="${row.assets}">Eliminar</button></div></td>
+      <td>${esc(row.assets)}</td>
+      <td><span class="status ${row.active?'open':''}">${row.active?'ACTIVA':'INACTIVA'}</span></td>
+      <td><div class="row-actions"><button ${permissions.canEdit?'':'disabled'} data-edit="${esc(row.id)}">Editar</button><button ${permissions.canDelete?'':'disabled'} class="delete" data-delete="${esc(row.id)}" data-assets="${esc(row.assets)}">Eliminar</button></div></td>
     </tr>`).join('') || '<tr><td colspan="11">No se encontraron categorías.</td></tr>';
 
     document.querySelectorAll('[data-edit]').forEach((button) => {
