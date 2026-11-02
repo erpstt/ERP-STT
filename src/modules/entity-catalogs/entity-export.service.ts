@@ -1,3 +1,4 @@
+import {csvCell as protectedCsvCell} from '../../core/export/csv-cell.js';
 import type ExcelJS from 'exceljs';
 import { assertEntityMasterAccess } from './entity-master.service.js';
 import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
@@ -146,18 +147,15 @@ function displayValue(column: ExportColumn, row: EntityExportRow, protectSpreads
   return protectSpreadsheet ? spreadsheetText(value) : String(value ?? '');
 }
 
-function csvCell(value: string | number) {
-  const text = typeof value === 'number' ? String(value) : value;
-  return `"${text.replaceAll('"', '""')}"`;
-}
+
 
 export function buildEntityCatalogCsv(catalog: EntityExportCatalog, rows: EntityExportRow[]): Buffer {
   const columns = definition(catalog).columns;
   const matrix: Array<Array<string | number>> = [
     columns.map(column => column.header),
-    ...rows.map(row => columns.map(column => displayValue(column, row, true)))
+    ...rows.map(row => columns.map(column => displayValue(column, row)))
   ];
-  return Buffer.from(`\uFEFF${matrix.map(row => row.map(csvCell).join(',')).join('\r\n')}`, 'utf8');
+  return Buffer.from(`\uFEFF${matrix.map(row => row.map(value=>protectedCsvCell(value)).join(',')).join('\r\n')}`, 'utf8');
 }
 
 function border(color = 'D8E2EC'): Partial<ExcelJS.Borders> {

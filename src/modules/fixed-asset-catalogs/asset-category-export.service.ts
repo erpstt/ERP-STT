@@ -1,3 +1,4 @@
+import {csvCell as protectedCsvCell} from '../../core/export/csv-cell.js';
 import {assertAssetMasterAccess} from './asset-master-access.service.js';
 import type ExcelJS from 'exceljs';
 import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
@@ -62,7 +63,7 @@ const spreadsheetText = (value: unknown) => {
   const result = text(value);
   return /^\s*[=+@-]/.test(result) ? `'${result}` : result;
 };
-const csvCell = (value: string | number) => `"${String(value).replaceAll('"', '""')}"`;
+
 const escapeHtml = (value: unknown) => text(value).replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 }[character] || character));
@@ -105,9 +106,9 @@ function filterLabel(payload: AssetCategoryExportPayload) {
 export function buildAssetCategoryCsv(rows: AssetCategoryExportRow[]): Buffer {
   const matrix: Array<Array<string | number>> = [
     ASSET_CATEGORY_EXPORT_COLUMNS.map(column => column.header),
-    ...rows.map(row => ASSET_CATEGORY_EXPORT_COLUMNS.map(column => displayValue(column, row, true))),
+    ...rows.map(row => ASSET_CATEGORY_EXPORT_COLUMNS.map(column => displayValue(column, row))),
   ];
-  return Buffer.from(`\uFEFF${matrix.map(row => row.map(csvCell).join(',')).join('\r\n')}`, 'utf8');
+  return Buffer.from(`\uFEFF${matrix.map(row => row.map(value=>protectedCsvCell(value)).join(',')).join('\r\n')}`, 'utf8');
 }
 
 function border(color = 'D8E2EC'): Partial<ExcelJS.Borders> {

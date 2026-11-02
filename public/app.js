@@ -1,3 +1,4 @@
+import {csvCell as protectedCsvCell} from '/spreadsheet-safety.js?v=20261102-a03-spreadsheet';
 import { createApp } from '/assets/vue.js?v=20261023-performance';
 import { clearPendingWorkspace, consumePendingWorkspace, getPendingWorkspace, initialWorkspace } from '/workspace-navigation.js?v=20261010-expense-approval';
 import { loadSubsidiaryApprovers } from '/subsidiary-approvers.js';
@@ -472,7 +473,7 @@ const app = createApp({
         const rows=await this.api('/api/accounting/chart-accounts');
         const labels={account_id:'ID interno',account_group_code:'C\u00f3digo de grupo',account_group_name:'Nombre de grupo',...Object.fromEntries(catalog.fields.map(f=>[f.key,f.label]))};
         const keys=[...new Set([catalog.primaryKey,...catalog.fields.map(f=>f.key),...rows.flatMap(row=>Object.keys(row))])];
-        const cell=value=>{let text=value==null?'':typeof value==='boolean'?(value?'S\u00ed':'No'):Array.isArray(value)?value.join(' | '):typeof value==='object'?JSON.stringify(value):String(value);if(typeof value==='string'&&/^[\s]*[=+@-]/.test(text))text="'"+text;return '"'+text.replaceAll('"','""')+'"';};
+        const cell=value=>protectedCsvCell(value==null?'':typeof value==='boolean'?(value?'S\u00ed':'No'):Array.isArray(value)?value.join(' | '):typeof value==='object'?JSON.stringify(value):value);
         const csv='\ufeff'+[keys.map(key=>`${labels[key]||key} [${key}]`),...rows.map(row=>keys.map(key=>row[key]))].map(row=>row.map(cell).join(',')).join('\r\n');
         const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
         const link=document.createElement('a');link.href=url;link.download=`plan-de-cuentas-completo-${new Date().toISOString().slice(0,10)}.csv`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);

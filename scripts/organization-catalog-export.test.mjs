@@ -37,7 +37,7 @@ test('CSV genérico de Organización usa UTF-8, CRLF y neutraliza fórmulas',()=
   assert.ok(csv.startsWith('\uFEFF'));
   assert.equal(lines.length,2);
   assert.equal(lines[0].replace(/^\uFEFF/,''),'"ID interno","Nombre","Departamento padre","Subsidiarias","Inactivo"');
-  assert.match(csv,/"'=HYPERLINK\(""https:\/\/example\.test"",""ADMINISTRACIÓN""\)"/);
+  assert.match(csv,/"\t=HYPERLINK\(""https:\/\/example\.test"",""ADMINISTRACIÓN""\)"/);
   assert.match(csv,/"GESTIÓN REGIONAL"/);
   assert.match(csv,/"Compañía Costa Rica, S\.A\. \| S\.T\.T\. HOLDINGS LIMITED"/);
 });

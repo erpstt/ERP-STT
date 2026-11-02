@@ -84,7 +84,7 @@ test('CSV conserva Unicode, escapa comillas y neutraliza fórmulas', () => {
   assert.match(csv, /Compañía Panamá/);
   assert.match(csv, /José Núñez/);
   assert.match(csv, /Avenida España, ""Torre 1""/);
-  assert.match(csv, /"'=HYPERLINK\(""https:\/\/example\.test""\)"/);
+  assert.match(csv, /"\t=HYPERLINK\(""https:\/\/example\.test""\)"/);
   assert.match(csv, /"Sí"/);
   assert.match(csv, /"No"/);
   assert.ok(csv.includes('\r\n'));

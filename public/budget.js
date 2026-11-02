@@ -1,3 +1,4 @@
+import {csvCell} from './spreadsheet-safety.js?v=20261102-a03-spreadsheet';
 import {budgetWorkbook} from './budget-xlsx.js';
 const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),money=v=>Number(v||0).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2});
 let options={},report=null,matrix=[],matrixSnapshot='',copying=false,editing=false,busy=false,tab=location.pathname.endsWith('builder')?'builder':'dashboard';
@@ -41,7 +42,6 @@ $('budgetConfirmCancel').onclick=()=>{$('budgetConfirm').close();confirmationAct
 $('budgetConfirm').addEventListener('cancel',e=>{if(busy)e.preventDefault();else confirmationAction=null;});
 $('budgetConfirmAccept').onclick=()=>{if(!confirmationAction||busy)return;const selected=confirmationAction;void act(async()=>{const button=$('budgetConfirmAccept');button.disabled=true;$('budgetConfirmCancel').disabled=true;try{await api('action',selected);$('budgetConfirm').close();confirmationAction=null;await loadOptions();message(selected.action==='approve'?'Presupuesto aprobado y activado.':'Presupuesto cerrado.');}finally{button.disabled=false;$('budgetConfirmCancel').disabled=false;}});};
 $('loadAccounts').onclick=()=>act(async()=>{const selected=categories('categories');if(!selected.length)throw Error('Seleccione al menos una categoría.');const lines=matrix.flatMap(r=>r.months.map((amount,i)=>({accountId:r.accountId,month:`${report.header.anio}-${String(i+1).padStart(2,'0')}`,amount})));if(lines.some(r=>!r.accountId||!Number.isFinite(r.amount)||r.amount<0))throw Error('Complete las filas pendientes antes de cargar otras cuentas.');const saved=await api('lines',{id:report.header.id,revision:report.header.revision,lines});report.header.revision=saved.revision;await api('headers',{id:report.header.id,revision:saved.revision,name:report.header.nombre_version,year:report.header.anio,control:report.header.tipo_control,categories:selected});await loadOptions();message('Cuentas cargadas. Los importes guardados se conservaron.');});
-const csvCell=v=>{const value=String(v??'');return '"'+value.replace(/"/g,'""')+'"';};
 function templateRows(){
  const rows=[['cuenta','nombre','categoria','mes','monto']];
  let source=matrix.filter(r=>options.accounts.some(a=>String(a.id)===String(r.accountId)));

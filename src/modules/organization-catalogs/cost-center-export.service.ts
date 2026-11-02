@@ -1,3 +1,4 @@
+import {csvCell as protectedCsvCell} from '../../core/export/csv-cell.js';
 import{organizationMasterRpc}from'./organization-master.service.js';
 import type ExcelJS from 'exceljs';
 import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
@@ -66,11 +67,10 @@ function filterRows(rows: CostCenterExportRow[], search: string) {
 }
 
 export function buildCostCenterCsv(rows: CostCenterExportRow[]): Buffer {
-  const quote = (value: unknown) => `"${safeCell(value).replaceAll('"', '""')}"`;
   const content = [
     columns.map(column => column.header),
     ...rows.map(row => columns.map(column => row[column.key])),
-  ].map(row => row.map(quote).join(',')).join('\r\n');
+  ].map(row => row.map(value=>protectedCsvCell(value)).join(',')).join('\r\n');
   return Buffer.from(`\uFEFF${content}`, 'utf8');
 }
 

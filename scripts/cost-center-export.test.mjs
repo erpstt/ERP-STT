@@ -27,7 +27,7 @@ test('CSV de centros de costos conserva encabezados y caracteres Unicode', () =>
 
 test('CSV neutraliza valores que una hoja de cálculo podría interpretar como fórmula', () => {
   const csv = buildCostCenterCsv([{ ...rows[0], name: '=HYPERLINK("https://example.com")' }]).toString('utf8');
-  assert.match(csv, /"'=HYPERLINK\(""https:\/\/example\.com""\)"/);
+  assert.match(csv, /"\t=HYPERLINK\(""https:\/\/example\.com""\)"/);
 });
 
 test('Excel de centros de costos crea una tabla profesional y filtrable', async () => {

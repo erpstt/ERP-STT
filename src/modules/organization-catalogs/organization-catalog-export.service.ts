@@ -1,3 +1,4 @@
+import {csvCell as protectedCsvCell} from '../../core/export/csv-cell.js';
 import{organizationMasters,organizationMasterRpc}from'./organization-master.service.js';
 import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
@@ -147,11 +148,10 @@ function filterRows(rows: Json[], search: string) {
 }
 
 export function buildOrganizationCatalogCsv(exportColumns: ExportColumn[], rows: Json[]): Buffer {
-  const quote = (value: unknown) => `"${safeText(value).replaceAll('"', '""')}"`;
   const content = [
     exportColumns.map(column => column.label),
     ...rows.map(row => exportColumns.map(column => row[column.key])),
-  ].map(row => row.map(quote).join(',')).join('\r\n');
+  ].map(row => row.map(value=>protectedCsvCell(value)).join(',')).join('\r\n');
   return Buffer.from(`\uFEFF${content}`, 'utf8');
 }
 
