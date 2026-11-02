@@ -1,3 +1,4 @@
+import {csvCell,reportWorkbook,reportNumber} from './spreadsheet-safety.js?v=20261102-a03-spreadsheet';
 import {escapeHtml as htmlText} from './html-safety.js?v=20261101-a03-1';
 const $=id=>document.getElementById(id);
 const token=()=>localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo_token');
@@ -96,7 +97,7 @@ function render(report){renderMeta(report);renderSummary(report);renderQuality(r
 
 async function generate(){validateFilters();const requestedFilters=filters(),requestedSignature=JSON.stringify(requestedFilters);setLoading(true);message();try{const payload=await api('/api/v1/reports/accounting/intercompany-loans',{method:'POST',body:JSON.stringify(requestedFilters)});state.report=normalizeReport(payload);state.lastFilterSignature=requestedSignature;state.dirty=filterSignature()!==requestedSignature;render(state.report);message(state.dirty?'Los filtros cambiaron durante la consulta. Genere nuevamente el reporte antes de descargar.':'Reporte generado correctamente.',!state.dirty)}catch(error){state.report=null;state.lastFilterSignature='';state.dirty=false;$('results').hidden=true;$('reportMeta').hidden=true;$('quality').hidden=true;$('summary').innerHTML='<div class="initial-state"><b>No fue posible generar el reporte.</b><small>Revise los filtros e intente nuevamente.</small></div>';message(error.message)}finally{setLoading(false)}}
 
-function quote(value){return`"${String(value??'').replaceAll('"','""')}"`}
+function quote(value){return csvCell(value);}
 function csvRows(){return(state.report?.details||[]).map(row=>[row.date,row.side==='PAYABLE'?'CUENTAS POR PAGAR':'CUENTAS POR COBRAR',row.isFxRevaluation?'REVALUACIÓN FX':'MOVIMIENTO OPERATIVO',row.document,row.journalNumber,row.company.code,row.company.name,row.company.identification,row.currency.code,row.account.number,row.account.name,row.concept,row.debit,row.credit,row.balance])}
 function downloadBlob(blob,name){const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000)}
 function downloadCsv(){if(!canExport())return;const headers=['Fecha','Tipo de saldo','Naturaleza','Documento','Asiento','Código compañía relacionada','Compañía relacionada','Identificación','Moneda','Cuenta','Nombre de cuenta','Concepto','Débito','Crédito','Saldo'],rows=csvRows(),csv=[headers,...rows].map(row=>row.map(quote).join(',')).join('\r\n');downloadBlob(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),`prestamos-intercompany-${$('dateFrom').value}-${$('dateTo').value}.csv`)}

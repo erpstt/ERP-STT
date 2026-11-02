@@ -1,3 +1,4 @@
+import {csvCell,reportWorkbook,reportNumber} from './spreadsheet-safety.js?v=20261102-a03-spreadsheet';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=v=>Number(v||0).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const methods={RUN_RATE:'Promedio mensual YTD',BUDGET:'Presupuesto aprobado',PRIOR_YEAR:'Mismo mes del año anterior'};
@@ -17,9 +18,8 @@ export function forecastCsv(report,{filters=[],scenario='',dimensionName=id=>id,
  for(const [label,value]of filters)line('Filtro','','',label,'',[],['','',value]);
  for(const note of report.notes||[])line('Nota','','','Criterio de cálculo','',[],['','',note]);
  for(const rate of report.rates||[])line('Tipo de cambio','','',rate.company,'',[],[rate.month,'',`${rate.rate} · ${rate.source}`]);
- const cell=v=>{let s=String(v??'');if(/^[=+@\t\r]/.test(s)||(/^[-]/.test(s)&&!/^[-]\d+(?:[.,]\d+)?$/.test(s)))s="'"+s;return '"'+s.replaceAll('"','""')+'"';};
  // Excel in es-CR expects semicolon-separated fields and comma decimals.
- return '\uFEFFsep=;\r\n'+[headers,...rows].map(r=>r.map(cell).join(';')).join('\r\n');
+ return '\uFEFFsep=;\r\n'+[headers,...rows].map(r=>r.map((value,index)=>csvCell(value,{numeric:index>=10&&index<10+report.months.length+3||index===10+report.months.length+4})).join(';')).join('\r\n');
 }
 export function forecastPdfHtml(report,{filters=[],scenario='',dimensionName=id=>id,overrides={},issuedAt=new Date()}={}){
  const totals=summaries(report),net=totals.at(-1)[1],groups=sections(report),adjusted=adjustments(report,overrides,dimensionName),title='Estado de Resultados Proyectado';

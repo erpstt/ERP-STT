@@ -1,3 +1,4 @@
+import {csvCell,reportWorkbook,reportNumber} from './spreadsheet-safety.js?v=20261102-a03-spreadsheet';
 import {escapeHtml as htmlText} from './html-safety.js?v=20261101-a03-1';
 import { indexBy } from './frontend-performance.js?v=20261023-second-pass-v3';
 
@@ -208,20 +209,11 @@ function exportRows(context) {
   ]);
 }
 
-export function buildAgingExport(context, type) {
-  const receivables = context.reportKey === 'receivables-aging';
-  const headers = ['Identificación', receivables ? 'Cliente' : 'Proveedor', receivables ? 'Vendedor / Gestor' : 'Categoría', 'Documento', 'Emisión', 'Vencimiento', 'Días de mora', 'Moneda', 'Monto original', 'Monto aplicado', 'Saldo pendiente', 'Antigüedad'];
-  const rows = exportRows(context);
-  const name = `${context.reportKey}-${context.cutoff}`;
-  if (type === 'csv') {
-    const csv = [headers, ...rows].map(row => row.map(value => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\r\n');
-    return { blob: new Blob(['\ufeff' + csv], { type: 'text/csv' }), name: `${name}.csv` };
-  }
-  const breakdown = agingCurrencyBreakdown(context);
-  const summary = originalMode(context) ? `<h3>Resumen por moneda</h3><table><tr><th>Moneda</th><th>Auxiliar</th><th>Anticipos / sin aplicar</th><th>Saldo neto</th><th>Mayor</th><th>Diferencia</th></tr>${breakdown.map(item => `<tr><td>${html(currencyLabel(context, item.source))}</td><td>${item.subledger}</td><td>${item.advances}</td><td>${item.netBalance}</td><td>${item.reconciliationAvailable ? item.controlBalance : 'No disponible'}</td><td>${item.reconciliationAvailable ? item.difference : 'Filtro analítico'}</td></tr>`).join('')}</table>` : '';
-  const logo = context.exportContext.logoUrl ? `<img src="${html(context.exportContext.logoUrl)}" style="float:right;max-width:150px;max-height:82px">` : '';
-  const table = `${logo}<h1>${html(context.exportContext.subsidiaryName)}</h1><h2>${html(context.reportTitle)}</h2><p>${html(context.exportContext.periodLabel)}</p><p>Expresado en ${html(context.exportContext.currencyLabel)}</p>${summary}<h3>Detalle por documento</h3><table><tr>${headers.map(header => `<th>${html(header)}</th>`).join('')}</tr>${rows.map(row => `<tr>${row.map((value, index) => `<td${index >= 8 && index <= 10 ? ' style="mso-number-format:#,##0.00"' : ''}>${html(value)}</td>`).join('')}</tr>`).join('')}</table>`;
-  return { blob: new Blob([`<html><meta charset="utf-8">${table}</html>`], { type: 'application/vnd.ms-excel' }), name: `${name}.xlsx` };
+export async function buildAgingExport(context,type){
+ const receivables=context.reportKey==='receivables-aging',headers=['Identificaci\u00f3n',receivables?'Cliente':'Proveedor',receivables?'Vendedor / Gestor':'Categor\u00eda','Documento','Emisi\u00f3n','Vencimiento','D\u00edas de mora','Moneda','Monto original','Monto aplicado','Saldo pendiente','Antig\u00fcedad'],rows=exportRows(context),name=context.reportKey+'-'+context.cutoff;
+ if(type==='csv')return{blob:new Blob(['\ufeff'+[headers,...rows].map(row=>row.map(value=>csvCell(value)).join(',')).join('\r\n')],{type:'text/csv'}),name:name+'.csv'};
+ const breakdown=agingCurrencyBreakdown(context),extraSheets=originalMode(context)?[{headers:['Moneda','Auxiliar','Anticipos / sin aplicar','Saldo neto','Mayor','Diferencia'],rows:breakdown.map(item=>[currencyLabel(context,item.source),item.subledger,item.advances,item.netBalance,item.reconciliationAvailable?item.controlBalance:'No disponible',item.reconciliationAvailable?item.difference:'Filtro anal\u00edtico'])}]:[];
+ return{blob:await reportWorkbook({headers,rows,context:context.exportContext,title:context.reportTitle,extraSheets}),name:name+'.xlsx'};
 }
 
 export function agingPresentationLabel(currencyMode) {

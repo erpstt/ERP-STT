@@ -1,4 +1,4 @@
-import {forecastCsv} from './income-forecast-export.js';
+import {forecastCsv} from './income-forecast-export.js?v=20261102-a03-spreadsheet';
 const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),money=v=>Number(v||0).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2});
 let options={},report=null,configuration=null,overrides={},editing=null,scenario=null,busy=false;
 const consolidatedMode=new URLSearchParams(location.search).get('mode')==='consolidated';
