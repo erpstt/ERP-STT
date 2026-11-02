@@ -674,7 +674,7 @@ const server = createServer((request, response) => {
       const result=await settings(authorization,action,input);
       if(action!=='get'||typeof result!=='object'||result===null)return json(response,200,result);
       const roleAccess=await myRoleAccess(authorization);
-      const canEdit=roleAccess.isAdmin||roleAccess.grants.some(grant=>grant.resourceKey==='legacy:all'||(grant.resourceKey===resourceKey&&grant.canEdit));
+      const canEdit=roleAccess.isAdmin||roleAccess.grants.some(grant=>grant.resourceKey===resourceKey&&grant.canView===true&&grant.canEdit===true);
       return json(response,200,{...(result as Record<string,unknown>),canEdit});
     }
     const statementRoute=request.url?.match(/^\/api\/entities\/customers\/(\d+)\/statement\/(get|send|pdf)$/);

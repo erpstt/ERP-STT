@@ -74,8 +74,8 @@ test('la presentación diferencia invitación, activación y recuperación', () 
 test('el endpoint de plantillas separa permisos de consulta y edición', () => {
   assert.match(server, /resourceKey='configuration:notification-templates'/);
   assert.match(server, /action==='save'\?'edit':'view'/);
-  assert.match(server, /grant\.resourceKey==='legacy:all'/);
-  assert.match(server, /grant\.resourceKey===resourceKey&&grant\.canEdit/);
+  assert.doesNotMatch(server, /grant\.resourceKey==='legacy:all'/);
+  assert.match(server, /grant\.resourceKey===resourceKey&&grant\.canView===true&&grant\.canEdit===true/);
 });
 
 test('el RPC de invitación aplica la misma matriz de permisos', () => {

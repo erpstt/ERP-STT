@@ -41,10 +41,10 @@ createApp({
     hydrate(data){this.revision=data._revision;
       this.roles=data.roles||this.roles;this.modules=data.modules||[];this.specialPermissions=(data.specialPermissions||[]).map(item=>({...item,enabled:Boolean(item.enabled)}));
       this.administratorRole=Boolean(data.isAdministratorRole);this.loadedRoleId=Number(data.selectedRoleId||this.selectedRoleId);this.selectedRoleId=this.loadedRoleId;
-      const legacy=(data.grants||[]).some(grant=>grant.resourceKey==='legacy:all');this.grants={};
+      const legacy=(data.grants||[]).some(grant=>grant.resourceKey==='legacy:all');this.grants={};if(legacy){this.message='Este rol tiene un permiso heredado. Defina permisos expl\u00edcitos antes de guardar; no se convierten en acceso total.';this.messageType='error';}
       for(const module of this.modules)for(const resource of module.resources){
         const saved=(data.grants||[]).find(grant=>grant.resourceKey===resource.key);
-        this.grants[resource.key]=saved?{...saved}:{resourceKey:resource.key,canView:(legacy&&!resource.key.startsWith('security:'))||this.administratorRole,canCreate:((legacy&&!resource.key.startsWith('security:'))||this.administratorRole)&&resource.actions.includes('create'),canEdit:((legacy&&!resource.key.startsWith('security:'))||this.administratorRole)&&resource.actions.includes('edit'),canDelete:((legacy&&!resource.key.startsWith('security:'))||this.administratorRole)&&resource.actions.includes('delete')};
+        this.grants[resource.key]=saved?{...saved}:{resourceKey:resource.key,canView:this.administratorRole,canCreate:(this.administratorRole)&&resource.actions.includes('create'),canEdit:(this.administratorRole)&&resource.actions.includes('edit'),canDelete:(this.administratorRole)&&resource.actions.includes('delete')};
       }
       this.expanded=new Set(this.modules.map(module=>module.key));this.dirty=false;
     },

@@ -104,7 +104,7 @@ export function invalidateRoleAccessCaches(token?:string){
 }
 
 function completeRoleAccess(data:Omit<MyRoleAccessData,'modules'>):MyRoleAccessData{
-  return{isAdmin:data.isAdmin===true,grants:Array.isArray(data.grants)?data.grants:[],modules:roleAccessModules};
+  return{isAdmin:data.isAdmin===true,grants:Array.isArray(data.grants)?data.grants.filter(g=>g.resourceKey!=='legacy:all'):[],modules:roleAccessModules};
 }
 
 export function primeRoleAccessCache(token:string,data:Omit<MyRoleAccessData,'modules'>){
@@ -140,7 +140,7 @@ export const myRoleAccess=(token:string)=>myRoleAccessCache.getOrLoad({namespace
 export async function assertRoleAccess(token:string,resourceKey:string,action:Action){
   const access=await myRoleAccess(token);
   const property:Record<Action,keyof RoleAccessGrant>={view:'canView',create:'canCreate',edit:'canEdit',delete:'canDelete'};
-  const allowed=access.isAdmin||access.grants.some(grant=>grant.resourceKey==='legacy:all'||(grant.resourceKey===resourceKey&&grant[property[action]]===true));
+  const allowed=access.isAdmin||access.grants.some(grant=>grant.resourceKey===resourceKey&&grant.canView===true&&grant[property[action]]===true);
   if(allowed)return null;
   const failure=new Error('El rol activo no tiene permiso para realizar esta acción.')as Error&{status?:number};failure.status=403;throw failure;
 }

@@ -76,7 +76,8 @@
     "test:transaction-type-security": "npm run build && node --test scripts/transaction-type-sql.test.mjs scripts/transaction-type-api.test.mjs scripts/transaction-type-http.test.mjs scripts/transaction-type-ui.test.mjs",
     "test:status-master-security": "npm run build && node --test scripts/status-master-sql.test.mjs scripts/status-master-api.test.mjs scripts/status-master-http.test.mjs scripts/status-master-ui.test.mjs",
     "test:global-configuration-security": "npm run build && node --test scripts/global-configuration-sql.test.mjs scripts/global-configuration-api.test.mjs scripts/global-configuration-http.test.mjs scripts/global-configuration-ui.test.mjs",
-    "test:locale-catalog-security": "npm run build && node --test scripts/locale-catalog-sql.test.mjs scripts/locale-catalog-api.test.mjs scripts/locale-catalog-http.test.mjs scripts/locale-catalog-ui.test.mjs"
+    "test:locale-catalog-security": "npm run build && node --test scripts/locale-catalog-sql.test.mjs scripts/locale-catalog-api.test.mjs scripts/locale-catalog-http.test.mjs scripts/locale-catalog-ui.test.mjs",
+    "test:legacy-access-security": "npm run build && node --test scripts/legacy-access-sql.test.mjs scripts/legacy-access-api.test.mjs scripts/legacy-access-http.test.mjs scripts/legacy-retirement-plan.test.mjs scripts/access-admin-ui-security.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",

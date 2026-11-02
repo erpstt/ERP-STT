@@ -1,0 +1,1477 @@
+{
+  "roles": [
+    {
+      "role_id": 1,
+      "role_name": "Administrador",
+      "description": "Acceso administrativo global a todas las empresas y configuraciones"
+    },
+    {
+      "role_id": 2,
+      "role_name": "Contador Regional",
+      "description": "Supervisión técnica y aprobación de estados financieros y cierres."
+    },
+    {
+      "role_id": 3,
+      "role_name": "Encargado de Cuentas por Cobrar",
+      "description": "Emisión de comprobantes de venta y cobros."
+    },
+    {
+      "role_id": 4,
+      "role_name": "Encargado de Cuentas por Pagar",
+      "description": "Registro de compras, facturas de proveedores y pagos."
+    },
+    {
+      "role_id": 5,
+      "role_name": "Gerente Financiero / CFO",
+      "description": "Supervisión de consolidación multi-empresa (NIIF 10), autorización de flujos de caja y aprobación final de workflows de alto valor."
+    },
+    {
+      "role_id": 6,
+      "role_name": "Encargado de Tesorería",
+      "description": "Ejecución final de desembolsos aprobados, conciliación bancaria, emisión de cheques y transferencias entre cuentas (TRF_BAN)."
+    },
+    {
+      "role_id": 7,
+      "role_name": "Encargado de Compras",
+      "description": "Gestión de proveedores, emisión y seguimiento de Órdenes de Compra (ORD_COM) y recepción de insumos."
+    },
+    {
+      "role_id": 8,
+      "role_name": "Encargado de Ventas",
+      "description": "Creación de cotizaciones, procesamiento de pedidos de venta (PED_VEN) y verificación de límites de crédito/descuentos."
+    },
+    {
+      "role_id": 9,
+      "role_name": "Encargado de Inventario / Bodega",
+      "description": "Control de Kardex, recepciones de inventario, traslados entre bodegas/sedes y toma de inventarios físicos."
+    },
+    {
+      "role_id": 10,
+      "role_name": "Encargado de Activos Fijos",
+      "description": "Gestión del catálogo de bienes (NIC 16), procesamiento de la bandeja de propuestas de capitalización y corridas de depreciación."
+    },
+    {
+      "role_id": 11,
+      "role_name": "Gerente de Subsidiaria",
+      "description": "Administración y acceso operativo limitado exclusivamente a la sucursal o subsidiaria asignada (sin visibilidad de la Holding)."
+    },
+    {
+      "role_id": 12,
+      "role_name": "Contador de Subsidiaria",
+      "description": "Responsable del ciclo contable exclusivo de una filial asignada. Contabiliza asientos, genera declaraciones locales y ejecuta el cierre de mes local."
+    },
+    {
+      "role_id": 13,
+      "role_name": "Gestor de Unidad de Proyectos",
+      "description": "Responsable de la facturación por hitos/avances, y análisis de rentabilidad (Estado de Resultados de Ingresos vs Costos) por cliente y proyecto."
+    }
+  ],
+  "explicit": [
+    {
+      "role_id": 2,
+      "resource_key": "accounting:account-groups",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "accounting:account-subsidiaries",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "accounting:accounting-books",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "accounting:allocation-rules",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "accounting:budget-lines",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "accounting:budgets",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "accounting:chart-accounts",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "accounting:fx-revaluation",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "accounting:fx-revaluation-analysis",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "accounting:gl-impacts",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "accounting:journal-lines",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "accounting:journal-supports",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "accounting:journals",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "accounting:opening-balances",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "accounting:payment-requests",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "accounting:pending-invoice-reclassification",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "ai:ai-agents",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "ai:ai-conversations",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "ai:ai-documents",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "ai:ai-predictions",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "ai:ai-prompts",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "audit:activity-logs",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "audit:audit-logs",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "audit:change-logs",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "audit:change-report",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "audit:deleted-records",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "audit:event-logs",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "banking:bank-accounts",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "banking:bank-checks",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "banking:bank-deposits",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "banking:bank-reconciliations",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "banking:bank-statements",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "banking:bank-transactions",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "banking:bank-transfers",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "banking:banks",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "banking:cash-proof",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "configuration:consolidated-exchange-rates",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "configuration:document-types",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "configuration:exchange-rates",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "configuration:holidays",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "configuration:notification-templates",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "configuration:payment-methods",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "configuration:payment-terms",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "configuration:series",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "configuration:tax-agencies",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "configuration:tax-codes",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "configuration:tax-groups",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "configuration:tax-types",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "configuration:uom",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "configuration:up-approvers",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "consolidation:financial-consolidation",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "consolidation:intercompany-eliminations",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "core:countries",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "core:currencies",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "core:languages",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "core:number-sequences",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "core:parameters",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "core:settings",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "core:status",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "core:timezones",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "core:transaction-types",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "documents:document-permissions",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "documents:document-relations",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "documents:document-types",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "documents:document-versions",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "documents:documents",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "documents:folders",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "documents:pdf-templates",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "entities:customers",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "entities:employees",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "entities:entity-subsidiaries",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "entities:suppliers",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "expenses:expense-approvals",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "expenses:expense-lines",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "expenses:expense-payments",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "expenses:expense-policies",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "expenses:expense-types",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "expenses:expenses",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "fixed-assets:asset-categories",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "fixed-assets:asset-depreciations",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "fixed-assets:asset-disposals",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "fixed-assets:asset-maintenances",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "fixed-assets:asset-proposals",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "fixed-assets:asset-transfers",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "fixed-assets:assets",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "fixed-assets:reports",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "inventory:barcodes",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "inventory:bins",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "inventory:item-location-configurations",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "inventory:item-types",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "inventory:product-brands",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "inventory:product-categories",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "inventory:product-groups",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "inventory:product-images",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "inventory:product-subsidiaries",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "inventory:product-suppliers",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "inventory:products",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "inventory:stock",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "inventory:stock-adjustments",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "inventory:stock-lots",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "inventory:stock-movements",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "inventory:stock-reservations",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "inventory:stock-serials",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "inventory:stock-transfers",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "inventory:warehouse-locations",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "organization:accounting-periods",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "organization:branches",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "organization:classes",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "organization:cost-centers",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "organization:departments",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "organization:financial-creditors",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "organization:fiscal-calendars",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "organization:fiscal-years",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "organization:locations",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "organization:related-companies",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "organization:subsidiaries",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "purchasing:goods-receipts",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "purchasing:orders",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "purchasing:quotes",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "purchasing:requisitions",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "purchasing:supplier-credit-notes",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "purchasing:supplier-debit-notes",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "purchasing:supplier-invoice-lines",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "purchasing:supplier-invoice-withholdings",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "purchasing:supplier-invoices",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "purchasing:supplier-note-lines",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "purchasing:supplier-payments",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "reports:accounting-reports",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "reports:scheduled-reports",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "sales:credit-notes",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "sales:customer-payments",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "sales:debit-notes",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "sales:deliveries",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "sales:invoices",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "sales:price-list-items",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "sales:price-lists",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "sales:quotations",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "sales:sales-invoice-lines",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "sales:sales-invoice-withholdings",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "sales:sales-note-lines",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "sales:sales-orders",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "security:devices",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "security:login-history",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "security:menu-permissions",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "security:menus",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "security:password-history",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "security:permissions",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "security:role-access-matrix",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "security:roles",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "security:sessions",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "security:user-roles",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "security:user-subsidiaries",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "security:users",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "tax:tax-calendar",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "tax:tax-obligations",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "transaction-engine:transaction-lines",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "transaction-engine:transactions",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "treasury:cash-closings",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "treasury:cash-openings",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "treasury:cash-transactions",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "treasury:cash-transfers",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "treasury:cashboxes",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "treasury:payment-batch-history",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "treasury:payment-batches",
+      "can_view": false,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "treasury:payment-requests",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "workflow:approval-inbox",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": true,
+      "can_delete": false
+    },
+    {
+      "role_id": 2,
+      "resource_key": "workflow:approval-logs",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "workflow:approval-matrices",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "workflow:approval-workflows",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "workflow:approvals",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "workflow:workflow-actions",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "workflow:workflow-rules",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "workflow:workflow-steps",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    },
+    {
+      "role_id": 2,
+      "resource_key": "workflow:workflows",
+      "can_view": true,
+      "can_create": true,
+      "can_edit": true,
+      "can_delete": true
+    }
+  ],
+  "legacyRoles": [
+    1,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+  ]
+}
