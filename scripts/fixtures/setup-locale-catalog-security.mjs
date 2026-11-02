@@ -1,5 +1,5 @@
 import{readFile}from'node:fs/promises';import{setupGlobalConfigurationSecurity}from'./setup-global-configuration-security.mjs';
-export const migration='20261102004543_secure_locale_catalogs.sql',activation='20261102004600_activate_locale_catalog_boundary_after_server.sql';
+export const migration='20261102004543_secure_locale_catalogs.sql',activation='20261102004943_activate_locale_catalog_boundary_after_server.sql';
 export async function setupLocaleCatalogSecurity(db){await setupGlobalConfigurationSecurity(db);await installLocaleCatalogSecurity(db);}
 export async function installLocaleCatalogSecurity(db){await db.exec(`
 create table languages(language_id bigint generated always as identity primary key,code varchar(10)unique not null,iso_code varchar(10),name text not null,is_active boolean not null default true);
