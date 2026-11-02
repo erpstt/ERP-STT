@@ -37,6 +37,7 @@ import{coreDictionaries,coreDictionaryRpc}from'./modules/core-catalogs/core-dict
 import{numberSequenceRpc}from'./modules/core-catalogs/number-sequence.service.js';
 import{transactionTypeRpc}from'./modules/core-catalogs/transaction-type.service.js';
 import{statusMasterRpc}from'./modules/core-catalogs/status-master.service.js';
+import{globalConfigurations,globalConfigurationRpc}from'./modules/core-catalogs/global-configuration.service.js';
 import { createSecurityRow, deleteSecurityRow, getSecurityCatalog, listSecurityRows, listUserSubsidiaryOptions, updateSecurityRow } from './modules/security-catalogs/security-catalogs.module.js';
 import { assertRoleAccess, isRoleAccessResource, myRoleAccess, roleAccessMatrix, saveRoleAccessMatrix } from './modules/security-catalogs/role-access-matrix.module.js';
 import { listSubsidiaryApprovers, createOrganizationRow, deleteOrganizationRow, getOrganizationCatalog, getOrganizationRow, listOrganizationRows, updateOrganizationRow } from './modules/organization-catalogs/organization-catalogs.module.js';
@@ -510,6 +511,7 @@ const server = createServer((request, response) => {
     if(request.method==='GET'&&accessUrl.pathname==='/api/core/sequence-access')return json(response,200,await numberSequenceRpc(request.headers.authorization!,'number_sequence_access'));
     if(request.method==='GET'&&accessUrl.pathname==='/api/core/transaction-type-access')return json(response,200,await transactionTypeRpc(request.headers.authorization!,'transaction_type_access'));
     if(request.method==='GET'&&accessUrl.pathname==='/api/core/status-access')return json(response,200,await statusMasterRpc(request.headers.authorization!,'status_master_access'));
+    if(request.method==='GET'&&accessUrl.pathname==='/api/core/global-configuration-access')return json(response,200,await globalConfigurationRpc(request.headers.authorization!,'global_configuration_access',{p_catalog:accessUrl.searchParams.get('catalog')}));
     const coreRoute = request.url?.match(/^\/api\/core\/([a-z-]+)(?:\/(\d+))?$/);
     if (coreRoute) {
       const authorization = request.headers.authorization;
@@ -519,7 +521,7 @@ const server = createServer((request, response) => {
       if (request.method === 'GET' && id === null) return json(response, 200, await listCatalogRows(catalog, authorization));
       if (request.method === 'POST' && id === null) return json(response, 201, await createCatalogRow(catalog, authorization, await body(request) as Record<string, unknown>));
       if (request.method === 'PATCH' && id !== null) return json(response, 200, await updateCatalogRow(catalog, authorization, id, await body(request) as Record<string, unknown>));
-      if (request.method === 'DELETE' && id !== null) { await deleteCatalogRow(catalog, authorization, id,(coreDictionaries.has(catalog.slug)||['number-sequences','transaction-types','status'].includes(catalog.slug))?((await body(request))as Record<string,unknown>)._revision:undefined); return json(response, 200, { success: true }); }
+      if (request.method === 'DELETE' && id !== null) { await deleteCatalogRow(catalog, authorization, id,(coreDictionaries.has(catalog.slug)||globalConfigurations.has(catalog.slug)||['number-sequences','transaction-types','status'].includes(catalog.slug))?((await body(request))as Record<string,unknown>)._revision:undefined); return json(response, 200, { success: true }); }
     }
     const securityAccessUrl=new URL(request.url??'/',`http://${request.headers.host??'localhost'}`);
     if(securityAccessUrl.pathname==='/api/security/my-role-access'&&request.method==='GET'){

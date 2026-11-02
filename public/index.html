@@ -491,12 +491,12 @@
 <a v-if="canCurrentAction('edit')&&activeCatalog.slug==='debit-notes'" class="icon-action edit" :href="'/sales-note-entry.html?kind=DEBIT&id='+row.dn_id"><span>✎</span><b>Editar</b></a>
 <a v-if="canCurrentAction('edit')&&activeCatalog.slug==='invoices'" class="icon-action edit" :href="'/sales-invoice-entry.html?id='+row.invoice_id"><span>✎</span><b>Editar</b></a>
 <button v-if="canCurrentAction('edit')&&activeCatalog.slug==='supplier-invoices'" type="button" class="icon-action edit" title="Editar factura" aria-label="Editar factura de proveedor" @click="openRecordForm(row)"><span>✎</span><b>Editar</b></button>
-<button v-if="canCurrentAction('edit')&&((!activeCatalog.statusMaster&&!activeCatalog.transactionTypeCatalog&&!activeCatalog.sequenceCatalog&&!activeCatalog.coreDictionary&&!activeCatalog.rateCatalog&&!activeCatalog.securityMaster&&!activeCatalog.taxCatalog&&!activeCatalog.entityMaster&&!activeCatalog.organizationMaster)||row._actions?.canEdit===true)&&activeCatalog.allowEdit !== false && (!activeCatalog.inventoryMaster || row._master_editable !== false) && !['invoices','supplier-invoices','credit-notes','debit-notes','supplier-credit-notes','supplier-debit-notes'].includes(activeCatalog.slug)" class="icon-action edit" title="Editar" aria-label="Editar registro" @click="openRecordForm(row)">
+<button v-if="canCurrentAction('edit')&&((!activeCatalog.globalConfiguration&&!activeCatalog.statusMaster&&!activeCatalog.transactionTypeCatalog&&!activeCatalog.sequenceCatalog&&!activeCatalog.coreDictionary&&!activeCatalog.rateCatalog&&!activeCatalog.securityMaster&&!activeCatalog.taxCatalog&&!activeCatalog.entityMaster&&!activeCatalog.organizationMaster)||row._actions?.canEdit===true)&&activeCatalog.allowEdit !== false && (!activeCatalog.inventoryMaster || row._master_editable !== false) && !['invoices','supplier-invoices','credit-notes','debit-notes','supplier-credit-notes','supplier-debit-notes'].includes(activeCatalog.slug)" class="icon-action edit" title="Editar" aria-label="Editar registro" @click="openRecordForm(row)">
 <span>✎</span>
 <b>Editar</b>
 </button>
 <button v-if="activeCatalog.allowAudit !== false" class="icon-action view" title="Ver quién creó o modificó este registro" @click="openRecordAudit(row)"><b>Autoría</b></button>
-<button v-if="canCurrentAction('delete')&&((!activeCatalog.statusMaster&&!activeCatalog.transactionTypeCatalog&&!activeCatalog.sequenceCatalog&&!activeCatalog.coreDictionary&&!activeCatalog.rateCatalog&&!activeCatalog.securityMaster&&!activeCatalog.taxCatalog&&!activeCatalog.entityMaster&&!activeCatalog.organizationMaster)||row._actions?.canDelete===true)&&activeCatalog.allowDelete !== false" class="icon-action delete" :title="['sessions','devices'].includes(activeCatalog.slug) ? 'Revocar' : 'Eliminar'" @click="requestDelete(row)">
+<button v-if="canCurrentAction('delete')&&((!activeCatalog.globalConfiguration&&!activeCatalog.statusMaster&&!activeCatalog.transactionTypeCatalog&&!activeCatalog.sequenceCatalog&&!activeCatalog.coreDictionary&&!activeCatalog.rateCatalog&&!activeCatalog.securityMaster&&!activeCatalog.taxCatalog&&!activeCatalog.entityMaster&&!activeCatalog.organizationMaster)||row._actions?.canDelete===true)&&activeCatalog.allowDelete !== false" class="icon-action delete" :title="['sessions','devices'].includes(activeCatalog.slug) ? 'Revocar' : 'Eliminar'" @click="requestDelete(row)">
 <span>⌫</span>
 <b>{{ ['sessions','devices'].includes(activeCatalog.slug) ? 'Revocar' : 'Eliminar' }}</b>
 </button>
@@ -695,7 +695,7 @@
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
 <script type="module" src="/i18n.js?v=20261029-global"></script>
-<script type="module" src="/app.js?v=20261101-status-master">
+<script type="module" src="/app.js?v=20261101-global-configuration">
 </script>
 <script src="/approval-notifications.js?v=20261101-c04-approval-inbox"></script></body>
 </html>
