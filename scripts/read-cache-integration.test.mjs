@@ -24,21 +24,25 @@ test.after(() => {
   globalThis.fetch = originalFetch;
 });
 
-test('idiomas usa caché de cinco minutos y un CRUD la invalida', async () => {
+test('idiomas revalida cada lectura por RPC y nunca reutiliza permisos de otra sesion', async () => {
   invalidateCoreLanguageCache();
   let reads = 0;
   globalThis.fetch = async (_input, init = {}) => {
-    if ((init.method ?? 'GET') === 'POST') return Response.json([{ language_id: 2, code: 'ENG', iso_code: 'en', name: 'English', is_active: true }]);
+    const path=new URL(String(_input)).pathname;
+    assert.ok(path.startsWith('/rest/v1/rpc/'));
+    if (path.endsWith('/save_locale_catalog')) return Response.json({ language_id: 2, code: 'ENG', iso_code: 'en', name: 'English', is_active: true });
+    assert.ok(path.endsWith('/locale_catalog'));
     reads += 1;
     return Response.json([{ language_id: 1, code: 'SPA', iso_code: 'es', name: 'Español', is_active: true }]);
   };
   const catalog = getCoreCatalog('languages');
   await listCatalogRows(catalog, authorization);
   await listCatalogRows(catalog, authorization);
-  assert.equal(reads, 1);
+  assert.equal(reads, 2);
   await createCatalogRow(catalog, authorization, { code: 'ENG', iso_code: 'en', name: 'English', is_active: true });
   await listCatalogRows(catalog, authorization);
-  assert.equal(reads, 2);
+  await listCatalogRows(catalog, secondAuthorization);
+  assert.equal(reads, 4);
 });
 
 test('empresas cachea solo el resumen sin logos y conserva el contrato completo aparte', async () => {
