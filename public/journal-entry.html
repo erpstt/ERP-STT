@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width">
 <title>Crear asiento</title>
 <link rel="stylesheet" href="/dashboard.css">
-<link rel="stylesheet" href="/journal-entry.css">
+<link rel="stylesheet" href="/journal-entry.css?v=20261102-journal-loading">
 </head>
 <body>
 <main class="journal-page">
@@ -16,10 +16,11 @@
 </div>
 <a href="/">Volver</a>
 </header>
+<div id="journalLoading" class="journal-loading" role="status" aria-live="polite"><span id="journalLoadMessage">Cargando información del asiento…</span><button id="retryJournalLoad" type="button" hidden>Reintentar carga</button></div>
 <section>
 <h2>Información principal</h2>
 <div class="header-grid">
-<label>Tipo de asiento<select id="journalType">
+<label>Tipo de asiento<select id="journalType" disabled>
 <option value="">Cargando tipos de asiento...</option>
 </select>
 </label>
@@ -29,17 +30,17 @@
 <label>Ubicación<select id="location" disabled>
 </select>
 </label>
-<label>Fecha<input id="journalDate" type="date">
+<label>Fecha<input id="journalDate" type="date" disabled>
 </label>
 <label>Período contable<select id="period" disabled>
 </select>
 </label>
-<label>Moneda<select id="currency">
+<label>Moneda<select id="currency" disabled>
 </select>
 </label>
 <label>Tipo de cambio<input id="rate" type="number" step="any" readonly>
 </label>
-<label class="wide">Nota<textarea id="memo">
+<label class="wide">Nota<textarea id="memo" disabled>
 </textarea>
 </label>
 </div>
@@ -87,7 +88,7 @@
 </tbody>
 </table>
 </div>
-<button id="addLine" type="button">＋ Agregar línea</button>
+<button id="addLine" type="button" disabled>＋ Agregar línea</button>
 </div>
 <div id="impactPanel" hidden>
 <p class="impact-note">Valores contabilizados en la moneda local de la subsidiaria.</p>
@@ -117,6 +118,7 @@
 </div>
 </div>
 <div id="supportsPanel" class="supports-panel" hidden>
+<p id="supportsStatus" role="status" aria-live="polite"></p><button id="supportsRetry" type="button" hidden>Reintentar respaldos</button>
 <div class="support-actions">
 <label class="support-upload">Cargar archivo<input id="supportFiles" type="file" multiple></label>
 <div class="support-link"><input id="supportLinkName" placeholder="Nombre del soporte"><input id="supportLinkUrl" type="url" placeholder="https://..."><button id="addSupportLink" type="button">Agregar enlace</button></div>
@@ -129,7 +131,7 @@
 </p>
 <footer>
 <a id="cancel" class="button-secondary" href="/">Cancelar</a>
-<button id="save" type="button">Guardar asiento</button>
+<button id="save" type="button" disabled>Guardar asiento</button>
 </footer>
 </main>
 <div id="successModal" class="success-modal" hidden>
@@ -143,7 +145,7 @@
 </div>
 </div>
 </div>
-<script type="module" src="/journal-entry.js?v=20261102-a03-capture2">
+<script type="module" src="/journal-entry.js?v=20261102-journal-loading">
 </script>
 </body>
 </html>

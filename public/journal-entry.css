@@ -231,4 +231,8 @@ body.sales-success-open{overflow:hidden}
   color:#b42332;
   font-weight:700;
 }
+.journal-loading{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 16px;margin:0 0 18px;border:1px solid #d7e3ec;border-radius:8px;background:#f4f8fb;color:#46627b;font-size:13px;line-height:1.5}
+.journal-loading[hidden]{display:none}.journal-loading.load-failed{border-color:#e8c8c8;background:#fff7f6;color:#9a3434}.journal-loading button,#supportsRetry{padding:8px 12px;border:1px solid #b9cddd;border-radius:6px;background:white;color:#285477;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}.journal-loading button:disabled{opacity:.6;cursor:wait}#supportsStatus:empty{display:none}#supportsStatus[role=alert]{color:#9a3434}#supportsRetry{margin:0 0 12px}
+.journal-page #save:disabled,.journal-page #addLine:disabled{opacity:.5;cursor:wait}
+@media(max-width:600px){.journal-loading{align-items:flex-start;flex-direction:column;gap:10px}}
 

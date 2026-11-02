@@ -48,7 +48,7 @@ import { exportOrganizationCatalog } from './modules/organization-catalogs/organ
 import { listCostCentersByUpApprover, reassignCostCenterUpApprover, upApproverOptions, upApproverSelectorOptions } from './modules/organization-catalogs/up-approvers.service.js';
 import { assertExchangeRateAccess, createConfigurationRow, deleteConfigurationRow, getConfigurationCatalog, listConfigurationRows, suggestConsolidatedExchangeRate, updateConfigurationRow } from './modules/configuration-catalogs/configuration-catalogs.module.js';
 import { accountingCatalogs, createAccountingRow, deleteAccountingRow, getAccountingCatalog, listAccountingRows, updateAccountingRow } from './modules/accounting-catalogs/accounting-catalogs.module.js';
-import { createJournalEntry, updateJournalEntry } from './modules/accounting-catalogs/journal-entry.service.js';
+import { createJournalEntry, updateJournalEntry, journalEntryOptions, journalEntryDetail, journalEntrySupports } from './modules/accounting-catalogs/journal-entry.service.js';
 import { fxRevaluation } from './modules/accounting-catalogs/fx-revaluation.service.js';
 import { importJournalCsv } from './modules/accounting-catalogs/journal-import.service.js';
 import { OpeningBalanceFilesValidationError, openingBalances } from './modules/accounting-catalogs/opening-balances.service.js';
@@ -618,6 +618,10 @@ const server = createServer((request, response) => {
     const fxRoute=request.url?.match(/^\/api\/accounting\/fx-revaluation\/(options|settings|preview|execute|cancel|report)$/);
     if(fxRoute&&((fxRoute[1]==='options'&&request.method==='GET')||(fxRoute[1]!=='options'&&request.method==='POST')))return json(response,200,await fxRevaluation(request.headers.authorization!,fxRoute[1],fxRoute[1]==='options'?{}:await body(request) as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/accounting/journals/import'){return json(response,200,await importJournalCsv(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    const journalEntryUrl=new URL(request.url??'/','http://localhost');
+    if(request.method==='GET'&&journalEntryUrl.pathname==='/api/accounting/journal-entry/options')return json(response,200,await journalEntryOptions(request.headers.authorization!,journalEntryUrl.searchParams.get('section')??'header',journalEntryUrl.searchParams.has('id')?Number(journalEntryUrl.searchParams.get('id')):null));
+    const journalEntryRead=journalEntryUrl.pathname.match(/^\/api\/accounting\/journal-entry\/(\d+)(\/supports)?$/);
+    if(request.method==='GET'&&journalEntryRead)return json(response,200,await (journalEntryRead[2]?journalEntrySupports:journalEntryDetail)(request.headers.authorization!,Number(journalEntryRead[1])));
     if(request.method==='POST'&&request.url==='/api/accounting/journal-entry'){const authorization=request.headers.authorization!;return json(response,201,await createJournalEntry(authorization,await body(request)as Record<string,unknown>));}
     const journalEntryUpdate=request.url?.match(/^\/api\/accounting\/journal-entry\/(\d+)$/);if(request.method==='PUT'&&journalEntryUpdate){const authorization=request.headers.authorization!;return json(response,200,await updateJournalEntry(authorization,Number(journalEntryUpdate[1]),await body(request)as Record<string,unknown>));}
     const noteContextRoute=request.url?.match(/^\/api\/purchasing\/supplier-note-(access|options)\/(CREDIT|DEBIT)$/);if(request.method==='GET'&&noteContextRoute)return json(response,200,await (noteContextRoute[1]==='access'?supplierNoteAccess:supplierNoteOptions)(request.headers.authorization!,noteContextRoute[2]!));

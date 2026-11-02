@@ -17,10 +17,11 @@ test('autorizacion interna precede al parseo y a las consultas',async t=>{
  await assert.rejects(createJournalEntry('',{}),e=>e.status===401);
 });
 test('rutas de crear, editar, previsualizar e importar requieren su accion y conservan JWT', {timeout:25000},async t=>{
- const calls=[];const roles={denied:null,reader:'view',creator:'create',editor:'edit',admin:'admin'};
+ // Las acciones necesitan Acceso; los bits de escritura por sí solos no autorizan al rol.
+ const calls=[];const roles={denied:[],reader:['view'],creator:['view','create'],editor:['view','edit'],noAccessWriter:['create','edit'],admin:['admin']};
  const stub=createServer(async(req,res)=>{
   res.setHeader('Content-Type','application/json');const role=req.headers.authorization?.replace('Bearer journal-http-','');
-  if(req.url==='/rest/v1/rpc/assert_request_access'){res.end(JSON.stringify({allowed:true,roleAccess:{isAdmin:role==='admin',grants:[{resourceKey:resource,canView:roles[role]==='view',canCreate:roles[role]==='create',canEdit:roles[role]==='edit',canDelete:false}]}}));return;}
+  if(req.url==='/rest/v1/rpc/assert_request_access'){const grant=roles[role]||[];res.end(JSON.stringify({allowed:true,roleAccess:{isAdmin:role==='admin',grants:[{resourceKey:resource,canView:grant.includes('view'),canCreate:grant.includes('create'),canEdit:grant.includes('edit'),canDelete:false}]}}));return;}
   const chunks=[];for await(const c of req)chunks.push(c);const payload=JSON.parse(Buffer.concat(chunks).toString()||'{}');
   calls.push({path:req.url,auth:req.headers.authorization,key:req.headers.apikey,payload});
   if(role==='admin'&&req.url.endsWith('/update_journal_entry')){res.writeHead(403);res.end(JSON.stringify({code:'42501',message:'private SQL detail'}));return;}
@@ -36,7 +37,7 @@ test('rutas de crear, editar, previsualizar e importar requieren su accion y con
   for(const [role,grant]of Object.entries(roles)){
    const auth=`Bearer journal-http-${role}`;const before=calls.length;
    const response=await fetch(url,{method,headers:{Authorization:auth,'X-Device-Token':'journal-http-device-fixture','Content-Type':'application/json'},body:JSON.stringify(input)});
-   const allowed=role==='admin'||grant===action;const sqlDenied=role==='admin'&&rpc==='update_journal_entry';
+   const allowed=role==='admin'||grant.includes('view')&&grant.includes(action);const sqlDenied=role==='admin'&&rpc==='update_journal_entry';
    assert.equal(response.status,!allowed||sqlDenied?403:['create_journal_entry','reverse_journal_entry'].includes(rpc)?201:200,`${role} ${rpc} ${action}`);
    assert.equal(calls.length,before+(allowed?1:0));
    if(allowed){const call=calls.at(-1);assert.equal(call.auth,auth);assert.equal(call.key,'public-fixture');assert.equal(call.path,'/rest/v1/rpc/'+rpc);
