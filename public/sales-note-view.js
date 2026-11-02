@@ -1,3 +1,4 @@
+import {escapeHtml} from './html-safety.js?v=20261101-a03-1';
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const kind = params.get('kind') === 'DEBIT' ? 'DEBIT' : 'CREDIT';
@@ -14,7 +15,7 @@ async function api(path) {
   return data;
 }
 
-const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=escapeHtml;
 const money = (value, symbol) => `${symbol} ${Number(value || 0).toLocaleString('es-CR', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2
@@ -63,7 +64,7 @@ try {
     const country = countries.find(item => String(item.country_id) === String(line.service_country_id));
     subtotal += Number(line.amount);
     tax += Number(line.tax_amount);
-    return `<tr><td><strong>${esc(product.display_name || 'Producto')}</strong>${line.note ? `<span class="product-code">${esc(line.note)}</span>` : ''}</td><td>${esc(country?.name || '—')}</td><td>${month(line.service_month)}</td><td class="number">${line.quantity}</td><td class="number">${money(line.unit_price, symbol)}</td><td class="number">${money(line.amount, symbol)}</td><td class="number">${money(line.tax_amount, symbol)}</td><td class="number">${money(line.gross_amount, symbol)}</td></tr>`;
+    return `<tr><td><strong>${esc(product.display_name || 'Producto')}</strong>${line.note ? `<span class="product-code">${esc(line.note)}</span>` : ''}</td><td>${esc(country?.name || '—')}</td><td>${esc(month(line.service_month))}</td><td class="number">${esc(line.quantity)}</td><td class="number">${esc(money(line.unit_price, symbol))}</td><td class="number">${esc(money(line.amount, symbol))}</td><td class="number">${esc(money(line.tax_amount, symbol))}</td><td class="number">${esc(money(line.gross_amount, symbol))}</td></tr>`;
   }).join('');
   $('subtotal').textContent = money(subtotal, symbol);
   $('tax').textContent = money(tax, symbol);

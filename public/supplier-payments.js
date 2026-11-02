@@ -1,10 +1,11 @@
+import {escapeHtml} from './html-safety.js?v=20261101-a03-1';
 import { indexBy } from './frontend-performance.js?v=20261023-second-pass-v3';
 
 const $=id=>document.getElementById(id);
 const token=localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo_token');
 const device=localStorage.getItem('nexo_device_token')||sessionStorage.getItem('nexo_device_token');
 const money=value=>Number(value||0).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2});
-const esc=value=>String(value??'—').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const esc=value=>escapeHtml(value??'—');
 let data,editing=null,existingAdvances=[];
 
 async function api(path,options={}){
@@ -15,7 +16,7 @@ async function api(path,options={}){
 }
 let paymentAccess;try{paymentAccess=await api('/api/purchasing/supplier-payments/access')}catch(error){$('message').textContent=error.message;document.querySelectorAll('input,select,textarea,button').forEach(el=>el.disabled=true);throw error}
 $('new').hidden=!paymentAccess.canCreate;document.querySelectorAll('#filters input,#filters button').forEach(el=>el.disabled=!paymentAccess.canView);
-const option=(rows,id,label,empty)=>`<option value="">${empty}</option>`+rows.map(row=>`<option value="${row[id]}">${esc(label(row))}</option>`).join('');
+const option=(rows,id,label,empty)=>`<option value="">${esc(empty)}</option>`+rows.map(row=>`<option value="${esc(row[id])}">${esc(label(row))}</option>`).join('');
 function currencies(){
   const rows=[...(data.accounts||[]),...(data.invoices||[]),...(data.advances||[])];
   const values=new Map();
@@ -45,14 +46,14 @@ function total(){
 function invoices(existing=[]){
   const rows=data.invoices.filter(row=>String(row.supplierId)===$('supplier').value&&String(row.currencyId)===$('currency').value);
   const existingByInvoice=indexBy(existing,item=>item.invoice_id),locksByInvoice=indexBy(data.paymentRequestLocks,item=>item.invoiceId);
-  $('invoiceRows').innerHTML=rows.map(row=>{const old=existingByInvoice.get(String(row.id)),lock=locksByInvoice.get(String(row.id)),blocked=Boolean(lock)&&!old,max=Number(row.balance)+Number(old?.amount||0);return `<tr class="${blocked?'payment-request-locked':''}"><td><input type="checkbox" data-check ${old?'checked':''} ${blocked?'disabled':''}></td><td><b>${esc(row.number)}</b>${blocked?`<small class="request-lock"><b>${esc(lock.requestNumber)}</b> · ${esc(lock.status.replaceAll('_',' '))}</small>`:''}</td><td>${esc(row.date)}</td><td>${esc(row.dueDate)}</td><td>${esc(row.currency)}</td><td class="num">${money(max)}</td><td class="num">${blocked?'<span class="lock-label">Gestionar en Tesorería</span>':`<input class="apply" data-id="${row.id}" data-max="${max}" type="number" min="0" max="${max}" step="0.01" value="${old?.amount||0}">`}</td></tr>`;}).join('')||'<tr><td colspan="7">No hay facturas pendientes para este proveedor y moneda.</td></tr>';
+  $('invoiceRows').innerHTML=rows.map(row=>{const old=existingByInvoice.get(String(row.id)),lock=locksByInvoice.get(String(row.id)),blocked=Boolean(lock)&&!old,max=Number(row.balance)+Number(old?.amount||0);return `<tr class="${blocked?'payment-request-locked':''}"><td><input type="checkbox" data-check ${old?'checked':''} ${blocked?'disabled':''}></td><td><b>${esc(row.number)}</b>${blocked?`<small class="request-lock"><b>${esc(lock.requestNumber)}</b> · ${esc(lock.status.replaceAll('_',' '))}</small>`:''}</td><td>${esc(row.date)}</td><td>${esc(row.dueDate)}</td><td>${esc(row.currency)}</td><td class="num">${esc(money(max))}</td><td class="num">${blocked?'<span class="lock-label">Gestionar en Tesorería</span>':`<input class="apply" data-id="${esc(row.id)}" data-max="${esc(max)}" type="number" min="0" max="${esc(max)}" step="0.01" value="${esc(old?.amount||0)}">`}</td></tr>`;}).join('')||'<tr><td colspan="7">No hay facturas pendientes para este proveedor y moneda.</td></tr>';
   total();
 }
 function advances(existing=[]){
   const rows=data.advances.filter(row=>String(row.supplierId)===$('supplier').value&&String(row.currencyId)===$('currency').value);
   const available=rows.reduce((sum,row)=>sum+Number(row.available||0),0);$('advanceAvailable').textContent=`Disponible: ${money(available)}`;
   const existingBySourceLine=indexBy(existing,item=>item.sourceLineId);
-  $('advanceRows').innerHTML=rows.map(row=>{const old=existingBySourceLine.get(String(row.id)),max=Number(row.available)+Number(old?.amount||0);return `<tr><td><input type="checkbox" data-advance-check ${old?'checked':''}></td><td><b>${esc(row.number)}</b></td><td>${esc(String(row.date).slice(0,10))}</td><td>${esc(row.account)}</td><td class="num available-advance">${money(max)}</td><td class="num"><input class="advance-apply" data-id="${row.id}" data-max="${max}" type="number" min="0" max="${max}" step="0.01" value="${old?.amount||0}"></td></tr>`;}).join('')||'<tr><td colspan="6">Este proveedor no tiene anticipos disponibles en la moneda seleccionada.</td></tr>';
+  $('advanceRows').innerHTML=rows.map(row=>{const old=existingBySourceLine.get(String(row.id)),max=Number(row.available)+Number(old?.amount||0);return `<tr><td><input type="checkbox" data-advance-check ${old?'checked':''}></td><td><b>${esc(row.number)}</b></td><td>${esc(String(row.date).slice(0,10))}</td><td>${esc(row.account)}</td><td class="num available-advance">${esc(money(max))}</td><td class="num"><input class="advance-apply" data-id="${esc(row.id)}" data-max="${esc(max)}" type="number" min="0" max="${esc(max)}" step="0.01" value="${esc(old?.amount||0)}"></td></tr>`;}).join('')||'<tr><td colspan="6">Este proveedor no tiene anticipos disponibles en la moneda seleccionada.</td></tr>';
   total();
 }
 function refreshDocuments(applications=[],advanceApplications=[]){invoices(applications);advances(advanceApplications);}
@@ -68,7 +69,7 @@ async function open(id=null){if(id?!(paymentAccess.canView&&paymentAccess.canEdi
 }
 async function load(){if(!paymentAccess.canView){$('rows').innerHTML='';return;}
   try{const report=await api('/api/purchasing/supplier-payments/report',{method:'POST',body:JSON.stringify({from:$('from').value,to:$('to').value})}),query=$('search').value.toLowerCase(),rows=report.rows.filter(row=>`${row.number} ${row.supplier} ${row.reference}`.toLowerCase().includes(query));$('count').textContent=`${rows.length} registros`;
-    $('rows').innerHTML=rows.map(row=>`<tr><td>${row.date}</td><td><b>${row.number}</b>${Number(row.advanceTotal)>0?`<small class="advance-badge">Anticipo: ${money(row.advanceTotal)}</small>`:''}</td><td>${row.supplier}</td><td>${row.bank} · ${row.account}</td><td>${row.reference}</td><td>${row.currency}</td><td class="num"><b>${money(row.amount)}</b></td><td><div class="row-actions"><button data-view="${row.id}">Ver</button>${Number(row.advanceTotal)>0?'':`${paymentAccess.canEdit?`<button data-edit="${row.id}">Editar</button>`:''}${paymentAccess.canDelete?`<button class="delete" data-delete="${row.id}">Eliminar</button>`:''}`}</div></td></tr>`).join('')||'<tr><td colspan="8">No se encontraron pagos.</td></tr>';
+    $('rows').innerHTML=rows.map(row=>`<tr><td>${esc(row.date)}</td><td><b>${esc(row.number)}</b>${Number(row.advanceTotal)>0?`<small class="advance-badge">Anticipo: ${esc(money(row.advanceTotal))}</small>`:''}</td><td>${esc(row.supplier)}</td><td>${esc(row.bank)} · ${esc(row.account)}</td><td>${esc(row.reference)}</td><td>${esc(row.currency)}</td><td class="num"><b>${esc(money(row.amount))}</b></td><td><div class="row-actions"><button data-view="${esc(row.id)}">Ver</button>${Number(row.advanceTotal)>0?'':`${paymentAccess.canEdit?`<button data-edit="${esc(row.id)}">Editar</button>`:''}${paymentAccess.canDelete?`<button class="delete" data-delete="${esc(row.id)}">Eliminar</button>`:''}`}</div></td></tr>`).join('')||'<tr><td colspan="8">No se encontraron pagos.</td></tr>';
     document.querySelectorAll('[data-edit]').forEach(button=>button.onclick=()=>open(button.dataset.edit));document.querySelectorAll('[data-view]').forEach(button=>button.onclick=()=>location.href=`/supplier-payment-view.html?id=${button.dataset.view}`);document.querySelectorAll('[data-delete]').forEach(button=>button.onclick=async()=>{try{if(paymentAccess.canDelete&&confirm('¿Eliminar este pago y revertir la salida bancaria?')){await api(`/api/purchasing/supplier-payments/${button.dataset.delete}`,{method:'DELETE'});await load();}}catch(error){$('message').textContent=error.message;}});
   }catch(error){$('message').textContent=error.message;}
 }
