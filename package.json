@@ -85,7 +85,8 @@
     "test:catalog-csv-security": "npm run build && node --test scripts/catalog-csv-security.test.mjs scripts/catalog-csv-browser.test.mjs scripts/cost-center-export.test.mjs scripts/organization-catalog-export.test.mjs scripts/entity-catalog-export.test.mjs",
     "test:scheduled-export-security": "npm run build && node --test scripts/scheduled-export-security.test.mjs",
     "test:media-security": "npm run build && node --test scripts/html-safety.test.mjs scripts/media-safety.test.mjs scripts/media-browser-security.test.mjs scripts/media-view-ui.test.mjs",
-    "test:csp-security": "npm run build && node --test scripts/csp-vue-security.test.mjs"
+    "test:csp-security": "npm run build && node --test scripts/csp-vue-security.test.mjs",
+    "test:other-names": "npm run build && node --test scripts/other-names-sql.test.mjs scripts/other-names-api.test.mjs scripts/other-names-ui.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",

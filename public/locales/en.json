@@ -185,7 +185,18 @@
     "catalogs": "ENTITIES · CATALOGS",
     "customers": "Customers",
     "suppliers": "Suppliers",
-    "employees": "Employees"
+    "employees": "Employees",
+    "otherNames": "Other Names",
+    "otherName": "third party",
+    "otherNamesDescription": "Third parties by subsidiary without customer or supplier invoicing",
+    "otherNamesNotice": "Third parties belong to the active subsidiary. The number is generated automatically and identification is unique within that subsidiary.",
+    "otherNamesBank": "Beneficiary bank",
+    "otherNamesBeneficiary": "Bank beneficiary",
+    "otherNamesIban": "Payment IBAN",
+    "otherNamesAccount": "Account number",
+    "otherNamesCreate": "Create third party",
+    "otherNamesEdit": "Edit third party",
+    "otherNamesDelete": "Delete third party"
   },
   "accounting": {
     "chartOfAccounts": "Chart of accounts",

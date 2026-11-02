@@ -185,7 +185,18 @@
     "catalogs": "ENTIDADES · CATÁLOGOS",
     "customers": "Clientes",
     "suppliers": "Proveedores",
-    "employees": "Empleados"
+    "employees": "Empleados",
+    "otherNames": "Otros Nombres",
+    "otherName": "tercero",
+    "otherNamesDescription": "Terceros por subsidiaria sin facturación de venta o proveedor",
+    "otherNamesNotice": "Los terceros pertenecen a la subsidiaria activa. El número se genera automáticamente y la identificación es única en esa subsidiaria.",
+    "otherNamesBank": "Banco beneficiario",
+    "otherNamesBeneficiary": "Beneficiario bancario",
+    "otherNamesIban": "IBAN para pagos",
+    "otherNamesAccount": "Número de cuenta",
+    "otherNamesCreate": "Crear tercero",
+    "otherNamesEdit": "Editar tercero",
+    "otherNamesDelete": "Eliminar tercero"
   },
   "accounting": {
     "chartOfAccounts": "Plan de cuentas",
