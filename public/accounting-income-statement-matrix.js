@@ -1,3 +1,4 @@
+import {escapeHtml as htmlText} from './html-safety.js?v=20261101-a03-1';
 const byId = id => document.getElementById(id);
 const vector = (row, columns) => columns.map(column => Number(row.dimensions?.[column.id] || 0));
 const add = (left, right, factor = 1) => left.map((value, index) => value + Number(right[index] || 0) * factor);
@@ -25,13 +26,13 @@ export function renderIncomeStatementMatrix(context) {
     ['beforeTax', '= UTILIDAD ANTES DE IMPUESTOS (UAI)', beforeTax, 'subtotal'], ['tax', '(-) Provisión Impuesto sobre la Renta', tax],
     ['net', '= UTILIDAD O PÉRDIDA NETA DEL PERIODO', net, 'net']
   ];
-  const cells = (values, accountId = null) => values.map(value => `<td class="number ${value < 0 ? 'negative' : ''}">${accountId && value !== 0 ? `<button class="account-drill ${value < 0 ? 'negative' : ''}" data-account="${accountId}" title="Abrir Libro Mayor">${financial(value)}</button>` : financial(value)}</td>`).join('') + `<td class="number matrix-total ${sum(values) < 0 ? 'negative' : ''}">${financial(sum(values))}</td>`;
+  const cells = (values, accountId = null) => values.map(value => `<td class="number ${value < 0 ? 'negative' : ''}">${accountId && value !== 0 ? `<button class="account-drill ${value < 0 ? 'negative' : ''}" data-account="${htmlText(accountId)}" title="Abrir Libro Mayor">${htmlText(financial(value))}</button>` : htmlText(financial(value))}</td>`).join('') + `<td class="number matrix-total ${sum(values) < 0 ? 'negative' : ''}">${htmlText(financial(sum(values)))}</td>`;
   byId('thead').innerHTML = `<tr><th class="matrix-code">Código</th><th class="matrix-account">Cuenta Contable</th>${columns.map(column => `<th class="number">${escapeHtml(column.name)}</th>`).join('')}<th class="number matrix-total">Total Consolidado</th></tr>`;
   const html = [];
   for (const [key, label, values, kind] of definitions) {
     if (kind) { html.push(`<tr class="statement-${kind}"><td class="matrix-code"></td><td class="matrix-account">${label}</td>${cells(values)}</tr>`); continue; }
     const sectionId = `matrix-section-${key}`;
-    html.push(`<tr class="statement-section" data-node="${sectionId}"><td class="matrix-code"><button class="tree-toggle" data-toggle="${sectionId}">−</button></td><td class="matrix-account">${label}</td>${cells(values)}</tr>`);
+    html.push(`<tr class="statement-section" data-node="${htmlText(sectionId)}"><td class="matrix-code"><button class="tree-toggle" data-toggle="${htmlText(sectionId)}">−</button></td><td class="matrix-account">${label}</td>${cells(values)}</tr>`);
     const grouped = new Map();
     for (const row of sections[key]) {
       const groupId = String(row.group_id || 'other'), group = (options.accountGroups || []).find(item => String(item.id) === groupId);
@@ -41,11 +42,11 @@ export function renderIncomeStatementMatrix(context) {
     const sorted = [...grouped].sort((a, b) => String(a[1].group?.code || '').localeCompare(String(b[1].group?.code || ''), 'es', { numeric: true }));
     for (const [groupId, entry] of sorted) {
       const nodeId = `${sectionId}-group-${groupId}`, indent = Math.max(1, Math.min(4, Number(entry.group?.level || 1))) * 18;
-      html.push(`<tr data-parent="${sectionId}" data-node="${nodeId}" class="tree-group"><td class="matrix-code">${escapeHtml(entry.group?.code || '')}</td><td class="matrix-account" style="padding-left:${indent}px"><button class="tree-toggle" data-toggle="${nodeId}">−</button>${escapeHtml(entry.group?.name || 'Otras cuentas')}</td>${cells(entry.values)}</tr>`);
+      html.push(`<tr data-parent="${htmlText(sectionId)}" data-node="${htmlText(nodeId)}" class="tree-group"><td class="matrix-code">${escapeHtml(entry.group?.code || '')}</td><td class="matrix-account" style="padding-left:${indent}px"><button class="tree-toggle" data-toggle="${htmlText(nodeId)}">−</button>${escapeHtml(entry.group?.name || 'Otras cuentas')}</td>${cells(entry.values)}</tr>`);
       entry.rows.sort((a, b) => String(a.account_number).localeCompare(String(b.account_number), 'es', { numeric: true }));
       for (const row of entry.rows) {
         const values = vector(row, columns).map(value => key === 'nonop' && row.category !== 'Ingreso' ? -value : value);
-        html.push(`<tr data-parent="${nodeId}" class="tree-account"><td class="matrix-code">${escapeHtml(row.account_number)}</td><td class="matrix-account" style="padding-left:${indent + 28}px">${escapeHtml(row.account_name)}</td>${cells(values, row.account_id)}</tr>`);
+        html.push(`<tr data-parent="${htmlText(nodeId)}" class="tree-account"><td class="matrix-code">${escapeHtml(row.account_number)}</td><td class="matrix-account" style="padding-left:${indent + 28}px">${escapeHtml(row.account_name)}</td>${cells(values, row.account_id)}</tr>`);
       }
     }
   }
@@ -54,6 +55,6 @@ export function renderIncomeStatementMatrix(context) {
   document.querySelectorAll('[data-toggle]').forEach(button => button.onclick = () => toggleTree(button.dataset.toggle, button));
   document.querySelectorAll('[data-account]').forEach(button => button.onclick = () => openLedger(button.dataset.account));
   const matrixResult = sum(net), ledgerResult = Number(data.summary?.periodResult || 0), difference = matrixResult - ledgerResult, matched = Math.abs(difference) < 0.005;
-  byId('summary').innerHTML = `<div class="metric"><small>Resultado neto del reporte</small><b class="${matrixResult < 0 ? 'negative' : ''}">${financial(matrixResult)}</b></div><div class="metric"><small>Resultado según Mayor General</small><b class="${ledgerResult < 0 ? 'negative' : ''}">${financial(ledgerResult)}</b></div><div class="metric ${matched ? 'reconciled' : 'unreconciled'}"><small>Conciliación al centavo</small><b>${matched ? 'Coincide al centavo' : `Diferencia ${financial(difference)}`}</b></div>`;
+  byId('summary').innerHTML = `<div class="metric"><small>Resultado neto del reporte</small><b class="${matrixResult < 0 ? 'negative' : ''}">${htmlText(financial(matrixResult))}</b></div><div class="metric"><small>Resultado según Mayor General</small><b class="${ledgerResult < 0 ? 'negative' : ''}">${htmlText(financial(ledgerResult))}</b></div><div class="metric ${matched ? 'reconciled' : 'unreconciled'}"><small>Conciliación al centavo</small><b>${matched ? 'Coincide al centavo' : `Diferencia ${htmlText(financial(difference))}`}</b></div>`;
   renderPager();
 }

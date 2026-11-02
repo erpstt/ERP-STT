@@ -79,7 +79,8 @@
     "test:locale-catalog-security": "npm run build && node --test scripts/locale-catalog-sql.test.mjs scripts/locale-catalog-api.test.mjs scripts/locale-catalog-http.test.mjs scripts/locale-catalog-ui.test.mjs",
     "test:legacy-access-security": "npm run build && node --test scripts/legacy-access-sql.test.mjs scripts/legacy-access-api.test.mjs scripts/legacy-access-http.test.mjs scripts/legacy-retirement-plan.test.mjs scripts/access-admin-ui-security.test.mjs",
     "test:xss-screen-security": "npm run build && node --test scripts/html-safety.test.mjs scripts/xss-screen-security.test.mjs",
-    "test:xss-capture-security": "npm run build && node --test scripts/html-safety.test.mjs scripts/xss-capture-options.test.mjs scripts/xss-capture-ui.test.mjs"
+    "test:xss-capture-security": "npm run build && node --test scripts/html-safety.test.mjs scripts/xss-capture-options.test.mjs scripts/xss-capture-ui.test.mjs",
+    "test:xss-report-security": "npm run build && node --test scripts/html-safety.test.mjs scripts/xss-report-security.test.mjs scripts/xss-report-ui.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
