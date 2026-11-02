@@ -1,6 +1,7 @@
 import{registerTrustedLogin}from'../services/trusted-session.service.js';
 import type { LoginDto } from '../dto/login.dto.js';
 import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
+import { withDeviceContext } from '../../../core/security/device-context.js';
 
 export interface AuthRepository {
   signIn(input: LoginDto, ipAddress?: string | null): Promise<{ accessToken: string; user: { name: string; email: string } }>;
@@ -8,6 +9,10 @@ export interface AuthRepository {
 
 export class SupabaseAuthRepository implements AuthRepository {
   async signIn(input: LoginDto, ipAddress: string | null = null) {
+    return withDeviceContext(input.deviceToken, () => this.signInWithDevice(input, ipAddress));
+  }
+
+  private async signInWithDevice(input: LoginDto, ipAddress: string | null) {
     const config = getSupabaseConfig();
     if (!config) throw new Error('La autenticación con Supabase no está configurada.');
 
@@ -47,8 +52,13 @@ export class SupabaseAuthRepository implements AuthRepository {
       throw new Error('El usuario no está aprovisionado correctamente o se encuentra inactivo en el ERP. Contacte al administrador.');
     }
     const request=async<T>(path:string,init:RequestInit={}):Promise<T>=>{const result=await fetchSupabase(new URL(`/rest/v1/${path}`,config.url),{...init,headers:{apikey:config.anonKey,Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json',...(init.headers??{})}});const text=await result.text();const value:unknown=text?JSON.parse(text):null;if(!result.ok)throw new Error(typeof value==='object'&&value&&'message'in value?String(value.message):'No fue posible registrar el usuario en el ERP.');return value as T;};
-    const passwordHistory=await request<Array<{history_id:number}>>(`password_history?select=history_id&user_id=eq.${erpUserId}&limit=1`);
-    if(!passwordHistory.length){const{hashPassword}=await import('../../../shared/services/password.service.js');await request('password_history',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({user_id:erpUserId,password_hash:await hashPassword(input.password)})});}
+    try {
+      const passwordHistory=await request<Array<{history_id:number}>>(`password_history?select=history_id&user_id=eq.${erpUserId}&limit=1`);
+      if(!passwordHistory.length){const{hashPassword}=await import('../../../shared/services/password.service.js');await request('password_history',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({user_id:erpUserId,password_hash:await hashPassword(input.password)})});}
+    } catch (cause) {
+      await revokeAuthSession();
+      throw cause;
+    }
     return {
       accessToken,
       user: { name: email.split('@')[0], email }
