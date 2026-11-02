@@ -1371,7 +1371,7 @@ export function render(_ctx, _cache) {
                                     _createTextVNode(" Crear nota de débito", -1 /* CACHED */)
                                   ]))]))
                                 : _createCommentVNode("v-if", true),
-                              (_ctx.activeCatalog.slug==='user-subsidiaries' && _ctx.canCurrentAction('edit'))
+                              (_ctx.activeCatalog.slug==='user-subsidiaries' && _ctx.canCurrentAction('edit') && _ctx.activeCatalog.allowEdit === true)
                                 ? (_openBlock(), _createElementBlock("button", {
                                     key: 10,
                                     class: "new-record",
