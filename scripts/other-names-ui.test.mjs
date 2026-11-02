@@ -82,11 +82,12 @@ test('Otros Nombres respeta permisos, filial activa, campos bancarios y numeraci
   await field('identification').locator('input').fill('SYN-2');
   await field('email').locator('input').fill('new@example.invalid');
   await field('phone').locator('input').fill('8888-8888');
+  await field('comments').locator('textarea').fill('First line\nSecond line <script>unsafe()</script>');
+  await page.locator('.entity-form-tabs [data-entity-tab="banking"]').click();
   await field('payment_beneficiary_name').locator('input').fill('Synthetic beneficiary');
   await field('payment_bank_id').locator('select').selectOption('3');
   await field('payment_iban').locator('input').fill('CR05015202001026284066');
   await field('payment_account_number').locator('input').fill('000012345');
-  await field('comments').locator('textarea').fill('First line\nSecond line <script>unsafe()</script>');
   if(process.env.OTHER_NAMES_UI_SCREENSHOT)await page.screenshot({path:process.env.OTHER_NAMES_UI_SCREENSHOT,fullPage:true});
   await page.evaluate(()=>{const vm=document.getElementById('app').__vue_app__._container._vnode.component.proxy;vm.recordDialog.values.other_name_number='FORGED';vm.recordDialog.values.subsidiary_id=999;});
   await page.locator('.modal .button-primary').click();

@@ -19,7 +19,7 @@ export async function entityMasterRpc(auth:string,k:string,a:Action|'options',p:
    ?'Ya existe un tercero con esa identificación en la subsidiaria activa.'
    :status===403?'Entidad, subsidiarias o referencias no autorizadas.'
    :status===409?'La entidad cambió, está utilizada o tiene dependencias. Consúltela nuevamente.'
-   :status===400?(otherNames?'Revise identificación, nombre, correo, banco, IBAN y número de cuenta.':k==='employees'?'Revise identificación, nombre, correo y referencias del empleado.':'Revise los datos, monedas, cuenta bancaria y reglas de retención.')
+   :status===400?(otherNames?'Revise identificación, nombre, correo, bancos, monedas, IBAN y números de cuenta.':k==='employees'?'Revise identificación, nombre, correo, referencias y datos bancarios del empleado.':'Revise los datos, monedas, cuentas bancarias y reglas de retención.')
    :'No fue posible procesar el maestro de entidad.';
   throw Object.assign(Error(message),{status});
  }

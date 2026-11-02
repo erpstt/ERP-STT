@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="/login-refresh.css">
   <link rel="stylesheet" href="/login-position.css">
   <link rel="stylesheet" href="/password-recovery.css?v=20261026">
-  <link rel="stylesheet" href="/dashboard.css?v=20261102-other-names">
+  <link rel="stylesheet" href="/dashboard.css?v=20261102-entity-bank-sections">
   <link rel="stylesheet" href="/modal-scroll.css?v=20260911-entity-fullscreen">
   <link rel="stylesheet" href="/company-selection.css">
   <link rel="stylesheet" href="/subsidiary-branding.css?v=20260814">
@@ -555,7 +555,7 @@
 </div>
 
     <div v-if="recordDialog.open" class="modal-backdrop" @click.self="closeRecordDialog">
-      <section class="modal" :class="{'entity-master-modal':['customers','suppliers'].includes(activeCatalog.slug),'other-names-modal':activeCatalog.slug==='other-names','subsidiary-master-modal':activeCatalog.slug==='subsidiaries','account-master-modal':activeCatalog.slug==='chart-accounts','user-company-access-modal':activeCatalog.slug==='user-subsidiaries','bank-statement-modal':activeCatalog.slug==='bank-statements'}" role="dialog" aria-modal="true" aria-labelledby="country-modal-title">
+      <section class="modal" :class="{'entity-master-modal':['customers','suppliers'].includes(activeCatalog.slug),'entity-section-modal':isEntitySectioned(),'other-names-modal':activeCatalog.slug==='other-names','subsidiary-master-modal':activeCatalog.slug==='subsidiaries','account-master-modal':activeCatalog.slug==='chart-accounts','user-company-access-modal':activeCatalog.slug==='user-subsidiaries','bank-statement-modal':activeCatalog.slug==='bank-statements'}" role="dialog" aria-modal="true" aria-labelledby="country-modal-title">
         <div class="modal-head">
 <div>
 <span class="modal-icon">{{ recordDialog.mode === 'audit' ? '◉' : recordDialog.mode === 'delete' ? '!' : (recordDialog.mode === 'view' ? '◉' : (recordDialog.id ? '✎' : '+')) }}</span>
@@ -568,7 +568,7 @@
 <button class="modal-close" @click="closeRecordDialog" aria-label="Cerrar">×</button>
 </div>
         <record-audit v-if="recordDialog.mode !== 'delete' && activeCatalog.allowAudit !== false" :table="activeCatalog.table" :record-id="recordDialog.id"></record-audit>
-        <form v-if="recordDialog.mode === 'form'" :novalidate="activeCatalog.slug==='subsidiaries'" @submit.prevent="submitRecord">
+        <form v-if="recordDialog.mode === 'form'" :novalidate="activeCatalog.slug==='subsidiaries' || isEntitySectioned()" @submit.prevent="submitRecord">
 <nav v-if="activeCatalog.slug==='subsidiaries'" class="subsidiary-form-tabs" role="tablist" aria-label="Apartados de la subsidiaria">
 <button v-for="tab in subsidiaryTabs()" :id="`subsidiary-tab-${tab.id}`" :key="tab.id" type="button" role="tab" :aria-selected="subsidiaryFormTab===tab.id" :aria-controls="`subsidiary-panel-${tab.id}`" :class="{active:subsidiaryFormTab===tab.id}" @click="selectSubsidiaryTab(tab.id)">
 <span class="subsidiary-tab-step">{{ tab.step }}</span><span><strong>{{ tab.label }}</strong><small>{{ tab.caption }}</small></span>
@@ -577,14 +577,22 @@
 <section v-if="activeCatalog.slug==='subsidiaries'" :id="`subsidiary-panel-${subsidiaryFormTab}`" class="subsidiary-tab-heading" role="tabpanel" :aria-labelledby="`subsidiary-tab-${subsidiaryFormTab}`">
 <span>{{ subsidiaryActiveTab().eyebrow }}</span><h3>{{ subsidiaryActiveTab().title }}</h3><p>{{ subsidiaryActiveTab().description }}</p>
 </section>
+<nav v-if="isEntitySectioned()" class="subsidiary-form-tabs entity-form-tabs" role="tablist" aria-label="Apartados de la entidad">
+<button v-for="(tab,index) in entityTabs()" :id="`entity-tab-${tab.id}`" :key="tab.id" type="button" role="tab" :data-entity-tab="tab.id" :aria-selected="entityFormTab===tab.id" :aria-controls="`entity-panel-${tab.id}`" :tabindex="entityFormTab===tab.id ? 0 : -1" :class="{active:entityFormTab===tab.id}" @click="selectEntityTab(tab.id)" @keydown="entityTabKeydown($event,index)">
+<span class="subsidiary-tab-step">{{ tab.step }}</span><span><strong>{{ tab.label }}</strong><small>{{ tab.caption }}</small></span>
+</button>
+</nav>
+<section v-if="isEntitySectioned()" :id="`entity-panel-${entityFormTab}`" class="subsidiary-tab-heading entity-tab-heading" role="tabpanel" :aria-labelledby="`entity-tab-${entityFormTab}`">
+<span>{{ entityActiveTab().eyebrow }}</span><h3>{{ entityActiveTab().title }}</h3><p>{{ entityActiveTab().description }}</p>
+</section>
 <section v-if="activeCatalog.slug==='bank-statements'" class="bank-statement-form-overview">
 <span class="bank-statement-form-icon" aria-hidden="true">▤</span>
 <div><strong>Saldos del extracto bancario</strong><small>Seleccione la cuenta y registre los saldos oficiales de apertura y cierre.</small></div>
 <span class="bank-statement-company" data-i18n-ignore>{{ activeCompany?.name }}</span>
 </section>
-<div v-show="activeCatalog.slug!=='subsidiaries' || subsidiaryFormTab!=='tax'" class="form-grid" :class="{'subsidiary-tab-grid':activeCatalog.slug==='subsidiaries','bank-statement-form-grid':activeCatalog.slug==='bank-statements'}">
+<div v-show="activeCatalog.slug!=='subsidiaries' || subsidiaryFormTab!=='tax'" class="form-grid" :class="{'subsidiary-tab-grid':activeCatalog.slug==='subsidiaries','entity-section-grid':isEntitySectioned(),'entity-banking-shared':isEntitySectioned() && entityFormTab==='banking','bank-statement-form-grid':activeCatalog.slug==='bank-statements'}">
 <template v-for="field in formFields" :key="field.key"><div v-if="activeCatalog.slug==='customers' &amp;&amp; field.key==='envio_estado_cuenta_auto'" class="approver-section"><h3>Crédito y Cobro</h3></div>
-<label v-show="activeCatalog.slug!=='subsidiaries' || subsidiaryFieldTab(field.key)===subsidiaryFormTab" :data-field-key="field.key" :class="{'toggle-field':field.type==='boolean','multi-field':field.type==='multi-reference','subsidiary-field-wide':activeCatalog.slug==='subsidiaries' && ['logo_url','address','secondary_currency_ids'].includes(field.key),'user-invitation-field':activeCatalog.slug==='users' && field.key==='notify_user'}">
+<label v-show="(activeCatalog.slug!=='subsidiaries' || subsidiaryFieldTab(field.key)===subsidiaryFormTab) &amp;&amp; (!isEntitySectioned() || entityFieldTab(field.key)===entityFormTab)" :data-field-key="field.key" :class="{'entity-field-wide':isEntitySectioned() && (field.wide || field.type==='textarea' || field.type==='multi-reference'),'toggle-field':field.type==='boolean','multi-field':field.type==='multi-reference','subsidiary-field-wide':activeCatalog.slug==='subsidiaries' && ['logo_url','address','secondary_currency_ids'].includes(field.key),'user-invitation-field':activeCatalog.slug==='users' && field.key==='notify_user'}">
 <span>{{ field.label }}<b v-if="field.required"> *</b>
 </span>
 <select v-if="field.options" v-model="recordDialog.values[field.key]" :required="fieldRequired(field)" @change="handleFieldChange(field)">
@@ -615,7 +623,7 @@
 <span>{{ bankStatementCurrencyCode() }}</span>
 <input v-model="recordDialog.values[field.key]" type="text" inputmode="decimal" autocomplete="off" :required="fieldRequired(field)" :readonly="field.readOnly" placeholder="0,00" @focus="$event.target.select()" @blur="formatBankStatementMoneyField(field.key)">
 </div>
-<textarea v-else-if="activeCatalog.slug==='other-names' &amp;&amp; field.type==='textarea'" v-model="recordDialog.values[field.key]" :required="fieldRequired(field)" :readonly="field.readOnly" rows="4"></textarea>
+<textarea v-else-if="isEntitySectioned() &amp;&amp; field.type==='textarea'" v-model="recordDialog.values[field.key]" :required="fieldRequired(field)" :readonly="field.readOnly" rows="4"></textarea>
 <input v-else-if="field.type !== 'boolean'" v-model="recordDialog.values[field.key]" :type="field.type" :required="fieldRequired(field)" :readonly="field.readOnly" :placeholder="field.readOnly && !recordDialog.id ? 'Se asignará automáticamente' : ''">
 <span v-else class="gentia-switch-control">
 <input v-model="recordDialog.values[field.key]" class="gentia-switch-input" type="checkbox" role="switch" :disabled="field.readOnly || (activeCatalog.slug==='users' &amp;&amp; field.key==='notify_user' &amp;&amp; !recordDialog.values.is_active)">
@@ -629,6 +637,21 @@
 </label>
 </template>
 </div>
+<section v-if="isEntitySectioned() &amp;&amp; entityFormTab==='banking'" class="entity-bank-accounts" aria-label="Cuentas bancarias del beneficiario">
+<section v-for="slot in entityBankAccounts()" :key="slot.id" class="entity-bank-account" :class="{'is-primary':slot.id==='primary'}" :data-bank-slot="slot.id" role="group" :aria-labelledby="`entity-bank-title-${slot.id}`">
+<header><span class="entity-bank-step">{{ slot.step }}</span><div><h4 :id="`entity-bank-title-${slot.id}`">{{ slot.label }}</h4><p>{{ slot.caption }}</p></div><span v-if="slot.optional" class="entity-bank-optional">Opcional</span></header>
+<div class="form-grid entity-bank-fields">
+<label v-for="field in entityBankAccountFields(slot.id)" :key="field.key" :data-field-key="field.key">
+<span>{{ field.label }}</span>
+<select v-if="field.reference" v-model="recordDialog.values[field.key]" :disabled="field.readOnly" @change="handleReferenceFieldChange(field)">
+<option value="">Sin asignar</option><option v-for="option in filteredReferenceOptions(field)" :key="referenceId(field.reference,option)" :value="referenceId(field.reference,option)">{{ entityBankReferenceLabel(field,option) }}</option>
+</select>
+<input v-else v-model="recordDialog.values[field.key]" type="text" :readonly="field.readOnly" :autocomplete="field.key.endsWith('_account_number') ? 'off' : null" :placeholder="field.key.endsWith('_iban') ? 'Ej. CR05…' : field.key.endsWith('_account_number') ? 'Número de cuenta completo' : ''">
+</label>
+</div>
+<p class="entity-bank-help">Complete el banco cuando registre un IBAN o número de cuenta.</p>
+</section>
+</section>
 <section v-if="activeCatalog.slug==='subsidiaries' && subsidiaryFormTab==='tax' && isColombiaSelected()" class="autorent-editor" aria-labelledby="autorent-title">
 <div class="autorent-heading">
 <div><span>CONFIGURACIÓN TRIBUTARIA · COLOMBIA</span><h3 id="autorent-title">Autorretención a título de renta</h3><p>Registre las cuentas de balance y la tarifa que se aplicará internamente. Esta configuración no modifica el saldo por cobrar al cliente.</p></div>
@@ -647,7 +670,7 @@
 <aside><strong>Movimiento interno de balance</strong><span>Débito al anticipo de impuestos</span><span>Crédito a autorretenciones por pagar</span><small>El total de la factura y la cuenta por cobrar permanecen intactos.</small></aside>
 </div>
 </section>
-<section v-if="['customers','suppliers'].includes(activeCatalog.slug) && recordDialog.values.applies_withholding" class="withholding-rules-editor">
+<section v-if="['customers','suppliers'].includes(activeCatalog.slug) && recordDialog.values.applies_withholding && (!isEntitySectioned() || entityFormTab==='operation')" class="withholding-rules-editor">
 <div class="withholding-rules-head">
 <div><span>CONFIGURACIÓN TRIBUTARIA</span><h3>Retenciones por subsidiaria</h3><p>Asigne una o varias retenciones según el país y la subsidiaria donde opera la entidad.</p></div>
 <button type="button" class="button-secondary" :disabled="!withholdingSubsidiaries().length" @click="addWithholdingRule">+ Agregar retención</button>
@@ -695,8 +718,8 @@
   </main>
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
-<script type="module" src="/i18n.js?v=20261102-other-names"></script>
-<script type="module" src="/app.js?v=20261102-entities-menu">
+<script type="module" src="/i18n.js?v=20261102-entity-bank-sections"></script>
+<script type="module" src="/app.js?v=20261102-entity-bank-sections">
 </script>
 <script src="/approval-notifications.js?v=20261101-c04-approval-inbox"></script></body>
 </html>

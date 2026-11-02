@@ -364,3 +364,56 @@ td{padding:15px 18px;border-top:1px solid #edf0f3;color:#344054;font-size:12px}
 .other-names-modal .form-grid [data-field-key="comments"]{grid-column:1/-1}
 .other-names-modal textarea{width:100%;min-height:96px;resize:vertical;border:1px solid #dfe4ea;border-radius:7px;padding:10px 11px;font:inherit;color:inherit;outline:0}
 .other-names-modal textarea:focus{border-color:#51aa88;box-shadow:0 0 0 3px #51aa8818}
+
+/* Maestros de entidades: identidad, cuentas y organización en apartados claros. */
+.modal-backdrop .modal.entity-section-modal:has(.form-grid){width:min(1040px,100%);max-width:100%;max-height:calc(100dvh - 32px);overflow:hidden}
+.entity-section-modal form{padding:0}
+.entity-section-modal .entity-form-tabs{grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;padding-top:20px}
+.entity-section-modal .entity-form-tabs button{min-height:70px}
+.entity-section-modal .entity-form-tabs strong{font-size:11px;line-height:1.4}
+.entity-section-modal .entity-tab-heading{margin-top:18px;background:linear-gradient(110deg,#f3f9f7 0%,#fff 85%)}
+.modal.entity-section-modal .entity-section-grid{margin:18px 24px 0;align-content:start;gap:16px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.entity-section-modal .entity-section-grid>label{min-width:0;padding:13px 14px;border:1px solid #e1e8ed;border-radius:10px;background:#fff;box-shadow:0 2px 8px #17354b05}
+.entity-section-modal .entity-section-grid>label:focus-within{border-color:#a7d8c8;box-shadow:0 0 0 3px #159b780c}
+.entity-section-modal .entity-section-grid>label.entity-field-wide{grid-column:1/-1}
+.entity-section-modal .entity-section-grid .toggle-field{min-height:70px;align-self:stretch;padding:14px}
+.entity-section-modal .entity-section-grid .toggle-field>span{margin:0}
+.entity-section-modal textarea{display:block;width:100%;min-height:96px;resize:vertical;border:1px solid #dfe4ea;border-radius:7px;padding:10px 11px;font:inherit;line-height:1.5;color:inherit;outline:0;background:#fff}
+.entity-section-modal textarea:focus{border-color:#51aa88;box-shadow:0 0 0 3px #51aa8818}
+.entity-section-modal .entity-banking-shared{gap:14px}
+.entity-bank-accounts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:20px 24px 0;align-items:start}
+.entity-bank-account{min-width:0;overflow:hidden;border:1px solid #dce5ed;border-radius:13px;background:#fff;box-shadow:0 4px 16px #16324a06}
+.entity-bank-account.is-primary{border-color:#bfded2}
+.entity-bank-account>header{display:flex;align-items:center;gap:10px;min-height:80px;padding:17px 18px;border-bottom:1px solid #e8edf2;background:#f7f9fc}
+.entity-bank-account.is-primary>header{background:linear-gradient(110deg,#eff9f4,#f7fbf9);border-bottom-color:#dfede6}
+.entity-bank-step{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;border:1px solid #d9e3ec;border-radius:10px;background:#fff;color:#48617b;font:800 11px Manrope,sans-serif}
+.entity-bank-account.is-primary .entity-bank-step{border-color:#b6d9cb;background:#fff;color:#138163}
+.entity-bank-account h4{margin:0 0 4px;color:#16364d;font:750 14px Manrope,sans-serif;line-height:1.3}
+.entity-bank-account header p{margin:0;color:#718397;font-size:10px;line-height:1.4}
+.entity-bank-optional{margin-left:auto;padding:4px 7px;border:1px solid #e0e7ef;border-radius:20px;background:#fff;color:#6b7c90;font-size:9px;font-weight:600;white-space:nowrap}
+.modal.entity-section-modal .entity-bank-fields{margin:0;padding:18px;gap:16px 12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.entity-section-modal .entity-bank-fields>label{min-width:0;margin:0}
+.entity-section-modal .entity-bank-fields input,.entity-section-modal .entity-bank-fields select{min-width:0;max-width:100%;height:43px;background:#fff}
+.entity-section-modal .entity-bank-fields input::placeholder{color:#9aa8b5;font-size:11px}
+.entity-bank-help{margin:0;padding:0 18px 18px;color:#78899a;font-size:10px;line-height:1.5}
+.entity-section-modal .withholding-rules-editor{margin:20px 24px 0}
+.entity-section-modal .dialog-error{margin:16px 24px 0}
+.modal.entity-section-modal .modal-actions{position:sticky;z-index:3;bottom:0;margin:22px 0 0;padding:16px 24px;border-top:1px solid #e6ecef;background:#fffffff5;box-shadow:0 -8px 18px #17354b08;backdrop-filter:blur(7px)}
+@media(max-width:760px){
+ .entity-section-modal .entity-form-tabs{display:flex;grid-template-columns:none;padding:16px 16px 4px}
+ .entity-section-modal .entity-form-tabs button{min-width:222px}
+ .entity-section-modal .entity-tab-heading{margin:14px 16px 0}
+ .modal.entity-section-modal .entity-section-grid{margin:15px 16px 0;grid-template-columns:1fr;gap:13px}
+ .entity-section-modal .entity-section-grid>label.entity-field-wide{grid-column:auto}
+ .entity-bank-accounts{grid-template-columns:1fr;margin:16px 16px 0;gap:15px}
+ .modal.entity-section-modal .entity-bank-fields{margin:0;padding:16px;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .entity-bank-account>header{padding:16px;min-height:76px}
+ .entity-bank-help{padding:0 16px 16px}
+ .entity-section-modal .withholding-rules-editor,.entity-section-modal .dialog-error{margin:15px 16px 0}
+ .modal.entity-section-modal .modal-actions{padding:14px 16px}
+}
+@media(max-width:440px){
+ .modal.entity-section-modal .entity-bank-fields{grid-template-columns:1fr}
+ .entity-bank-account h4{font-size:13px}
+ .entity-bank-optional{padding:4px 6px;font-size:8px}
+}

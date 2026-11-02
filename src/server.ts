@@ -233,7 +233,7 @@ async function serveFile(pathname: string, request: IncomingMessage, response: S
     if(extension==='.html'&&relative!=='index.html'){
       const html=content.toString('utf8');
       const guard=`<script defer src="/record-audit.js"></script><style>html.inside-erp-workspace,html.inside-erp-workspace body{width:100%!important;min-width:0!important;min-height:100%!important;margin:0!important;padding:0!important}html.inside-erp-workspace body>main{box-sizing:border-box!important;width:100%!important;max-width:none!important;min-height:100vh!important;margin:0!important;border-radius:0!important;box-shadow:none!important}html.inside-erp-workspace body>.toolbar,html.inside-erp-workspace body>nav{box-sizing:border-box!important;width:100%!important;max-width:none!important;margin:0!important}</style><script>if(window===window.top){sessionStorage.setItem('nexo_workspace_redirect',JSON.stringify({path:location.pathname+location.search+location.hash,createdAt:Date.now()}));location.replace('/')}else{document.documentElement.classList.add('inside-erp-workspace')}</script>`;
-      const gentiaAssets='<link rel="stylesheet" href="/gentia-theme.css?v=20261029-exchange-rate-menu"><script defer src="/gentia-brand.js?v=20260929"></script><script type="module" src="/i18n.js?v=20261102-other-names"></script>';
+      const gentiaAssets='<link rel="stylesheet" href="/gentia-theme.css?v=20261029-exchange-rate-menu"><script defer src="/gentia-brand.js?v=20260929"></script><script type="module" src="/i18n.js?v=20261102-entity-bank-sections"></script>';
       const branded=html.includes('</head>')
         ? html.replace('</head>',`${gentiaAssets}</head>`)
         : `${gentiaAssets}${html}`;
