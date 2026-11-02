@@ -1,5 +1,5 @@
 import{readFile}from'node:fs/promises';import{setupStatusMasterSecurity}from'./setup-status-master-security.mjs';
-export const migration='20261102001704_secure_global_configuration.sql',activation='20261102001731_activate_global_configuration_boundary_after_server.sql';
+export const migration='20261102001704_secure_global_configuration.sql',activation='20261102002217_activate_global_configuration_boundary_after_server.sql';
 export async function setupGlobalConfigurationSecurity(db){await setupStatusMasterSecurity(db);await installGlobalConfigurationSecurity(db);}
 export async function installGlobalConfigurationSecurity(db){await db.exec(`
  create table parameters(parameter_id bigint generated always as identity primary key,parameter_key text not null unique,parameter_value text,description text);
