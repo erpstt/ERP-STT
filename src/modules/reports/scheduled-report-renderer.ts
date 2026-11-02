@@ -1,3 +1,4 @@
+import {csvCell} from '../../core/export/csv-cell.js';
 import {escapeHtml as esc} from '../notifications/payment-email.js';
 type RecordRow=Record<string,any>;
 type Report={kind:string;title?:string;company:string;currency:string;cutoff:string;dateFrom?:string;data?:RecordRow};
@@ -89,8 +90,7 @@ export function reportSections(report:Report):Section[]{
 export function genericReportCsv(report:Report){
  const rows:unknown[][]=[['Reporte',report.title||report.kind],['Sociedad',report.company],['Moneda local',report.currency],['Desde',report.dateFrom||''],['Fecha de corte',report.cutoff],[]];
  for(const s of reportSections(report))rows.push([s.title],s.columns,...s.rows,[]);
- const cell=(v:unknown)=>{let str=String(v??'');if(typeof v!=='number'&&/^[=+\-@\t\r]/.test(str))str="'"+str;return '"'+str.replaceAll('"','""')+'"';};
- return '\uFEFF'+rows.map(r=>r.map(cell).join(',')).join('\r\n');
+ return '\uFEFF'+rows.map(r=>r.map(value=>csvCell(value)).join(',')).join('\r\n');
 }
 export function genericReportHtml(report:Report){
  const sections=reportSections(report),tables=sections.map(s=>{

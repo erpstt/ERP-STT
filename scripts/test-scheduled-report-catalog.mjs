@@ -11,7 +11,7 @@ for(const report of reports){
  console.log('PDF + CSV '+report.kind);
 }
 const sample={kind:'journal',title:'Libro Diario',company:'Empresa <test>',currency:'USD',cutoff:'2026-09-21',data:{rows:[{journal_number:'ASI-1',memo:'<script>alert(1)</script>',lines:[{account_number:'1001',note:'=HYPERLINK("bad")',debit:100,credit:0}]}]}};
-assert.ok(scheduledReportHtml(sample).includes('&lt;script&gt;'));assert.ok(scheduledReportHtml(sample).includes('1001'));assert.ok(scheduledReportCsv(sample).includes("'=HYPERLINK"));
+assert.ok(scheduledReportHtml(sample).includes('&lt;script&gt;'));assert.ok(scheduledReportHtml(sample).includes('1001'));assert.ok(scheduledReportCsv(sample).includes("\t=HYPERLINK"));
 const financial={...sample,kind:'income-statement',data:{rows:[{category:'Ingreso',account_name:'Ventas',debit:0,credit:1000},{category:'Costo',account_name:'Costo',debit:300,credit:0},{category:'Gasto',account_name:'Alquiler',debit:200,credit:0}],summary:{}}};
 assert.equal(reportSections(financial)[0].rows.find(r=>r[0]==='Resultado neto')[1],500);
 let sends=0;

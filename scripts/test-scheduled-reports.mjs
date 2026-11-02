@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {deliverScheduledReport,scheduledReportCsv,scheduledReportHtml,scheduledReportFiles} from '../dist/modules/reports/scheduled-reports.service.js';
 const report={kind:'AR',cutoff:'2026-09-20',company:'Empresa <prueba>',currency:'USD',rows:[{entity_name:'=HYPERLINK("bad")',document_number:'FAC-001',issue_date:'2026-09-01',due_date:'2026-09-15',overdue_days:5,original_amount:150,applied_amount:50,pending:100}],summary:{subledger:100,advances:10,netBalance:90}};
-assert.ok(scheduledReportCsv(report).includes("'=HYPERLINK"));assert.ok(scheduledReportHtml(report).includes('Empresa &lt;prueba&gt;'));
+assert.ok(scheduledReportCsv(report).includes("\t=HYPERLINK"));assert.ok(scheduledReportHtml(report).includes('Empresa &lt;prueba&gt;'));
 const job={id:'test',lease:'lease',subsidiary_id:3,cutoff:report.cutoff,recipient:'finance@example.invalid',configuration:{report_kind:'AR',format:'PDF',name:'CxC semanal'}};
 const files=async()=>[{fileName:'cxc.pdf',mimeType:'application/pdf',base64:Buffer.from('%PDF-test').toString('base64')}];
 let statuses=[],sends=0;

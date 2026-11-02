@@ -1,3 +1,4 @@
+import {csvCell} from '../../core/export/csv-cell.js';
 import nodemailer from 'nodemailer';
 import {rpc,smtpStatus} from '../notifications/email-notification.service.js';
 import {escapeHtml as esc} from '../notifications/payment-email.js';
@@ -14,8 +15,7 @@ export function scheduledReportCsv(report:ScheduledReport){
  if(!['AR','AP'].includes(report.kind))return genericReportCsv(report);
  const rows:unknown[][]=[['Sociedad','Moneda','Fecha de corte',report.kind==='AR'?'Cliente':'Proveedor','Documento','Fecha emisión','Vencimiento','Días vencidos','Importe original','Aplicado','Saldo pendiente'],
  ...report.rows.map(r=>[report.company,report.currency,report.cutoff,r.entity_name,r.document_number,r.issue_date,r.due_date,r.overdue_days,r.original_amount,r.applied_amount,r.pending])];
- const cell=(v:unknown)=>{let s=String(v??'');if(typeof v!=='number'&&/^[=+\-@\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};
- return '\uFEFF'+rows.map(r=>r.map(cell).join(',')).join('\r\n');
+ return '\uFEFF'+rows.map(r=>r.map(value=>csvCell(value)).join(',')).join('\r\n');
 }
 export function scheduledReportHtml(report:ScheduledReport){
  if(!['AR','AP'].includes(report.kind))return genericReportHtml(report);
