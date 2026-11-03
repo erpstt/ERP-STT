@@ -1,0 +1,100 @@
+[
+  {
+    "signature": "run_accounting_report(text,jsonb)",
+    "primary": true,
+    "arguments": "p_report text, p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_accounting_report_before_intercompany_commercial(text,jsonb)",
+    "primary": false,
+    "arguments": "p_report text, p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_accounting_report_before_intercompany_loans(text,jsonb)",
+    "primary": false,
+    "arguments": "p_report text, p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_aging_report(text,jsonb)",
+    "primary": true,
+    "arguments": "p_kind text, p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_aging_report_before_consolidation(text,jsonb)",
+    "primary": false,
+    "arguments": "p_kind text, p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_aging_report_before_original_currency_reconciliation(text,jsonb)",
+    "primary": false,
+    "arguments": "p_kind text, p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_bank_balance_period_report(jsonb)",
+    "primary": true,
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_bank_reconciliation_report(jsonb)",
+    "primary": true,
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_general_journal_report(jsonb)",
+    "primary": true,
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_intercompany_commercial_report(jsonb)",
+    "primary": true,
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_intercompany_loan_report(jsonb)",
+    "primary": true,
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_pending_invoice_control_report(jsonb)",
+    "primary": true,
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_purchase_transaction_report(jsonb)",
+    "primary": true,
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_sales_transaction_report(jsonb)",
+    "primary": true,
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  }
+]

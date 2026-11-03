@@ -1,3 +1,4 @@
+import {requireCustomerStatementAccess,requireStatementSettingsAccess,customerStatementCapabilities,statementRpc} from './statement-access.service.js';
 import { readFile } from 'node:fs/promises';
 import nodemailer from 'nodemailer';
 import { cleanBody, escapeHtml as esc, validateTemplate } from './payment-email.js';
@@ -47,22 +48,24 @@ export async function statementPdf(s:Statement){
  return renderBankReconciliationPdf({html,fileName:`estado_cuenta_${s.customerCode}_${s.fecha_corte}.pdf`});
 }
 export async function statementSettings(authorization:string,action:string,payload:Record<string,unknown>){
- if(action==='save'){const day=Number(payload.day??1),time=String(payload.time??'08:00');if(!Number.isInteger(day)||day<1||day>31||!/^([01]\d|2[0-3]):[0-5]\d$/.test(time))throw Error('Seleccione un día entre 1 y 31 y una hora válida.');const valid=validateTemplate(String(payload.subject||''),String(payload.body||''),statementTags);return rpc('statement_settings',{p_action:'save',p_payload:{...valid,active:payload.active===true,day,time}},authorization);}
- const data=await rpc('statement_settings',{p_action:'get'},authorization);
+ await requireStatementSettingsAccess(authorization,action);
+ if(action==='save'){const day=Number(payload.day??1),time=String(payload.time??'08:00');if(!Number.isInteger(day)||day<1||day>31||!/^([01]\d|2[0-3]):[0-5]\d$/.test(time))throw Error('Seleccione un día entre 1 y 31 y una hora válida.');const valid=validateTemplate(String(payload.subject||''),String(payload.body||''),statementTags);return statementRpc(authorization,'statement_settings',{p_action:'save',p_payload:{...valid,active:payload.active===true,day,time}});}
+ const data=await statementRpc(authorization,'statement_settings',{p_action:'get'});
  if(action==='preview')return renderStatementEmail(String(payload.subject||statementSubject),String(payload.body||statementBody),{empresa_nombre:data.subsidiary.name,empresa_logo_url:data.subsidiary.logo,cliente_nombre:'Cliente de ejemplo',customerCode:'CLI-EJEMPLO',email:'cliente@example.invalid',fecha_corte:'2026-08-31',saldo_total:1500,moneda:'USD',rows:[],summary:{subledger:1500,advances:0,netBalance:1500}});
  if(data.template)data.template.cuerpo_template=cleanBody(data.template.cuerpo_template);
  return {...data,transport:smtpStatus(),defaults:{subject:statementSubject,body:statementBody}};
 }
 export async function customerStatement(authorization:string,id:number,action:string,payload:Record<string,unknown>){
+ await requireCustomerStatementAccess(authorization,action);
  if(!Number.isSafeInteger(id)||id<=0)throw Error('Cliente inválido.');
  const cutoff=String(payload.cutoff||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(cutoff))throw Error('Seleccione la fecha de corte.');
  if(action==='send'){
   if(!smtpStatus().enabled)throw Error('El envío SMTP todavía no está activado en el servidor.');
-  return rpc('statement_send',{p_customer:id,p_cutoff:cutoff,p_note:String(payload.note||''),p_request:payload.requestId,p_sid:payload.subsidiaryId||null},authorization);
+  return statementRpc(authorization,'statement_send',{p_customer:id,p_cutoff:cutoff,p_note:String(payload.note||''),p_request:payload.requestId,p_sid:payload.subsidiaryId||null});
  }
- const data=await rpc('statement_customer',{p_customer:id,p_cutoff:cutoff,p_sid:payload.subsidiaryId||null},authorization);
+ const data=await statementRpc(authorization,'statement_customer',{p_customer:id,p_cutoff:cutoff,p_sid:payload.subsidiaryId||null});
  if(action==='pdf')return statementPdf(data.statement);
- return {...data,transport:smtpStatus()};
+ return {...data,transport:smtpStatus(),access:await customerStatementCapabilities(authorization)};
 }
 export async function deliverStatement(job:any,send:(message:any)=>Promise<any>,finish:(status:string,message:string|null,error:string|null)=>Promise<unknown>,pdf=statementPdf){
  let message,attachment;
