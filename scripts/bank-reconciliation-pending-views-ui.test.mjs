@@ -69,6 +69,7 @@ async function assertReadOnlyCompleted(page){
  await expect(page.locator('#bankView')).toHaveValue('RECONCILED');
  await expect(page.locator('#bankReconciledTab')).toHaveAttribute('aria-selected','true');
  await expect(page.locator('input[name="erpMatch"],input[name="bankMatch"],[data-bank-fee-line]')).toHaveCount(0);
+ await expect(page.locator('#bankFeeMode')).toHaveCount(0);
  await expect(page.locator('.manual-match,.bank-match-hint,.bank-fee-panel')).toHaveCount(0);
 }
 
@@ -81,15 +82,27 @@ test('separa pendientes y conciliados y conserva la casilla de comisión en su m
   await expect(page.locator('#tbody')).not.toContainText('Banco conciliado posterior');
   await expect(page.locator('input[name="erpMatch"]')).toHaveCount(1);
   await expect(page.locator('input[name="bankMatch"]')).toHaveCount(2);
+  await page.locator('input[name="erpMatch"][value="11"]').check();
+  await page.locator('input[name="bankMatch"][value="20"]').check();
+  await expect(page.locator('#bankFeeMode')).not.toBeChecked();
+  await expect(page.locator('[data-bank-fee-line],.bank-fee-panel')).toHaveCount(0);
+  await page.locator('#bankFeeMode').check();
   const fee=page.locator('[data-bank-fee-line][value="20"]');await expect(fee).toHaveCount(1);
   await expect(fee.locator('xpath=ancestor::tr')).toContainText('Comisión pendiente correcta');
   await expect(page.locator('[data-bank-fee-line][value="19"],[data-bank-fee-line][value="21"]')).toHaveCount(0);
+  await fee.check();await page.locator('#bankFeeMode').uncheck();
+  await expect(page.locator('[data-bank-fee-line],.bank-fee-panel')).toHaveCount(0);
+  await expect(page.locator('input[name="erpMatch"][value="11"]')).toBeChecked();
+  await expect(page.locator('input[name="bankMatch"][value="20"]')).toBeChecked();
+  await expect(page.getByRole('button',{name:'Conciliar los dos movimientos seleccionados',exact:true})).toBeEnabled();
   await page.locator('#bankReconciledTab').click();await assertReadOnlyCompleted(page);
   await expect(page.locator('#tbody')).toContainText('ERP conciliado anterior');
   await expect(page.locator('#tbody')).toContainText('Banco conciliado posterior');
   await expect(page.locator('#tbody')).not.toContainText('Comisión pendiente correcta');
   await page.locator('#bankPendingTab').click();
   await expect(page.locator('#bankView')).toHaveValue('WORKSPACE');
+  await expect(page.locator('#bankFeeMode')).not.toBeChecked();
+  await expect(page.locator('[data-bank-fee-line],.bank-fee-panel')).toHaveCount(0);
   await expect(page.locator('#tbody')).toContainText('ERP pendiente para conciliar');
   await expect(page.locator('#tbody')).not.toContainText('ERP conciliado posterior');
  }finally{await app.close();}
@@ -107,12 +120,15 @@ test('las conciliaciones manuales, automáticas y las comisiones salen de pendie
    }else if(mode==='automatic'){
     await page.locator('#autoMatch').click();await expect.poll(()=>state.automatic.length).toBe(1);
    }else{
+    await page.locator('#bankFeeMode').check();
     await page.locator('[data-bank-fee-line][value="20"]').check();await page.locator('#registerBankFees').click();
     await expect(page.locator('#bankFeeDialog')).toHaveAttribute('open','');await page.locator('#confirmBankFees').click();
     await expect.poll(()=>state.fees.length).toBe(1);assert.deepEqual(state.fees[0].p_statement_line_ids,[20]);
    }
    await expect(page.locator('#tbody')).not.toContainText('Comisión pendiente correcta');
    await expect(page.locator('[data-bank-fee-line][value="20"]')).toHaveCount(0);
+   await expect(page.locator('#bankFeeMode')).not.toBeChecked();
+   await expect(page.locator('.bank-fee-panel')).toHaveCount(0);
    await page.locator('#bankReconciledTab').click();await assertReadOnlyCompleted(page);
    await expect(page.locator('#tbody')).toContainText('Comisión pendiente correcta');
    if(mode!=='fees')await expect(page.locator('#tbody')).toContainText('ERP pendiente para conciliar');

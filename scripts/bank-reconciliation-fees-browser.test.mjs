@@ -42,6 +42,10 @@ try{
   await app.locator('#bankCutoff').fill('2026-10-27');
   await app.locator('#bankCutoff').press('Tab');
   await app.locator('#bankView').selectOption('WORKSPACE');
+  await app.locator('#bankFeeMode').waitFor();
+  assert.equal(await app.locator('#bankFeeMode').isChecked(),false,'El modo de comisiones debe iniciar desactivado.');
+  assert.equal(await app.locator('[data-bank-fee-line],.bank-fee-panel').count(),0,'Los controles de comisiones se muestran solo al activar el encabezado.');
+  await app.locator('#bankFeeMode').check();
   await app.getByText('Registrar comisiones desde el extracto',{exact:true}).waitFor();
 
   const choices=app.locator('[data-bank-fee-line]');
@@ -61,6 +65,8 @@ try{
     p_cutoff:'2026-10-27',
     p_statement_line_ids:[20]
   });
+  assert.equal(await app.locator('#bankFeeMode').isChecked(),false,'El modo de comisiones se desactiva después de registrar y refrescar.');
+  assert.equal(await app.locator('.bank-fee-panel').count(),0,'El panel queda oculto después de registrar.');
   assert.equal(await app.locator('[data-bank-fee-line]').count(),0,'La línea conciliada no debe quedar disponible para reproceso.');
   console.log('PASS: selección, confirmación y registro masivo de comisiones verificados en navegador.');
 }finally{
