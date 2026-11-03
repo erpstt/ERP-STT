@@ -1,10 +1,12 @@
 import {escapeHtml} from './html-safety.js?v=20261101-a03-1';
+import {createLatestRequest} from './frontend-performance.js?v=20261023-second-pass-v3';
 ﻿const $=id=>document.getElementById(id);
 const token=localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo_token');
 const device=localStorage.getItem('nexo_device_token')||sessionStorage.getItem('nexo_device_token');
 const money=value=>Number(value||0).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const rounded=value=>Math.round((Number(value||0)+Number.EPSILON)*100)/100;
 const esc=value=>escapeHtml(value??'—');
+const paymentReportRequests=createLatestRequest();
 let data,editing=null,existingAdvances=[],supportItems=[],uploading=false;const canWrite=()=>data?.access?.[editing?'canEdit':'canCreate']===true;$('new').disabled=true;$('save').disabled=true;
 
 async function api(path,options={}){
@@ -99,16 +101,26 @@ async function open(id=null){
   }catch(error){editing=null;$('modal').hidden=true;$('save').disabled=true;$('message').textContent=error.message;}
 }
 async function load(){
-  try{if(!data?.access?.canView){$('rows').innerHTML='';$('count').textContent='Sin permiso de consulta';return;}const report=await api('/api/sales/customer-payments/report',{method:'POST',body:JSON.stringify({from:$('from').value,to:$('to').value})}),query=$('search').value.toLowerCase(),rows=report.rows.filter(row=>`${row.number} ${row.customer} ${row.reference}`.toLowerCase().includes(query));$('count').textContent=`${rows.length} registros`;
+  const request=paymentReportRequests.begin();
+  try{
+    if(!data?.access?.canView){$('rows').innerHTML='';$('count').textContent='Sin permiso de consulta';return;}
+    const from=$('from').value,to=$('to').value,query=$('search').value.trim().toLowerCase();
+    if(!from||!to)throw Error('Indique las fechas desde y hasta para consultar los cobros.');
+    if(from>to)throw Error('La fecha desde no puede ser posterior a la fecha hasta.');
+    const report=await api('/api/sales/customer-payments/report',{method:'POST',body:JSON.stringify({from,to}),signal:request.signal});
+    if(!request.isCurrent())return;
+    const rows=report.rows.filter(row=>`${row.number} ${row.customer} ${row.reference}`.toLowerCase().includes(query));$('count').textContent=`${rows.length} registros`;
     $('rows').innerHTML=rows.map(row=>{const active=!['ANULADO','CANCELADO'].includes(String(row.status||'APROBADO').toUpperCase()),fee=Number(row.bankFeeTotal??row.bankFeeAmount??row.bank_fee_amount??0),bankNet=Number(row.cashNet??row.cashTotal??row.cash_total??Number(row.amount||0)-fee);return `<tr><td>${esc(row.date)}</td><td><b>${esc(row.number)}</b>${Number(row.advanceTotal)>0?`<small class="advance-badge">Anticipo: ${esc(money(row.advanceTotal))}</small>`:''}${fee>0?`<small class="bank-fee-badge">Comisión: ${esc(money(fee))} · Banco: ${esc(money(bankNet))}</small>`:''}</td><td>${esc(row.customer)}</td><td>${esc(row.bank)} · ${esc(row.account)}</td><td>${esc(row.reference)}</td><td>${esc(row.currency)}</td><td class="num"><b>${esc(money(row.grossTotal??row.amount))}</b></td><td><div class="row-actions"><button data-view="${esc(row.id)}">Ver</button>${active&&Number(row.advanceTotal)<=0&&(data.access?.canEdit||data.access?.canDelete)?`${data.access?.canEdit?`<button data-edit="${esc(row.id)}">Editar</button>`:''}${data.access?.canDelete?`<button class="delete" data-delete="${esc(row.id)}">Eliminar</button>`:''}`:''}</div></td></tr>`;}).join('')||'<tr><td colspan="8">No se encontraron cobros.</td></tr>';
     document.querySelectorAll('[data-edit]').forEach(button=>button.onclick=()=>open(button.dataset.edit));document.querySelectorAll('[data-view]').forEach(button=>button.onclick=()=>location.href=`/customer-payment-view.html?id=${button.dataset.view}`);document.querySelectorAll('[data-delete]').forEach(button=>button.onclick=async()=>{if(confirm('¿Eliminar este cobro y revertir la entrada bancaria?')){await api(`/api/sales/customer-payments/${button.dataset.delete}`,{method:'DELETE'});load();}});
-  }catch(error){$('message').textContent=error.message;}
+  }catch(error){if(error?.name==='AbortError'||!request.isCurrent())return;$('message').textContent=error.message;$('count').textContent='Consulta sin completar';$('rows').innerHTML='<tr><td colspan="8">No fue posible consultar los cobros.</td></tr>';}
 }
 function renderSupports(){$('supportList').innerHTML=supportItems.map((x,i)=>'<div><span>'+esc(x.display_name||x.file_name||'Respaldo')+'</span> <button type="button" data-remove-support="'+i+'">Eliminar</button></div>').join('');$('supportList').querySelectorAll('[data-remove-support]').forEach(b=>b.onclick=()=>{supportItems.splice(Number(b.dataset.removeSupport),1);renderSupports();});}
 $('supportFiles').onchange=async event=>{uploading=true;total();try{for(const file of event.target.files||[]){if(file.size>5242880)throw Error('Cada archivo debe ser de hasta 5 MB.');if(supportItems.length>=20)throw Error('Máximo 20 respaldos.');const file_data=await new Promise((resolve,reject)=>{const r=new FileReader();r.onerror=reject;r.onload=()=>resolve(r.result);r.readAsDataURL(file);});supportItems.push({_new:true,support_type:'Archivo',display_name:file.name,file_name:file.name,mime_type:file.type||'application/octet-stream',file_size:file.size,file_data});}renderSupports();}catch(e){$('message').textContent=e.message;}finally{uploading=false;event.target.value='';total();}};
 $('new').onclick=()=>open();$('close').onclick=$('cancel').onclick=()=>$('modal').hidden=true;$('date').onchange=()=>{period();syncExchangeRate();};
 $('bankFeeEnabled').onchange=()=>{const enabled=$('bankFeeEnabled').checked;$('bankFeeFields').hidden=!enabled;$('bankFeeAmount').required=enabled;if(!enabled)$('bankFeeAmount').value='0';else if(Number($('bankFeeAmount').value)<=0)$('bankFeeAmount').value='';total();if(enabled)$('bankFeeAmount').focus();};$('bankFeeAmount').oninput=total;
 $('customer').onchange=()=>refreshDocuments();$('currency').onchange=()=>{refreshAccounts();refreshDocuments();syncExchangeRate();};$('account').onchange=syncExchangeRate;
+$('filters').onsubmit=event=>{event.preventDefault();$('message').textContent='';void load();};
+window.addEventListener('pagehide',()=>paymentReportRequests.cancel());
 $('entry').onsubmit=async event=>{event.preventDefault();try{if(!canWrite())throw Error('El rol activo no puede guardar cobros.');total();if(!$('entry').reportValidity())return;const applications=selectedInvoices(),advanceApplications=selectedAdvances(),bankFeeAmount=$('bankFeeEnabled').checked?rounded($('bankFeeAmount').value):0;$('save').disabled=true;$('save').textContent='Procesando…';const payload={customer_id:$('customer').value,account_id:$('account').value,date:$('date').value,period_id:$('period').value,location_id:$('location').value,rate:$('rate').value,reference:$('reference').value,memo:$('memo').value,bank_fee_amount:bankFeeAmount,applications,advances:advanceApplications,supports:supportItems.map(({_new,...item})=>item)},result=await api(editing?`/api/sales/customer-payments/${editing}`:'/api/sales/customer-payments/save',{method:editing?'PUT':'POST',body:JSON.stringify(payload)});$('modal').hidden=true;$('message').textContent=`${result.number} registrado. Facturas: ${money(result.grossTotal||result.total)} · Anticipos: ${money(result.advanceTotal)} · Comisión: ${money(result.bankFeeTotal??result.bankFeeAmount??bankFeeAmount)} · Banco: ${money(result.cashTotal??result.total)}`;await options();await load();}catch(error){alert(error.message);}finally{$('save').textContent=editing?'Guardar cambios':'Guardar y contabilizar';total();}};
 document.querySelectorAll('[data-tab]').forEach(button=>button.onclick=()=>{document.querySelectorAll('[data-tab]').forEach(item=>item.classList.toggle('active',item===button));for(const id of['applications','impact','supports'])$(id).hidden=id!==button.dataset.tab;});
 const now=new Date(),first=new Date(now.getFullYear(),now.getMonth(),1);$('from').value=first.toLocaleDateString('en-CA');$('to').value=now.toLocaleDateString('en-CA');try{await options();await load();}catch(error){$('new').disabled=true;$('new').hidden=true;$('save').disabled=true;$('message').textContent=error.message;}

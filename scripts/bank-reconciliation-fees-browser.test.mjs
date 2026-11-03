@@ -39,6 +39,8 @@ try{
   await page.setContent('<iframe id="app" src="http://localhost:3000/accounting-reports.html" style="width:1500px;height:950px"></iframe>');
   const app=page.frameLocator('#app');
   await app.getByText('Bancos y Conciliación',{exact:true}).click();
+  await app.locator('#bankCutoff').fill('2026-10-27');
+  await app.locator('#bankCutoff').press('Tab');
   await app.locator('#bankView').selectOption('WORKSPACE');
   await app.getByText('Registrar comisiones desde el extracto',{exact:true}).waitFor();
 
