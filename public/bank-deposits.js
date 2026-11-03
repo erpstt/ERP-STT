@@ -1,6 +1,6 @@
 import {escapeHtml} from './html-safety.js?v=20261101-a03-1';
 const esc=escapeHtml;
-const polish=document.createElement('link');polish.rel='stylesheet';polish.href='/bank-deposits-polish.css';document.head.append(polish);
+const polish=document.createElement('link');polish.rel='stylesheet';polish.href='/bank-deposits-polish.css?v=20261103-deposit-button';document.head.append(polish);
 const $=id=>document.getElementById(id),token=localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo_token'),device=localStorage.getItem('nexo_device_token')||sessionStorage.getItem('nexo_device_token');if(!token)location.replace('/');
 async function api(path,options={}){const response=await fetch(path,{...options,headers:{Authorization:`Bearer ${token}`,'X-Device-Token':device||'','Content-Type':'application/json'}}),raw=await response.text(),data=raw?JSON.parse(raw):null;if(!response.ok)throw Error(data?.error?.message||data?.message||'No fue posible procesar la solicitud.');return data}
 const today=new Date().toLocaleDateString('en-CA'),money=value=>Number(value||0).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2}),escape=value=>escapeHtml(value??'\u2014');let pendingDelete=null;

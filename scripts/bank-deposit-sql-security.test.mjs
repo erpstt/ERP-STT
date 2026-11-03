@@ -11,12 +11,14 @@ before(async()=>{
  await loadLegacyJournalFunctions(db);
  await db.exec('begin');await db.exec(await read('../supabase/migrations/20261031022533_secure_manual_journals.sql'));await db.exec('commit');
  await db.exec(await read('./fixtures/bank-deposit-security.sql'));
+ await db.exec('insert into location_subsidiaries values(2,2)');
  await db.exec("alter table fiscal_periods add column period_name text;update fiscal_periods set period_name='October 2026'");
  await db.exec(await read('../supabase/migrations/20260902130000_bank_deposit_transaction.sql'));
  await db.exec(await read('../supabase/migrations/20260902150000_manage_bank_deposits.sql'));
  await db.exec('alter table bank_deposit enable row level security;grant all on bank_deposit,bank_deposit_line to authenticated;create policy old_deposit_all on bank_deposit for all to authenticated using(true) with check(true)');
  await db.exec('begin');await db.exec(await read('../supabase/migrations/20261031024434_secure_bank_deposits.sql'));await db.exec('commit');
  await db.exec('begin');await db.exec(await read('../supabase/migrations/20261103190154_bank_deposit_period_references.sql'));await db.exec('commit');
+ await db.exec('begin');await db.exec(await read('../supabase/migrations/20261103192814_bank_deposit_shared_locations.sql'));await db.exec('commit');
  await db.exec(await read('./fixtures/bank-account-security.sql'));
  await db.exec('begin');await db.exec(await read('../supabase/migrations/20261031031441_secure_bank_account_writes.sql'));await db.exec('commit');
 });
@@ -50,6 +52,47 @@ test('deposito autorizado contabiliza saldos y asiento, y solo lectura consulta 
  await assume(1,3);const detail=(await db.query('select bank_deposit_detail($1) data',[result.depositId])).rows[0].data;assert.equal(detail.lines.length,1);assert.equal(detail.impact.length,2);
  const report=(await db.query('select bank_deposit_report($1) data',[{dateFrom:'2026-10-01',dateTo:'2026-10-31'}])).rows[0].data;assert.equal(report.rows.length,1);assert.equal(report.total,100);
  await denied('select save_bank_deposit($1)',[payload]);
+});
+
+test('ubicacion compartida por vinculo se ofrece y contabiliza al crear y editar sin permiso del catalogo',async t=>{
+ await tx(t);
+ await db.exec("update locations set subsidiary_id=2 where location_id=1;delete from location_subsidiaries where location_id=1;insert into locations values(3,'Shared location',2),(4,'Linked location without legacy owner',null);insert into location_subsidiaries values(3,1),(3,2),(4,1)");
+ await assume();
+ const options=(await db.query('select bank_deposit_options() data')).rows[0].data;
+ assert.deepEqual(options.location,{id:3,name:'Shared location'});
+ const result=await save({...payload,location_id:3});
+ await db.exec('reset role');
+ assert.equal((await db.query('select location_id from bank_deposit where deposit_id=$1',[result.depositId])).rows[0].location_id,3);
+ assert.equal((await db.query('select location_id from journal where journal_id=$1',[result.journalId])).rows[0].location_id,3);
+ assert.deepEqual((await db.query('select distinct location_id from journal_line where journal_id=$1',[result.journalId])).rows,[{location_id:3}]);
+ await assume(1,2);await db.query('select update_bank_deposit($1,$2)',[result.depositId,{...payload,location_id:4}]);
+ const detail=(await db.query('select bank_deposit_detail($1) data',[result.depositId])).rows[0].data;
+ assert.equal(detail.deposit.location_id,4);assert.equal(detail.deposit.locationName,'Linked location without legacy owner');
+ await db.exec('reset role');assert.deepEqual((await db.query('select distinct location_id from journal_line where journal_id=$1',[result.journalId])).rows,[{location_id:4}]);
+});
+
+test('ubicacion ajena o sin asignacion se rechaza; ubicacion opcional nula conserva compatibilidad',async t=>{
+ await tx(t);
+ await db.exec("insert into locations values(3,'Unassigned location',null)");
+ await assume();
+ for(const location_id of [2,3,999])await denied('select save_bank_deposit($1)',[{...payload,location_id}]);
+ const result=await save({...payload,location_id:null});
+ await assume(1,2);
+ for(const location_id of [2,3,999])await denied('select update_bank_deposit($1,$2)',[result.depositId,{...payload,location_id}]);
+ await db.query('select update_bank_deposit($1,$2)',[result.depositId,{...payload,location_id:''}]);
+ await db.exec('reset role');assert.equal((await db.query('select location_id from bank_deposit where deposit_id=$1',[result.depositId])).rows[0].location_id,null);
+ await db.exec('delete from location_subsidiaries;update locations set subsidiary_id=null');
+ await assume();assert.equal((await db.query('select bank_deposit_options() data')).rows[0].data.location,null);
+});
+
+test('ubicacion propia sin vinculo sigue disponible; revocar vinculo compartido bloquea nuevas escrituras',async t=>{
+ await tx(t);
+ await db.exec("delete from location_subsidiaries;insert into locations values(3,'Shared location',2);insert into location_subsidiaries values(3,1)");
+ await assume();assert.equal((await db.query('select bank_deposit_options() data')).rows[0].data.location.id,1);
+ await save();const result=await save({...payload,location_id:3});
+ await db.exec('reset role;delete from location_subsidiaries where location_id=3');
+ await assume();await denied('select save_bank_deposit($1)',[{...payload,location_id:3}]);
+ await assume(1,2);await denied('select update_bank_deposit($1,$2)',[result.depositId,{...payload,location_id:3}]);
 });
 
 test('opciones incluyen todos los periodos de la filial activa con permiso de depositos y conservan sus cierres',async t=>{

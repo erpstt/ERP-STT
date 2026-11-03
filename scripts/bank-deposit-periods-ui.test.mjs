@@ -48,7 +48,7 @@ test.after(async()=>{
   if(server){server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
 });
 
-async function fixture(t,{periods=options.periods,optionsStatus=200,omitPeriods=false,edit=false}={}){
+async function fixture(t,{periods=options.periods,optionsStatus=200,omitPeriods=false,edit=false,locationsStatus=200,locations=[{location_id:240,name:'Jamaica sint\u00e9tica',subsidiary_id:24}]}={}){
   const context=await browser.newContext({viewport:{width:1500,height:950}});
   t.after(()=>context.close());
   await context.addInitScript(()=>{
@@ -72,6 +72,9 @@ async function fixture(t,{periods=options.periods,optionsStatus=200,omitPeriods=
     if(path==='/api/organization/accounting-periods'){
       await route.fulfill({status:403,json:{error:{message:'Cat\u00e1logo fiscal no autorizado.'}}});
       return;
+    }
+    if(path==='/api/organization/locations'){
+      await route.fulfill({status:locationsStatus,json:locationsStatus===200?locations:{error:{message:'Cat\u00e1logo de ubicaciones no autorizado.'}}});return;
     }
     if(path==='/api/banking/deposits/7'&&method==='GET'){
       await route.fulfill({json:detail});return;
@@ -123,6 +126,19 @@ test('deposito usa octubre abierto de la empresa activa sin consultar el catalog
   noLegacyPeriods(app);
   assert.deepEqual(app.errors,[]);
 });
+
+for(const scenario of [
+  {name:'ubicacion compartida con otra filial',locations:[{location_id:240,name:'Jamaica sint\u00e9tica',subsidiary_id:3,subsidiary_ids:[3,24]}]},
+  {name:'opciones del deposito sin permiso de catalogo de ubicaciones',locationsStatus:403}
+]){
+  test(`${scenario.name} conserva y envia la ubicacion autorizada`,{timeout:30000},async t=>{
+    const app=await fixture(t,scenario);await completeDeposit(app.page);
+    await expect(app.page.locator('#location')).toHaveValue('240');
+    await expect(app.page.locator('#location option:checked')).toHaveText('Jamaica sint\u00e9tica');
+    await app.page.click('#save');await expect(app.page.locator('#successModal')).toBeVisible();
+    assert.equal(writes(app).length,1);assert.equal(writes(app)[0].body.location_id,'240');assert.deepEqual(app.errors,[]);
+  });
+}
 
 test('cambiar la fecha actualiza el periodo y una fecha sin periodo no envia el deposito',{timeout:30000},async t=>{
   const app=await fixture(t);
