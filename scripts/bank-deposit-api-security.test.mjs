@@ -16,6 +16,8 @@ const cases=[['GET','/deposits/options','view','bank_deposit_options',undefined,
 test('autorizacion interna de las seis operaciones precede a cualquier consulta',async t=>{
  t.after(()=>invalidateRoleAccessCaches());const auth='Bearer deposit-direct-denied';await primeRoleAccessCache(auth,{isAdmin:false,grants:[]});
  for(const action of [()=>bankDepositOptions(auth),()=>listBankDeposits(auth,filters),()=>bankDepositDetail(auth,17),()=>saveBankDeposit(auth,payload),()=>updateBankDeposit(auth,17,payload),()=>deleteBankDeposit(auth,17)])await assert.rejects(action(),e=>e.status===403);
+ const writeWithoutView='Bearer deposit-write-without-view';await primeRoleAccessCache(writeWithoutView,{isAdmin:false,grants:[{resourceKey:resource,canView:false,canCreate:true,canEdit:true,canDelete:true}]});
+ for(const action of [()=>bankDepositOptions(writeWithoutView),()=>saveBankDeposit(writeWithoutView,payload),()=>updateBankDeposit(writeWithoutView,17,payload),()=>deleteBankDeposit(writeWithoutView,17)])await assert.rejects(action(),e=>e.status===403);
  await assert.rejects(bankDepositOptions(''),e=>e.status===401);
  for(const id of [0,-1,1.5,NaN,Number.MAX_SAFE_INTEGER+1])assert.throws(()=>bankDepositDetail(auth,id),e=>e.status===400);
 });
@@ -23,7 +25,7 @@ test('seis rutas exigen view/create/edit/delete y conservan identidad, parametro
  const calls=[];const roles={denied:null,reader:'view',creator:'create',editor:'edit',deleter:'delete',admin:'admin'};
  const stub=createServer(async(req,res)=>{
   res.setHeader('Content-Type','application/json');const role=req.headers.authorization?.replace('Bearer deposit-http-','');
-  if(req.url==='/rest/v1/rpc/assert_request_access'){res.end(JSON.stringify({allowed:true,roleAccess:{isAdmin:role==='admin',grants:[{resourceKey:resource,canView:roles[role]==='view',canCreate:roles[role]==='create',canEdit:roles[role]==='edit',canDelete:roles[role]==='delete'}]}}));return;}
+  if(req.url==='/rest/v1/rpc/assert_request_access'){res.end(JSON.stringify({allowed:true,roleAccess:{isAdmin:role==='admin',grants:[{resourceKey:resource,canView:Boolean(roles[role]),canCreate:roles[role]==='create',canEdit:roles[role]==='edit',canDelete:roles[role]==='delete'}]}}));return;}
   const chunks=[];for await(const c of req)chunks.push(c);calls.push({path:req.url,auth:req.headers.authorization,key:req.headers.apikey,payload:JSON.parse(Buffer.concat(chunks).toString()||'{}')});
   if(role==='admin'&&req.url.endsWith('/update_bank_deposit')){res.writeHead(403);res.end(JSON.stringify({code:'42501',message:'private SQL detail'}));return;}
   res.end(JSON.stringify({fixture:true}));
@@ -37,7 +39,7 @@ test('seis rutas exigen view/create/edit/delete y conservan identidad, parametro
   for(const [role,grant]of Object.entries(roles)){
    const auth=`Bearer deposit-http-${role}`;const before=calls.length;
    const response=await fetch(url,{method,headers:{Authorization:auth,'X-Device-Token':'deposit-http-device-fixture','Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
-   const allowed=role==='admin'||grant===action;const sqlDenied=role==='admin'&&rpc==='update_bank_deposit';
+   const allowed=role==='admin'||grant===action||(action==='view'&&Boolean(grant));const sqlDenied=role==='admin'&&rpc==='update_bank_deposit';
    assert.equal(response.status,!allowed||sqlDenied?403:rpc==='save_bank_deposit'?201:200,`${role} ${rpc}`);
    assert.equal(calls.length,before+(allowed?1:0));
    if(allowed)assert.deepEqual(calls.at(-1),{path:'/rest/v1/rpc/'+rpc,auth,key:'public-fixture',payload:expected});
