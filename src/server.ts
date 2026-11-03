@@ -113,6 +113,7 @@ import { iniciarProgramacionTipoCambioNI } from './modules/configuration-catalog
 import { consultarYGuardarTipoDeCambioPE } from './modules/configuration-catalogs/services/peru-exchange-rate.service.js';
 import { iniciarProgramacionTipoCambioPE } from './modules/configuration-catalogs/services/peru-exchange-rate.scheduler.js';
 import { accountingReportOptions, bankReconciliationAction, executePendingInvoiceReclassification, pendingInvoiceReversalOptions, previewPendingInvoiceReclassification, purchaseTransactionSupport, reverseJournalEntry, reversePendingInvoiceJournal, runAccountingReport } from './modules/reports/accounting-reports.service.js';
+import {previewBankStatement} from './modules/reports/bank-statement-preview.service.js';
 import { renderAccountingPdf } from './modules/reports/accounting-pdf.service.js';
 import { exportSettledInvoiceExcel, exportSettledInvoicePdf, runSettledInvoiceReport, settledInvoiceReportOptions } from './modules/reports/settled-invoices-report.service.js';
 import { exportSettledSupplierInvoiceExcel, exportSettledSupplierInvoicePdf, runSettledSupplierInvoiceReport, settledSupplierInvoiceReportOptions } from './modules/reports/settled-supplier-invoices-report.service.js';
@@ -461,6 +462,7 @@ const server = createServer((request, response) => {
       await assertRoleAccess(authorization,'banking:bank-fees','create');
       return json(response,201,{result:await registerStatementBankFees(authorization,await body(request) as Record<string,unknown>)});
     }
+    if(request.method==='POST'&&request.url==='/api/reports/accounting/bank-reconciliation/preview'){return json(response,200,{result:await previewBankStatement(request.headers.authorization!,await body(request) as Record<string,unknown>)});}
     const bankActionRoute=request.url?.match(/^\/api\/reports\/accounting\/bank-reconciliation\/(import|auto|match|close|close-report)$/);
     if(request.method==='POST'&&bankActionRoute){return json(response,200,{result:await bankReconciliationAction(request.headers.authorization!,bankActionRoute[1],await body(request) as Record<string,unknown>)});}
      const journalReverseRoute=request.url?.match(/^\/api\/reports\/accounting\/journal\/(\d+)\/reverse$/);

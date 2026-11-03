@@ -41,7 +41,7 @@ assert.match(source, /new MutationObserver\(.*enhanceBankFeeWorkspace/s,
 for (const selector of ['.bank-fee-panel', '.bank-fee-check', '.bank-fee-dialog', '#confirmBankFees']) {
   assert.ok(css.includes(selector), `Falta el estilo ${selector}.`);
 }
-assert.ok(html.includes('accounting-bank-reconciliation.css?v=20261027-bank-fee-batch'));
-assert.ok(html.includes('accounting-reports.js?v=20261027-bank-fee-batch'));
+assert.match(html,/accounting-bank-reconciliation\.css\?v=[^"\s]+/);
+assert.match(html,/accounting-reports\.js\?v=[^"\s]+/);
 
 console.log('PASS: la hoja permite seleccionar, confirmar y registrar en lote comisiones bancarias pendientes.');

@@ -6,6 +6,7 @@ process.env.SUPABASE_URL='https://example.supabase.test';
 process.env.SUPABASE_ANON_KEY='test-anon-key';
 
 const {registerStatementBankFees}=await import('../dist/modules/banking-catalogs/bank-fee.service.js');
+const {primeRoleAccessCache,invalidateRoleAccessCaches}=await import('../dist/modules/security-catalogs/role-access-matrix.module.js');
 const migration=readFileSync(
   new URL('../supabase/migrations/20261027200000_bank_reconciliation_statement_fees.sql',import.meta.url),
   'utf8'
@@ -21,7 +22,9 @@ function response(body,status=200){
 
 test('envia el lote seleccionado al RPC atomico sin transformar sus identificadores',async t=>{
   const originalFetch=globalThis.fetch;
-  t.after(()=>{globalThis.fetch=originalFetch;});
+  const authorization='Bearer statement-fees-create-fixture';
+  t.after(()=>{globalThis.fetch=originalFetch;invalidateRoleAccessCaches(authorization);});
+  await primeRoleAccessCache(authorization,{isAdmin:false,grants:[{resourceKey:'banking:bank-fees',canView:true,canCreate:true,canEdit:false,canDelete:false}]});
   let requestUrl='';
   let requestBody={};
   globalThis.fetch=async(input,init={})=>{
@@ -35,7 +38,7 @@ test('envia el lote seleccionado al RPC atomico sin transformar sus identificado
     p_cutoff:'2026-10-27',
     p_statement_line_ids:[41,42]
   };
-  const result=await registerStatementBankFees('Bearer test',payload);
+  const result=await registerStatementBankFees(authorization,payload);
 
   assert.match(requestUrl,/\/rest\/v1\/rpc\/register_bank_statement_fees$/);
   assert.deepEqual(requestBody,payload);

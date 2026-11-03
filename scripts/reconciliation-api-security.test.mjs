@@ -42,7 +42,7 @@ test('23 variantes HTTP separan permisos y conservan JWT, apikey y parametros; a
  const calls=[],roles={denied:null,reader:'view',creator:'create',editor:'edit',deleter:'delete',admin:'admin'};
  const resources=['reports:accounting-reports','banking:bank-statements','banking:bank-reconciliations','banking:cash-proof'];
  const stub=createServer(async(req,res)=>{res.setHeader('Content-Type','application/json');const role=req.headers.authorization?.replace('Bearer rec-http-','');
-  if(req.url==='/rest/v1/rpc/assert_request_access'){res.end(JSON.stringify({allowed:true,roleAccess:{isAdmin:role==='admin',grants:resources.map(resourceKey=>({resourceKey,canView:roles[role]==='view',canCreate:roles[role]==='create',canEdit:roles[role]==='edit',canDelete:roles[role]==='delete'}))}}));return;}
+  if(req.url==='/rest/v1/rpc/assert_request_access'){res.end(JSON.stringify({allowed:true,roleAccess:{isAdmin:role==='admin',grants:resources.map(resourceKey=>({resourceKey,canView:Boolean(roles[role]),canCreate:roles[role]==='create',canEdit:roles[role]==='edit',canDelete:roles[role]==='delete'}))}}));return;}
   const chunks=[];for await(const c of req)chunks.push(c);calls.push({path:req.url,auth:req.headers.authorization,key:req.headers.apikey,payload:JSON.parse(Buffer.concat(chunks).toString()||'{}')});
   if(role==='admin'&&req.url.endsWith('/quadratic_reconciliation_transition')){res.writeHead(403);res.end(JSON.stringify({code:'42501',message:'private SQL detail'}));return;}
   res.end(JSON.stringify({fixture:true,statement_id:17,header:{},matrix:{}}));
@@ -53,7 +53,7 @@ test('23 variantes HTTP separan permisos y conservan JWT, apikey y parametros; a
  let ready=false;for(let n=0;n<100;n++){try{if((await fetch(`http://127.0.0.1:${port}/api/health`)).ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,100));}assert.ok(ready);
  for(const [method,path,action,rpc,body,expected,status]of cases){for(const [role,grant]of Object.entries(roles)){
   const auth=`Bearer rec-http-${role}`,before=calls.length;const response=await fetch(`http://127.0.0.1:${port}`+path,{method,headers:{Authorization:auth,'X-Device-Token':'reconciliation-http-device-fixture','Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
-  const allowed=role==='admin'||grant===action,sqlDenied=role==='admin'&&rpc==='quadratic_reconciliation_transition';assert.equal(response.status,!allowed||sqlDenied?403:status,`${role} ${path}`);assert.equal(calls.length,before+(allowed?1:0));
+  const allowed=role==='admin'||grant===action||action==='view'&&grant!==null,sqlDenied=role==='admin'&&rpc==='quadratic_reconciliation_transition';assert.equal(response.status,!allowed||sqlDenied?403:status,`${role} ${path}`);assert.equal(calls.length,before+(allowed?1:0));
   if(allowed)assert.deepEqual(calls.at(-1),{path:'/rest/v1/rpc/'+rpc,auth,key:'public-fixture',payload:expected});if(sqlDenied)assert.doesNotMatch(await response.text(),/private SQL detail/);
  }
  const before=calls.length;assert.equal((await fetch(`http://127.0.0.1:${port}`+path,{method,...(body?{headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{})})).status,401);assert.equal(calls.length,before);

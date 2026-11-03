@@ -1,4 +1,5 @@
 import {requireReportAccess,fetchReportSupabase} from './report-access.service.js';
+import {previewBankStatement} from './bank-statement-preview.service.js';
 import{pendingInvoiceRpc,assertPendingSource,assertPendingInvoiceAccess}from'./pending-invoice-security.service.js';
 import {reconciliationRpc,requireReconciliationAccess} from '../banking-catalogs/bank-reconciliation-security.service.js';
 import { getSupabaseConfig } from '../../core/database/supabase.client.js';
@@ -72,7 +73,24 @@ export async function previewPendingInvoiceReclassification(authorization:string
 export async function executePendingInvoiceReclassification(authorization:string,reclassificationDate:unknown){
   await assertPendingInvoiceAccess(authorization,'execute');return pendingInvoiceRpc(authorization,'pending_invoice_reclassification_execute',{p_reclassification_date:assertAnnualPendingInvoiceReclassificationDate(reclassificationDate)},'execute');
 }
-export async function bankReconciliationAction(authorization:string,action:string,input:Record<string,unknown>){await requireReconciliationAccess(authorization,action==='import'?'banking:bank-statements':action==='close-report'?'reports:accounting-reports':'banking:bank-reconciliations',action==='import'?'create':action==='close-report'?'view':'edit');const names:Record<string,string>={import:'import_bank_statement',auto:'auto_match_bank_reconciliation',match:'match_bank_transaction',close:'close_bank_reconciliation','close-report':'bank_reconciliation_close_report'};if(!names[action])throw new Error('Acción bancaria no válida.');if(action==='import'&&typeof input.p_file_base64==='string'){const encoded=input.p_file_base64;if(encoded.length>8_000_000)throw new Error('El archivo Excel supera el límite permitido de 5 MB.');const {default:readXlsxFile}=await import('read-excel-file/node');const matrix=await readXlsxFile(Buffer.from(encoded,'base64')) as unknown as unknown[][],headers=(matrix.shift()??[]).map(value=>String(value??'').trim().toLowerCase()),cell=(row:unknown[],names:string[])=>row[headers.findIndex(header=>names.some(name=>header.includes(name)))],dateValue=(value:unknown)=>value instanceof Date?value.toISOString().slice(0,10):String(value??'').slice(0,10);input.p_lines=matrix.map(row=>({date:dateValue(cell(row,['fecha','date'])),valueDate:dateValue(cell(row,['valor','value'])),reference:String(cell(row,['referencia','reference','cheque'])??''),description:String(cell(row,['nota','descrip','concept','memo'])??''),beneficiary:String(cell(row,['benefici','nombre','name'])??''),amount:Number(cell(row,['monto','amount','importe'])??0)})).filter(row=>/^\d{4}-\d{2}-\d{2}$/.test(row.date)&&Number.isFinite(row.amount)&&row.amount!==0);delete input.p_file_base64;if(!(input.p_lines as unknown[]).length)throw new Error('El archivo Excel no contiene movimientos reconocibles.');}if(action==='import'){const lines=Array.isArray(input.p_lines)?input.p_lines as Record<string,unknown>[]:[],opening=Number(input.p_opening_balance??0);if(!Number.isFinite(opening))throw Object.assign(new Error('El saldo inicial debe ser finito.'),{status:400});input.p_opening_balance=opening;if(input.p_closing_balance===null||input.p_closing_balance===undefined||input.p_closing_balance==='')input.p_closing_balance=Number(input.p_opening_balance)+lines.reduce((sum,line)=>sum+Number(line.amount||0),0);}return reconciliationRpc(authorization,names[action],input,action==='import'?'banking:bank-statements':action==='close-report'?'reports:accounting-reports':'banking:bank-reconciliations',action==='import'?'create':action==='close-report'?'view':'edit');}
+export async function bankReconciliationAction(authorization:string,action:string,input:Record<string,unknown>){
+ const resource=action==='import'?'banking:bank-statements':action==='close-report'?'reports:accounting-reports':'banking:bank-reconciliations',permission=action==='import'?'create':action==='close-report'?'view':'edit';
+ await requireReconciliationAccess(authorization,resource,permission);
+ const names:Record<string,string>={import:'import_bank_statement',auto:'auto_match_bank_reconciliation',match:'match_bank_transaction',close:'close_bank_reconciliation','close-report':'bank_reconciliation_close_report'};
+ if(!names[action])throw new Error('Acción bancaria no válida.');
+ let payload={...input};
+ if(action==='import'&&(typeof input.p_file_text==='string'||typeof input.p_file_base64==='string')){
+  const prepared=await previewBankStatement(authorization,input);
+  payload={p_bank_account_id:input.p_bank_account_id,p_statement_date:input.p_statement_date,p_file_name:input.p_file_name,p_opening_balance:prepared.openingBalance,p_closing_balance:prepared.closingBalance,p_lines:prepared.lines};
+ }else if(action==='import'){
+  const lines=Array.isArray(input.p_lines)?input.p_lines as Record<string,unknown>[]:[],openingValue=input.p_opening_balance,opening=Number(openingValue);
+  if(openingValue===null||openingValue===undefined||String(openingValue).trim()===''||!Number.isFinite(opening))throw Object.assign(new Error('El extracto debe incluir un saldo inicial válido.'),{status:400});
+  const closingValue=input.p_closing_balance,closing=closingValue===null||closingValue===undefined||closingValue===''?Math.round((opening+lines.reduce((sum,line)=>sum+Number(line.amount||0),0))*100)/100:Number(closingValue);
+  if(!Number.isFinite(closing))throw Object.assign(new Error('El saldo final debe ser finito.'),{status:400});
+  payload={...input,p_opening_balance:opening,p_closing_balance:closing};
+ }
+ return reconciliationRpc(authorization,names[action],payload,resource,permission);
+}
 
 export async function renderBankReconciliationPdf(input:Record<string,unknown>){
  const safeName=String(input.fileName??'reporte.pdf').replace(/[^a-zA-Z0-9._-]/g,'-').slice(0,120)||'reporte.pdf';
