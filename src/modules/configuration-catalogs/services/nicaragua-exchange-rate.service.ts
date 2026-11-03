@@ -1,15 +1,52 @@
 import{saveFetchedRate}from'../rate-security.service.js';
 import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
 import { request as httpsRequest } from 'node:https';
+import { bcnTlsOptions } from './nicaragua-bcn-tls.js';
 const BCN_SERVICE='https://servicios.bcn.gob.ni/Tc_Servicio/ServicioTC.asmx';
 type CurrencyRow={currency_id:number;currency_code:string};
+type BcnDependencies={request?:typeof httpsRequest;timeoutMs?:number};
 function effectiveDate(value?:Date|string){const date=value instanceof Date?value:new Date(value??Date.now());if(Number.isNaN(date.getTime()))throw new Error('La fecha efectiva no es válida.');return date.toISOString().slice(0,10);}
 function previous(iso:string,days:number){const date=new Date(`${iso}T12:00:00Z`);date.setUTCDate(date.getUTCDate()-days);return date.toISOString().slice(0,10);}
 function result(xml:string){return Number(xml.match(/<RecuperaTC_DiaResult>([^<]+)<\/RecuperaTC_DiaResult>/i)?.[1]);}
-function postSoap(body:string){return new Promise<string>((resolve,reject)=>{const request=httpsRequest(BCN_SERVICE,{method:'POST',minVersion:'TLSv1',ciphers:'DEFAULT@SECLEVEL=0',headers:{'Content-Type':'text/xml; charset=utf-8',SOAPAction:'"http://servicios.bcn.gob.ni/RecuperaTC_Dia"','User-Agent':'Gentia ERP/1.0','Content-Length':Buffer.byteLength(body)}},response=>{let xml='';response.setEncoding('utf8');response.on('data',chunk=>xml+=chunk);response.on('end',()=>response.statusCode&&response.statusCode>=200&&response.statusCode<300?resolve(xml):reject(new Error(`El servicio del BCN respondió con estado ${response.statusCode??0}.`)));});request.setTimeout(15000,()=>request.destroy(new Error('El servicio del BCN excedió el tiempo de espera.')));request.on('error',reject);request.end(body);});}
-async function officialRate(iso:string){const[year,month,day]=iso.split('-').map(Number);const body=`<?xml version="1.0" encoding="utf-8"?><soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><RecuperaTC_Dia xmlns="http://servicios.bcn.gob.ni/"><Ano>${year}</Ano><Mes>${month}</Mes><Dia>${day}</Dia></RecuperaTC_Dia></soap:Body></soap:Envelope>`;return result(await postSoap(body));}
+function postSoap(body:string,dependencies:BcnDependencies){
+ return new Promise<string>((resolve,reject)=>{
+  const timeoutMs=Number.isFinite(dependencies.timeoutMs)&&Number(dependencies.timeoutMs)>=1?Math.min(15_000,Number(dependencies.timeoutMs)):15_000;
+  let deadline:NodeJS.Timeout|undefined;
+  const fail=(cause:Error)=>{clearTimeout(deadline);reject(cause);};
+  const request=(dependencies.request??httpsRequest)(BCN_SERVICE,{
+   ...bcnTlsOptions(),method:'POST',
+   headers:{'Content-Type':'text/xml; charset=utf-8',SOAPAction:'"http://servicios.bcn.gob.ni/RecuperaTC_Dia"','User-Agent':'Gentia ERP/1.0','Content-Length':Buffer.byteLength(body)}
+  },response=>{
+   let xml='';
+   response.setEncoding('utf8');
+   response.on('data',chunk=>xml+=chunk);
+   response.on('error',fail);
+   response.on('aborted',()=>fail(new Error('La respuesta del servicio del BCN se interrumpió.')));
+   response.on('end',()=>{
+    clearTimeout(deadline);
+    if(response.statusCode&&response.statusCode>=200&&response.statusCode<300)resolve(xml);
+    else reject(new Error(`El servicio del BCN respondió con estado ${response.statusCode??0}.`));
+   });
+  });
+  const timedOut=()=>request.destroy(new Error('El servicio del BCN excedió el tiempo de espera.'));
+  deadline=setTimeout(timedOut,timeoutMs);
+  request.setTimeout(timeoutMs,timedOut);
+  request.on('error',fail);
+  request.end(body);
+ });
+}
+export async function consultarTasaBcn(iso:string,dependencies:BcnDependencies={}){const[year,month,day]=iso.split('-').map(Number);const body=`<?xml version="1.0" encoding="utf-8"?><soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><RecuperaTC_Dia xmlns="http://servicios.bcn.gob.ni/"><Ano>${year}</Ano><Mes>${month}</Mes><Dia>${day}</Dia></RecuperaTC_Dia></soap:Body></soap:Envelope>`;return result(await postSoap(body,dependencies));}
 /** Consulta el tipo de cambio oficial NIO por USD publicado por el BCN. */
-export async function obtenerTipoDeCambioNI(monedaOrigen='USD',monedaDestino='NIO',fechaEfectiva?:Date|string){const from=monedaOrigen.trim().toUpperCase(),to=monedaDestino.trim().toUpperCase(),effective=effectiveDate(fechaEfectiva);if(from===to)return{monedaOrigen:from,monedaDestino:to,fechaEfectiva:effective,tipoCambio:1,fuente:'Banco Central de Nicaragua'};if(!((from==='USD'&&to==='NIO')||(from==='NIO'&&to==='USD')))throw new Error('Por ahora la consulta de Nicaragua admite únicamente USD y NIO.');for(let days=0;days<=7;days++){const sourceDate=previous(effective,days),rate=await officialRate(sourceDate);if(Number.isFinite(rate)&&rate>0)return{monedaOrigen:from,monedaDestino:to,fechaEfectiva:effective,fechaFuente:sourceDate,tipoCambio:from==='USD'?rate:1/rate,tasaVenta:rate,serie:'Tipo de cambio oficial NIO por USD',fuente:'Banco Central de Nicaragua'};}throw new Error('El BCN no devolvió una tasa oficial válida para la fecha solicitada ni los 7 días anteriores.');}
+export async function obtenerTipoDeCambioNI(monedaOrigen='USD',monedaDestino='NIO',fechaEfectiva?:Date|string,dependencies:BcnDependencies={}){
+ const from=monedaOrigen.trim().toUpperCase(),to=monedaDestino.trim().toUpperCase(),effective=effectiveDate(fechaEfectiva);
+ if(from===to)return{monedaOrigen:from,monedaDestino:to,fechaEfectiva:effective,tipoCambio:1,fuente:'Banco Central de Nicaragua'};
+ if(!((from==='USD'&&to==='NIO')||(from==='NIO'&&to==='USD')))throw new Error('Por ahora la consulta de Nicaragua admite únicamente USD y NIO.');
+ for(let days=0;days<=7;days++){
+  const sourceDate=previous(effective,days),rate=await consultarTasaBcn(sourceDate,dependencies);
+  if(Number.isFinite(rate)&&rate>0)return{monedaOrigen:from,monedaDestino:to,fechaEfectiva:effective,fechaFuente:sourceDate,tipoCambio:from==='USD'?rate:1/rate,tasaVenta:rate,serie:'Tipo de cambio oficial NIO por USD',fuente:'Banco Central de Nicaragua'};
+ }
+ throw new Error('El BCN no devolvió una tasa oficial válida para la fecha solicitada ni los 7 días anteriores.');
+}
 function claims(auth:string){const part=auth.replace(/^Bearer\s+/,'').split('.')[1];if(!part)throw new Error('La sesión no es válida.');return JSON.parse(Buffer.from(part,'base64url').toString('utf8'))as Record<string,unknown>;}
 async function rest<T>(path:string,auth:string,init:RequestInit={}):Promise<T>{const config=getSupabaseConfig();if(!config)throw new Error('Supabase no está configurado.');const response=await fetchSupabase(new URL(`/rest/v1/${path}`,config.url),{...init,headers:{apikey:config.anonKey,Authorization:auth,'Content-Type':'application/json',...(init.headers??{})}}),raw=await response.text(),payload:unknown=raw?JSON.parse(raw):null;if(!response.ok)throw new Error(typeof payload==='object'&&payload&&'message'in payload?String(payload.message):'No fue posible guardar el tipo de cambio.');return payload as T;}
 async function currency(auth:string,code:string){const rows=await rest<CurrencyRow[]>(`currencies?select=currency_id,currency_code&currency_code=eq.${encodeURIComponent(code)}&limit=1`,auth);if(!rows[0])throw new Error(`La moneda ${code} no existe en el catálogo de Monedas.`);return rows[0];}
