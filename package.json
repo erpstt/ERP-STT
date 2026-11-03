@@ -90,7 +90,8 @@
     "test:csp-external-security": "npm run build && node --test scripts/csp-external-security.test.mjs scripts/csp-vue-security.test.mjs",
     "test:operational-document-security": "npm run build && node --test scripts/operational-document-security.test.mjs",
     "test:report-template-security": "npm run build && node --test scripts/report-template-sql-security.test.mjs scripts/report-template-api-security.test.mjs scripts/report-template-ui-security.test.mjs",
-    "test:statement-ledger-security": "npm run build && node --test scripts/statement-ledger-sql-security.test.mjs scripts/statement-access-security.test.mjs scripts/statement-ui-security.test.mjs"
+    "test:statement-ledger-security": "npm run build && node --test scripts/statement-ledger-sql-security.test.mjs scripts/statement-access-security.test.mjs scripts/statement-ui-security.test.mjs",
+    "test:financial-catalog-direct-security": "npm run build && node --test scripts/financial-catalog-direct-sql.test.mjs scripts/financial-catalog-api-security.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",

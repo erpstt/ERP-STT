@@ -17,7 +17,7 @@ test('tres rutas de catalogo usan RPC autorizado y conservan JWT, apikey y paylo
  const calls=[],roles={denied:null,reader:'view',creator:'create',editor:'edit',deleter:'delete',admin:'admin'};
  const stub=createServer(async(req,res)=>{
   res.setHeader('Content-Type','application/json');const role=req.headers.authorization?.replace('Bearer account-http-','');
-  if(req.url==='/rest/v1/rpc/assert_request_access'){res.end(JSON.stringify({allowed:true,roleAccess:{isAdmin:role==='admin',grants:[{resourceKey:resource,canView:roles[role]==='view',canCreate:roles[role]==='create',canEdit:roles[role]==='edit',canDelete:roles[role]==='delete'}]}}));return;}
+  if(req.url==='/rest/v1/rpc/assert_request_access'){res.end(JSON.stringify({allowed:true,roleAccess:{isAdmin:role==='admin',grants:[{resourceKey:resource,canView:['view','create','edit','delete'].includes(roles[role]),canCreate:roles[role]==='create',canEdit:roles[role]==='edit',canDelete:roles[role]==='delete'}]}}));return;}
   const chunks=[];for await(const c of req)chunks.push(c);calls.push({path:req.url,auth:req.headers.authorization,key:req.headers.apikey,payload:JSON.parse(Buffer.concat(chunks).toString()||'{}')});
   if(role==='admin'&&req.url.endsWith('/update_bank_account')){res.writeHead(403);res.end(JSON.stringify({code:'42501',message:'private SQL detail'}));return;}
   res.end(JSON.stringify({bank_account_id:17,balance:0}));
@@ -47,7 +47,7 @@ test('formulario mantiene saldo visible de solo lectura y lo excluye de crear/ed
  // Exercise submitRecord itself with UI state and stubbed transport, without finance data.
  assert.equal(catalog.fields.find(f=>f.key==='balance').readOnly,true);
  for(const id of [null,17]){
-  let sent;const state={activeCatalog:catalog,recordDialog:{id,values:{...payload,balance:900}},validateSubsidiaryForm(){},validateChartAccountSubsidiaries(){},validateUserSubsidiaries(){},validateChartAccountReferences(){},validateAutorentConfiguration(){},normalizeBankStatementPayload(){},catalogPath:()=>'/api/banking/bank-accounts',api:async(path,request)=>{sent=JSON.parse(request.body);return{};},loadCatalog:async()=>{}};
+  let sent;const state={activeCatalog:catalog,recordDialog:{id,values:{...payload,balance:900}},validateEntityForm(){},validateSubsidiaryForm(){},validateChartAccountSubsidiaries(){},validateUserSubsidiaries(){},validateChartAccountReferences(){},validateAutorentConfiguration(){},normalizeBankStatementPayload(){},normalizeEntityBankPayload(){},catalogPath:()=>'/api/banking/bank-accounts',api:async(path,request)=>{sent=JSON.parse(request.body);return{};},loadCatalog:async()=>{}};
   await methods.submitRecord.call(state);assert.ok(sent, state.dialogError);assert.equal(Object.hasOwn(sent,'balance'),false);assert.equal(sent.account_number,payload.account_number);
  }
 });
