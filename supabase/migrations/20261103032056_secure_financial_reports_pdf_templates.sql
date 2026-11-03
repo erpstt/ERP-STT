@@ -38,7 +38,7 @@ revoke all on all functions in schema report_template_private from public,anon,a
 revoke all on table public.pdf_templates from anon,authenticated;
 
 do $harden$
-declare sig text;f record;src text;guard text;permission text;
+declare sig text;f record;src text;guard text;permission text;directives text;
 begin
  foreach sig in array array['accounting_report_options()','accounting_report_options_bundle()','aging_report_options()','eight_column_balance_report_options()','payment_request_report_options()','pdf_template_clone(bigint)','pdf_template_compiled(bigint)','pdf_template_delete(bigint)','pdf_template_document_data(text,text)','pdf_template_options()','pdf_template_save(jsonb)','purchase_transaction_support(bigint)','run_accounting_report(text,jsonb)','run_aging_report(text,jsonb)','run_bank_balance_period_report(jsonb)','run_bank_reconciliation_report(jsonb)','run_eight_column_balance_report(jsonb)','run_general_journal_report(jsonb)','run_income_statement_matrix(jsonb)','run_intercompany_commercial_report(jsonb)','run_intercompany_loan_report(jsonb)','run_payment_request_report(jsonb)','run_pending_invoice_control_report(jsonb)','run_purchase_transaction_report(jsonb)','run_sales_transaction_report(jsonb)','run_settled_sales_invoice_report(jsonb)','run_settled_supplier_invoice_report(jsonb)','run_vat_declaration_report(jsonb)','settled_sales_invoice_report_options()','settled_supplier_invoice_report_options()','vat_declaration_report_options()','general_journal_options()','income_forecast_options(boolean)','income_forecast_save(jsonb)','income_forecast_source(jsonb)','income_statement_dimension_links()'] loop
   select p.oid,p.proname,p.prosrc,l.lanname into strict f from pg_proc p join pg_language l on l.oid=p.prolang where p.oid=to_regprocedure('public.'||sig);
@@ -63,7 +63,10 @@ begin
   if f.lanname='sql' then
    src:='begin '||guard||' return ('||regexp_replace(trim(src),';[[:space:]]*$','')||');end';
   elsif f.lanname='plpgsql' then
-   src:='begin '||guard||E'\n'||trim(src)||case when right(trim(src),1)=';'then ''else ';'end||E'\nend';
+   -- Compiler directives apply to the whole function and must precede its outer block.
+   directives:=substring(src from E'^((?:[[:space:]]*#[^\\n]+\\n)+)');
+   if directives is not null then src:=substr(src,length(directives)+1);end if;
+   src:=coalesce(directives,'')||'begin '||guard||E'\n'||trim(src)||case when right(trim(src),1)=';'then ''else ';'end||E'\nend';
   else raise exception 'Unexpected function language: %',sig;end if;
   execute format('create or replace function public.%s returns %s language plpgsql %s security definer set search_path=pg_catalog,public,pg_temp as %L',
     (select proname||'('||pg_get_function_arguments(oid)||')' from pg_proc where oid=f.oid),pg_get_function_result(f.oid),

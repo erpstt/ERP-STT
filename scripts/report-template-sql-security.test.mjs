@@ -3,7 +3,7 @@ import {test,before,after} from 'node:test';
 import {readFile} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
 const db=new PGlite(),signatures=JSON.parse(await readFile(new URL('./fixtures/report-template-signatures.json',import.meta.url),'utf8'));
-const migration=await readFile('supabase/migrations/20261103025053_secure_financial_reports_pdf_templates.sql','utf8');
+const migration=await readFile('supabase/migrations/20261103032056_secure_financial_reports_pdf_templates.sql','utf8');
 before(async()=>{
  await db.exec(`create role anon;create role authenticated;create role service_role;create schema auth;
  create function auth.uid()returns uuid language sql stable as $$select nullif(current_setting('fixture.uid',true),'')::uuid$$;
@@ -23,7 +23,7 @@ before(async()=>{
  const legacy=await readFile('supabase/migrations/20260910110000_pdf_template_designer.sql','utf8');
  for(const f of signatures){
   if(['pdf_template_save','pdf_template_clone','pdf_template_delete'].includes(f.name)){const start=legacy.indexOf('create or replace function '+f.name+'('),end=legacy.indexOf('end$$;',start)+7;assert.ok(start>=0&&end>start);await db.exec(legacy.slice(start,end));}
-  else await db.exec(`create function ${f.name}(${f.arguments})returns ${f.result} language plpgsql ${f.stable?'stable':''} security definer as $$begin return jsonb_build_object('scope',active_subsidiary_id(),'fixture',true);end$$;`);
+  else await db.exec(`create function ${f.name}(${f.arguments})returns ${f.result} language plpgsql ${f.stable?'stable':''} security definer as $$${f.name==='run_sales_transaction_report'?'\n#variable_conflict use_variable\n':''}begin return jsonb_build_object('scope',active_subsidiary_id(),'fixture',true);end$$;`);
  }
  await db.exec('begin;'+migration+'commit;');
 });
@@ -38,3 +38,5 @@ test('readers can read financial bodies while unrelated roles cannot; scope is p
 test('template create/edit/delete are independent; client compiled HTML is not stored',async t=>{await transaction(t);const p={documentType:'FAC_VEN',name:'Synthetic new',schema:{zones:{body:[]}},compiled:'<script>unsafe()</script>'};await assume();await denied('select pdf_template_save($1)',[p]);await denied('select pdf_template_clone(1)');await denied('select pdf_template_delete(1)');await assume(1,20);const id=(await db.query('select pdf_template_save($1) d',[p])).rows[0].d.id;await denied('select pdf_template_save($1)',[{...p,id:1}]);const clone=(await db.query('select pdf_template_clone(1) d')).rows[0].d.id;await db.exec('reset role');assert.ok((await db.query('select html_compiled from pdf_templates where id in($1,$2)',[id,clone])).rows.every(r=>r.html_compiled===''));await assume(1,30);await db.query('select pdf_template_save($1)',[{...p,id:1}]);await denied('select pdf_template_save($1)',[p]);await denied('select pdf_template_delete(1)');await assume(1,40);await db.query('select pdf_template_delete(1)');await denied('select pdf_template_clone(3)');});
 test('template access rejects another subsidiary, branch and direct DML',async t=>{await transaction(t);await assume(1,30);await denied('select pdf_template_save($1)',[{id:2,name:'Other',documentType:'FAC_VEN',schema:{}}]);await denied('select pdf_template_save($1)',[{id:1,branchId:2,name:'Other branch',documentType:'FAC_VEN',schema:{}}]);for(const name of ['pdf_template_clone','pdf_template_delete','pdf_template_compiled'])await denied('select '+name+'(2)');await denied("update pdf_templates set template_name='bypass'");await denied("select report_template_private.enter('documents:pdf-templates','view')");});
 test('real template preview needs both template and source document read grants',async t=>{await transaction(t);await assume();await db.query('select pdf_template_options()');await denied("select pdf_template_document_data('FAC_VEN','SYN')");await db.exec("reset role;insert into role_access_matrix values(10,'sales:invoices',true,false,false,false);set role authenticated");assert.equal((await db.query("select pdf_template_document_data('FAC_VEN','SYN') d")).rows[0].d.scope,1);});
+
+test('PLpgSQL compiler directives remain before the new outer guard',async t=>{await transaction(t);const source=(await db.query("select prosrc from pg_proc where oid='public.run_sales_transaction_report(jsonb)'::regprocedure")).rows[0].prosrc;assert.ok(source.indexOf('#variable_conflict use_variable')<source.indexOf('begin perform report_template_private.enter'));await assume();assert.equal((await db.query("select run_sales_transaction_report('{}') d")).rows[0].d.scope,1);});
