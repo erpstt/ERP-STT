@@ -1,0 +1,22 @@
+[
+  {
+    "nspname": "sales_invoice_private",
+    "proname": "support_allowed",
+    "prosrc": "begin return not exists(select 1 from public.invoice where journal_id=jid) and not exists(select 1 from public.credit_note where journal_id=jid) and not exists(select 1 from public.debit_note where journal_id=jid);end"
+  },
+  {
+    "nspname": "customer_payment_private",
+    "proname": "support_allowed",
+    "prosrc": "select not exists(select 1 from public.customer_payment where journal_id=jid)"
+  },
+  {
+    "nspname": "sales_invoice_private",
+    "proname": "support_visible",
+    "prosrc": "begin\n return (not exists(select 1 from public.invoice where journal_id=jid) or exists(select 1 from public.invoice i where i.journal_id=jid and sales_invoice_private.visible(i.invoice_id)))\n and(not exists(select 1 from public.credit_note where journal_id=jid) or exists(select 1 from public.credit_note n where n.journal_id=jid and sales_note_private.visible('CREDIT',n.cn_id)))\n and(not exists(select 1 from public.debit_note where journal_id=jid) or exists(select 1 from public.debit_note n where n.journal_id=jid and sales_note_private.visible('DEBIT',n.dn_id)));end"
+  },
+  {
+    "nspname": "customer_payment_private",
+    "proname": "support_visible",
+    "prosrc": "select not exists(select 1 from public.customer_payment where journal_id=jid) or exists(select 1 from public.customer_payment p where p.journal_id=jid and customer_payment_private.visible(p.payment_id))"
+  }
+]
