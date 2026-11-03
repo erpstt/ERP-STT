@@ -1,6 +1,7 @@
+import {requireReportAccess,fetchReportSupabase} from './report-access.service.js';
 import{pendingInvoiceRpc,assertPendingSource,assertPendingInvoiceAccess}from'./pending-invoice-security.service.js';
 import {reconciliationRpc,requireReconciliationAccess} from '../banking-catalogs/bank-reconciliation-security.service.js';
-import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
+import { getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { ScopedReadCache } from '../../core/performance/scoped-read-cache.js';
 import {
   operationalReadCacheTtlMs,
@@ -23,14 +24,15 @@ export function invalidateAccountingReportOptionsCache(authorization?:string){
 }
 
 const reports=new Set(['balance-sheet','income-statement','cash-flow','equity-changes','trial-balance','general-ledger','journal','pending-invoice-control','receivables-aging','payables-aging','bank-reconciliation','bank-balances','sales-transactions','purchase-transactions','intercompany-loans','intercompany-commercial']);
-async function rpc<T>(authorization:string,name:string,input:Record<string,unknown>={}){
+async function rpc<T>(authorization:string,name:string,input:Record<string,unknown>={}){await requireReportAccess(authorization);
   const config=getSupabaseConfig();if(!config)throw new Error('Supabase no está configurado.');
-  const response=await fetchSupabase(new URL(`/rest/v1/rpc/${name}`,config.url),{method:'POST',headers:{apikey:config.anonKey,Authorization:authorization,'Content-Type':'application/json'},body:JSON.stringify(input)});
+  const response=await fetchReportSupabase(new URL(`/rest/v1/rpc/${name}`,config.url),{method:'POST',headers:{apikey:config.anonKey,Authorization:authorization,'Content-Type':'application/json'},body:JSON.stringify(input)});
   const raw=await response.text(),payload:unknown=raw?JSON.parse(raw):null;
   if(!response.ok)throw new Error(typeof payload==='object'&&payload&&'message'in payload?String(payload.message):'No fue posible generar el informe.');
   return payload as T;
 }
-export function accountingReportOptions(authorization:string){
+export async function accountingReportOptions(authorization:string){
+  await requireReportAccess(authorization);
   const scope=accountingOptionsScope(authorization);
   return accountingOptionsCache.getOrLoad({
     namespace:accountingOptionsCacheNamespace,

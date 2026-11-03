@@ -1,3 +1,4 @@
+import {requireReportAccess} from './report-access.service.js';
 import {supplierInvoiceRpc,assertSupplierInvoiceAccess} from '../purchasing-catalogs/supplier-invoice-security.service.js';
 import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
 
@@ -18,7 +19,7 @@ type ReportRow={
 type Report={header:Record<string,unknown>;rows:ReportRow[];summary:Record<string,number>;total:number;page:number;pageSize:number};
 type ExportFile={fileName:string;mimeType:string;buffer:Buffer};
 
-async function rpc<T>(authorization:string,name:string,input:Record<string,unknown>={}){return supplierInvoiceRpc<T>(authorization,name,input,'view','reports:accounting-reports');}
+async function rpc<T>(authorization:string,name:string,input:Record<string,unknown>={}){await requireReportAccess(authorization);return supplierInvoiceRpc<T>(authorization,name,input,'view','reports:accounting-reports');}
 
 function cleanFilters(input:Record<string,unknown>,exportAll=false){
   const periodMonth=String(input.periodMonth??'');if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(periodMonth))throw Error('Seleccione un mes de liquidación válido.');

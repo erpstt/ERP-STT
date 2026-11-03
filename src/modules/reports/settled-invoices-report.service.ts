@@ -1,5 +1,6 @@
+import {requireReportAccess,fetchReportSupabase} from './report-access.service.js';
 import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
-import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
+import { getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { renderBankReconciliationPdf } from './accounting-reports.service.js';
 
 type ReportRow={
@@ -14,9 +15,9 @@ type ReportRow={
 type Report={header:Record<string,unknown>;rows:ReportRow[];summary:Record<string,number>;total:number;page:number;pageSize:number};
 type ExportFile={fileName:string;mimeType:string;buffer:Buffer};
 
-async function rpc<T>(authorization:string,name:string,input:Record<string,unknown>={}){
+async function rpc<T>(authorization:string,name:string,input:Record<string,unknown>={}){await requireReportAccess(authorization);
   const config=getSupabaseConfig();if(!config)throw Error('Supabase no está configurado.');
-  const response=await fetchSupabase(new URL(`/rest/v1/rpc/${name}`,config.url),{method:'POST',headers:{apikey:config.anonKey,Authorization:authorization,'Content-Type':'application/json'},body:JSON.stringify(input)});
+  const response=await fetchReportSupabase(new URL(`/rest/v1/rpc/${name}`,config.url),{method:'POST',headers:{apikey:config.anonKey,Authorization:authorization,'Content-Type':'application/json'},body:JSON.stringify(input)});
   const raw=await response.text();let payload:unknown=null;try{payload=raw?JSON.parse(raw):null}catch{payload=raw}
   if(!response.ok)throw Error(typeof payload==='object'&&payload&&'message'in payload?String(payload.message):'No fue posible generar el reporte de facturas liquidadas.');
   return payload as T;

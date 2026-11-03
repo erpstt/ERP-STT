@@ -88,7 +88,8 @@
     "test:csp-security": "npm run build && node --test scripts/csp-vue-security.test.mjs",
     "test:other-names": "npm run build && node --test scripts/other-names-sql.test.mjs scripts/other-names-api.test.mjs scripts/other-names-ui.test.mjs",
     "test:csp-external-security": "npm run build && node --test scripts/csp-external-security.test.mjs scripts/csp-vue-security.test.mjs",
-    "test:operational-document-security": "npm run build && node --test scripts/operational-document-security.test.mjs"
+    "test:operational-document-security": "npm run build && node --test scripts/operational-document-security.test.mjs",
+    "test:report-template-security": "npm run build && node --test scripts/report-template-sql-security.test.mjs scripts/report-template-api-security.test.mjs scripts/report-template-ui-security.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",

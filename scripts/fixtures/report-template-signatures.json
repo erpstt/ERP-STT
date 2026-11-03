@@ -1,0 +1,254 @@
+[
+  {
+    "signature": "accounting_report_options()",
+    "name": "accounting_report_options",
+    "arguments": "",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "accounting_report_options_bundle()",
+    "name": "accounting_report_options_bundle",
+    "arguments": "",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "aging_report_options()",
+    "name": "aging_report_options",
+    "arguments": "",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "eight_column_balance_report_options()",
+    "name": "eight_column_balance_report_options",
+    "arguments": "",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "payment_request_report_options()",
+    "name": "payment_request_report_options",
+    "arguments": "",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "pdf_template_clone(bigint)",
+    "name": "pdf_template_clone",
+    "arguments": "p_id bigint",
+    "result": "jsonb",
+    "stable": false
+  },
+  {
+    "signature": "pdf_template_compiled(bigint)",
+    "name": "pdf_template_compiled",
+    "arguments": "p_id bigint",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "pdf_template_delete(bigint)",
+    "name": "pdf_template_delete",
+    "arguments": "p_id bigint",
+    "result": "void",
+    "stable": false
+  },
+  {
+    "signature": "pdf_template_document_data(text,text)",
+    "name": "pdf_template_document_data",
+    "arguments": "p_type text, p_number text",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "pdf_template_options()",
+    "name": "pdf_template_options",
+    "arguments": "",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "pdf_template_save(jsonb)",
+    "name": "pdf_template_save",
+    "arguments": "p jsonb",
+    "result": "jsonb",
+    "stable": false
+  },
+  {
+    "signature": "purchase_transaction_support(bigint)",
+    "name": "purchase_transaction_support",
+    "arguments": "p_support_id bigint",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_accounting_report(text,jsonb)",
+    "name": "run_accounting_report",
+    "arguments": "p_report text, p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_aging_report(text,jsonb)",
+    "name": "run_aging_report",
+    "arguments": "p_kind text, p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_bank_balance_period_report(jsonb)",
+    "name": "run_bank_balance_period_report",
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_bank_reconciliation_report(jsonb)",
+    "name": "run_bank_reconciliation_report",
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_eight_column_balance_report(jsonb)",
+    "name": "run_eight_column_balance_report",
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_general_journal_report(jsonb)",
+    "name": "run_general_journal_report",
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_income_statement_matrix(jsonb)",
+    "name": "run_income_statement_matrix",
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_intercompany_commercial_report(jsonb)",
+    "name": "run_intercompany_commercial_report",
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_intercompany_loan_report(jsonb)",
+    "name": "run_intercompany_loan_report",
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_payment_request_report(jsonb)",
+    "name": "run_payment_request_report",
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_pending_invoice_control_report(jsonb)",
+    "name": "run_pending_invoice_control_report",
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_purchase_transaction_report(jsonb)",
+    "name": "run_purchase_transaction_report",
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_sales_transaction_report(jsonb)",
+    "name": "run_sales_transaction_report",
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_settled_sales_invoice_report(jsonb)",
+    "name": "run_settled_sales_invoice_report",
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_settled_supplier_invoice_report(jsonb)",
+    "name": "run_settled_supplier_invoice_report",
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "run_vat_declaration_report(jsonb)",
+    "name": "run_vat_declaration_report",
+    "arguments": "p_filters jsonb DEFAULT '{}'::jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "settled_sales_invoice_report_options()",
+    "name": "settled_sales_invoice_report_options",
+    "arguments": "",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "settled_supplier_invoice_report_options()",
+    "name": "settled_supplier_invoice_report_options",
+    "arguments": "",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "vat_declaration_report_options()",
+    "name": "vat_declaration_report_options",
+    "arguments": "",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "general_journal_options()",
+    "name": "general_journal_options",
+    "arguments": "",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "income_forecast_options(boolean)",
+    "name": "income_forecast_options",
+    "arguments": "p_consolidated boolean DEFAULT false",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "income_forecast_save(jsonb)",
+    "name": "income_forecast_save",
+    "arguments": "p jsonb",
+    "result": "jsonb",
+    "stable": false
+  },
+  {
+    "signature": "income_forecast_source(jsonb)",
+    "name": "income_forecast_source",
+    "arguments": "p jsonb",
+    "result": "jsonb",
+    "stable": true
+  },
+  {
+    "signature": "income_statement_dimension_links()",
+    "name": "income_statement_dimension_links",
+    "arguments": "",
+    "result": "jsonb",
+    "stable": true
+  }
+]

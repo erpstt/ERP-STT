@@ -1,4 +1,5 @@
-import {fetchSupabase,getSupabaseConfig} from '../../core/database/supabase.client.js';
+import {requireReportAccess,fetchReportSupabase} from './report-access.service.js';
+import {getSupabaseConfig} from '../../core/database/supabase.client.js';
 type Item=Record<string,any>;
 const num=(v:unknown)=>Number(v||0),round=(v:number)=>Math.round((v+Number.EPSILON)*100)/100;
 const monthAt=(start:string,offset:number)=>{const date=new Date(start+'T12:00:00Z');date.setUTCMonth(date.getUTCMonth()+offset);return date.toISOString().slice(0,7);};
@@ -69,7 +70,7 @@ export function calculateIncomeForecast(source:Item,p:Item){
  summary.gross=months.map((_,i)=>round(summary.Ingreso[i]-summary.Costo[i]));summary.net=months.map((_,i)=>round(summary.gross[i]-summary.Gasto[i]));
  return{months,k,start:source.start,end:source.end,cutoff:source.cutoff,method,columnView:column,currency,rows:display,summary,totals:{real:sum(summary.net.slice(0,k)),future:sum(summary.net.slice(k)),annual:sum(summary.net)},rates:[...rateNotes.values()],companies:source.companies,notes:[...(method==='BUDGET'?['Se utiliza el presupuesto aprobado más las modificaciones aprobadas, sin distribuirlo por dimensiones.']:[]),'Los meses sin movimientos se incluyen con cero en el divisor del promedio.','Los meses futuros utilizan el tipo de cambio disponible al corte.',...(p.consolidated?[dimensionFilter?'Los filtros dimensionales excluyen las eliminaciones publicadas, que no tienen dimensión asignada.':'Consolidado: Mayor vigente más eliminaciones publicadas. Las eliminaciones se presentan sin dimensión asignada.']:source.companies.length>1?['Vista agregada de sociedades, sin eliminaciones intercompañía. Seleccione Consolidado para incluir las publicadas.']:[])],overrides};
 }
-async function rpc(auth:string,name:string,p:Item={}){const config=getSupabaseConfig();if(!config)throw Error('Base de datos no configurada.');const res=await fetchSupabase(new URL(`/rest/v1/rpc/${name}`,config.url),{method:'POST',headers:{apikey:config.anonKey,Authorization:auth,'Content-Type':'application/json'},body:JSON.stringify(p)});const result=await res.json()as Item;if(!res.ok)throw Error(result.message||'No fue posible procesar la proyección.');return result;}
+async function rpc(auth:string,name:string,p:Item={}){await requireReportAccess(auth);const config=getSupabaseConfig();if(!config)throw Error('Base de datos no configurada.');const res=await fetchReportSupabase(new URL(`/rest/v1/rpc/${name}`,config.url),{method:'POST',headers:{apikey:config.anonKey,Authorization:auth,'Content-Type':'application/json'},body:JSON.stringify(p)});const result=await res.json()as Item;if(!res.ok)throw Error(result.message||'No fue posible procesar la proyección.');return result;}
 export async function incomeForecastAction(auth:string,action:string,p:Item){
  if(action==='options')return rpc(auth,'income_forecast_options',{p_consolidated:!!p.consolidated});
  if(action==='generate')return calculateIncomeForecast(await rpc(auth,'income_forecast_source',{p}),p);

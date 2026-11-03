@@ -1,6 +1,7 @@
+import {requireReportAccess,fetchReportSupabase} from './report-access.service.js';
 import type ExcelJS from 'exceljs';
 import { createExcelWorkbook } from '../../core/export/excel-workbook.js';
-import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
+import { getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { renderBankReconciliationPdf } from './accounting-reports.service.js';
 
 type Json = Record<string, unknown>;
@@ -90,10 +91,10 @@ type NormalizedReport = {
   purchases: TaxRow[];
 };
 
-async function rpc<T>(authorization: string, name: string, input: Json = {}) {
+async function rpc<T>(authorization: string, name: string, input: Json = {}) {await requireReportAccess(authorization);
   const config = getSupabaseConfig();
   if (!config) throw new Error('Supabase no está configurado.');
-  const response = await fetchSupabase(new URL(`/rest/v1/rpc/${name}`, config.url), {
+  const response = await fetchReportSupabase(new URL(`/rest/v1/rpc/${name}`, config.url), {
     method: 'POST',
     headers: { apikey: config.anonKey, Authorization: authorization, 'Content-Type': 'application/json' },
     body: JSON.stringify(input)
