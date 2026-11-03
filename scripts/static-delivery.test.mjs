@@ -72,9 +72,10 @@ test('entrega estáticos comprimidos, revalidables y con rango para video', { ti
     assert.equal(report.status, 200);
     const reportHtml = await report.text();
     assert.match(reportHtml, /inside-erp-workspace/);
-    assert.match(reportHtml, /\/i18n\.js\?v=20261029-global/);
+    const i18nPath = reportHtml.match(/src="(\/i18n\.js\?v=[^"]+)"/)?.[1];
+    assert.ok(i18nPath);
 
-    const i18n = await fetch(`${baseUrl}/i18n.js?v=20261029-global`);
+    const i18n = await fetch(`${baseUrl}${i18nPath}`);
     assert.equal(i18n.status, 200);
     assert.match(i18n.headers.get('cache-control') ?? '', /immutable/);
     assert.match(await i18n.text(), /class GentiaI18n/);

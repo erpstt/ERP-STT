@@ -7,9 +7,9 @@ import {chromium} from '@playwright/test';
 import {contentSecurityPolicy} from '../dist/core/security/content-security-policy.js';
 import {vueArtifacts} from './build-vue-templates.mjs';
 
-test('CSP: root scripts exclude inline/eval; legacy pages exclude eval',()=>{
+test('CSP: all routes exclude inline scripts/events and eval',()=>{
  for(const path of ['/','/?v=1','/index.html','/index.html?workspace=1']){const p=contentSecurityPolicy(path);assert.match(p,/script-src 'self' https:\/\/challenges.cloudflare.com;/);assert.match(p,/script-src-attr 'none'/);assert.doesNotMatch(p,/unsafe-eval/);}
- for(const path of ['/supplier-invoice.html','/permission-catalog.html','/api/health','http://[','//[','/%']){const p=contentSecurityPolicy(path);assert.doesNotMatch(p,/unsafe-eval/);assert.match(p,/script-src 'self' 'unsafe-inline'/);assert.match(p,/object-src 'none'/);}
+ for(const path of ['/supplier-invoice.html','/permission-catalog.html','/api/health','http://[','//[','/%']){const p=contentSecurityPolicy(path);assert.doesNotMatch(p,/unsafe-eval/);assert.match(p,/script-src 'self' https:\/\/challenges.cloudflare.com;/);assert.match(p,/script-src-attr 'none'/);assert.match(p,/object-src 'none'/);}
 });
 
 test('build artifacts match trusted templates and use runtime-only Vue',async()=>{
