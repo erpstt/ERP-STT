@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {existsSync} from 'node:fs';
-import {readFile} from 'node:fs/promises';
+import {mkdir,readFile} from 'node:fs/promises';
 import {extname,resolve,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {test} from 'node:test';
@@ -32,7 +32,7 @@ const defaultStatement=()=>[
  bank(24,-12.50),bank(25,-10,'REGISTRADA'),bank(26,-10,'MATCHED'),bank(27,0)
 ];
 
-async function fixture({rows=[erp(11),erp(12,'CONCILIADO')],statement=defaultStatement()}={}){
+async function fixture({rows=[erp(11),erp(12,'CONCILIADO')],statement=defaultStatement(),productionTheme=false}={}){
  const state={rows:structuredClone(rows),statement:structuredClone(statement),reports:[],fees:[]};
  const context=await browser.newContext({viewport:{width:1600,height:1000}});
  await context.addInitScript(()=>{localStorage.setItem('nexo_token','isolated-bank-fee-mode-test');localStorage.setItem('nexo_company','1');});
@@ -51,7 +51,12 @@ async function fixture({rows=[erp(11),erp(12,'CONCILIADO')],statement=defaultSta
   for(const id of payload.p_statement_line_ids){const line=state.statement.find(item=>item.statement_line_id===id);if(line){totalAmount+=Math.abs(line.amount);line.reconciliation_status='CONCILIADO';state.rows.push(erp(1000+id,'CONCILIADO'));}}
   return route.fulfill({status:201,json:{result:{createdCount:payload.p_statement_line_ids.length,totalAmount,matchedStatementLineIds:payload.p_statement_line_ids}}});
  });
- await page.goto(base+'/accounting-reports.html');await page.getByText('Bancos y Conciliaci\u00f3n',{exact:true}).click();
+ await page.goto(base+'/accounting-reports.html');
+ if(productionTheme){
+  await page.evaluate(()=>document.documentElement.classList.add('inside-erp-workspace'));
+  await page.addStyleTag({url:base+'/gentia-theme.css'});
+ }
+ await page.getByText('Bancos y Conciliaci\u00f3n',{exact:true}).click();
  await page.locator('#bankCutoff').fill('2026-10-31');await page.locator('#bankCutoff').press('Tab');
  await page.locator('#bankView').selectOption('WORKSPACE');
  await expect(page.locator('#bankPendingTab')).toHaveAttribute('aria-selected','true');
@@ -60,18 +65,18 @@ async function fixture({rows=[erp(11),erp(12,'CONCILIADO')],statement=defaultSta
 }
 
 async function assertModeOff(page){
- await expect(page.getByRole('checkbox',{name:'Comisiones',exact:true})).not.toBeChecked();
+ await expect(page.getByRole('switch',{name:'Comisiones',exact:true})).not.toBeChecked();
  await expect(page.locator('[data-bank-fee-line],.bank-fee-panel')).toHaveCount(0);
 }
 
-test('las comisiones requieren activar la casilla del encabezado y solo aparecen en salidas elegibles',{timeout:30000},async()=>{
+test('las comisiones requieren activar el interruptor del encabezado y solo aparecen en salidas elegibles',{timeout:30000},async()=>{
  const app=await fixture();try{
   const {page}=app;
   await assertModeOff(page);
   await expect(page.locator('#thead th #bankFeeMode')).toHaveCount(1);
   await expect(page.locator('input[name="bankMatch"][value="20"]')).toBeVisible();
   await expect(page.locator('input[name="erpMatch"][value="11"]')).toBeVisible();
-  await page.getByRole('checkbox',{name:'Comisiones',exact:true}).check();
+  await page.getByRole('switch',{name:'Comisiones',exact:true}).check();
   await expect(page.locator('.bank-fee-panel')).toBeVisible();
   await expect(page.locator('[data-bank-fee-line]')).toHaveCount(2);
   for(const id of [20,24]){
@@ -81,6 +86,64 @@ test('las comisiones requieren activar la casilla del encabezado y solo aparecen
   for(const id of [21,22,23,25,26,27])await expect(page.locator(`[data-bank-fee-line][value="${id}"]`)).toHaveCount(0);
   await expect(page.locator('input[name="bankMatch"][value="20"]')).toBeVisible();
   await expect(page.locator('#registerBankFees')).toBeDisabled();
+ }finally{await app.close();}
+});
+
+test('los interruptores Si/No quedan en linea y compactos con el tema de produccion',{timeout:30000},async()=>{
+ const app=await fixture({productionTheme:true});try{
+  const {page}=app,mode=page.getByRole('switch',{name:'Comisiones',exact:true}),modeLabel=page.locator('.bank-fee-mode-switch');
+  await expect(mode).toHaveAttribute('type','checkbox');
+  await expect(modeLabel.locator('.bank-fee-switch-state')).toHaveText('No');
+  await mode.focus();await page.keyboard.press('Space');
+  await expect(mode).toBeChecked();await expect(modeLabel.locator('.bank-fee-switch-state')).toHaveText('S\u00ed');
+  await expect(page.getByRole('switch')).toHaveCount(3);
+  const fee=page.locator('[data-bank-fee-line][value="20"]'),feeLabel=fee.locator('xpath=ancestor::label');
+  await expect(fee).toHaveAttribute('type','checkbox');await expect(fee).toHaveAttribute('role','switch');
+  await expect(feeLabel.locator('.bank-fee-switch-state')).toHaveText('No');
+  const offColor=await feeLabel.locator('.bank-fee-switch-track').evaluate(track=>getComputedStyle(track).backgroundColor);
+  await fee.focus();await page.keyboard.press('Space');
+  await expect(fee).toBeChecked();await expect(feeLabel.locator('.bank-fee-switch-state')).toHaveText('S\u00ed');
+  await expect(page.locator('#bankFeeSelectionCount')).toHaveText('1 movimiento seleccionado');
+  await expect.poll(()=>feeLabel.locator('.bank-fee-switch-track').evaluate(track=>getComputedStyle(track).backgroundColor)).not.toBe(offColor);
+  for(const width of [1640,1366]){
+  await page.setViewportSize({width,height:1000});
+  const geometry=await page.evaluate(()=>{
+   const rect=element=>{const {x,y,width,height}=element.getBoundingClientRect();return{x,y,width,height,right:x+width,centerY:y+height/2}};
+   const textRect=(root,text)=>{
+    const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node;
+    while(node=walker.nextNode())if(node.textContent.trim()&&(text===undefined||node.textContent.trim()===text)){const range=document.createRange();range.selectNodeContents(node);return rect(range)}
+    throw new Error(`No se encontro el texto ${text??'del encabezado'}`);
+   };
+   const header=document.querySelector('#bankFeeMode').closest('th'),heading=header.querySelector('.bank-fee-column-heading'),label=header.querySelector('.bank-fee-mode-switch'),track=label.querySelector('.bank-fee-switch-track');
+   const rowLabel=document.querySelector('[data-bank-fee-line][value="20"]').closest('label'),rowStyle=getComputedStyle(rowLabel),labelStyle=getComputedStyle(label);
+   return{
+    row:rect(header.closest('tr')),headingText:textRect(heading,'Conciliar'),caption:textRect(label,'Comisiones'),state:rect(label.querySelector('.bank-fee-switch-state')),track:rect(track),
+    headerCenters:[...header.closest('tr').children].map(cell=>textRect(cell).centerY),
+    headerLabel:{...rect(label),direction:labelStyle.flexDirection,wrap:labelStyle.flexWrap},
+    rowLabel:{...rect(rowLabel),direction:rowStyle.flexDirection,wrap:rowStyle.flexWrap,borderWidth:rowStyle.borderTopWidth,background:rowStyle.backgroundColor},rowTrack:rect(rowLabel.querySelector('.bank-fee-switch-track')),rowRadio:rect(rowLabel.parentElement.querySelector('input[type="radio"]'))
+   };
+  });
+  assert.ok(geometry.row.height<=46,`El encabezado debe ocupar una sola linea compacta: ${JSON.stringify(geometry)}`);
+  assert.ok(Math.max(...geometry.headerCenters)-Math.min(...geometry.headerCenters)<=2,'Los titulos deben quedar alineados verticalmente.');
+  assert.ok(geometry.headingText.right<geometry.track.x,'El interruptor debe seguir a Conciliar.');
+  assert.ok(geometry.track.right<=geometry.state.x+1&&geometry.state.right<=geometry.caption.x+1,'El interruptor y su estado deben preceder a Comisiones.');
+  for(const control of [geometry.headerLabel,geometry.rowLabel]){
+   assert.equal(control.direction,'row');assert.equal(control.wrap,'nowrap');assert.ok(control.height<=32,'La etiqueta no debe convertirse en una capsula circular.');
+  }
+  assert.equal(geometry.rowLabel.borderWidth,'0px');assert.equal(geometry.rowLabel.background,'rgba(0, 0, 0, 0)');
+  for(const track of [geometry.track,geometry.rowTrack]){
+   assert.ok(track.width>=28&&track.width<=44&&track.height>=16&&track.height<=24&&track.width/track.height>=1.5,`La pista debe ser un interruptor horizontal compacto: ${JSON.stringify(track)}`);
+  }
+  assert.ok(Math.abs(geometry.track.centerY-geometry.caption.centerY)<=2&&Math.abs(geometry.state.centerY-geometry.caption.centerY)<=2,'El selector, Si/No y Comisiones deben compartir una linea.');
+  assert.ok(Math.abs(geometry.rowRadio.centerY-geometry.rowTrack.centerY)<=2,`El radio de conciliacion y el interruptor de comision deben estar centrados en la misma linea: ${JSON.stringify(geometry)}`);
+  if(process.env.BANK_FEE_SWITCH_SCREENSHOTS==='1'){
+   const screenshots=resolve('.local-tools/commission-switches');await mkdir(screenshots,{recursive:true});
+   await page.locator('#tbody').locator('xpath=ancestor::div[contains(@class,"table-wrap")]').screenshot({path:resolve(screenshots,`switches-${width}.png`)});
+  }
+  }
+  await fee.uncheck();await expect(feeLabel.locator('.bank-fee-switch-state')).toHaveText('No');
+  await expect(page.locator('#registerBankFees')).toBeDisabled();
+  await mode.uncheck();await assertModeOff(page);await expect(modeLabel.locator('.bank-fee-switch-state')).toHaveText('No');
  }finally{await app.close();}
 });
 
