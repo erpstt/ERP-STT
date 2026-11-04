@@ -87,7 +87,8 @@ jobs:
             scripts/remaining-view-route-id-security.test.mjs \
             scripts/catalog-view-route-id-security.test.mjs \
             scripts/record-audit-route-id-security.test.mjs \
-            scripts/support-payload-validation.test.mjs
+            scripts/support-payload-validation.test.mjs \
+            scripts/journal-support-payload-api.test.mjs
 
       - name: Reject high and critical dependency advisories
         run: npm audit --audit-level=high
