@@ -8,6 +8,7 @@ import {assertIsolatedTestArgs} from './lib/migration-preview.mjs';
 assertIsolatedTestArgs();
 
 const version='20261104-support-write-validation';
+const bankEntryVersion='20261104-optional-bank-route-id-guard';
 const screens=[
  {name:'journal-entry'}, {name:'supplier-invoice-entry'}, {name:'supplier-note-entry'},
  {name:'bank-check-entry',script:'bank-check-entry-main'}, {name:'bank-deposit-entry'}
@@ -123,10 +124,11 @@ for(const screen of screens){
 test('each own HTML and the bank-check wrapper point at the new entry-handler version',async()=>{
  for(const screen of screens){
   const scripts=[...screen.html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)].map(match=>match[1]);
-  assert.equal(scripts.filter(src=>src==='/'+screen.name+'.js?v='+version).length,1);
+  const expectedVersion=['bank-check-entry','bank-deposit-entry'].includes(screen.name)?bankEntryVersion:version;
+  assert.equal(scripts.filter(src=>src==='/'+screen.name+'.js?v='+expectedVersion).length,1);
  }
  const wrapper=await readFile(new URL('../public/bank-check-entry.js',import.meta.url),'utf8');
- assert.ok(wrapper.includes("await import('./bank-check-entry-main.js?v="+version+"')"));
+ assert.ok(wrapper.includes("await import('./bank-check-entry-main.js?v="+bankEntryVersion+"')"));
 });
 
 test('the unchanged real history-link helper still renders safe HTTP attachments',()=>{
