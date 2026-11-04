@@ -13,10 +13,15 @@ const preloader=new URL('./fixtures/operator-no-live-io.mjs',import.meta.url).hr
 const name='20260101000000_synthetic_preview.sql',second='20260101000001_synthetic_second.sql';
 const config={entrypoint:'scripts/operator-fixture.mjs',defaultFiles:[name],allowFileArgument:true};
 const canary='SYNTHETIC-P82-DO-NOT-PRINT';
+const activeChildrenByDirectory=new Map();
 const fixedOperatorCases=[
   {file:'apply-auth-bootstrap.mjs',alias:'auth-bootstrap',migration:'20261029200000_auth_bootstrap_context.sql'},
   {file:'apply-request-access-role-context.mjs',alias:'request-access-context',migration:'20261029220000_assert_request_access_role_context.sql'},
-  {file:'apply-accounting-options-bundle.mjs',alias:'accounting-options',migration:'20261029210000_accounting_report_options_bundle.sql'}
+  {file:'apply-accounting-options-bundle.mjs',alias:'accounting-options',migration:'20261029210000_accounting_report_options_bundle.sql'},
+  {file:'apply-role-access-matrix.mjs',migration:'20261012110000_role_access_matrix.sql'},
+  {file:'apply-technical-permissions-integration.mjs',migration:'20261012130000_secure_and_integrate_technical_permissions.sql'},
+  {file:'apply-request-access-rpc.mjs',migration:'20261023183000_assert_request_access_rpc.sql'},
+  {file:'apply-user-edit-password-notification.mjs',migration:'20261027153000_user_edit_password_notification.sql'}
 ];
 const operatorFiles=['apply-audit-migration.mjs','apply-audit-change-report.mjs','apply-migration.mjs',...fixedOperatorCases.map(item=>item.file)];
 function insideDirectory(parent,target){const path=relative(parent,target);return path!==''&&path!=='..'&&!path.startsWith('..'+sep)&&!isAbsolute(path);}
@@ -42,6 +47,7 @@ async function fixture(t){
   assert.equal(created,directory,'The newly created fixture must be canonical');
   assert.ok(basename(directory).startsWith('case-'),'Only uniquely created operator fixtures may be cleaned up');
   t.after(async()=>{
+    assert.equal(activeChildrenByDirectory.get(directory)?.size??0,0,'Refusing cleanup while a fixture child has not confirmed close');
     assert.equal(await realpath(repository),workspace,'The workspace must not change before cleanup');
     assert.equal(await realpath(fixtureBase),base,'The fixture base must not change before cleanup');
     const entry=await lstat(directory),target=await realpath(directory);
@@ -64,9 +70,28 @@ function childEnvironment(){
 async function child(args,cwd){
   return await new Promise((resolveResult,reject)=>{
     const process=spawn(globalThis.process.execPath,['--import',preloader,...args],{cwd,env:childEnvironment(),stdio:['ignore','pipe','pipe']});
-    let output='',error='';process.stdout.on('data',s=>output+=s);process.stderr.on('data',s=>error+=s);process.once('error',reject);
-    const timeout=setTimeout(()=>{process.kill();reject(Error('Operator fixture child exceeded its deadline'));},15000);
-    process.once('close',code=>{clearTimeout(timeout);resolveResult({code,output,error});});
+    const active=activeChildrenByDirectory.get(cwd)??new Set();active.add(process);activeChildrenByDirectory.set(cwd,active);
+    let output='',error='',childError,timedOut=false,closed=false,closeDeadline;
+    process.stdout.on('data',s=>output+=s);process.stderr.on('data',s=>error+=s);
+    process.once('error',()=>{childError=Error('Operator fixture child could not complete');});
+    const timeout=setTimeout(()=>{
+      timedOut=true;
+      try{process.kill('SIGKILL');}catch{/* close still must be confirmed before cleanup. */}
+      closeDeadline=setTimeout(()=>{
+        if(closed)return;
+        // Keep this child registered, so fixture cleanup cannot remove its cwd.
+        // Detach handles after the bounded wait to avoid hanging the test runner.
+        process.stdout.destroy();process.stderr.destroy();process.unref();
+        reject(Error('Operator fixture child did not confirm close; fixture cleanup is disabled'));
+      },5000);
+    },15000);
+    process.once('close',code=>{
+      closed=true;clearTimeout(timeout);clearTimeout(closeDeadline);
+      active.delete(process);if(!active.size)activeChildrenByDirectory.delete(cwd);
+      if(timedOut)reject(Error('Operator fixture child exceeded its deadline and confirmed close'));
+      else if(childError)reject(childError);
+      else resolveResult({code,output,error});
+    });
   });
 }
 function safeOutput(result){assert.ok(!result.output.includes(canary));assert.ok(!result.error.includes(canary));assert.ok(!result.output.includes('SYNTHETIC-CONTENT-NOT-TO-PRINT'));assert.ok(!result.error.includes('OPERATOR_GUARD_FORBIDDEN:'));}
@@ -124,7 +149,7 @@ test('tripwire detects caught environment, credential, client-import and network
   const f=await fixture(t);await writeFile(join(f.directory,'.env'),'SUPABASE_DB_PASSWORD='+canary+'\n');
   for(const code of ["try{process.loadEnvFile('.env')}catch{}","try{process.env.SUPABASE_DB_PASSWORD}catch{}","try{await import('pg')}catch{}","try{await fetch('https://synthetic.invalid')}catch{}","try{(await import('node:fs')).readFileSync('.env')}catch{}","try{await(await import('node:fs/promises')).readFile('.env')}catch{}"]){const result=await child(['--input-type=module','-e',code],f.directory);assert.equal(result.code,86);assert.match(result.error,/OPERATOR_GUARD_FORBIDDEN:/);assert.ok(!result.error.includes(canary));}
 });
-test('all six real CLI entrypoints preview without environment, DB clients or network',async t=>{
+test('all ten real CLI entrypoints preview without environment, DB clients or network',async t=>{
   const f=await fixture(t);await writeFile(join(f.directory,'.env'),'SUPABASE_DB_PASSWORD='+canary+'\n');
   for(const [file,args,count]of [['apply-audit-migration.mjs',[],1],['apply-audit-change-report.mjs',['--dry-run'],3],['apply-migration.mjs',['20261104031255_contain_raw_audit_catalog_reads.sql'],1],...fixedOperatorCases.map(item=>[item.file,[],1])]){
     const result=await child([join(repository,'scripts',file),...args],f.directory);assert.equal(result.code,0,result.error);safeOutput(result);const plan=JSON.parse(result.output);assert.equal(plan.mode,'preview');assert.equal(plan.files.length,count);assert.equal(plan.opensConnections,false);assert.equal(plan.loadsEnvironment,false);assert.equal(plan.appliesSql,false);
@@ -134,7 +159,7 @@ test('all six real CLI entrypoints preview without environment, DB clients or ne
 });
 test('real CLI rejects execution, target/secret flags and outside paths without leaking arguments',async t=>{
   const f=await fixture(t);
-  for(const file of operatorFiles)for(const args of [['--apply','--project-ref='+canary],['--help','--apply'],['--dry-run','--apply'],['--password='+canary]]){const result=await child([join(repository,'scripts',file),...args],f.directory);assert.equal(result.code,2);safeOutput(result);const failure=JSON.parse(result.error);assert.equal(failure.mode,'blocked');assert.equal(failure.code,args.includes('--apply')?'APPLY_DISABLED':'INVALID_ARGUMENTS');assert.equal(failure.opensConnections,false);assert.equal(failure.loadsEnvironment,false);assert.equal(failure.appliesSql,false);}
+  for(const file of operatorFiles)for(const args of [['--apply'],['--apply=true'],['--apply','--project-ref='+canary],['--help','--apply'],['--dry-run','--apply'],['--password='+canary]]){const result=await child([join(repository,'scripts',file),...args],f.directory);assert.equal(result.code,2);safeOutput(result);const failure=JSON.parse(result.error);assert.equal(failure.mode,'blocked');assert.equal(failure.code,args.some(value=>value==='--apply'||value.startsWith('--apply='))?'APPLY_DISABLED':'INVALID_ARGUMENTS');assert.equal(failure.opensConnections,false);assert.equal(failure.loadsEnvironment,false);assert.equal(failure.appliesSql,false);}
   const result=await child([join(repository,'scripts/apply-migration.mjs'),join(f.directory,name)],f.directory);assert.equal(result.code,2);safeOutput(result);assert.equal(JSON.parse(result.error).code,'INVALID_MIGRATION_PATH');
 });
 test('fixed operator wrappers support help and dry-run while rejecting file overrides and repeated options',async t=>{
@@ -153,7 +178,7 @@ test('fixed operator wrappers support help and dry-run while rejecting file over
 test('all six npm check/apply aliases resolve to guarded preview-only CLI contracts',async t=>{
   const f=await fixture(t);await writeFile(join(f.directory,'.env'),'SUPABASE_DB_PASSWORD='+canary+'\n');
   const {scripts}=JSON.parse(await readFile(join(repository,'package.json'),'utf8'));
-  for(const {file,alias,migration}of fixedOperatorCases)for(const mode of ['check','apply']){
+  for(const {file,alias,migration}of fixedOperatorCases.filter(item=>item.alias))for(const mode of ['check','apply']){
     const args=mode==='apply'?['--apply']:[],command='node scripts/'+file+(args.length?' --apply':'');
     // Resolve each declared npm alias without invoking npm lifecycle hooks or inheriting its environment.
     assert.equal(scripts['db:'+alias+':'+mode],command);

@@ -35,6 +35,7 @@ const confirmed = { apply: true, projectRef: target, confirmProjectRef: target }
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const entrypoint = fileURLToPath(new URL('./configure-supabase-production-auth.mjs', import.meta.url));
 const preloader = new URL('./fixtures/operator-no-live-io.mjs', import.meta.url).href;
+const activeChildrenByDirectory = new Map();
 
 function response(body, status = 200) {
   return new Response(body == null ? null : JSON.stringify(body), {
@@ -324,6 +325,7 @@ async function fixture(t) {
   assert.equal(created, directory);
   assert.ok(inside(base, directory) && inside(workspace, directory));
   t.after(async () => {
+    assert.equal(activeChildrenByDirectory.get(directory)?.size ?? 0, 0, 'Refusing cleanup while a fixture child has not confirmed close');
     assert.equal(await realpath(repository), workspace);
     assert.equal(await realpath(join(repository, '.local-tools')), tools);
     assert.equal(await realpath(join(tools, 'p84-auth-config-tests')), base);
@@ -352,12 +354,36 @@ async function child(args, cwd) {
     const process = spawn(globalThis.process.execPath, ['--import', preloader, entrypoint, ...args], {
       cwd, env: childEnvironment(), stdio: ['ignore', 'pipe', 'pipe']
     });
-    let output = '', error = '';
+    const active = activeChildrenByDirectory.get(cwd) ?? new Set();
+    active.add(process);
+    activeChildrenByDirectory.set(cwd, active);
+    let output = '', error = '', childError, timedOut = false, closed = false, closeDeadline;
     process.stdout.on('data', value => output += value);
     process.stderr.on('data', value => error += value);
-    process.once('error', reject);
-    const timeout = setTimeout(() => { process.kill(); reject(Error('Auth configuration test exceeded its deadline')); }, 15_000);
-    process.once('close', code => { clearTimeout(timeout); resolveResult({ code, output, error }); });
+    process.once('error', () => { childError = Error('Auth configuration child could not complete'); });
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      try { process.kill('SIGKILL'); } catch { /* close still must be confirmed before cleanup. */ }
+      closeDeadline = setTimeout(() => {
+        if (closed) return;
+        // Keep the child registered: cleanup must not remove its working directory.
+        // Detach handles after the bounded wait to avoid hanging the test runner.
+        process.stdout.destroy();
+        process.stderr.destroy();
+        process.unref();
+        reject(Error('Auth configuration child did not confirm close; fixture cleanup is disabled'));
+      }, 5_000);
+    }, 15_000);
+    process.once('close', code => {
+      closed = true;
+      clearTimeout(timeout);
+      clearTimeout(closeDeadline);
+      active.delete(process);
+      if (!active.size) activeChildrenByDirectory.delete(cwd);
+      if (timedOut) reject(Error('Auth configuration test exceeded its deadline and confirmed close'));
+      else if (childError) reject(childError);
+      else resolveResult({ code, output, error });
+    });
   });
 }
 function safeChild(result) {
