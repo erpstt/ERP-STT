@@ -89,4 +89,3 @@ test('data-dependent repair/configuration operators remain retired for every CLI
   const failure=JSON.parse(result.stderr);assert.equal(failure.mode,'blocked');assert.equal(failure.code,'OPERATOR_RETIRED');safeState(failure);assert.equal(failure.executionSupported,false);assert.match(failure.message,reason);assert.ok(!Object.hasOwn(failure,'files'));
  }
 });
-
