@@ -103,7 +103,8 @@
     "test:auth-operator-script-safety": "npm run build && node --test scripts/operator-script-safety.test.mjs scripts/user-edit-password-notification-db.test.mjs",
     "test:nodemailer-security": "node --test scripts/nodemailer-security.test.mjs",
     "test:isolated-auth-security-db": "node --test scripts/password-security-rls-db.test.mjs scripts/password-recovery-db.test.mjs scripts/user-record-audit-permissions-db.test.mjs",
-    "test:notification-route-id-security": "node --test scripts/notification-route-id-security.test.mjs"
+    "test:notification-route-id-security": "node --test scripts/notification-route-id-security.test.mjs",
+    "test:view-route-id-security": "node --test scripts/view-route-id-security.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
