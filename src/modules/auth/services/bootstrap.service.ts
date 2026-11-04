@@ -37,10 +37,12 @@ function optionalId(value: unknown, label: string) {
   return id;
 }
 
-function errorMessage(payload: unknown) {
-  return typeof payload === 'object' && payload !== null && 'message' in payload
-    ? String((payload as { message?: unknown }).message ?? 'No fue posible preparar la sesión.')
-    : 'No fue posible preparar la sesión.';
+function bootstrapFailureMessage(status: number) {
+  if (status === 401) return 'La sesión no es válida. Inicie sesión nuevamente.';
+  if (status === 403) return 'No tiene acceso al rol o a la empresa seleccionados.';
+  if (status === 429) return 'Espere un momento antes de volver a preparar la sesión.';
+  if ([400, 409, 422].includes(status)) return 'No fue posible seleccionar el rol o la empresa. Revise su acceso e inténtelo nuevamente.';
+  return 'No fue posible preparar la sesión. Inténtelo nuevamente.';
 }
 
 export async function bootstrapSession(authorization: string, input: BootstrapInput = {}) {
@@ -61,14 +63,14 @@ export async function bootstrapSession(authorization: string, input: BootstrapIn
     }),
   });
   const text = await response.text();
-  let payload: unknown;
-  try { payload = text ? JSON.parse(text) : null; }
-  catch { throw new Error('Supabase devolvió una respuesta inválida al preparar la sesión.'); }
   if (!response.ok) {
-    const failure = new Error(errorMessage(payload)) as Error & { status?: number };
+    const failure = new Error(bootstrapFailureMessage(response.status)) as Error & { status?: number };
     failure.status = response.status;
     throw failure;
   }
+  let payload: unknown;
+  try { payload = text ? JSON.parse(text) : null; }
+  catch { throw new Error('Supabase devolvió una respuesta inválida al preparar la sesión.'); }
   if (!payload || typeof payload !== 'object') throw new Error('Supabase no devolvió el contexto de sesión esperado.');
   const value = payload as BootstrapPayload;
   if (value.bootstrapVersion !== 1) throw new Error('Supabase devolvió una versión de contexto de sesión no compatible.');

@@ -142,10 +142,10 @@ test('successful grants retain modules, legacy exclusion, administrator behavior
   assert.equal(adminCalls.length, 1);
 });
 
-test('matrix RPC business responses and local matrix validation retain their existing contract outside this change', async () => {
+test('matrix provider messages are fixed while local matrix validation retains its public instruction', async () => {
   const credential = token();
   const calls = mock(credential, () => Response.json({ message: 'Seleccione un rol disponible.', code: '22023' }, { status: 400 }), '/rest/v1/rpc/security_role_access_matrix_data');
-  await assert.rejects(() => access.roleAccessMatrix(credential, 999), error => error.status === 403 && error.message === 'Seleccione un rol disponible.');
+  await assert.rejects(() => access.roleAccessMatrix(credential, 999), error => error.status === 403 && error.message === 'No fue posible consultar la matriz de permisos. Verifique su acceso e inténtelo nuevamente.');
   assert.equal(calls.length, 1);
   await assert.rejects(() => access.saveRoleAccessMatrix(credential, { roleId: 0 }), error => error.message === 'Seleccione un rol válido.');
   assert.equal(calls.length, 1);

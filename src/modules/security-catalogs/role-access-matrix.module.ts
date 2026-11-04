@@ -116,13 +116,13 @@ async function rpc<T>(token:string,name:string,payload:Record<string,unknown>={}
   const config=getSupabaseConfig();if(!config)throw new Error('Supabase no está configurado.');
   const response=await fetchSupabase(new URL(`/rest/v1/rpc/${name}`,config.url),{method:'POST',headers:{apikey:config.anonKey,Authorization:token,'Content-Type':'application/json'},body:JSON.stringify(payload)});
   const text=await response.text();
-  if(!response.ok&&name==='security_my_role_access'){
+  if(!response.ok){
     const status=response.status===401?401:403;
-    const failure=new Error(status===401?'La sesión no es válida. Inicie sesión nuevamente.':'No fue posible verificar los permisos del rol activo.')as Error&{status:number};
+    const message=status===401?'La sesión no es válida. Inicie sesión nuevamente.':name==='security_my_role_access'?'No fue posible verificar los permisos del rol activo.':'No fue posible consultar la matriz de permisos. Verifique su acceso e inténtelo nuevamente.';
+    const failure=new Error(message)as Error&{status:number};
     failure.status=status;throw failure;
   }
   const data:unknown=text?JSON.parse(text):null;
-  if(!response.ok){const message=typeof data==='object'&&data!==null&&'message'in data?String(data.message):'No fue posible consultar los permisos.';const error=new Error(message)as Error&{status?:number};error.status=response.status===401?401:403;throw error;}
   return data as T;
 }
 

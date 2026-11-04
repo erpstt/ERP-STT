@@ -62,7 +62,7 @@ test('bootstrap conserva el estado HTTP de PostgREST para permitir fallback dura
   globalThis.fetch = async () => Response.json({ message: 'Function not found' }, { status: 404 });
   await assert.rejects(
     () => bootstrapSession('Bearer jwt-test'),
-    error => error instanceof Error && error.status === 404 && /not found/i.test(error.message),
+    error => error instanceof Error && error.status === 404 && error.message === 'No fue posible preparar la sesión. Inténtelo nuevamente.',
   );
 });
 

@@ -88,10 +88,20 @@ test('real router sanitizes only unknown fallbacks with correlated server UUIDs 
   if(request.url==='/rest/v1/rpc/assert_request_access'){
    if(request.headers.authorization==='Bearer p97-invalid'){response.writeHead(401);response.end(JSON.stringify({message:canary}));return;}
    const grants=request.headers.authorization==='Bearer p97-denied'?[]:[{resourceKey:'reports:accounting-reports',canView:true,canCreate:false,canEdit:false,canDelete:false}];
+   if(request.headers.authorization?.startsWith('Bearer p97-matrix-'))grants.push({resourceKey:'security:role-access-matrix',canView:true,canCreate:false,canEdit:false,canDelete:false});
    response.end(JSON.stringify({allowed:true,roleAccess:{isAdmin:false,grants}}));return;
   }
   if(request.url==='/rest/v1/rpc/accounting_report_options_bundle'){
    response.writeHead(400);response.end(JSON.stringify({message:'syntax error in SELECT '+canary,code:canary,details:canary,hint:canary}));return;
+  }
+  if(request.url==='/rest/v1/rpc/auth_bootstrap_context'){
+   const status=JSON.parse(Buffer.concat(chunks).toString('utf8')).p_preferred_role_id;
+   assert.ok([400,401,403,404,405,409,422,429,500,503].includes(status));
+   response.writeHead(status);response.end(JSON.stringify({message:canary,code:canary,details:canary,hint:canary}));return;
+  }
+  if(request.url==='/rest/v1/rpc/security_role_access_matrix_data'){
+   const status=Number(request.headers.authorization?.match(/^Bearer p97-matrix-(401|403|503)$/)?.[1]);
+   assert.ok([401,403,503].includes(status));response.writeHead(status);response.end(JSON.stringify({message:canary,code:canary,details:canary,hint:canary}));return;
   }
   unexpected.push(request.url);response.writeHead(500);response.end('{}');
  });
@@ -150,6 +160,20 @@ test('real router sanitizes only unknown fallbacks with correlated server UUIDs 
   for(let i=0;i<5;i++)unknown(await request('/api/auth/login',{method:'POST',raw:JSON.stringify({email:'p97-rate@example.invalid',password:'x'})}),400,login);
   const limited=await request('/api/auth/login',{method:'POST',raw:JSON.stringify({email:'p97-rate@example.invalid',password:'x'})});assert.equal(limited.status,429);assert.match(limited.json().error.message,/^Demasiados intentos de acceso\./);assert.ok(Number(limited.headers['retry-after'])>0);assert.equal(limited.headers['x-request-id'],undefined);assert.equal(calls.length,before);
  });
+ await t.test('bootstrap provider failures reach the actual HTTP catch with their status and fixed public messages',async()=>{
+  for(const status of[400,401,403,404,405,409,422,429,500,503]){
+   const result=await request('/api/auth/bootstrap',{method:'POST',raw:JSON.stringify({preferredRoleId:status}),auth:'p97-valid'});
+   const message=status===401?'La sesión no es válida. Inicie sesión nuevamente.':status===403?'No tiene acceso al rol o a la empresa seleccionados.':status===429?'Espere un momento antes de volver a preparar la sesión.':[400,409,422].includes(status)?'No fue posible seleccionar el rol o la empresa. Revise su acceso e inténtelo nuevamente.':'No fue posible preparar la sesión. Inténtelo nuevamente.';
+   assert.equal(result.status,status);assert.deepEqual(result.json(),{error:{message,status}});assert.ok(!result.text.includes(canary));
+  }
+ });
+ await t.test('matrix provider failures retain 401/403 and omit all provider canaries in the actual router',async()=>{
+  for(const upstreamStatus of[401,403,503]){
+   const result=await request('/api/security/role-access-matrix?roleId=2',{auth:'p97-matrix-'+upstreamStatus}),status=upstreamStatus===401?401:403;
+   const message=status===401?'La sesión no es válida. Inicie sesión nuevamente.':'No fue posible consultar la matriz de permisos. Verifique su acceso e inténtelo nuevamente.';
+   assert.equal(result.status,status);assert.deepEqual(result.json(),{error:{message,status}});assert.ok(!result.text.includes(canary));
+  }
+ });
  await t.test('each response UUID has exactly one safe structured log; no input or provider canary is emitted',async()=>{
   let records=[];
   for(let i=0;i<20;i++){records=stderr.split(/\r?\n/).filter(line=>line.startsWith('{')).map(line=>JSON.parse(line));if(records.length>=issued.length)break;await new Promise(done=>setTimeout(done,10));}
@@ -157,7 +181,7 @@ test('real router sanitizes only unknown fallbacks with correlated server UUIDs 
   for(const record of records){assert.deepEqual(Object.keys(record).sort(),logKeys);assert.ok(issued.includes(record.id));assert.ok([400,500].includes(record.status));assert.ok(['GET','POST'].includes(record.method));assert.ok(['AUTH','REPORTS','API'].includes(record.family));assert.ok(['ERROR','SYNTAX_ERROR','TYPE_ERROR'].includes(record.errorType));}
   assert.equal(records.filter(record=>record.status===500&&record.errorType==='TYPE_ERROR').length,1);
   assert.ok(!stderr.includes(canary));assert.ok(!stdout.includes(canary));assert.ok(!stderr.includes('P97_NON_LOOPBACK_FETCH_BLOCKED'));assert.deepEqual(unexpected,[]);
-  assert.ok(calls.every(path=>['/rest/v1/rpc/assert_request_access','/rest/v1/rpc/accounting_report_options_bundle'].includes(path)));
+  assert.ok(calls.every(path=>['/rest/v1/rpc/assert_request_access','/rest/v1/rpc/accounting_report_options_bundle','/rest/v1/rpc/auth_bootstrap_context','/rest/v1/rpc/security_role_access_matrix_data'].includes(path)));
   assert.equal((await request('/api/health')).status,200);
  });
 });
