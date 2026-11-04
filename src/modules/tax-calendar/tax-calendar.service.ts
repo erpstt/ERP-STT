@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 import { tryPublicAppUrl } from '../../shared/services/public-app-url.js';
 import { randomUUID } from 'node:crypto';
-import { getSupabaseConfig, supabaseApiHeaders } from '../../core/database/supabase.client.js';
+import { fetchSupabase, getSupabaseConfig, supabaseApiHeaders } from '../../core/database/supabase.client.js';
 import { rpc, smtpStatus } from '../notifications/email-notification.service.js';
 import { escapeHtml } from '../notifications/payment-email.js';
 import { pollMilliseconds, startAdaptivePoller } from '../../core/runtime/adaptive-poller.js';
@@ -55,6 +55,92 @@ export type TaxCalendarDocumentFile = { bytes: Buffer; mimeType: string; fileNam
 
 function object(value: unknown): JsonObject | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as JsonObject : null;
+}
+
+class TaxCalendarAccessError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = 'TaxCalendarAccessError';
+  }
+}
+
+function accessFailure(status: number): never {
+  if (status === 401) throw new TaxCalendarAccessError('Debe iniciar sesión.', 401);
+  if (status === 403) throw new TaxCalendarAccessError('No tiene permiso para esta operación del calendario tributario.', 403);
+  if (status === 404) throw new TaxCalendarAccessError('La obligación tributaria no está disponible.', 404);
+  throw new TaxCalendarAccessError('No fue posible verificar el acceso al calendario tributario.', 503);
+}
+
+async function assertCalendarAccess(authorization: string, action: 'view' | 'create' | 'edit' | 'delete') {
+  if (!/^Bearer\s+\S+$/i.test(authorization || '')) accessFailure(401);
+  // The matrix imports the catalogs; resolve its guard after module initialization.
+  const { assertRoleAccess } = await import('../security-catalogs/role-access-matrix.module.js');
+  try {
+    await assertRoleAccess(authorization, 'tax:tax-calendar', 'view');
+    if (action !== 'view') await assertRoleAccess(authorization, 'tax:tax-calendar', action);
+  } catch (error) {
+    accessFailure(error && typeof error === 'object' && 'status' in error ? Number(error.status) : 503);
+  }
+}
+
+function hasEventId(payload: JsonObject) {
+  return payload.id !== undefined && payload.id !== null && payload.id !== '';
+}
+
+function hasUploadInput(payload: JsonObject) {
+  // Inspect presence only. Do not read the encoded file until authorization succeeds.
+  return object(payload.file) !== null || Object.hasOwn(payload, 'documentDataUrl') || Object.hasOwn(payload, 'document_data_url');
+}
+
+async function uploadAccessRpc(authorization: string, action: 'options' | 'get', payload: JsonObject) {
+  const config = getSupabaseConfig();
+  if (!config) accessFailure(503);
+  try {
+    const response = await fetchSupabase(new URL('/rest/v1/rpc/tax_calendar_manage', config.url), {
+      method: 'POST',
+      headers: { apikey: config.anonKey, Authorization: authorization, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_action: action, p_payload: payload }),
+      redirect: 'error'
+    });
+    const result = object(await response.json());
+    if (!response.ok) {
+      const code = String(result?.code ?? '');
+      accessFailure(response.status === 401 ? 401 : response.status === 403 || code === '42501' ? 403
+        : action === 'get' && (response.status === 404 || code === 'P0001') ? 404 : 503);
+    }
+    if (!result) accessFailure(503);
+    return result;
+  } catch (error) {
+    if (error instanceof TaxCalendarAccessError) throw error;
+    accessFailure(503);
+  }
+}
+
+async function authorizeUpload(authorization: string, payload: JsonObject, existing: boolean) {
+  const options = await uploadAccessRpc(authorization, 'options', {});
+  const permissions = object(options.permissions);
+  if (permissions?.view !== true || permissions.file !== true || (!existing && permissions.manage !== true)) accessFailure(403);
+  // The options RPC returns only active subsidiaries assigned to this user.
+  const allowed = new Set((Array.isArray(options.subsidiaries) ? options.subsidiaries : []).flatMap(value => {
+    const subsidiary = object(value);
+    if (!subsidiary || subsidiary.isActive === false || subsidiary.is_active === false) return [];
+    const id = String(subsidiary.id ?? '');
+    return /^[1-9][0-9]*$/.test(id) ? [id] : [];
+  }));
+  let eventId: string;
+  let sourceSubsidiary: string | undefined;
+  if (existing) {
+    eventId = uuid(payload.id);
+    const detail = await uploadAccessRpc(authorization, 'get', { id: eventId });
+    const event = object(detail.event);
+    if (!event || String(event.id ?? '').toLowerCase() !== eventId) accessFailure(404);
+    sourceSubsidiary = String(event.subsidiaryId ?? event.subsidiary_id ?? '');
+    if (!allowed.has(sourceSubsidiary)) accessFailure(403);
+  } else eventId = randomUUID();
+  const subsidiaryId = subsidiarySegment(payload.subsidiaryId ?? payload.subsidiary_id ?? sourceSubsidiary);
+  if (!allowed.has(subsidiaryId)) accessFailure(403);
+  // Structural changes remain subject to the final save RPC's manage checks.
+  return { eventId, subsidiaryId };
 }
 
 function upload(payload: JsonObject) {
@@ -167,6 +253,11 @@ function withoutClientStorageFields(payload: JsonObject) {
 
 export async function taxCalendarAction(authorization: string, action: string, payload: JsonObject = {}) {
   if (!actions.has(action)) throw Error('Acción de calendario tributario inválida.');
+  await assertCalendarAccess(authorization, 'view');
+  const existing = action === 'save' && hasEventId(payload);
+  if (action === 'save' || action === 'delete') {
+    await assertCalendarAccess(authorization, action === 'delete' ? 'delete' : existing ? 'edit' : 'create');
+  }
   if (action !== 'save') {
     const result = await rpc('tax_calendar_manage', { p_action: action, p_payload: payload }, authorization);
     if (action === 'options') {
@@ -182,6 +273,7 @@ export async function taxCalendarAction(authorization: string, action: string, p
     return result;
   }
 
+  const destination = hasUploadInput(payload) ? await authorizeUpload(authorization, payload, existing) : null;
   const file = validateUpload(payload);
   const rpcPayload = withoutClientStorageFields(payload);
   if (!file) {
@@ -194,11 +286,12 @@ export async function taxCalendarAction(authorization: string, action: string, p
     return result;
   }
 
-  const eventId = payload.id ? uuid(payload.id) : randomUUID();
-  const subsidiaryId = subsidiarySegment(payload.subsidiaryId ?? payload.subsidiary_id);
+  if (!destination) accessFailure(403);
+  const { eventId, subsidiaryId } = destination;
   const storagePath = `${subsidiaryId}/${eventId}/${randomUUID()}-${safeFileName(file.name)}`;
   await uploadDocument(storagePath, file);
   rpcPayload.id = eventId;
+  rpcPayload.subsidiaryId = subsidiaryId;
   rpcPayload.file = { name: file.name, mimeType: file.mimeType, size: file.size, storagePath };
   let result: unknown;
   try {
@@ -218,6 +311,7 @@ export async function taxCalendarAction(authorization: string, action: string, p
 }
 
 export async function taxCalendarDocument(authorization: string, eventId: string): Promise<TaxCalendarDocumentFile> {
+  await assertCalendarAccess(authorization, 'view');
   const id = uuid(eventId);
   const metadata = object(await rpc('tax_calendar_document', { p_event_id: id }, authorization));
   const path = String(metadata?.storagePath ?? metadata?.storage_path ?? '');

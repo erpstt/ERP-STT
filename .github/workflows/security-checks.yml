@@ -80,7 +80,8 @@ jobs:
             scripts/financial-operator-guards.test.mjs \
             scripts/report-journal-operator-guards.test.mjs \
             scripts/test-role-access-matrix-db.mjs \
-            scripts/user-invitation-template-db.test.mjs
+            scripts/user-invitation-template-db.test.mjs \
+            scripts/tax-calendar-attachment-preauth.test.mjs
 
       - name: Reject high and critical dependency advisories
         run: npm audit --audit-level=high
