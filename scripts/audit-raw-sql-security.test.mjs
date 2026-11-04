@@ -3,7 +3,7 @@ import {test,before,after} from 'node:test';
 import {readFile} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
 import {setupAuditRawSecurity,assumeAuditUser,rawAuditTables,rawAuditKeys} from './fixtures/setup-audit-raw-security.mjs';
-const migration='supabase/migrations/20261104025654_contain_raw_audit_catalog_reads.sql';
+const migration='supabase/migrations/20261104031255_contain_raw_audit_catalog_reads.sql';
 const db=new PGlite();let original,contained;
 async function snapshot(){
  const tables={};for(let i=0;i<rawAuditTables.length;i++)tables[rawAuditTables[i]]=(await db.query('select to_jsonb(t)row from '+rawAuditTables[i]+' t order by '+rawAuditKeys[i])).rows;
