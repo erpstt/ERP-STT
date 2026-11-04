@@ -83,7 +83,8 @@ jobs:
             scripts/user-invitation-template-db.test.mjs \
             scripts/tax-calendar-attachment-preauth.test.mjs \
             scripts/bounded-rate-limit-state.test.mjs \
-            scripts/auth-flow-rate-limit-state.test.mjs
+            scripts/auth-flow-rate-limit-state.test.mjs \
+            scripts/remaining-view-route-id-security.test.mjs
 
       - name: Reject high and critical dependency advisories
         run: npm audit --audit-level=high

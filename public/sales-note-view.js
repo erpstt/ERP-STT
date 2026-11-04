@@ -1,8 +1,17 @@
 import {escapeHtml,configureImage} from './html-safety.js?v=20261102-a03-media';
+import {readRouteId} from './route-id.js?v=20261103-route-id-guard';
+const routeId=readRouteId(location.search);
+if(routeId===null){
+ document.getElementById('error').textContent='El identificador de la nota no es válido. Abra la nota desde la lista de notas.';
+ document.getElementById('invoice').hidden=true;
+ document.getElementById('edit').hidden=true;
+ document.getElementById('print').disabled=true;
+ document.getElementById('back').disabled=true;
+}else{
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const kind = params.get('kind') === 'DEBIT' ? 'DEBIT' : 'CREDIT';
-const id = params.get('id');
+const id = routeId;
 const token = localStorage.getItem('nexo_token') || sessionStorage.getItem('nexo_token');
 const device = localStorage.getItem('nexo_device_token');
 
@@ -73,4 +82,5 @@ try {
   $('back').onclick = () => history.back();
 } catch (error) {
   $('error').textContent = error.message;
+}
 }

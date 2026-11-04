@@ -1,10 +1,20 @@
 import {escapeHtml as htmlText,configureImage,configureAttachmentLink} from './html-safety.js?v=20261102-a03-media';
 import { createIndexedLookup } from './frontend-performance.js?v=20261023-second-pass-v3';
+import {readRouteId} from './route-id.js?v=20261103-route-id-guard';
+
+const routeId=readRouteId(location.search);
+if(routeId===null){
+ document.getElementById('error').textContent='El identificador de la factura no es válido. Abra la factura desde la lista de facturas.';
+ document.getElementById('invoice').hidden=true;
+ document.getElementById('invoiceSupportsCard').hidden=true;
+ document.getElementById('edit').hidden=true;
+ for(const id of ['print','sendEmail','confirmEmail','back'])document.getElementById(id).disabled=true;
+}else{
 
 const $=id=>document.getElementById(id);
 const token=localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo_token');
 const device=localStorage.getItem('nexo_device_token');
-const invoiceId=new URLSearchParams(window.location.search).get('id');
+const invoiceId=routeId;
 const escapeHtml=value=>String(value??'—').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const requestHeaders=withBody=>({Authorization:`Bearer ${token}`,'X-Device-Token':device,...(withBody?{'Content-Type':'application/json'}:{})});
 
@@ -84,7 +94,6 @@ function renderSupports(items){
 
 try{
   if(!token)throw Error('Debe iniciar sesión para consultar la factura.');
-  if(!invoiceId)throw Error('No se recibió el identificador de la factura.');
   const context=await api('/api/sales/invoice-context?action=view&id='+encodeURIComponent(invoiceId));
   const {invoices,invoiceLines,withholdings,customers,products,taxes,terms,currencies,countries,supports}=context;
   const invoice=find(invoices,'invoice_id',invoiceId);
@@ -156,3 +165,4 @@ try{
     finally{button.disabled=!validEmail;button.textContent=label}
   };
 }catch(error){$('error').textContent=error.message}
+}

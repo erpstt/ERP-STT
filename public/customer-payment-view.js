@@ -1,7 +1,16 @@
+import {readRouteId} from './route-id.js?v=20261103-route-id-guard';
+const routeId=readRouteId(location.search);
+if(routeId===null){
+ document.getElementById('error').textContent='El identificador del cobro no es válido. Abra el cobro desde la lista de cobros.';
+ document.getElementById('loading').hidden=true;
+ document.getElementById('document').hidden=true;
+ document.getElementById('downloadPdf').disabled=true;
+ document.getElementById('close').disabled=true;
+}else{
 const $=id=>document.getElementById(id);
 const token=localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo_token');
 const device=localStorage.getItem('nexo_device_token')||sessionStorage.getItem('nexo_device_token');
-const paymentId=new URLSearchParams(location.search).get('id');
+const paymentId=routeId;
 const esc=value=>String(value??'—').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const numeric=value=>{const parsed=Number(value??0);return Number.isFinite(parsed)?parsed:0;};
 const safeName=value=>String(value||'comprobante-cobro.pdf').replace(/[\\/:*?"<>|\r\n]/g,'-');
@@ -55,8 +64,7 @@ async function downloadPdf(paymentNumber){
 
 try{
   if(!token)throw Error('Debe iniciar sesión para consultar el cobro.');
-  if(!/^\d+$/.test(String(paymentId||''))||Number(paymentId)<=0)throw Error('No se recibió un cobro válido.');
-  const detail=await api(`/api/sales/customer-payments/${paymentId}`),header=detail.header||{},applications=Array.isArray(detail.applications)?detail.applications:[],advances=Array.isArray(detail.advances)?detail.advances:[],impact=Array.isArray(detail.impact)?detail.impact:[],bankFee=detail.bankFee||{};
+  const detail=await api(`/api/sales/customer-payments/${encodeURIComponent(paymentId)}`),header=detail.header||{},applications=Array.isArray(detail.applications)?detail.applications:[],advances=Array.isArray(detail.advances)?detail.advances:[],impact=Array.isArray(detail.impact)?detail.impact:[],bankFee=detail.bankFee||{};
   const currency=String(header.currency||'').trim(),money=value=>`${currency?`${currency} `:''}${numeric(value).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
   const applicationTotal=applications.reduce((sum,row)=>sum+numeric(row.amount),0),advanceTotal=advances.reduce((sum,row)=>sum+numeric(row.amount),0),bankFeeTotal=numeric(bankFee.amount??bankFee.bank_fee_amount),withholdingTotal=Math.max(applicationTotal-numeric(header.amount_received),0),bankNet=Math.max(numeric(header.amount_received)-advanceTotal-bankFeeTotal,0);
   let totalDebit=0,totalCredit=0;
@@ -90,3 +98,4 @@ try{
   $('close').onclick=()=>history.length>1?history.back():location.assign('/customer-payments.html');
   $('loading').hidden=true;$('document').hidden=false;
 }catch(error){$('loading').hidden=true;$('downloadPdf').disabled=true;$('error').textContent=error.message;$('close').onclick=()=>history.length>1?history.back():location.assign('/customer-payments.html')}
+}
