@@ -85,6 +85,7 @@ jobs:
             scripts/test-role-access-matrix-db.mjs \
             scripts/user-invitation-template-db.test.mjs \
             scripts/payment-request-approved-email-sql.test.mjs \
+            scripts/treasury-manager-execution-sql.test.mjs \
             scripts/payment-request-approved-email.test.mjs \
             scripts/payment-request-approved-settings.test.mjs \
             scripts/payment-request-approved-ui.test.mjs \
