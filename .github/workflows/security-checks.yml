@@ -120,7 +120,12 @@ jobs:
             scripts/generic-route-method-security.test.mjs \
             scripts/bank-fee-access-catalog.test.mjs \
             scripts/user-subsidiary-bulk.test.mjs \
-            scripts/bank-operation-public-errors.test.mjs
+            scripts/bank-operation-public-errors.test.mjs \
+            scripts/general-ledger-opening-entities-sql.test.mjs \
+            scripts/general-ledger-original-currency-sql.test.mjs \
+            scripts/general-ledger-original-currency-exports.test.mjs \
+            scripts/spreadsheet-security.test.mjs \
+            scripts/xss-report-security.test.mjs
 
       - name: Reject high and critical dependency advisories
         run: npm audit --audit-level=high

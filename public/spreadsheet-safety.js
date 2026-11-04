@@ -52,14 +52,14 @@ async function addLogo(workbook,sheet,value){
  }catch{/* A missing or unavailable logo must not prevent the report download. */}
 }
 
-export async function reportWorkbook({headers,rows,context={},title='Reporte',totalColumns=[],links=[],extraSheets=[]}){
+export async function reportWorkbook({headers,rows,context={},title='Reporte',totalColumns=[],columnNumberFormats={},links=[],extraSheets=[]}){
  const ExcelJS=await excelRuntime(),workbook=new ExcelJS.Workbook();workbook.creator='GENTIA ERP';
  workbook.calcProperties.fullCalcOnLoad=true;
  const sheet=workbook.addWorksheet('Reporte');
  for(const value of [context.subsidiaryName,title,context.periodLabel,context.currencyLabel])sheet.addRow([String(value??'')]);
  sheet.addRow([]);const heading=sheet.addRow(headers.map(value=>String(value??''))),first=heading.number+1;
- function addRows(target,values){for(const row of values){const added=target.addRow(row.map(cellValue));added.eachCell(cell=>{if(typeof cell.value==='number')cell.numFmt='#,##0.00;(#,##0.00)';});}}
- addRows(sheet,rows);
+ function addRows(target,values,formats={}){for(const row of values){const added=target.addRow(row.map(cellValue));added.eachCell(cell=>{if(typeof cell.value==='number')cell.numFmt=typeof formats[cell.col-1]==='string'?formats[cell.col-1]:'#,##0.00;(#,##0.00)';});}}
+ addRows(sheet,rows,columnNumberFormats);
  // Formula objects can only originate here, from validated integer column indexes.
  if(rows.length&&totalColumns.length){const total=sheet.addRow([]);for(const index of totalColumns){if(!Number.isInteger(index)||index<0||index>=headers.length)throw Error('Columna de total inválida.');const column=sheet.getColumn(index+1).letter,result=rows.reduce((sum,row)=>sum+(typeof row[index]==='number'&&Number.isFinite(row[index])?row[index]:0),0);total.getCell(index+1).value={formula:`SUM(${column}${first}:${column}${first+rows.length-1})`,result};total.getCell(index+1).numFmt='#,##0.00;(#,##0.00)';}}
  for(const link of links){if(!Number.isInteger(link.row)||link.row<0||link.row>=rows.length||!Number.isInteger(link.column)||link.column<0||link.column>=headers.length)continue;const url=linkUrl(link.url);if(url){const cell=sheet.getCell(first+link.row,link.column+1);cell.value={text:String(rows[link.row][link.column]??''),hyperlink:url};}}
