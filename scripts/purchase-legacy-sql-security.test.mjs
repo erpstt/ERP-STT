@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
 import {setupPurchaseLegacySecurity,installRealLegacyPurchaseTables,installRealPurchaseContextGuard} from './fixtures/setup-purchase-legacy-security.mjs';
 import {setupPurchaseOrderSecurity} from './fixtures/setup-purchase-order-security.mjs';
-const migration='supabase/migrations/20261104023129_contain_legacy_purchase_catalog_writes.sql';
+const migration='supabase/migrations/20261104024424_contain_legacy_purchase_catalog_writes.sql';
 const db=new PGlite();let beforeMetadata,beforeRows;
 const metadataSql=`select jsonb_build_object('rpc',(select jsonb_build_object('source',prosrc,'acl',proacl::text)from pg_proc where oid='unrelated_rpc()'::regprocedure),'sequence',(select relacl::text from pg_class where oid='unrelated_sequence'::regclass),'policy',(select to_jsonb(p)from pg_policies p where tablename='unrelated_records'),'service',(select jsonb_agg(jsonb_build_object('t',c.relname,'acl',x.privilege_type)order by c.relname,x.privilege_type)from pg_class c cross join lateral aclexplode(c.relacl)x where c.relname in('purchase_requisition','purchase_quote','purchase_requisition_requisition_id_seq','purchase_quote_quote_id_seq')and x.grantee='service_role'::regrole))metadata`;
 async function rows(){return(await db.query("select jsonb_build_object('req',(select jsonb_agg(to_jsonb(r)order by requisition_id)from purchase_requisition r),'quote',(select jsonb_agg(to_jsonb(q)order by quote_id)from purchase_quote q),'seq',(select jsonb_build_array((select last_value from purchase_requisition_requisition_id_seq),(select last_value from purchase_quote_quote_id_seq))))data")).rows[0].data;}
