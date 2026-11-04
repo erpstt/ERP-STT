@@ -1,22 +1,8 @@
-import pg from 'pg';
-
-const client = new pg.Client({
-  host: 'aws-0-us-east-1.pooler.supabase.com',
-  port: 6543,
-  database: 'postgres',
-  user: 'postgres.kqepssgjfbdctchpiwuu',
-  password: process.env.PGPASSWORD,
-  ssl: { rejectUnauthorized: false }
-});
-
-try {
-  await client.connect();
-  await client.query(`
-    alter table public.subsidiaries
-      add column if not exists logo_url text,
-      add column if not exists address text
-  `);
-  console.log('MIGRATION_OK');
-} finally {
-  await client.end().catch(() => undefined);
-}
+// Retired one-off installer: it contained inline DDL against a fixed project.
+// Do not read credentials or connect, including when an apply/help flag is given.
+process.stderr.write(JSON.stringify({
+  mode:'blocked',code:'OPERATOR_RETIRED',
+  message:'Este instalador de marca fue retirado. Use una migración revisada con historial para cualquier cambio de esquema.',
+  appliesSql:false,loadsEnvironment:false,opensConnections:false,executionSupported:false
+})+'\n');
+process.exitCode=2;

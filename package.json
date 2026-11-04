@@ -122,7 +122,8 @@
     "test:record-audit-route-id-security": "node --test scripts/record-audit-route-id-security.test.mjs",
     "test:support-payload-validation": "npm run build && node --test scripts/support-payload-validation.test.mjs",
     "test:journal-support-payload-api": "npm run build && node --test scripts/journal-support-payload-api.test.mjs",
-    "test:support-entry-validation-ui": "node --test scripts/support-entry-validation-ui.test.mjs"
+    "test:support-entry-validation-ui": "node --test scripts/support-entry-validation-ui.test.mjs",
+    "test:retired-branding-operator": "node --test scripts/retired-branding-operator.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
