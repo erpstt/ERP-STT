@@ -1,221 +1,84 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import pg from 'pg';
+import {test} from 'node:test';
+import {assertIsolatedTestArgs} from './lib/migration-preview.mjs';
 
-process.loadEnvFile?.('.env');
+assertIsolatedTestArgs();
+const {isolatedRoleTemplateDatabase,assumeSecurityUser,assumeSqlRole,beginIsolatedCase,deniedSql}=await import('./fixtures/isolated-role-template-security.mjs');
+const db=await isolatedRoleTemplateDatabase({templates:true});
+test.after(()=>db.close());
+const rows=async(sql,params=[])=>(await db.query(sql,params)).rows;
+const value=async(sql,params=[])=>(await rows(sql,params))[0]?.value;
+const settings=(action='get',payload={})=>value('select user_invitation_email_settings($1,$2) value',[action,payload]);
+const deny=(action='get',payload={},code='42501')=>deniedSql(db,'select user_invitation_email_settings($1,$2)',[action,payload],code);
+const valid={subject:'Bienvenido {{usuario_nombre}} · {{empresa_nombre}}',body:'<p>Activa tu acceso con {{enlace_activacion}} antes de {{fecha_expiracion}}.</p>',active:true};
 
-const projectRef = new URL(process.env.SUPABASE_URL).hostname.split('.')[0];
-const db = new pg.Client({
-  host: process.env.SUPABASE_DB_HOST || 'aws-0-us-east-1.pooler.supabase.com',
-  port: Number(process.env.SUPABASE_DB_PORT || 6543),
-  database: process.env.SUPABASE_DB_NAME || 'postgres',
-  user: process.env.SUPABASE_DB_USER || `postgres.${projectRef}`,
-  password: process.env.SUPABASE_DB_PASSWORD || process.env.PGPASSWORD,
-  ssl: {rejectUnauthorized: false},
-  connectionTimeoutMillis: 15_000
+test('central administrator reads a seeded invitation template with five allowed variables and no stored activation credential',async t=>{
+ await beginIsolatedCase(db,t);await assumeSecurityUser(db,4,5);
+ const data=await settings();assert.equal(data.canEdit,true);assert.equal(data.template.tipo_notificacion,'USUARIO_INVITACION');assert.equal(data.subsidiary.id,1);
+ assert.deepEqual(data.variables,['empresa_nombre','usuario_nombre','usuario_correo','enlace_activacion','fecha_expiracion']);
+ assert.match(data.template.asunto_template,/GENTIA ERP/);assert.match(data.template.cuerpo_template,/\{\{fecha_expiracion\}\}/);assert.doesNotMatch(data.template.cuerpo_template,/contraseña\s*[:=]|https?:\/\//i);
+ assert.ok(!Object.keys(data.template).some(key=>/token|password|auth_user/i.test(key)));
 });
-const migration = await readFile(
-  new URL('../supabase/migrations/20261026103000_user_invitation_email_template.sql', import.meta.url),
-  'utf8'
-);
-const suffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-async function expectDatabaseError(statement, parameters, expectedCode) {
-  await db.query('savepoint expected_error');
-  try {
-    await db.query(statement, parameters);
-    assert.fail('La operación inválida fue aceptada.');
-  } catch (error) {
-    if (error.code === 'ERR_ASSERTION') throw error;
-    assert.equal(error.code, expectedCode);
-  } finally {
-    await db.query('rollback to savepoint expected_error');
-    await db.query('release savepoint expected_error');
-  }
-}
+test('a template viewer can read but cannot save or request user-delivery access',async t=>{
+ await beginIsolatedCase(db,t);await assumeSecurityUser(db,1,3);
+ const readOnly=await settings();assert.equal(readOnly.canEdit,false);await deny('save',valid);await deny('delivery');
+});
 
-await db.connect();
-try {
-  await db.query('begin');
-  await db.query("set local lock_timeout='5s'; set local statement_timeout='90s'");
-  await db.query(migration);
+test('an explicit template editor saves only the selected company and audit email comes from the ERP identity',async t=>{
+ await beginIsolatedCase(db,t);await assumeSecurityUser(db,4,5,2);const other=await settings();
+ await assumeSecurityUser(db,3,1,1);assert.equal((await settings()).canEdit,true);
+ const saved=await settings('save',valid);assert.equal(saved.template.asunto_template,valid.subject);assert.equal(saved.template.cuerpo_template,valid.body);assert.equal(saved.template.activo,true);assert.equal(saved.template.updated_by_email,'synthetic-3@example.invalid');
+ assert.ok(!JSON.stringify(saved).includes('forged-header'));
+ await assumeSecurityUser(db,4,5,2);assert.deepEqual((await settings()).template,other.template);
+});
 
-  const fixture = (await db.query(`
-    select company_session.session_id,account.user_id,account.email,
-      auth_account.id::text auth_id,company_session.subsidiary_id
-    from public.user_company_sessions company_session
-    join public.user_role_sessions role_session
-      on role_session.session_id=company_session.session_id
-      and role_session.user_id=company_session.user_id
-    join public.roles role on role.role_id=role_session.role_id
-      and lower(role.role_name) in('administrador','administrator','admin')
-    join public.users account on account.user_id=company_session.user_id and account.is_active
-    join auth.users auth_account on lower(auth_account.email)=lower(account.email)
-    join public.user_subsidiaries access
-      on access.user_id=account.user_id
-      and access.subsidiary_id=company_session.subsidiary_id
-    join public.subsidiaries subsidiary
-      on subsidiary.subsidiary_id=company_session.subsidiary_id
-      and subsidiary.is_active
-    order by company_session.selected_at desc
-    limit 1
-  `)).rows[0];
-  assert.ok(fixture, 'Se requiere una sesión activa con rol Administrador para probar la plantilla.');
+test('a delegated user-creation matrix row no longer delegates invitation delivery; the central administrator retains delivery',async t=>{
+ await beginIsolatedCase(db,t);await assumeSecurityUser(db,1,2);
+ await deny('delivery');await deny('get');await deny('save',valid);
+ await assumeSecurityUser(db,4,5);const delivered=await settings('delivery');
+ assert.equal(delivered.template.tipo_notificacion,'USUARIO_INVITACION');assert.equal(delivered.canEdit,true);
+ // This SQL operation retrieves a template only; no Auth link or SMTP is used.
+ assert.match(delivered.template.cuerpo_template,/enlace/i);assert.doesNotMatch(delivered.template.cuerpo_template,/https?:\/\//i);
+});
 
-  const viewRoleId = (await db.query(`
-    insert into public.roles(role_name,description,is_system_role)
-    values($1,'Prueba temporal: solo consulta plantillas de notificación',false)
-    returning role_id
-  `, [`Plantillas consulta ${suffix}`])).rows[0].role_id;
-  const editRoleId = (await db.query(`
-    insert into public.roles(role_name,description,is_system_role)
-    values($1,'Prueba temporal: consulta y edición de plantillas de notificación',false)
-    returning role_id
-  `, [`Plantillas edición ${suffix}`])).rows[0].role_id;
-  const deliveryRoleId = (await db.query(`
-    insert into public.roles(role_name,description,is_system_role)
-    values($1,'Prueba temporal: alta de usuarios sin acceso a plantillas',false)
-    returning role_id
-  `, [`Alta usuarios ${suffix}`])).rows[0].role_id;
-  const viewSession = `notification-view-${suffix}`;
-  const editSession = `notification-edit-${suffix}`;
-  const deliverySession = `notification-delivery-${suffix}`;
-  await db.query(
-    `insert into public.user_roles(user_id,role_id) values($1,$2),($1,$3),($1,$4)`,
-    [fixture.user_id, viewRoleId, editRoleId, deliveryRoleId]
-  );
-  await db.query(`
-    insert into public.role_access_matrix(
-      role_id,resource_key,can_view,can_create,can_edit,can_delete
-    ) values
-      ($1,'configuration:notification-templates',true,false,false,false),
-      ($2,'configuration:notification-templates',true,false,true,false),
-      ($3,'security:users',true,true,false,false)
-  `, [viewRoleId, editRoleId, deliveryRoleId]);
-  await db.query(`
-    insert into public.user_company_sessions(session_id,user_id,subsidiary_id)
-    values($1,$4,$5),($2,$4,$5),($3,$4,$5)
-  `, [viewSession, editSession, deliverySession, fixture.user_id, fixture.subsidiary_id]);
-  await db.query(`
-    insert into public.user_role_sessions(session_id,user_id,role_id)
-    values($1,$4,$5),($2,$4,$6),($3,$4,$7)
-  `, [viewSession, editSession, deliverySession, fixture.user_id, viewRoleId, editRoleId, deliveryRoleId]);
+test('disallowed variables, activation links in subjects, CRLF and size violations leave the current template unchanged',async t=>{
+ await beginIsolatedCase(db,t);await assumeSecurityUser(db,3,1);const initial=await settings();
+ for(const payload of[
+  {...valid,subject:'Acceso {{password}}'},
+  {...valid,body:'<p>{{secret}}</p>'},
+  {...valid,subject:'Acceso {{ enlace_activacion }}'},
+  {...valid,subject:'Acceso\r\nBcc: synthetic@example.invalid'},
+  {...valid,subject:''},
+  {...valid,subject:'x'.repeat(201)},
+  {...valid,body:''},
+  {...valid,body:'x'.repeat(20001)}
+ ])await deny('save',payload,'22023');
+ await deny('unsupported',{},'22023');assert.deepEqual((await settings()).template,initial.template);
+});
 
-  const setSession = async sessionId => {
-    await db.query(
-      `select set_config('request.jwt.claims',$1,true),set_config('request.headers','{}',true)`,
-      [JSON.stringify({
-        email: fixture.email,
-        sub: fixture.auth_id,
-        session_id: sessionId,
-        role: 'authenticated'
-      })]
-    );
-  };
+test('valid central updates preserve template placeholders and the active switch without generating or persisting a link',async t=>{
+ await beginIsolatedCase(db,t);await assumeSecurityUser(db,4,5);
+ const saved=await settings('save',{...valid,active:false});assert.equal(saved.template.activo,false);assert.equal(saved.template.updated_by_email,'synthetic-4@example.invalid');
+ assert.equal(saved.template.cuerpo_template,valid.body);assert.ok(!Object.hasOwn(saved,'activationUrl'));assert.ok(!Object.hasOwn(saved,'accessToken'));
+ assert.deepEqual((await settings()).template,saved.template);
+});
 
-  await setSession(viewSession);
-  await db.query('set local role authenticated');
+test('anonymous/service function access and direct ensure-template execution remain denied under current grants',async t=>{
+ await beginIsolatedCase(db,t);
+ const privileges=(await rows("select has_function_privilege('anon','user_invitation_email_settings(text,jsonb)','execute') anon_execute,has_function_privilege('authenticated','user_invitation_email_settings(text,jsonb)','execute') authenticated_execute,has_function_privilege('authenticated','user_invitation_email_ensure_template(bigint)','execute') ensure_execute"))[0];
+ assert.deepEqual(privileges,{anon_execute:false,authenticated_execute:true,ensure_execute:false});
+ for(const role of['anon','service_role']){await assumeSqlRole(db,role);await deny();}
+ await assumeSecurityUser(db,4,5);await deniedSql(db,'select user_invitation_email_ensure_template(1)');
+ await db.exec('reset role');
+ assert.equal(await value("select count(*)::int value from pg_proc where proname in('security_assert_role_access','security_resource_allowed','user_invitation_email_settings') and prosrc like '%legacy:all%'"),0);
+ await deniedSql(db,"insert into role_access_matrix(role_id,resource_key,can_view,can_create,can_edit,can_delete) values(3,'legacy:all',true,true,true,true)",[],'23514');
+});
 
-  const readOnly = (await db.query(
-    `select public.user_invitation_email_settings('get','{}'::jsonb) value`
-  )).rows[0].value;
-  assert.equal(readOnly.canEdit, false);
-  await expectDatabaseError(
-    `select public.user_invitation_email_settings('save',$1::jsonb)`,
-    [JSON.stringify({subject: 'Sin permiso', body: '<p>Sin permiso</p>', active: true})],
-    '42501'
-  );
-
-  await setSession(deliverySession);
-  const delivery = (await db.query(
-    `select public.user_invitation_email_settings('delivery','{}'::jsonb) value`
-  )).rows[0].value;
-  assert.equal(delivery.template.tipo_notificacion, 'USUARIO_INVITACION');
-  assert.equal(delivery.canEdit, false);
-  await expectDatabaseError(
-    `select public.user_invitation_email_settings('get','{}'::jsonb)`,
-    [],
-    '42501'
-  );
-
-  await setSession(editSession);
-  const editable = (await db.query(
-    `select public.user_invitation_email_settings('get','{}'::jsonb) value`
-  )).rows[0].value;
-  assert.equal(editable.canEdit, true);
-  const granularSave = (await db.query(
-    `select public.user_invitation_email_settings('save',$1::jsonb) value`,
-    [JSON.stringify({
-      subject: 'Acceso a GENTIA ERP · {{usuario_nombre}}',
-      body: '<p>Activa tu acceso con {{enlace_activacion}}.</p>',
-      active: true
-    })]
-  )).rows[0].value;
-  assert.equal(granularSave.template.asunto_template, 'Acceso a GENTIA ERP · {{usuario_nombre}}');
-
-  await setSession(fixture.session_id);
-
-  const data = (await db.query(
-    `select public.user_invitation_email_settings('get','{}'::jsonb) value`
-  )).rows[0].value;
-  assert.equal(data.canEdit, true);
-  assert.equal(data.template.tipo_notificacion, 'USUARIO_INVITACION');
-  assert.deepEqual(data.variables, [
-    'empresa_nombre','usuario_nombre','usuario_correo','enlace_activacion','fecha_expiracion'
-  ]);
-  assert.match(data.template.asunto_template, /GENTIA ERP/);
-  assert.match(data.template.cuerpo_template, /enlace/i);
-  assert.doesNotMatch(data.template.cuerpo_template, /contraseña\s*[:=]/i);
-
-  await expectDatabaseError(
-    `select public.user_invitation_email_settings('save',$1::jsonb)`,
-    [JSON.stringify({subject: 'Acceso {{password}}', body: '<p>Prueba</p>', active: true})],
-    '22023'
-  );
-  await expectDatabaseError(
-    `select public.user_invitation_email_settings('save',$1::jsonb)`,
-    [JSON.stringify({subject: 'Acceso {{enlace_activacion}}', body: '<p>Prueba</p>', active: true})],
-    '22023'
-  );
-
-  const saved = (await db.query(
-    `select public.user_invitation_email_settings('save',$1::jsonb) value`,
-    [JSON.stringify({
-      subject: 'Bienvenido {{usuario_nombre}} · {{empresa_nombre}}',
-      body: '<p>Activa tu acceso con {{enlace_activacion}} antes de {{fecha_expiracion}}.</p>',
-      active: true
-    })]
-  )).rows[0].value;
-  assert.equal(saved.template.asunto_template, 'Bienvenido {{usuario_nombre}} · {{empresa_nombre}}');
-  assert.equal(saved.template.activo, true);
-
-  await db.query('reset role');
-  const privileges = (await db.query(`
-    select
-      has_function_privilege('anon','public.user_invitation_email_settings(text,jsonb)','execute') anon_execute,
-      has_function_privilege('authenticated','public.user_invitation_email_settings(text,jsonb)','execute') authenticated_execute,
-      has_function_privilege('authenticated','public.user_invitation_email_ensure_template(bigint)','execute') ensure_execute
-  `)).rows[0];
-  assert.deepEqual(privileges, {
-    anon_execute: false,
-    authenticated_execute: true,
-    ensure_execute: false
-  });
-
-  console.log(JSON.stringify({
-    templateSeeded: true,
-    viewOnlyRoleCannotEdit: true,
-    granularEditRoleCanEdit: true,
-    userCreatorCanDeliverWithoutTemplateAccess: true,
-    administratorCompatible: true,
-    allowedVariables: data.variables.length,
-    activationLinkRejectedInSubject: true,
-    anonymousDenied: true,
-    passwordNotStoredOrRendered: true,
-    rollback: true
-  }));
-} finally {
-  await db.query('reset role').catch(() => {});
-  await db.query('rollback').catch(() => {});
-  await db.end();
-}
+test('revoked sessions, a wrong device and unauthorized company selections cannot read or save templates',async t=>{
+ await beginIsolatedCase(db,t);
+ await assumeSecurityUser(db,3,1,2);await deny();await deny('save',valid);
+ await assumeSecurityUser(db,3,1,1,1);await deny();
+ await db.exec('reset role;update sessions set revoked_at=now() where user_id=3');await assumeSecurityUser(db,3,1);await deny();await deny('save',valid);
+ await db.exec('reset role');await deniedSql(db,'select user_invitation_email_ensure_template(3)',[],'22023');
+});
