@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
 const db=new PGlite();
 const targets=JSON.parse(await readFile('scripts/fixtures/technical-privilege-targets.json','utf8'));
-const migration=await readFile('supabase/migrations/20261104011436_revoke_client_technical_table_privileges.sql','utf8');
+const migration=await readFile('supabase/migrations/20261104012558_revoke_client_technical_table_privileges.sql','utf8');
 const q=s=>'"'+s.replaceAll('"','""')+'"';
 const codes={a:'INSERT',r:'SELECT',w:'UPDATE',d:'DELETE',D:'TRUNCATE',x:'REFERENCES',t:'TRIGGER',m:'MAINTAIN'};
 let crudBefore,serviceBefore,columnsBefore,structureBefore,defaultsBefore,externalBefore,sequenceBefore;
