@@ -26,7 +26,7 @@ import { withSupabaseRequestSignal } from './core/database/supabase.client.js';
 import { resetRuntimePerformanceMetrics, runtimePerformanceSnapshot, withRequestPerformance } from './core/performance/runtime-metrics.js';
 import { paymentRequests } from './modules/treasury-catalogs/payment-requests.service.js';
 import { paymentBatchAccess, paymentBatchOptions, paymentBatchCandidates, paymentBatchReport, paymentBatchDetail, generatePaymentBatch, downloadPaymentBatch, markPaymentBatchSent, cancelPaymentBatch, applyPaymentBatchReference, applyPaymentBatchResponse } from './modules/treasury-catalogs/payment-batches.service.js';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
@@ -96,6 +96,7 @@ import { completePasswordInvitation, createSecurityUser, sendExistingUserPasswor
 import { error, json } from './core/interceptors/http-response.js';
 import { turnstilePublicConfig, verifyTurnstileToken, TurnstileValidationError } from './core/security/turnstile.service.js';
 import { assertLoginAllowed, clearLoginFailures, LoginRateLimitError, recordLoginFailure } from './core/security/login-rate-limit.js';
+import { publicRequestError, type PublicFailureStatus } from './core/security/public-request-errors.js';
 import { consultarYGuardarTipoDeCambioRD } from './modules/configuration-catalogs/services/dominican-republic-exchange-rate.service.js';
 import { iniciarProgramacionTipoCambioRD } from './modules/configuration-catalogs/services/dominican-republic-exchange-rate.scheduler.js';
 import { consultarYGuardarTipoDeCambioCR } from './modules/configuration-catalogs/services/costa-rica-exchange-rate.service.js';
@@ -264,7 +265,15 @@ async function serveFile(pathname: string, request: IncomingMessage, response: S
   } catch { error(response, 404, 'Recurso no encontrado.'); }
 }
 
+function unknownRequestError(request:IncomingMessage,response:ServerResponse,cause:unknown,status:PublicFailureStatus,requestId:string){
+  const failure=publicRequestError(cause,{requestId,status,method:request.method,target:request.url});
+  response.setHeader('X-Request-ID',failure.requestId);
+  console.error(JSON.stringify(failure.log));
+  json(response,status,failure.payload);
+}
+
 const server = createServer((request, response) => {
+  const requestId=randomUUID();
   const requestAbort=new AbortController();
   const abortRequest=()=>{if(!requestAbort.signal.aborted)requestAbort.abort(new Error('El cliente cerró la solicitud.'));};
   const abortClosedResponse=()=>{if(!response.writableFinished)abortRequest();};
@@ -862,11 +871,15 @@ const server = createServer((request, response) => {
     if (cause instanceof LoginRateLimitError) response.setHeader('Retry-After', String(cause.retryAfterSeconds));
     if (cause instanceof PasswordRecoveryError && cause.retryAfterSeconds) response.setHeader('Retry-After', String(cause.retryAfterSeconds));
     if (cause instanceof UserProvisioningError && cause.retryAfterSeconds) response.setHeader('Retry-After', String(cause.retryAfterSeconds));
-    error(response, cause instanceof SessionAuthenticationError ? 401 : (cause as {status?:number})?.status || (cause instanceof Error&&/^Saldo presupuestario/.test(cause.message)?422:400), cause instanceof Error ? cause.message : 'No fue posible procesar la solicitud.');
+    const declaredStatus=(cause as {status?:number})?.status;
+    const budgetFailure=cause instanceof Error&&/^Saldo presupuestario/.test(cause.message);
+    if(cause instanceof SessionAuthenticationError||declaredStatus||budgetFailure){
+      error(response,cause instanceof SessionAuthenticationError?401:declaredStatus||(budgetFailure?422:400),cause instanceof Error?cause.message:'No fue posible procesar la solicitud.');
+    }else unknownRequestError(request,response,cause,400,requestId);
   }
     })))
   ).catch(cause => {
-    if (!response.headersSent) error(response, 500, cause instanceof Error ? cause.message : 'No fue posible procesar la solicitud.');
+    if (!response.headersSent) unknownRequestError(request,response,cause,500,requestId);
     else if (!response.writableEnded) response.destroy(cause instanceof Error ? cause : undefined);
   }).finally(()=>{
     request.off('aborted',abortRequest);

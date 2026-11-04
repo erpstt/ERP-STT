@@ -273,7 +273,7 @@ test('a login at exactly 16 KiB reaches only the synthetic Auth rejection and re
   const count = calls.length, input = loginInput('boundary@example.invalid');
   const response = await localRequest('/api/auth/login', { raw: jsonAtBytes(input, publicLimit), chunked: true });
   assert.equal(response.status, 400);
-  assert.equal(response.json().error.message, 'Synthetic credentials rejected.');
+  assert.equal(response.json().error.message, 'No fue posible iniciar sesión. Revisa tus datos o inténtalo más tarde.');
   assert.equal(calls.length, count + 1);
   const call = calls.at(-1);
   assert.equal(call.path, '/auth/v1/token?grant_type=password');
@@ -304,7 +304,7 @@ test('small valid-shaped login still delegates to synthetic Auth without opening
   const count = calls.length, input = loginInput('small@example.invalid');
   const response = await localRequest('/api/auth/login', { raw: JSON.stringify(input) });
   assert.equal(response.status, 400);
-  assert.equal(response.json().error.message, 'Synthetic credentials rejected.');
+  assert.equal(response.json().error.message, 'No fue posible iniciar sesión. Revisa tus datos o inténtalo más tarde.');
   assert.deepEqual(calls.slice(count).map(call => call.path), ['/auth/v1/token?grant_type=password']);
 });
 
@@ -339,7 +339,7 @@ test('opening validation retains its 36 MiB exception and performs no financial 
     auth: true, raw: jsonAtBytes({}, 9 * 1024 * 1024)
   });
   assert.equal(response.status, 400);
-  assert.equal(response.json().error.message, 'Cargue al menos una plantilla con datos.');
+  assert.equal(response.json().error.message, 'No fue posible validar el archivo. Revisa el formato o consulta la referencia.');
   assertAccessOnly(count);
 });
 
