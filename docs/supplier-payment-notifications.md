@@ -1,5 +1,26 @@
 # Notificaciones de pagos a proveedores
 
+## Solicitudes aprobadas: aviso interno a Tesorería
+
+En **Subsidiarias → Información de la empresa**, el campo opcional **Correo electrónico Tesorería** está junto al correo general y antes del teléfono. Acepta una dirección por subsidiaria. El correo general no reemplaza este destinatario.
+
+En **Configuración → Plantillas de Notificación → Solicitud de pago aprobada · Tesorería** se editan el asunto, la introducción, las variables y la activación para la subsidiaria seleccionada. La vista previa usa datos de ejemplo y no envía mensajes. Se respetan los permisos de consulta y edición de plantillas del rol activo.
+
+Al completar la aprobación final de una solicitud, se registra un aviso con su número, subsidiaria, beneficiario, concepto, importe y moneda, fechas, solicitante y aprobador. El enlace abre la solicitud con autenticación y exige seleccionar la subsidiaria correspondiente. La pantalla muestra su estado actual; abrir el enlace no ejecuta el pago.
+
+La plantilla se crea con un texto inicial activo al consultarla o ante la primera aprobación futura. Para recibir avisos, se debe guardar el correo de Tesorería y tener habilitado el transporte SMTP existente (`EMAIL_NOTIFICATIONS_ENABLED`, `SMTP_*` y la URL pública HTTPS del ERP). La configuración no genera avisos de aprobaciones anteriores. Si falta el destinatario o la plantilla está desactivada cuando se aprueba, ese aviso no se recupera automáticamente al completar la configuración.
+
+La cola es independiente del aviso al proveedor por un pago ya aplicado. Cada ciclo de aprobación admite un solo aviso. Antes de enviar se comprueba que la aprobación siga vigente, que la plantilla esté activa y que el destinatario no haya cambiado. Se cancelan avisos pendientes de solicitudes aplicadas o anuladas. Los rechazos SMTP temporales confirmados tienen hasta tres intentos; un resultado incierto queda para revisión sin repetir el envío automáticamente. El servicio conserva los estados de entrega en `payment_request_approved_email_outbox`, sin exponer acceso directo a usuarios.
+
+Validación local de esta funcionalidad, con PGlite, navegador y SMTP simulado:
+
+```text
+npm run build
+node --test --test-concurrency=1 scripts/payment-request-approved-email-sql.test.mjs scripts/payment-request-approved-email.test.mjs scripts/payment-request-approved-settings.test.mjs scripts/payment-request-approved-ui.test.mjs
+```
+
+La migración `add_payment_request_approved_treasury_email` no modifica solicitudes ni aprobaciones existentes. Estas pruebas no necesitan una conexión a la base de producción ni un destinatario real.
+
 Configuración → Plantillas de Notificación → Notificación Pago a Proveedores permite editar asunto, introducción enriquecida, variables y vista previa por subsidiaria. Solo el administrador puede modificar la plantilla. Se conserva la identidad de creación y de actualización mediante la auditoría central del ERP.
 
 Los pagos de Compras y las solicitudes CXP aplicadas en Tesorería alimentan una cola transaccional al terminar de registrar sus facturas, retenciones y anticipos. No se exige cancelar por completo las facturas. El correo usa el desembolso neto de `supplier_payment.amount_paid` y valida que concilie con las aplicaciones y el movimiento bancario. Las retenciones al registrar la factura no se descuentan nuevamente. Cuando hay anticipos, el detalle muestra el importe aplicado neto por factura y el pie descuenta el anticipo del total transferido.

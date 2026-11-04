@@ -39,6 +39,16 @@ const kinds={
   schedule:'Envío automático: se genera al enviar la solicitud a aprobación y en cada nuevo nivel aplicable.',
   transport:'SMTP activado. Las nuevas solicitudes de gasto se notificarán al aprobador correspondiente.'
  },
+ SOLICITUD_PAGO_APROBADA:{
+  title:'Solicitud de pago aprobada · Tesorería',
+  tags:['empresa_nombre','numero_solicitud','tipo_solicitud','fecha_solicitud','fecha_pago_programada','moneda','monto_total','beneficiario_nombre','concepto','solicitante_nombre','aprobador_nombre','fecha_aprobacion','enlace_solicitud'],
+  active:'Notificar a Tesorería las solicitudes de pago con aprobación final',
+  activeHelp:'Se envía únicamente al Correo electrónico Tesorería de esta subsidiaria cuando se completa la aprobación final. Requiere ese correo y el SMTP activo; no utiliza el correo general de la empresa.',
+  automatic:'El resumen de la solicitud, el beneficiario, el monto y el enlace de consulta autenticada se agregan automáticamente. Consulte el estado actual antes de ejecutar el pago.',
+  preview:'Ejemplo de una solicitud de pago con aprobación final. Esta vista no envía correos ni ejecuta pagos.',
+  schedule:'Envío automático: al completar la aprobación final de la solicitud de pago. Las aprobaciones parciales no generan este aviso y el mensaje no ejecuta el pago.',
+  transport:'SMTP activado. Las nuevas solicitudes con aprobación final se notificarán al correo de Tesorería de esta subsidiaria.'
+ },
  USUARIO_INVITACION:{
   title:'Invitación y activación de usuarios',
   tags:['empresa_nombre','usuario_nombre','usuario_correo','enlace_activacion','fecha_expiracion'],

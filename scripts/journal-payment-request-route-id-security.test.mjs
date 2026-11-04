@@ -4,7 +4,7 @@ import {test} from 'node:test';
 import vm from 'node:vm';
 import {assertIsolatedTestArgs} from './lib/migration-preview.mjs';
 assertIsolatedTestArgs();
-const version='20261104-journal-payment-route-id-guard';
+const versions={'journal-entry':'20261104-journal-payment-route-id-guard','payment-requests':'20261104-approved-notification-status'};
 const validator=(await readFile(new URL('../public/route-id.js',import.meta.url),'utf8')).replace(/^export /gm,'');
 const safety=(await readFile(new URL('../public/html-safety.js',import.meta.url),'utf8')).replace(/^export /gm,'');
 const screens=await Promise.all(['journal-entry','payment-requests'].map(async name=>({name,source:await readFile(new URL('../public/'+name+'.js',import.meta.url),'utf8'),html:await readFile(new URL('../public/'+name+'.html',import.meta.url),'utf8')})));
@@ -132,6 +132,6 @@ test('original permission denials stop journal readiness and payment request det
  const noView=await execute(screens[1],'?id=42',{noView:true});assert.equal(noView.calls.some(call=>call.path.endsWith('/detail')||call.path.endsWith('/supports')),false);
 });
 test('own HTML cache references are fresh while P94 validator imports and P118 attachment handlers remain present',()=>{
- for(const screen of screens){assert.ok(screen.html.includes('/'+screen.name+'.js?v='+version));assert.ok(screen.source.includes("from './route-id.js?v=20261103-route-id-guard'"));}
+ for(const screen of screens){assert.ok(screen.html.includes('/'+screen.name+'.js?v='+versions[screen.name]));assert.ok(screen.source.includes("from './route-id.js?v=20261103-route-id-guard'"));}
  const journal=screens[0].source;assert.ok(journal.includes("mime_type:file.type||'application/octet-stream'"));assert.ok(journal.includes('file.size===0||file.size>5242880'));assert.ok(journal.includes("url.protocol!=='https:'"));
 });

@@ -39,6 +39,7 @@ export const organizationCatalogs:OrganizationCatalog[]=[
 ];
 organizationCatalogs.find(catalog=>catalog.slug==='subsidiaries')?.fields.unshift(
  {key:'email',label:'Correo electrónico',type:'text'},
+ {key:'treasury_email',label:'Correo de Tesorería',type:'text'},
  {key:'phone',label:'Teléfono',type:'text'},
  {key:'logo_url',label:'Logo de la empresa',type:'image'},
  {key:'address',label:'Dirección de la empresa',type:'text'}

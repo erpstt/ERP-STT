@@ -84,6 +84,10 @@ jobs:
             scripts/report-journal-operator-guards.test.mjs \
             scripts/test-role-access-matrix-db.mjs \
             scripts/user-invitation-template-db.test.mjs \
+            scripts/payment-request-approved-email-sql.test.mjs \
+            scripts/payment-request-approved-email.test.mjs \
+            scripts/payment-request-approved-settings.test.mjs \
+            scripts/payment-request-approved-ui.test.mjs \
             scripts/tax-calendar-attachment-preauth.test.mjs \
             scripts/bounded-rate-limit-state.test.mjs \
             scripts/auth-flow-rate-limit-state.test.mjs \

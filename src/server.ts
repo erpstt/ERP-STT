@@ -18,6 +18,7 @@ import { notificationSettings, paymentNotifications, startEmailNotifications } f
 import { salesInvoiceTemplateSettings } from './modules/notifications/sales-invoice-email.js';
 import { downloadSalesInvoicePdf, sendSalesInvoiceEmail } from './modules/notifications/sales-invoice-delivery.service.js';
 import { expenseApprovalTemplateSettings, startExpenseApprovalNotifications } from './modules/notifications/expense-approval-email.js';
+import { paymentRequestApprovedTemplateSettings, startPaymentRequestApprovedNotifications } from './modules/notifications/payment-request-approved-email.js';
 import { userInvitationTemplateSettings, userPasswordRecoveryTemplateSettings } from './modules/notifications/user-invitation-email.js';
 import { startTaxCalendarNotifications, taxCalendarAction, taxCalendarDocument } from './modules/tax-calendar/tax-calendar.service.js';
 import { taxObligationCatalogAction } from './modules/tax-calendar/tax-obligation-catalog.service.js';
@@ -691,7 +692,7 @@ const server = createServer((request, response) => {
       const resourceKey='configuration:notification-templates';
       await assertRoleAccess(authorization,resourceKey,action==='save'?'edit':'view');
       const input=await body(request)as Record<string,unknown>;
-      const settings=input.kind==='ESTADO_CUENTA'?statementSettings:input.kind==='FACTURA_VENTA'?salesInvoiceTemplateSettings:input.kind==='SOLICITUD_GASTO_APROBACION'?expenseApprovalTemplateSettings:input.kind==='USUARIO_INVITACION'?userInvitationTemplateSettings:input.kind==='USUARIO_RECUPERACION'?userPasswordRecoveryTemplateSettings:notificationSettings;
+      const settings=input.kind==='ESTADO_CUENTA'?statementSettings:input.kind==='FACTURA_VENTA'?salesInvoiceTemplateSettings:input.kind==='SOLICITUD_GASTO_APROBACION'?expenseApprovalTemplateSettings:input.kind==='SOLICITUD_PAGO_APROBADA'?paymentRequestApprovedTemplateSettings:input.kind==='USUARIO_INVITACION'?userInvitationTemplateSettings:input.kind==='USUARIO_RECUPERACION'?userPasswordRecoveryTemplateSettings:notificationSettings;
       const result=await settings(authorization,action,input);
       if(action!=='get'||typeof result!=='object'||result===null)return json(response,200,result);
       const roleAccess=await myRoleAccess(authorization);
@@ -897,6 +898,6 @@ const server = createServer((request, response) => {
 server.listen(Number(process.env.PORT ?? 3000), '0.0.0.0', () => {
   console.log(`GENTIA ERP disponible en el puerto ${process.env.PORT ?? 3000}`);
   if(process.env.DISABLE_BACKGROUND_JOBS==='true')return;
-  startEmailNotifications();startExpenseApprovalNotifications();startStatementNotifications();startScheduledReports();startTaxCalendarNotifications();
+  startEmailNotifications();startExpenseApprovalNotifications();startPaymentRequestApprovedNotifications();startStatementNotifications();startScheduledReports();startTaxCalendarNotifications();
   iniciarProgramacionTipoCambioRD();iniciarProgramacionTipoCambioCR();iniciarProgramacionTipoCambioGT();iniciarProgramacionTipoCambioJM();iniciarProgramacionTipoCambioCO();iniciarProgramacionTipoCambioAR();iniciarProgramacionTipoCambioNI();iniciarProgramacionTipoCambioPE();
 });
