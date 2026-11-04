@@ -97,7 +97,8 @@
     "test:technical-table-privileges": "node --test scripts/technical-table-privileges.test.mjs",
     "test:transaction-engine-security": "npm run build && node --test scripts/transaction-engine-sql-security.test.mjs scripts/transaction-engine-api-security.test.mjs scripts/transaction-engine-ui-security.test.mjs",
     "test:ai-catalog-security": "npm run build && node --test scripts/ai-catalog-sql-security.test.mjs scripts/ai-catalog-api-security.test.mjs scripts/ai-catalog-ui-security.test.mjs",
-    "test:purchase-legacy-security": "npm run build && node --test scripts/purchase-legacy-sql-security.test.mjs scripts/purchase-legacy-api-security.test.mjs scripts/purchase-legacy-ui-security.test.mjs"
+    "test:purchase-legacy-security": "npm run build && node --test scripts/purchase-legacy-sql-security.test.mjs scripts/purchase-legacy-api-security.test.mjs scripts/purchase-legacy-ui-security.test.mjs",
+    "test:audit-raw-security": "npm run build && node --test scripts/audit-raw-sql-security.test.mjs scripts/audit-raw-api-security.test.mjs scripts/audit-raw-ui-security.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",

@@ -429,7 +429,7 @@
 </div>
 </div>
           <div class="table-card" :class="{'bank-statement-table-card':activeCatalog.slug==='bank-statements'}">
-            <div class="table-tools">
+            <div v-if="!activeCatalog.auditRawRestricted" class="table-tools">
 <div class="search-box">
 <span>⌕</span>
 <input v-model="search" :placeholder="activeCatalog?.slug==='exchange-rates'?'Buscar moneda destino o fecha efectiva':'Buscar en el catálogo'" aria-label="Buscar registros">
@@ -437,10 +437,11 @@
 <span class="record-count">{{ filteredRows.length }} {{ filteredRows.length === 1 ? 'registro' : 'registros' }}</span>
 </div>
 <p v-if="tableNotice" class="table-message form-success" role="status">{{ tableNotice }}</p>
+<p v-if="activeCatalog.auditRawRestricted&&canOpenAuditReport()" class="table-message"><button id="openScopedAuditReport" type="button" class="button-link" @click="navigateChild('Auditoría','Transacciones modificadas y eliminadas')">Abrir informe de transacciones modificadas y eliminadas</button></p>
 <p v-if="tableWarning" class="table-message form-warning" role="alert">{{ tableWarning }}</p>
             <p v-if="tableLoading" class="table-message">Cargando registros…</p>
 <p v-else-if="tableError" class="table-message form-error" role="alert">{{ tableError }} <button v-if="activeCatalog.rateCatalog" id="retryRateCatalog" type="button" class="button-link" data-i18n="common.retry" @click="loadCatalog()">Reintentar</button></p>
-            <div v-else class="table-scroll">
+            <div v-else-if="!activeCatalog.auditRawRestricted" class="table-scroll">
 <table :class="{'wide-table':tableFields.length >= 6}" :style="{minWidth: Math.max(700,(tableFields.length + 2) * 125) + 'px'}">
 <thead>
 <tr>
@@ -508,7 +509,7 @@
 </tbody>
 </table>
 </div>
-            <footer class="table-footer">
+            <footer v-if="!activeCatalog.auditRawRestricted" class="table-footer">
 <span>Catálogo de {{ currentModule }}</span>
 <span>Actualizado en tiempo real</span>
 </footer>
@@ -554,7 +555,7 @@
 </section>
 </div>
 
-    <div v-if="recordDialog.open" class="modal-backdrop" @click.self="closeRecordDialog">
+    <div v-if="recordDialog.open&&!activeCatalog?.auditRawRestricted" class="modal-backdrop" @click.self="closeRecordDialog">
       <section class="modal" :class="{'entity-master-modal':['customers','suppliers'].includes(activeCatalog.slug),'entity-section-modal':isEntitySectioned(),'other-names-modal':activeCatalog.slug==='other-names','subsidiary-master-modal':activeCatalog.slug==='subsidiaries','account-master-modal':activeCatalog.slug==='chart-accounts','user-company-access-modal':activeCatalog.slug==='user-subsidiaries','bank-statement-modal':activeCatalog.slug==='bank-statements'}" role="dialog" aria-modal="true" aria-labelledby="country-modal-title">
         <div class="modal-head">
 <div>
@@ -719,7 +720,7 @@
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
 <script type="module" src="/i18n.js?v=20261102-request-beneficiary-banks"></script>
-<script type="module" src="/app.js?v=20261103-purchase-legacy-read-only">
+<script type="module" src="/app.js?v=20261103-audit-raw-restricted">
 </script>
 <script src="/approval-notifications.js?v=20261101-c04-approval-inbox"></script></body>
 </html>
