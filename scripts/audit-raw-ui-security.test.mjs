@@ -79,3 +79,12 @@ test('unrelated catalog actions and normal record authorship retain their existi
  const s=state({slug:'synthetic',table:'synthetic_business',primaryKey:'id'});for(const action of ['view','create','edit','delete'])assert.equal(methods.canCurrentAction.call(s,action),true);
  methods.openRecordAudit.call(s,{id:17,name:'Synthetic business'});assert.equal(s.recordDialog.mode,'audit');assert.equal(s.recordDialog.id,17);assert.equal(Object.keys(s.recordDialog.values).length,0);assert.equal(s.recordDialog.label,'Synthetic record');assert.deepEqual(s.calls,[]);
 });
+test('the app and its precompiled render use the same fresh cache key',()=>{
+ const appRef=html.match(/<script type="module" src="([^"]*\/app\.js\?[^"]+)"/)?.[1];
+ const renderRef=source.match(/import\s+\{render\}\s+from\s+['"]([^'"]+)['"]/)?.[1];
+ assert.ok(appRef);assert.ok(renderRef);
+ const appVersion=new URL(appRef,'https://fixture.invalid').searchParams.get('v');
+ const renderVersion=new URL(renderRef,'https://fixture.invalid').searchParams.get('v');
+ assert.ok(appVersion);assert.equal(renderVersion,appVersion);
+ assert.notEqual(renderVersion,'20261102-user-company-assignment');
+});

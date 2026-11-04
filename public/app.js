@@ -1,4 +1,4 @@
-import {render} from '/generated/index-render.js?v=20261102-user-company-assignment';
+import {render} from '/generated/index-render.js?v=20261103-audit-raw-restricted-v2';
 import {safeNavigationUrl,safeImageUrl,configureImage} from './html-safety.js?v=20261102-a03-media';
 import {csvCell as protectedCsvCell} from '/spreadsheet-safety.js?v=20261102-a03-spreadsheet';
 import { createApp } from "/assets/vue.js?v=20261102-a03-csp";
