@@ -4,7 +4,8 @@ import {test,before,after} from 'node:test';
 import {PGlite} from '@electric-sql/pglite';
 import {loadLegacyJournalFunctions} from './fixtures/load-legacy-journal-functions.mjs';
 import {loadLegacyReconciliationFunctions} from './fixtures/load-legacy-reconciliation-functions.mjs';
-const db=new PGlite();const read=p=>readFile(new URL(p,import.meta.url),'utf8');
+const db=new PGlite();// Legacy body-rewrite guards compare LF SQL; keep fixture installation independent of checkout line endings.
+const read=async p=>(await readFile(new URL(p,import.meta.url),'utf8')).replaceAll('\r\n','\n');
 before(async()=>{
  for(const f of ['consolidation-security.sql','bank-transfer-security.sql','manual-journal-security.sql'])await db.exec(await read('./fixtures/'+f));
  const dims=await read('./journal-csv-test-fixture.sql');await db.exec(dims.slice(dims.indexOf('create table customers')));
