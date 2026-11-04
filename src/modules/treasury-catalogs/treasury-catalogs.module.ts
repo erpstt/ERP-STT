@@ -1,3 +1,4 @@
+import{requireExpenseCashAccess,expenseCashDbError}from'../security-catalogs/expense-cash-access.service.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 
 export interface TreasuryField { key:string; label:string; type:'text'|'number'|'date'; required?:boolean; reference?:string; }
@@ -28,11 +29,11 @@ async function request<T>(catalog:TreasuryCatalog,token:string,query='',init:Req
   const config=getSupabaseConfig(); if(!config) throw new Error('Supabase no está configurado.');
   const response=await fetchSupabase(new URL(`/rest/v1/${catalog.table}${query}`,config.url),{...init,headers:{apikey:config.anonKey,Authorization:token,'Content-Type':'application/json',...(init.headers??{})}});
   const text=response.status===204?'':await response.text(); const payload:unknown=text?JSON.parse(text):null;
-  if(!response.ok){const message=typeof payload==='object'&&payload!==null&&'message' in payload?String(payload.message):'No fue posible completar la operación.';throw new Error(message);}
+  if(!response.ok)expenseCashDbError(response.status,payload);
   return payload as T;
 }
 
-export const listTreasuryRows=(catalog:TreasuryCatalog,token:string)=>request<Record<string,unknown>[]>(catalog,token,`?select=*&order=${catalog.primaryKey}.asc`);
-export async function createTreasuryRow(catalog:TreasuryCatalog,token:string,input:Record<string,unknown>){const rows=await request<Record<string,unknown>[]>(catalog,token,'',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(sanitize(catalog,input))});return rows[0];}
-export async function updateTreasuryRow(catalog:TreasuryCatalog,token:string,id:number,input:Record<string,unknown>){const rows=await request<Record<string,unknown>[]>(catalog,token,`?${catalog.primaryKey}=eq.${id}`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(sanitize(catalog,input))});return rows[0];}
-export const deleteTreasuryRow=(catalog:TreasuryCatalog,token:string,id:number)=>request<null>(catalog,token,`?${catalog.primaryKey}=eq.${id}`,{method:'DELETE'});
+export async function listTreasuryRows(catalog:TreasuryCatalog,token:string){await requireExpenseCashAccess(token,'treasury:'+catalog.slug,'view');return request<Record<string,unknown>[]>(catalog,token,`?select=*&order=${catalog.primaryKey}.asc`);}
+export async function createTreasuryRow(catalog:TreasuryCatalog,token:string,input:Record<string,unknown>){await requireExpenseCashAccess(token,'treasury:'+catalog.slug,'create');const rows=await request<Record<string,unknown>[]>(catalog,token,'',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(sanitize(catalog,input))});return rows[0];}
+export async function updateTreasuryRow(catalog:TreasuryCatalog,token:string,id:number,input:Record<string,unknown>){await requireExpenseCashAccess(token,'treasury:'+catalog.slug,'edit');const rows=await request<Record<string,unknown>[]>(catalog,token,`?${catalog.primaryKey}=eq.${id}`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(sanitize(catalog,input))});return rows[0];}
+export async function deleteTreasuryRow(catalog:TreasuryCatalog,token:string,id:number){await requireExpenseCashAccess(token,'treasury:'+catalog.slug,'delete');return request<null>(catalog,token,`?${catalog.primaryKey}=eq.${id}`,{method:'DELETE'});}
