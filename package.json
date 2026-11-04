@@ -106,7 +106,8 @@
     "test:notification-route-id-security": "node --test scripts/notification-route-id-security.test.mjs",
     "test:view-route-id-security": "node --test scripts/view-route-id-security.test.mjs",
     "test:auth-public-body-limit": "npm run build && node --test scripts/auth-public-body-limit.test.mjs",
-    "test:isolated-user-access-db": "node --test scripts/user-catalog-security-db.test.mjs scripts/user-provisioning-db.test.mjs scripts/user-subsidiary-bulk-db.test.mjs"
+    "test:isolated-user-access-db": "node --test scripts/user-catalog-security-db.test.mjs scripts/user-provisioning-db.test.mjs scripts/user-subsidiary-bulk-db.test.mjs",
+    "test:login-rate-limit-security": "npm run build && node --test scripts/login-rate-limit-security.test.mjs scripts/security-turnstile.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
