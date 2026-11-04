@@ -110,7 +110,8 @@
     "test:login-rate-limit-security": "npm run build && node --test scripts/login-rate-limit-security.test.mjs scripts/security-turnstile.test.mjs",
     "test:workflow-banner-id-security": "node --test scripts/workflow-banner-id-security.test.mjs",
     "test:public-request-errors": "npm run build && node --test scripts/public-request-errors.test.mjs",
-    "test:legacy-report-operator-guards": "node --test scripts/legacy-report-operator-guards.test.mjs"
+    "test:legacy-report-operator-guards": "node --test scripts/legacy-report-operator-guards.test.mjs",
+    "test:financial-operator-guards": "node --test scripts/financial-operator-guards.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",

@@ -1,1 +1,7 @@
-import pg from'pg';import{readFile}from'node:fs/promises';if(process.loadEnvFile)process.loadEnvFile('.env');const ref=new URL(process.env.SUPABASE_URL).hostname.split('.')[0],c=new pg.Client({host:'aws-0-us-east-1.pooler.supabase.com',port:6543,database:'postgres',user:`postgres.${ref}`,password:process.env.PGPASSWORD,ssl:{rejectUnauthorized:false}});await c.connect();try{await c.query(await readFile(new URL('../supabase/migrations/20260903130000_fix_transfer_gl_balance.sql',import.meta.url),'utf8'));console.log('Impactos de transferencias normalizados y regenerados.')}finally{await c.end()}
+import {runMigrationPreview} from './lib/migration-preview.mjs';
+
+await runMigrationPreview({
+  entrypoint:'scripts/apply-transfer-balance-fix.mjs',
+  defaultFiles:['20260903130000_fix_transfer_gl_balance.sql'],
+  allowFileArgument:false
+});
