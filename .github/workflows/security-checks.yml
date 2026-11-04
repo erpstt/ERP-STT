@@ -109,7 +109,8 @@ jobs:
             scripts/configured-report-operator-guards.test.mjs \
             scripts/remaining-configuration-operator-guards.test.mjs \
             scripts/tax-schedule-access-api-security.test.mjs \
-            scripts/tax-schedule-access-ui-security.test.mjs
+            scripts/tax-schedule-access-ui-security.test.mjs \
+            scripts/bank-statement-account-scope.test.mjs
 
       - name: Reject high and critical dependency advisories
         run: npm audit --audit-level=high
