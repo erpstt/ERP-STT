@@ -4,7 +4,7 @@ WORKDIR /build
 COPY package.json package-lock.json tsconfig.json ./
 RUN npm ci --ignore-scripts --no-audit --no-fund
 COPY src ./src
-RUN npm run build
+RUN node node_modules/typescript/bin/tsc --project tsconfig.json
 
 FROM node:22.23.3-bookworm-slim@sha256:3ed98443660ff48413b5af19ecefce3b9d50845a901a43420d47cc63a9fddbe9
 RUN apt-get update \
