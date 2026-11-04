@@ -6,7 +6,7 @@ import {setupAiCatalogSecurity,aiResources} from './fixtures/setup-ai-catalog-se
 
 const db=new PGlite();const tables=['ai_agents','ai_prompt','ai_conversation','ai_document','ai_prediction'];let rightsBefore;
 const rightsSql=`select t,r,has_table_privilege(r,t,'SELECT')v,has_table_privilege(r,t,'INSERT')c,has_table_privilege(r,t,'UPDATE')e,has_table_privilege(r,t,'DELETE')d from unnest(array['ai_agents','ai_prompt','ai_conversation','ai_document','ai_prediction'])t cross join unnest(array['authenticated','service_role'])r order by t,r`;
-before(async()=>{await setupAiCatalogSecurity(db);rightsBefore=(await db.query(rightsSql)).rows;await db.exec('begin;'+await readFile('supabase/migrations/20261104021309_secure_ai_catalog_access.sql','utf8')+'commit;');});
+before(async()=>{await setupAiCatalogSecurity(db);rightsBefore=(await db.query(rightsSql)).rows;await db.exec('begin;'+await readFile('supabase/migrations/20261104022034_secure_ai_catalog_access.sql','utf8')+'commit;');});
 after(()=>db.close());
 async function tx(t){await db.exec('reset role;begin');t.after(()=>db.exec('rollback;reset role'));}
 async function assume(user=1,role=10,sid=1,uid=true,reportSid=null){await db.exec('reset role');await db.query("select set_config('fixture.user',$1,false),set_config('fixture.role',$2,false),set_config('fixture.sid',$3,false),set_config('fixture.uid',$4,false),set_config('fixture.report_sid',$5,false)",[String(user??''),String(role??''),String(sid??''),uid?'00000000-0000-4000-8000-000000000001':'',String(reportSid??'')]);await db.exec('set role authenticated');}
