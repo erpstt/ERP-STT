@@ -10,6 +10,7 @@ assertIsolatedTestArgs();
 const version='20261104-support-write-validation';
 const bankEntryVersion='20261104-optional-bank-route-id-guard';
 const supplierEntryVersion='20261104-optional-document-route-id-guard';
+const journalEntryVersion='20261104-journal-payment-route-id-guard';
 const screens=[
  {name:'journal-entry'}, {name:'supplier-invoice-entry'}, {name:'supplier-note-entry'},
  {name:'bank-check-entry',script:'bank-check-entry-main'}, {name:'bank-deposit-entry'}
@@ -125,7 +126,7 @@ for(const screen of screens){
 test('each own HTML and the bank-check wrapper point at the new entry-handler version',async()=>{
  for(const screen of screens){
   const scripts=[...screen.html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)].map(match=>match[1]);
-  const expectedVersion=['bank-check-entry','bank-deposit-entry'].includes(screen.name)?bankEntryVersion:['supplier-invoice-entry','supplier-note-entry'].includes(screen.name)?supplierEntryVersion:version;
+  const expectedVersion=['bank-check-entry','bank-deposit-entry'].includes(screen.name)?bankEntryVersion:['supplier-invoice-entry','supplier-note-entry'].includes(screen.name)?supplierEntryVersion:screen.name==='journal-entry'?journalEntryVersion:version;
   assert.equal(scripts.filter(src=>src==='/'+screen.name+'.js?v='+expectedVersion).length,1);
  }
  const wrapper=await readFile(new URL('../public/bank-check-entry.js',import.meta.url),'utf8');

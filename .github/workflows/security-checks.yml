@@ -100,7 +100,8 @@ jobs:
             scripts/report-routing-operator-guards.test.mjs \
             scripts/i18n-message-origin-security.test.mjs \
             scripts/i18n-runtime.test.mjs \
-            scripts/opening-routing-operator-guards.test.mjs
+            scripts/opening-routing-operator-guards.test.mjs \
+            scripts/journal-payment-request-route-id-security.test.mjs
 
       - name: Reject high and critical dependency advisories
         run: npm audit --audit-level=high

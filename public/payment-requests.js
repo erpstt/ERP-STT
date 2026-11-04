@@ -1,4 +1,19 @@
 import {configureAttachmentLink,safeHttpUrl} from './html-safety.js?v=20261102-a03-media';
+import {readRouteId} from './route-id.js?v=20261103-route-id-guard';
+const routeParams=new URLSearchParams(location.search),routeId=readRouteId(location.search),routeSubsidiary=readRouteId(location.search,'subsidiaryId'),routeCompany=readRouteId(location.search,'company');
+let validRoute=(!routeParams.has('id')||routeId!==null)&&(!routeParams.has('subsidiaryId')||routeSubsidiary!==null)&&(!routeParams.has('company')||routeCompany!==null)&&!(routeParams.has('subsidiaryId')&&routeParams.has('company')&&routeSubsidiary!==routeCompany);
+const requestedCompany=routeSubsidiary??routeCompany;
+let routeError='El identificador de la solicitud o de la empresa no es válido. Abra la solicitud desde su lista.';
+if(validRoute&&requestedCompany!==null){
+ const activeCompany=localStorage.getItem('nexo_company')||sessionStorage.getItem('nexo_company');
+ if(requestedCompany!==String(activeCompany||'')){validRoute=false;routeError='No fue posible abrir la solicitud: la empresa indicada no está activa o no está autorizada para su usuario.';}
+}
+if(!validRoute){
+ document.getElementById('message').textContent=routeError;
+ document.getElementById('message').className='error';
+ document.getElementById('new').hidden=true;
+ document.querySelectorAll('input,select,textarea,button').forEach(control=>control.disabled=true);
+}else{
 const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),money=v=>Number(v||0).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:6});
 const parseAmount=value=>{let text=String(value??'').trim().replace(/\s/g,'').replace(/[^0-9,.-]/g,'');if(!text)return 0;if(text.includes(',')&&text.includes('.'))text=text.lastIndexOf(',')>text.lastIndexOf('.')?text.replaceAll('.','').replace(',','.'):text.replaceAll(',','');else if(text.includes(',')){const parts=text.split(',');text=parts.length>2?`${parts.slice(0,-1).join('')}.${parts.at(-1)}`:text.replace(',','.')}else if((text.match(/\./g)||[]).length>1)text=text.replaceAll('.','');const number=Number(text);return Number.isFinite(number)?number:0};
 const amountValue=value=>String(value??'').trim()===''?'':String(parseAmount(value)),formatAmountInput=value=>String(value??'').trim()===''?'':money(parseAmount(value));
@@ -101,7 +116,8 @@ $('reasonForm').onsubmit=e=>{e.preventDefault();void act(async()=>{await api('tr
 $('payDate').onchange=paymentRate;
 $('payForm').onsubmit=e=>{e.preventDefault();void act(async()=>{const result=await api('execute',{id:current.id,version:current.version,bankId:$('bank').value,date:$('payDate').value,rate:$('payRate').value,method:$('method').value,reference:$('reference').value});$('payDialog').close();if(result.budgetPending){message(result.message||'Pendiente de sobreaprobación; no se aplicó el pago.');return;}await open(current.id);message('Pago aplicado. Se generaron la salida bancaria y el asiento contable.');});};
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).close());
-await act(async()=>{const params=new URLSearchParams(location.search),directId=params.get('id'),requestedCompany=params.get('subsidiaryId')||params.get('company'),activeCompany=localStorage.getItem('nexo_company')||sessionStorage.getItem('nexo_company');if(requestedCompany&&!/^[1-9]\d*$/.test(requestedCompany))throw Error('El enlace de aprobación contiene una empresa inválida.');if(requestedCompany&&String(requestedCompany)!==String(activeCompany||''))throw Error('No fue posible abrir la solicitud: la empresa indicada no está activa o no está autorizada para su usuario.');requestAccess=await api('access');if(!requestAccess.canView&&!requestAccess.canCreate&&!requestAccess.canEdit)throw Error('El rol activo no tiene acceso a Solicitudes de Pago.');$('new').hidden=!requestAccess.canCreate;opts=await api('options');$('company').textContent=opts.company;fill('currency',opts.currencies);fill('requester',opts.users,'Todos');fill('filterSupplier',opts.suppliers,'Todos');$('supplierOptions').innerHTML=opts.suppliers.map(s=>`<option value="${esc(s.name)}"></option>`).join('');await list();if(directId!==null){if(!/^[1-9]\d*$/.test(directId))throw Error('El enlace de aprobación contiene un número de solicitud inválido.');try{await open(directId);message('Solicitud cargada desde la notificación. Revise el detalle antes de aprobar o rechazar.');}catch{throw Error('No fue posible abrir la solicitud. Verifique que pertenezca a la empresa activa y que todavía tenga acceso a ella.');}}});
+await act(async()=>{const directId=routeId;requestAccess=await api('access');if(!requestAccess.canView&&!requestAccess.canCreate&&!requestAccess.canEdit)throw Error('El rol activo no tiene acceso a Solicitudes de Pago.');$('new').hidden=!requestAccess.canCreate;opts=await api('options');$('company').textContent=opts.company;fill('currency',opts.currencies);fill('requester',opts.users,'Todos');fill('filterSupplier',opts.suppliers,'Todos');$('supplierOptions').innerHTML=opts.suppliers.map(s=>`<option value="${esc(s.name)}"></option>`).join('');await list();if(directId!==null){try{await open(directId);message('Solicitud cargada desde la notificación. Revise el detalle antes de aprobar o rechazar.');}catch{throw Error('No fue posible abrir la solicitud. Verifique que pertenezca a la empresa activa y que todavía tenga acceso a ella.');}}});
 
 
 if(!requestAccess){$('new').hidden=true;document.querySelectorAll('input,select,textarea,button').forEach(el=>el.disabled=true)}
+}
