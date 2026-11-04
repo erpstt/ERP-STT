@@ -1,0 +1,86 @@
+name: Security checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      DISABLE_BACKGROUND_JOBS: "true"
+      EMAIL_NOTIFICATIONS_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24.18.1"
+          package-manager-cache: false
+
+      - name: Install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --include=dev --no-audit --no-fund
+
+      - name: Build trusted templates and TypeScript
+        run: npm run build
+
+      - name: Run explicit isolated security tests
+        env:
+          NODE_ENV: test
+        run: |
+          node --test --test-concurrency=1 \
+            scripts/public-app-url.test.mjs \
+            scripts/security-turnstile.test.mjs \
+            scripts/password-recovery.test.mjs \
+            scripts/password-recovery-ui.test.mjs \
+            scripts/user-invitation-email.test.mjs \
+            scripts/user-invitation-ui.test.mjs \
+            scripts/user-provisioning.test.mjs \
+            scripts/security-user-api.test.mjs \
+            scripts/auth-repository-provisioning.test.mjs \
+            scripts/record-actor-audit-service.test.mjs \
+            scripts/request-access-rpc.test.mjs \
+            scripts/request-access-cache.test.mjs \
+            scripts/auth-bootstrap.test.mjs \
+            scripts/auth-bootstrap-ui.test.mjs \
+            scripts/operator-script-safety.test.mjs \
+            scripts/configure-supabase-production-auth.test.mjs \
+            scripts/nodemailer-security.test.mjs \
+            scripts/audit-secret-redaction-db.test.mjs \
+            scripts/verify-audit.mjs \
+            scripts/test-audit-change-report-http.mjs \
+            scripts/user-edit-password-notification-db.test.mjs \
+            scripts/password-security-rls-db.test.mjs \
+            scripts/password-recovery-db.test.mjs \
+            scripts/user-record-audit-permissions-db.test.mjs \
+            scripts/user-catalog-security-db.test.mjs \
+            scripts/user-provisioning-db.test.mjs \
+            scripts/user-subsidiary-bulk-db.test.mjs \
+            scripts/auth-public-body-limit.test.mjs \
+            scripts/login-rate-limit-security.test.mjs \
+            scripts/notification-route-id-security.test.mjs \
+            scripts/view-route-id-security.test.mjs \
+            scripts/workflow-banner-id-security.test.mjs \
+            scripts/public-request-errors.test.mjs \
+            scripts/legacy-report-operator-guards.test.mjs \
+            scripts/financial-operator-guards.test.mjs \
+            scripts/report-journal-operator-guards.test.mjs \
+            scripts/test-role-access-matrix-db.mjs \
+            scripts/user-invitation-template-db.test.mjs
+
+      - name: Reject high and critical dependency advisories
+        run: npm audit --audit-level=high
