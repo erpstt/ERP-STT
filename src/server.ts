@@ -142,11 +142,20 @@ const mime: Record<string, string> = { '.html': 'text/html', '.css': 'text/css',
 type StaticCacheEntry = { mtimeMs:number; size:number; content:Buffer; etag:string; gzip?:Buffer };
 const staticCache = new Map<string, StaticCacheEntry>();
 const compressible = new Set(['.html','.css','.js','.json','.svg','.csv']);
+const PUBLIC_AUTH_JSON_MAX_BYTES = 16 * 1024;
+const publicAuthJsonRoutes = new Set([
+  '/api/auth/login',
+  '/api/auth/request-password-recovery',
+  '/api/auth/continue-password-access',
+  '/api/auth/complete-password-recovery',
+  '/api/auth/complete-password-invitation'
+]);
 
 async function body(request: IncomingMessage, maximumBytes?: number): Promise<unknown> {
   const isOpeningBalanceValidation = request.url === '/api/opening-balances/validate';
-  const isPasswordAccessContinuation = request.url === '/api/auth/continue-password-access';
-  const maxBodyBytes = maximumBytes ?? (isOpeningBalanceValidation ? 36 * 1024 * 1024 : isPasswordAccessContinuation ? 16 * 1024 : 8 * 1024 * 1024);
+  const defaultMaximumBytes = publicAuthJsonRoutes.has(request.url ?? '')
+    ? PUBLIC_AUTH_JSON_MAX_BYTES : isOpeningBalanceValidation ? 36 * 1024 * 1024 : 8 * 1024 * 1024;
+  const maxBodyBytes = maximumBytes ?? defaultMaximumBytes;
   const tooLarge=()=>{
     const limit=maxBodyBytes<1024*1024?`${Math.floor(maxBodyBytes/1024)} KB`:`${Math.floor(maxBodyBytes/1024/1024)} MB`;
     const failure=new Error(`La solicitud supera el límite permitido de ${limit}.`) as Error & {status?:number};
