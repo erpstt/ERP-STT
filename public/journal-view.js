@@ -1,6 +1,14 @@
 import {escapeHtml,safeAttachmentUrl,configureAttachmentLink} from './html-safety.js?v=20261101-a03-1';
+import {readRouteId} from './route-id.js?v=20261103-route-id-guard';
+const routeId=readRouteId(location.search);
+if(routeId===null){
+ document.getElementById('error').textContent='El identificador del asiento no es válido. Abra el asiento desde la lista de asientos.';
+ document.getElementById('document').hidden=true;
+ document.getElementById('edit').disabled=true;
+ document.getElementById('pdf').disabled=true;
+}else{
 const esc=escapeHtml;
-﻿const $=id=>document.getElementById(id),token=localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo_token'),device=localStorage.getItem('nexo_device_token'),id=new URLSearchParams(location.search).get('id');
+﻿const $=id=>document.getElementById(id),token=localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo_token'),device=localStorage.getItem('nexo_device_token'),id=routeId;
 async function api(path){const r=await fetch(path,{headers:{Authorization:`Bearer ${token}`,'X-Device-Token':device}}),x=await r.json();if(!r.ok)throw Error(x.error?.message||'No fue posible cargar el comprobante.');return x}
 const paths={journals:'/api/accounting/journals',lines:'/api/accounting/journal-lines',impacts:'/api/accounting/gl-impacts',accounts:'/api/accounting/chart-accounts',currencies:'/api/core/currencies',countries:'/api/core/countries',periods:'/api/organization/accounting-periods',subsidiaries:'/api/organization/subsidiaries',locations:'/api/organization/locations',taxes:'/api/configuration/tax-codes',departments:'/api/organization/departments',classes:'/api/organization/classes',costs:'/api/organization/cost-centers',customers:'/api/entities/customers',suppliers:'/api/entities/suppliers',employees:'/api/entities/employees'},data={};
 try{await Promise.all(Object.entries(paths).map(async([key,path])=>data[key]=await api(path)));const journal=data.journals.find(x=>String(x.journal_id)===String(id));if(!journal)throw Error('No se encontró el asiento.');const lines=data.lines.filter(x=>String(x.journal_id)===String(id)).sort((a,b)=>a.journal_line_id-b.journal_line_id);
@@ -18,7 +26,7 @@ if(journal.reversed_from_journal_id&&journal.journal_type==='Reversión de Pendi
 }
 $('generated').textContent=new Date().toLocaleString('es-CR');
 $('footerSubsidiary').textContent=name(find(data.subsidiaries,'subsidiary_id',journal.subsidiary_id))||'Subsidiaria no identificada';
-$('edit').onclick=()=>location.href=`/journal-entry.html?id=${id}`;
+$('edit').onclick=()=>location.href=`/journal-entry.html?id=${encodeURIComponent(id)}`;
 $('pdf').onclick=()=>window.print();if(new URLSearchParams(location.search).get('print')==='1')setTimeout(()=>window.print(),350)}catch(error){$('error').textContent=error.message;
 $('document').hidden=true}
-
+}

@@ -117,7 +117,8 @@
     "test:tax-calendar-attachment-preauth": "npm run build && node --test scripts/tax-calendar-attachment-preauth.test.mjs",
     "test:bounded-rate-limit-state": "npm run build && node --test scripts/bounded-rate-limit-state.test.mjs",
     "test:auth-flow-rate-limit-state": "npm run build && node --test scripts/bounded-rate-limit-state.test.mjs scripts/auth-flow-rate-limit-state.test.mjs",
-    "test:remaining-view-route-id-security": "node --test scripts/remaining-view-route-id-security.test.mjs"
+    "test:remaining-view-route-id-security": "node --test scripts/remaining-view-route-id-security.test.mjs",
+    "test:catalog-view-route-id-security": "node --test scripts/catalog-view-route-id-security.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
