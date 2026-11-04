@@ -1,0 +1,37 @@
+import {readFile} from 'node:fs/promises';
+export async function setupTransactionEngine(db){
+ await db.exec(`create role anon;create role authenticated;create role service_role;create schema auth;
+ create function auth.uid()returns uuid language sql stable as $$select nullif(current_setting('fixture.uid',true),'')::uuid$$;
+ create function app_user_id()returns bigint language sql stable as $$select nullif(current_setting('fixture.user',true),'')::bigint$$;
+ create function app_active_role_id()returns bigint language sql stable as $$select nullif(current_setting('fixture.role',true),'')::bigint$$;
+ create function active_subsidiary_id()returns bigint language sql stable as $$select nullif(current_setting('fixture.sid',true),'')::bigint$$;
+ create function active_subsidiary_id_without_report_context()returns bigint language sql stable as $$select active_subsidiary_id()$$;
+ create function app_is_admin()returns boolean language sql stable as $$select app_user_id()=2$$;
+ create table users(user_id bigint primary key,is_active boolean);insert into users values(1,true),(2,true),(3,false);
+ create table user_roles(user_id bigint,role_id bigint);insert into user_roles values(1,10),(1,11),(1,12),(1,13),(1,14),(2,99),(3,10);
+ create table user_subsidiaries(user_id bigint,subsidiary_id bigint);insert into user_subsidiaries values(1,1),(1,2),(2,1),(3,1);
+ create table grants(role_id bigint,resource text,v boolean,c boolean,e boolean,d boolean);
+ insert into grants values(10,'transaction-engine:transactions',true,true,true,true),(11,'transaction-engine:transaction-lines',true,true,true,true),(12,'transaction-engine:transactions',true,true,true,true),(12,'transaction-engine:transaction-lines',true,true,true,true),(13,'inventory:products',true,true,true,true),(14,'accounting:journals',true,true,true,true);
+ create function security_assert_role_access(r text,a text)returns void language plpgsql stable security definer set search_path=public as $$begin if app_is_admin()then return;end if;if not exists(select 1 from grants where role_id=app_active_role_id()and resource=r and case a when'view'then v when'create'then c when'edit'then e when'delete'then d else false end)then raise exception using errcode='42501';end if;end$$;
+ create schema report_template_private;revoke all on schema report_template_private from public;
+ create table transaction_types(transaction_type_id bigint primary key,abbreviation text);insert into transaction_types values(1,'ASI_DIA');
+ create table status(status_id bigint primary key,code text,module text);insert into status values(1,'APROBADO','Transacciones');
+ create table subsidiaries(subsidiary_id bigint primary key);insert into subsidiaries values(1),(2);
+ create table currencies(currency_id bigint primary key);insert into currencies values(1);
+ create table fiscal_periods(fiscal_period_id bigint primary key);insert into fiscal_periods values(1);
+ create table customers(customer_id bigint primary key);create table suppliers(supplier_id bigint primary key);create table payment_terms(term_id bigint primary key);
+ create table products(product_id bigint primary key);create table chart_accounts(account_id bigint primary key);create table departments(department_id bigint primary key);create table classes(class_id bigint primary key);create table locations(location_id bigint primary key);create table tax_codes(tax_code_id bigint primary key);`);
+ const old=await readFile('supabase/migrations/20261103032056_secure_financial_reports_pdf_templates.sql','utf8');await db.exec(old.match(/create function report_template_private.enter[\s\S]*?end\$\$;/)[0]);
+ await db.exec(await readFile('supabase/migrations/20260806210000_create_transaction_engine.sql','utf8'));
+ for(const t of ['transaction','transaction_line'])for(const op of ['select','insert','update','delete'])await db.exec(`alter policy transaction_engine_${op} on public."${t}"rename to company_${op}`);
+ await db.exec(`insert into public."transaction"(tran_number,tran_date,transaction_type_id,subsidiary_id,currency_id,exchange_rate,fiscal_period_id,total_amount,status_id)values('SYN-ONE','2026-11-03',1,1,1,1,1,10,1),('SYN-TWO','2026-11-03',1,2,1,1,1,20,1);
+ insert into transaction_line(transaction_id,line_number,gross_amount)values(1,1,10),(2,1,20);
+ grant select,insert,update,delete on public."transaction",transaction_line to anon,authenticated,service_role;
+ grant insert(tran_number),update(total_amount)on public."transaction"to authenticated;
+ grant usage,select,update on all sequences in schema public to anon,authenticated,service_role;
+ create table journal(journal_id bigint generated always as identity primary key,journal_number text,journal_date date,transaction_id bigint,subsidiary_id bigint,currency_id bigint,exchange_rate numeric,fiscal_period_id bigint,total_debit numeric,total_credit numeric,journal_type text,pending_period_type text,pending_origin_journal_id bigint,pending_initial_local numeric,pending_initial_foreign numeric,pending_reversed_local numeric,pending_reversed_foreign numeric,pending_balance_local numeric,pending_balance_foreign numeric,reversal_status text);`);
+ await db.exec(await readFile('scripts/fixtures/transaction-engine-sync.sql','utf8'));
+ await db.exec(`create trigger journal_transaction_sync before insert or update on journal for each row execute function sync_journal_transaction();
+ create function synthetic_authorized_journal(amount numeric,jid bigint default null)returns bigint language plpgsql security definer set search_path=pg_catalog,public as $$declare sid bigint;r journal;begin sid:=report_template_private.enter('accounting:journals',case when jid is null then'create'else'edit'end);if jid is null then insert into journal(journal_number,journal_date,subsidiary_id,currency_id,exchange_rate,fiscal_period_id,total_debit,total_credit,journal_type)values('SYN-POST-'||amount::text,'2026-11-03',sid,1,1,1,amount,amount,'Synthetic')returning *into r;insert into transaction_line(transaction_id,line_number,gross_amount)values(r.transaction_id,1,amount);else update journal set total_debit=amount,total_credit=amount where journal_id=jid and subsidiary_id=sid returning *into r;if not found then raise exception using errcode='42501';end if;end if;return r.journal_id;end$$;
+ revoke all on function synthetic_authorized_journal(numeric,bigint)from public;grant execute on function synthetic_authorized_journal(numeric,bigint)to authenticated;`);
+}
