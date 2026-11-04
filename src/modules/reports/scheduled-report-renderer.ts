@@ -16,17 +16,48 @@ const labels:Record<string,string>={
  balanced:'Cuadrado',finalDebtor:'Saldo final deudor',finalCreditor:'Saldo final acreedor',openingDebtor:'Saldo inicial deudor',openingCreditor:'Saldo inicial acreedor',resultExercise:'Resultado contabilizado del ejercicio',currentPeriodResult:'Resultado acumulado del ejercicio',periodResult:'Resultado del período',start:'Desde',end:'Hasta',auto_reverse:'Reversión automática',reversal_date:'Fecha de reversión',rate_reason:'Motivo del tipo de cambio',rate_source:'Origen del tipo de cambio',tax_note:'Nota fiscal',gain_taxable:'Ganancia gravable',loss_deductible:'Pérdida deducible'
 };
 Object.assign(labels,{original_currency_code:'Moneda original',original_exchange_rate:'Tipo de cambio utilizado',original_debit:'Débito original',original_credit:'Crédito original'});
+Object.assign(labels,{ratesUsed:'Tipos de cambio utilizados',rateType:'Tipo de tasa',sourceCurrencyCode:'Moneda de origen',targetCurrencyCode:'Moneda de presentación',localCurrencyCode:'Moneda local',presentationCurrencyCode:'Moneda de presentación',conversion:'Conversión a USD',translationAdjustment:'Diferencia de conversión',localBalanceDifference:'Diferencia en moneda local',sourceBalanced:'Origen cuadrado'});
 const label=(key:string)=>labels[key]||key.replace(/([a-z])([A-Z])/g,'$1 $2').replaceAll('_',' ');
 Object.assign(labels,{scopeNote:'Alcance',bankAccount:'Cuenta bancaria',value:'Valor',foreignBalance:'Saldo extranjero',foreign_balance:'Saldo extranjero',book_value:'Valor en libros',revalued_balance:'Saldo revaluado',currentLocal:'Saldo local actual',targetLocal:'Saldo local revaluado',adjustment:'Ajuste',gain:'Ganancia',loss:'Pérdida'});
 const hidden=(key:string)=>!['customer_tax_id','supplier_tax_id'].includes(key)&&(key==='id'||key.endsWith('_id')||key.endsWith('Id')||['page','pageSize','total_count','fingerprint','snapshot','groupMode','actor_type','actor_source','updated_actor_type','updated_actor_source','created_by_id','updated_by_id','created_by_email','updated_by_email','created_by_name','updated_by_name','closed_by','cancelled_by'].includes(key));
 const isScalar=(v:unknown)=>v===null||typeof v!=='object';
 const number=(v:unknown)=>Number(v||0);
-const formatted=(v:unknown,key?:string)=>typeof v==='number'?v.toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:key==='original_exchange_rate'?12:6}):typeof v==='boolean'?(v?'Sí':'No'):v===null||v===undefined?'—':String(v);
+const formatted=(v:unknown,key?:string)=>typeof v==='number'?v.toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:['original_exchange_rate','rate','closingRate','averageRate','historicalRate'].includes(key||'')?12:6}):typeof v==='boolean'?(v?'Sí':'No'):v===null||v===undefined?'—':String(v);
+
+function reportCurrency(report:Report){
+ if(['balance-sheet','income-statement'].includes(report.kind)&&report.data?.presentationCurrency==='USD'){
+  if(report.data.presentationCurrencyCode!=='USD'||typeof report.data.localCurrencyCode!=='string'||!report.data.localCurrencyCode.trim())throw Error('El reporte en USD no incluye información válida de la moneda de presentación.');
+  return{label:'Moneda de presentación',code:'USD',local:report.data.localCurrencyCode};
+ }
+ return{label:'Moneda local',code:report.currency,local:null};
+}
+
+function incomeValues(rows:RecordRow[],amount:(row:RecordRow)=>number):[string,number][]{
+ const totals={revenue:0,cost:0,expense:0,nonop:0,tax:0};
+ for(const row of rows){const name=String(row.account_name||'').toLowerCase(),value=amount(row);if(/(impuesto.*renta|renta.*impuesto|provisi[oó]n.*renta)/.test(name))totals.tax+=value;else if(/(cambi|financier|inter[eé]s|no operativ|otros ingresos|otros gastos)/.test(name))totals.nonop+=value*(row.category==='Ingreso'?1:-1);else totals[row.category==='Ingreso'?'revenue':row.category==='Costo'?'cost':'expense']+=value;}
+ const gross=totals.revenue-totals.cost,operating=gross-totals.expense;
+ return[['Ingresos',totals.revenue],['Costos',totals.cost],['Utilidad bruta',gross],['Gastos operativos',totals.expense],['Resultado operativo',operating],['Resultado no operativo',totals.nonop],['Impuesto sobre la renta',totals.tax],['Resultado neto',operating+totals.nonop-totals.tax]];
+}
+
+function incomeMatrixSections(report:Report):Section[]{
+ const rows:RecordRow[]=report.data?.rows||[],catalog:RecordRow[]=report.data?.columns||[];
+ if(rows.length>50000)throw Error('El reporte supera el máximo de detalle. Reduzca el período.');
+ const columns=new Map<string,string>();
+ for(const column of catalog)columns.set(String(column.id),String(column.name??column.id));
+ for(const row of rows)for(const id of Object.keys(row.dimensions||{}))if(id!=='unassigned'&&!columns.has(id))columns.set(id,`Dimensión ${id}`);
+ if(report.data?.summary?.columnView!=='ACCOUNTING_PERIOD'||rows.some(row=>Object.hasOwn(row.dimensions||{},'unassigned')))columns.set('unassigned','Sin Asignar / General');
+ const keys=[...columns.keys()],totals=incomeValues(rows,row=>(number(row.debit)-number(row.credit))*(row.category==='Ingreso'?-1:1));
+ const values=keys.map(key=>incomeValues(rows,row=>number(row.dimensions?.[key])));
+ return[
+  {title:'Resultados por dimensión',columns:['Concepto',...columns.values(),'Total'],rows:totals.map(([name,total],index)=>[name,...values.map(items=>items[index][1]),total])},
+  {title:'Detalle',columns:['N.º','Cuenta','Nombre de cuenta','Categoría',...columns.values(),'Total'],rows:rows.map((row,index)=>[index+1,row.account_number,row.account_name,row.category,...keys.map(key=>number(row.dimensions?.[key])),number(row.amount)])}
+ ];
+}
 
 // Match the financial calculations used by the interactive reports; detail remains available below.
 function financialSections(report:Report):Section[]{
  const rows:RecordRow[]=report.data?.rows||[],summary=report.data?.summary||{},sections:Section[]=[];
- const result=Math.abs(number(summary.currentPeriodResult))>.005?number(summary.currentPeriodResult):number(summary.resultExercise);
+ const result=report.data?.presentationCurrency==='USD'&&summary.exerciseResult!==undefined&&summary.exerciseResult!==null?number(summary.exerciseResult):Math.abs(number(summary.currentPeriodResult))>.005?number(summary.currentPeriodResult):number(summary.resultExercise);
  const push=(title:string,values:[string,number][])=>sections.push({title,columns:['Concepto','Importe'],rows:values});
  if(report.kind==='balance-sheet'){
   let asset=0,liability=0,equity=result;
@@ -34,10 +65,7 @@ function financialSections(report:Report):Section[]{
   push('Situación financiera',[['Activo',asset],['Pasivo',liability],['Resultado del ejercicio',result],['Patrimonio (incluye resultado)',equity],['Pasivo y patrimonio',liability+equity],['Diferencia',asset-liability-equity]]);
  }
  if(report.kind==='income-statement'){
-  const totals={revenue:0,cost:0,expense:0,nonop:0,tax:0};
-  for(const r of rows){const name=String(r.account_name||'').toLowerCase(),amount=(number(r.debit)-number(r.credit))*(r.category==='Ingreso'?-1:1);if(/(impuesto.*renta|renta.*impuesto|provisi[oó]n.*renta)/.test(name))totals.tax+=amount;else if(/(cambi|financier|inter[eé]s|no operativ|otros ingresos|otros gastos)/.test(name))totals.nonop+=amount*(r.category==='Ingreso'?1:-1);else totals[r.category==='Ingreso'?'revenue':r.category==='Costo'?'cost':'expense']+=amount;}
-  const gross=totals.revenue-totals.cost,operating=gross-totals.expense;
-  push('Resultados del período',[['Ingresos',totals.revenue],['Costos',totals.cost],['Utilidad bruta',gross],['Gastos operativos',totals.expense],['Resultado operativo',operating],['Resultado no operativo',totals.nonop],['Impuesto sobre la renta',totals.tax],['Resultado neto',operating+totals.nonop-totals.tax]]);
+  push('Resultados del período',incomeValues(rows,row=>(number(row.debit)-number(row.credit))*(row.category==='Ingreso'?-1:1)));
  }
  if(report.kind==='equity-changes'){
   let opening=number(summary.currentPeriodResult)-number(summary.periodResult),closing=result;
@@ -73,7 +101,7 @@ export function reportSections(report:Report):Section[]{
    const priorityRank=new Map(priority.map((key,index)=>[key,index]));
    keys.sort((a,b)=>(priorityRank.get(a)??99)-(priorityRank.get(b)??99));
    if(report.kind==='general-ledger')keys=[...keys.filter(key=>!originalLedgerColumns.includes(key)),...originalLedgerColumns.filter(key=>keys.includes(key))];
-   if(keys.length)sections.push({title,columns:['N.º',...keys.map(label)],rows:records.map((r,i)=>[i+1,...keys.map(k=>r[k]??null)]),...(report.kind==='general-ledger'?{columnKeys:['',...keys]}:{})});
+   if(keys.length)sections.push({title,columns:['N.º',...keys.map(label)],rows:records.map((r,i)=>[i+1,...keys.map(k=>r[k]??null)]),...(report.kind==='general-ledger'||report.data?.presentationCurrency==='USD'?{columnKeys:['',...keys]}:{})});
    records.forEach((r,i)=>Object.entries(r).forEach(([k,v])=>{if(!hidden(k)&&v&&!isScalar(v))visit(v,`${title} · ${r.journal_number||r.document_number||r.number||r.reference||i+1} · ${label(k)}`,depth+1);}));
   }else if(value&&typeof value==='object'){
    const scalars=Object.entries(value).filter(([k,v])=>!hidden(k)&&isScalar(v)&&!(k==='total'&&Array.isArray(value.rows)));
@@ -85,21 +113,28 @@ export function reportSections(report:Report):Section[]{
  let data=report.data||{};
  if(sections.length){
   const {summary,...detail}=data;data=detail;
-  if(report.kind==='income-statement')data={rows:(data.rows||[]).map((r:RecordRow)=>({account_number:r.account_number,account_name:r.account_name,category:r.category,amount:(number(r.debit)-number(r.credit))*(r.category==='Ingreso'?-1:1)}))};
+  if(report.kind==='income-statement'&&Array.isArray(data.columns)){
+   sections.push(...incomeMatrixSections(report));data={};
+  }else if(report.kind==='income-statement')data={rows:(data.rows||[]).map((r:RecordRow)=>({account_number:r.account_number,account_name:r.account_name,category:r.category,amount:(number(r.debit)-number(r.credit))*(r.category==='Ingreso'?-1:1)}))};
   if(report.kind==='balance-sheet')data={rows:(data.rows||[]).map((r:RecordRow)=>({account_number:r.account_number,account_name:r.account_name,category:r.category,balance:number(r.closing)*(r.category==='Activo'?1:-1)}))};
+  if(report.data?.presentationCurrency==='USD'){
+   const conversion=Object.fromEntries(['translationAdjustment','localBalanceDifference','sourceBalanced'].filter(key=>report.data?.summary?.[key]!==undefined).map(key=>[key,report.data?.summary?.[key]]));
+   data={...data,...(Object.keys(conversion).length?{conversion}:{}),...(Array.isArray(report.data.ratesUsed)?{ratesUsed:report.data.ratesUsed}:{}),...(Array.isArray(report.data.notes)?{notes:report.data.notes}:{})};
+  }
  }
  visit(data,'Información del reporte');return sections;
 }
 export function genericReportCsv(report:Report){
- const rows:unknown[][]=[['Reporte',report.title||report.kind],['Sociedad',report.company],['Moneda local',report.currency],['Desde',report.dateFrom||''],['Fecha de corte',report.cutoff],[]];
+ const currency=reportCurrency(report);
+ const rows:unknown[][]=[['Reporte',report.title||report.kind],['Sociedad',report.company],[currency.label,currency.code],...(currency.local?[['Moneda local',currency.local]]:[]),['Desde',report.dateFrom||''],['Fecha de corte',report.cutoff],[]];
  for(const s of reportSections(report))rows.push([s.title],s.columns,...s.rows,[]);
  return '\uFEFF'+rows.map(r=>r.map(value=>csvCell(value)).join(',')).join('\r\n');
 }
 export function genericReportHtml(report:Report){
- const sections=reportSections(report),tables=sections.map(s=>{
+ const currency=reportCurrency(report),sections=reportSections(report),tables=sections.map(s=>{
   // Split wide tables and repeat the row number to retain an unambiguous link between parts.
   const groups:number[][]=[];if(s.columns.length<=9)groups.push(s.columns.map((_,i)=>i));else for(let i=1;i<s.columns.length;i+=8)groups.push([0,...s.columns.slice(i,i+8).map((_,j)=>i+j)]);
   return groups.map((cols,part)=>`<section><h2>${esc(s.title)}${groups.length>1?` · ${part+1}/${groups.length}`:''}</h2><table><thead><tr>${cols.map(i=>`<th>${esc(s.columns[i])}</th>`).join('')}</tr></thead><tbody>${s.rows.map(r=>`<tr>${cols.map(i=>`<td class="${typeof r[i]==='number'?'num':''}">${esc(formatted(r[i],s.columnKeys?.[i]))}</td>`).join('')}</tr>`).join('')}</tbody></table></section>`).join('');
  }).join('');
- return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${esc(report.title||report.kind)}</title><style>@page{size:A4 landscape;margin:14mm}*{box-sizing:border-box}body{font:10px Arial,sans-serif;color:#17233b;margin:0;print-color-adjust:exact;-webkit-print-color-adjust:exact}header{border-bottom:3px solid #f26938;padding-bottom:14px;display:flex;justify-content:space-between;gap:20px}h1{font-size:23px;margin:6px 0}h2{font-size:13px;margin:18px 0 8px;break-after:avoid}.muted{color:#607286}.brand{font-weight:bold;letter-spacing:3px;color:#042e72}table{width:100%;border-collapse:collapse;table-layout:fixed}thead{display:table-header-group}th{background:#042e72;color:white;text-align:left}td,th{padding:7px;border-bottom:1px solid #dce5ed;overflow-wrap:anywhere;vertical-align:top}tbody tr:nth-child(even){background:#f4f7fa}tr{break-inside:avoid}.num{text-align:right;font-variant-numeric:tabular-nums}footer{margin-top:20px;padding-top:10px;border-top:1px solid #dce5ed;color:#607286}</style></head><body><header><div><span class="brand">GENTIA · INFORMES</span><h1>${esc(report.title||report.kind)}</h1><strong>${esc(report.company)}</strong></div><div>Fecha de corte: <b>${esc(report.cutoff)}</b>${report.dateFrom?`<p>Desde: ${esc(report.dateFrom)}</p>`:''}<p>Moneda local: ${esc(report.currency)}</p></div></header>${tables||'<p>Sin movimientos para el período seleccionado.</p>'}<footer>Reporte programado · Información correspondiente a la sociedad y al período indicados. Los importes de monedas extranjeras se identifican en su sección.</footer></body></html>`;
+ return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${esc(report.title||report.kind)}</title><style>@page{size:A4 landscape;margin:14mm}*{box-sizing:border-box}body{font:10px Arial,sans-serif;color:#17233b;margin:0;print-color-adjust:exact;-webkit-print-color-adjust:exact}header{border-bottom:3px solid #f26938;padding-bottom:14px;display:flex;justify-content:space-between;gap:20px}h1{font-size:23px;margin:6px 0}h2{font-size:13px;margin:18px 0 8px;break-after:avoid}.muted{color:#607286}.brand{font-weight:bold;letter-spacing:3px;color:#042e72}table{width:100%;border-collapse:collapse;table-layout:fixed}thead{display:table-header-group}th{background:#042e72;color:white;text-align:left}td,th{padding:7px;border-bottom:1px solid #dce5ed;overflow-wrap:anywhere;vertical-align:top}tbody tr:nth-child(even){background:#f4f7fa}tr{break-inside:avoid}.num{text-align:right;font-variant-numeric:tabular-nums}footer{margin-top:20px;padding-top:10px;border-top:1px solid #dce5ed;color:#607286}</style></head><body><header><div><span class="brand">GENTIA · INFORMES</span><h1>${esc(report.title||report.kind)}</h1><strong>${esc(report.company)}</strong></div><div>Fecha de corte: <b>${esc(report.cutoff)}</b>${report.dateFrom?`<p>Desde: ${esc(report.dateFrom)}</p>`:''}<p>${esc(currency.label)}: ${esc(currency.code)}</p>${currency.local?`<p>Moneda local: ${esc(currency.local)}</p>`:''}</div></header>${tables||'<p>Sin movimientos para el período seleccionado.</p>'}<footer>Reporte programado · Información correspondiente a la sociedad y al período indicados. Los importes de monedas extranjeras se identifican en su sección.</footer></body></html>`;
 }

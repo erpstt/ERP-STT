@@ -96,7 +96,7 @@ test('pantalla del Mayor mantiene columnas locales, añade cuatro originales y d
 
 test('CSV y XLSX anexan cuatro campos numéricos sin redondeo de origen ni sumas de monedas mixtas', async () => {
   const row = { ...baseRow, original_currency_code: 'USD' }, downloads = [];
-  const script = declarations(['labels', 'moneyKeys', 'exportRows']) + `exportRows('csv').then(()=>exportRows('excel'))`;
+  const script = declarations(['labels', 'moneyKeys', 'isFinancialPresentationReport', 'exportRows']) + `exportRows('csv').then(()=>exportRows('excel'))`;
   await runInNewContext(script, {
     data: { rows: [row, { ...row, original_currency_code: 'CRC', original_debit: 1000.123456, original_credit: 0 }, { ...row, original_currency_code: null, original_exchange_rate: null, original_debit: null, original_credit: null }] },
     current: ['operational', 'general-ledger', 'Libro Mayor'],
@@ -143,12 +143,12 @@ test('impresión del Mayor usa orientación horizontal y distingue moneda local 
   };
   const pdf = {}, logo = { hidden: true }, window = { addEventListener: (_name, callback) => { afterPrint = callback; }, print: () => {} };
   await runInNewContext(statement.getText(sourceFile) + "$('pdf').onclick();", {
-    $: id => id === 'pdf' ? pdf : logo, current: ['operational', 'general-ledger'], document, window, exportContext() {}
+    $: id => id === 'pdf' ? pdf : logo, current: ['operational', 'general-ledger'], document, window, exportContext() {}, isFinancialPresentationReport:()=>false
   });
   assert.match(printedStyle, /A4 landscape/);
   assert.equal(typeof afterPrint, 'function');
   assert.match(declarations(['exportContext']), /Moneda local:.*moneda original/s);
   const html = await readFile(new URL('../public/accounting-reports.html', import.meta.url), 'utf8');
-  assert.match(html, /accounting-reports\.js\?v=20261104-ledger-original-currency/);
-  assert.match(html, /accounting-reports\.css\?v=20261104-ledger-original-currency/);
+  assert.match(html, /accounting-reports\.js\?v=20261104-financial-presentation-usd/);
+  assert.match(html, /accounting-reports\.css\?v=20261104-financial-presentation-usd/);
 });

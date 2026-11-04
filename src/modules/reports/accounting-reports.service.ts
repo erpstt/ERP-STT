@@ -44,7 +44,11 @@ export async function accountingReportOptions(authorization:string){
 }
 export function runAccountingReport(authorization:string,report:string,filters:Record<string,unknown>){
   if(!reports.has(report))throw new Error('El reporte solicitado no existe.');
+  const presentation=filters.presentationCurrency;
+  if(presentation!==undefined&&presentation!=='LOCAL'&&presentation!=='USD')throw Object.assign(new Error('Seleccione una moneda de presentación válida: LOCAL o USD.'),{status:400});
+  if(presentation==='USD'&&report!=='balance-sheet'&&report!=='income-statement')throw Object.assign(new Error('La presentación en USD está disponible para el estado de situación financiera y el estado de resultados.'),{status:400});
   const scopedFilters=report==='income-statement'?{...filters,accountId:null}:filters;
+  if(presentation==='USD')return rpc<Record<string,unknown>>(authorization,'run_financial_statement_presentation',{p_report:report,p_filters:scopedFilters});
   if(report==='income-statement'&&scopedFilters.columnView&&scopedFilters.columnView!=='TOTAL')return rpc<Record<string,unknown>>(authorization,'run_income_statement_matrix',{p_filters:scopedFilters});
   if(report==='pending-invoice-control')return pendingInvoiceRpc(authorization,'run_pending_invoice_control_report',{p_filters:scopedFilters},'report');
   if(report==='journal')return rpc<Record<string,unknown>>(authorization,'run_general_journal_report',{p_filters:scopedFilters});

@@ -7,10 +7,10 @@ const sum = values => values.reduce((total, value) => total + Number(value || 0)
 export function renderIncomeStatementMatrix(context) {
   const { data, options, financial, escapeHtml, incomeSection, toggleTree, openLedger, renderPager } = context;
   const rows = [...(data.rows || [])];
-  const usedIds = new Set(rows.flatMap(row => Object.entries(row.dimensions || {}).filter(([id, value]) => id !== 'unassigned' && Math.abs(Number(value || 0)) >= 0.000001).map(([id]) => id)));
-  const catalog = new Map((data.columns || []).map(column => [String(column.id), column]));
-  const orderedIds = [...(data.columns || []).map(column => String(column.id)).filter(id => usedIds.has(id)), ...[...usedIds].filter(id => !catalog.has(id)).sort((a, b) => a.localeCompare(b, 'es', { numeric: true }))];
   const periodColumns = data.summary?.columnView === 'ACCOUNTING_PERIOD';
+  const usedIds = new Set(rows.flatMap(row => Object.entries(row.dimensions || {}).filter(([id, value]) => id !== 'unassigned' && (data.presentationCurrency==='USD' ? Math.abs(Number(value || 0))>0 : Math.abs(Number(value || 0))>=0.000001)).map(([id]) => id)));
+  const catalog = new Map((data.columns || []).map(column => [String(column.id), column]));
+  const orderedIds = [...(data.columns || []).map(column => String(column.id)).filter(id => periodColumns || usedIds.has(id)), ...[...usedIds].filter(id => !catalog.has(id)).sort((a, b) => a.localeCompare(b, 'es', { numeric: true }))];
   const columns = [...orderedIds.map(id => catalog.get(id) || { id, name: `Dimensión ${id}` }), ...(periodColumns ? [] : [{ id: 'unassigned', name: 'Sin Asignar / General' }])];
   const zero = () => columns.map(() => 0);
   const sections = { revenue: [], cost: [], expense: [], nonop: [], tax: [] };
@@ -26,8 +26,8 @@ export function renderIncomeStatementMatrix(context) {
     ['beforeTax', '= UTILIDAD ANTES DE IMPUESTOS (UAI)', beforeTax, 'subtotal'], ['tax', '(-) Provisión Impuesto sobre la Renta', tax],
     ['net', '= UTILIDAD O PÉRDIDA NETA DEL PERIODO', net, 'net']
   ];
-  const cells = (values, accountId = null) => values.map(value => `<td class="number ${value < 0 ? 'negative' : ''}">${accountId && value !== 0 ? `<button class="account-drill ${value < 0 ? 'negative' : ''}" data-account="${htmlText(accountId)}" title="Abrir Libro Mayor">${htmlText(financial(value))}</button>` : htmlText(financial(value))}</td>`).join('') + `<td class="number matrix-total ${sum(values) < 0 ? 'negative' : ''}">${htmlText(financial(sum(values)))}</td>`;
-  byId('thead').innerHTML = `<tr><th class="matrix-code">Código</th><th class="matrix-account">Cuenta Contable</th>${columns.map(column => `<th class="number">${escapeHtml(column.name)}</th>`).join('')}<th class="number matrix-total">Total Consolidado</th></tr>`;
+  const cells = (values, accountId = null) => values.map(value => `<td data-export-number="${htmlText(value)}" class="number ${value < 0 ? 'negative' : ''}">${accountId && value !== 0 ? `<button class="account-drill ${value < 0 ? 'negative' : ''}" data-account="${htmlText(accountId)}" title="Abrir Libro Mayor">${htmlText(financial(value))}</button>` : htmlText(financial(value))}</td>`).join('') + `<td data-export-number="${htmlText(sum(values))}" class="number matrix-total ${sum(values) < 0 ? 'negative' : ''}">${htmlText(financial(sum(values)))}</td>`;
+  byId('thead').innerHTML = `<tr><th class="matrix-code">Código</th><th class="matrix-account">Cuenta Contable</th>${columns.map(column => `<th class="number">${escapeHtml(column.name)}</th>`).join('')}<th class="number matrix-total">${data.consolidated?'Total Consolidado':'Total del reporte'}</th></tr>`;
   const html = [];
   for (const [key, label, values, kind] of definitions) {
     if (kind) { html.push(`<tr class="statement-${kind}"><td class="matrix-code"></td><td class="matrix-account">${label}</td>${cells(values)}</tr>`); continue; }
@@ -55,6 +55,6 @@ export function renderIncomeStatementMatrix(context) {
   document.querySelectorAll('[data-toggle]').forEach(button => button.onclick = () => toggleTree(button.dataset.toggle, button));
   document.querySelectorAll('[data-account]').forEach(button => button.onclick = () => openLedger(button.dataset.account));
   const matrixResult = sum(net), ledgerResult = Number(data.summary?.periodResult || 0), difference = matrixResult - ledgerResult, matched = Math.abs(difference) < 0.005;
-  byId('summary').innerHTML = `<div class="metric"><small>Resultado neto del reporte</small><b class="${matrixResult < 0 ? 'negative' : ''}">${htmlText(financial(matrixResult))}</b></div><div class="metric"><small>Resultado según Mayor General</small><b class="${ledgerResult < 0 ? 'negative' : ''}">${htmlText(financial(ledgerResult))}</b></div><div class="metric ${matched ? 'reconciled' : 'unreconciled'}"><small>Conciliación al centavo</small><b>${matched ? 'Coincide al centavo' : `Diferencia ${htmlText(financial(difference))}`}</b></div>`;
+  byId('summary').innerHTML = `<div class="metric"><small>Resultado neto del reporte</small><b class="${matrixResult < 0 ? 'negative' : ''}">${htmlText(financial(matrixResult))}</b></div><div class="metric"><small>${data.presentationCurrency==='USD'?'Resultado contable expresado en USD':'Resultado según Mayor General'}</small><b class="${ledgerResult < 0 ? 'negative' : ''}">${htmlText(financial(ledgerResult))}</b></div><div class="metric ${matched ? 'reconciled' : 'unreconciled'}"><small>Conciliación al centavo</small><b>${matched ? 'Coincide al centavo' : `Diferencia ${htmlText(financial(difference))}`}</b></div>`;
   renderPager();
 }
