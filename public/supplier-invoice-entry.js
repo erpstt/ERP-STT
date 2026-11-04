@@ -1,14 +1,38 @@
 import {escapeHtml,safeHttpUrl,configureAttachmentLink} from './html-safety.js?v=20261101-a03-1';
 const esc=escapeHtml;
 import { isEnabledFlag, supplierPayableRoute } from '/supplier-payable-routing.js';
+import {readRouteId} from './route-id.js?v=20261103-route-id-guard';
+const routeParams=new URLSearchParams(location.search),routeId=readRouteId(location.search);
+let validRoute=!routeParams.has('id')||routeId!==null;
+let receiptRouteId=readRouteId(location.search,'receiptId'),selectedInvoiceId=routeId;
+const requestedView=routeParams.get('view')==='1',invoiceHandoffKey=requestedView?'nexo_view_supplier_invoice':'nexo_edit_supplier_invoice';
+if(routeParams.has('receiptId')&&(receiptRouteId===null||(requestedView&&!routeParams.has('id'))))validRoute=false;
+if(validRoute&&!routeParams.has('id')&&!routeParams.has('receiptId')){
+ const raw=sessionStorage.getItem(invoiceHandoffKey);
+ sessionStorage.removeItem(invoiceHandoffKey);
+ if(raw!==null){
+  let candidate=raw,validHandoff=true;
+  try{const value=JSON.parse(raw);if(value&&typeof value==='object'){candidate=typeof value.id==='string'||typeof value.id==='number'?String(value.id):'';const age=Date.now()-Number(value.createdAt);validHandoff=Number.isFinite(age)&&age>=0&&age<=60000;}}catch{}
+  selectedInvoiceId=readRouteId('?'+new URLSearchParams({id:candidate}));
+  if(!validHandoff||selectedInvoiceId===null)validRoute=false;
+ }
+ if(validRoute&&selectedInvoiceId===null){
+  const receiptHandoff=sessionStorage.getItem('nexo_supplier_invoice_receipt_id');
+  if(receiptHandoff!==null){receiptRouteId=readRouteId('?'+new URLSearchParams({id:receiptHandoff}));if(receiptRouteId===null)validRoute=false;}
+ }
+}
+if(validRoute&&requestedView&&selectedInvoiceId===null)validRoute=false;
+if(validRoute&&routeParams.has('id'))sessionStorage.removeItem(invoiceHandoffKey);
+if(!validRoute){
+ document.getElementById('error').textContent='El identificador del documento o de su origen no es válido. Abra el documento desde su lista.';
+ document.querySelectorAll('input,select,textarea,button').forEach(control=>control.disabled=true);
+ document.getElementById('successModal').hidden=true;
+}else{
 function withholdingBaseLabel(value){switch(value){case 'Subtotal antes de impuestos':return 'Sobre el subtotal de la factura (sin impuestos)';case 'Importe de impuestos':return 'Sobre el valor de los impuestos de la factura';case 'Total de la factura con impuestos':return 'Sobre el total de la factura (incluye impuestos)';default:return 'Base de cálculo no identificada'}}
 const $=id=>document.getElementById(id),token=localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo_token'),device=localStorage.getItem('nexo_device_token'),sid=String(localStorage.getItem('nexo_company')||sessionStorage.getItem('nexo_company')||''),data={};
 const pageParams=new URLSearchParams(window.location.search);let viewMode=pageParams.get('view')==='1';
-function consumeInvoiceHandoff(key){const raw=sessionStorage.getItem(key);sessionStorage.removeItem(key);if(!raw)return'';try{const value=JSON.parse(raw);if(value&&typeof value==='object'&&/^\d+$/.test(String(value.id||''))&&Number.isFinite(Number(value.createdAt))&&Date.now()-Number(value.createdAt)>=0&&Date.now()-Number(value.createdAt)<=60000)return String(value.id)}catch{}return/^\d+$/.test(raw)?raw:''}
-const directInvoiceId=pageParams.get('id')||'',hasValidDirectInvoiceId=/^\d+$/.test(directInvoiceId),handoffInvoiceId=hasValidDirectInvoiceId?'':consumeInvoiceHandoff(viewMode?'nexo_view_supplier_invoice':'nexo_edit_supplier_invoice'),invoiceId=hasValidDirectInvoiceId?directInvoiceId:/^\d+$/.test(handoffInvoiceId)?handoffInvoiceId:null;
-if(hasValidDirectInvoiceId)sessionStorage.removeItem(viewMode?'nexo_view_supplier_invoice':'nexo_edit_supplier_invoice');
+const invoiceId=selectedInvoiceId;
 if(invoiceId){document.querySelector('h1').textContent='Cargando factura de proveedor…';$('save').disabled=true;$('save').textContent='Cargando…'}
-if(directInvoiceId&&!hasValidDirectInvoiceId&&!invoiceId){document.querySelector('h1').textContent='No fue posible abrir la factura';$('save').disabled=true;$('error').textContent='El identificador de la factura no es válido. Regrese al catálogo y seleccione Editar nuevamente.';throw Error('Identificador de factura inválido.')}
 if(!token||!sid)location.assign('/');
 async function api(path,init={}){const response=await fetch(path,{...init,headers:{Authorization:`Bearer ${token}`,'X-Device-Token':device,...(init.body?{'Content-Type':'application/json'}:{})}}),payload=await response.json();if(!response.ok)throw Error(payload.error?.message||'No fue posible completar la operación.');window.NexoBudgetFeedback?.handle(payload);return payload}
 let invoiceAccess;try{invoiceAccess=await api('/api/purchasing/supplier-invoice-access');}catch(error){$('save').disabled=true;$('error').textContent=error.message;throw error;}if(invoiceId){if(!invoiceAccess.canView){$('save').disabled=true;$('error').textContent='No tiene permiso para consultar esta factura.';throw Error('Invoice access denied');}if(!invoiceAccess.canEdit)viewMode=true;}else if(!invoiceAccess.canCreate){$('save').disabled=true;$('error').textContent='No tiene permiso para crear facturas.';throw Error('Invoice creation denied');}
@@ -90,6 +114,7 @@ function handleSuccessDialogKeydown(event){
 $('successModal').addEventListener('keydown',handleSuccessDialogKeydown);
 $('successAccept').onclick=returnToSupplierInvoices;
 $('successNew').onclick=createAnotherSupplierInvoice;
-$('save').onclick=async()=>{const button=$('save');try{$('error').textContent='';const payload=collectInvoicePayload(),invoiceChanged=!invoiceId||JSON.stringify(payload)!==originalInvoicePayload,supportChanged=hasPendingSupportChanges();if(invoiceId&&!invoiceChanged){if(!supportChanged){setSupportStatus('No hay cambios pendientes de guardar.');return}button.disabled=true;button.textContent='Guardando respaldos…';await syncSupports(journalId);showSupplierSuccess({title:'Respaldos actualizados',message:`Los respaldos de la factura ${$('invoiceNumber').value} se guardaron correctamente.`,total:invoiceAmounts().gross,accountingStatus:'Sin cambios',accountingMessage:'Los importes, pagos, retenciones y el asiento contable permanecen sin cambios.'});setSupportStatus('Respaldos guardados correctamente.','success');return}validateInvoicePayload(payload);button.disabled=true;button.textContent=invoiceId?'Actualizando...':'Guardando...';const saved=await api(invoiceId?`/api/purchasing/supplier-invoice-entry/${invoiceId}`:'/api/purchasing/supplier-invoice-entry',{method:invoiceId?'PUT':'POST',body:JSON.stringify(payload)});if(saved.budgetPending){$('error').textContent=saved.message||'Pendiente de autorizaci\u00f3n presupuestaria.';return;}await syncSupports(saved.journalId);originalInvoicePayload=JSON.stringify(payload);showSupplierSuccess({title:invoiceId?'Factura actualizada correctamente':'Factura registrada correctamente',message:`La factura ${$('invoiceNumber').value} fue ${invoiceId?'actualizada':'registrada'} sin inconvenientes.`,total:saved.total??invoiceAmounts().gross,accountingMessage:'La cuenta por pagar y el impacto contable quedaron actualizados.'})}catch(error){$('error').textContent=error.message}finally{button.disabled=false;button.textContent=invoiceId?'Actualizar factura':'Guardar factura'}};
+$('save').onclick=async()=>{const button=$('save');try{$('error').textContent='';const payload=collectInvoicePayload(),invoiceChanged=!invoiceId||JSON.stringify(payload)!==originalInvoicePayload,supportChanged=hasPendingSupportChanges();if(invoiceId&&!invoiceChanged){if(!supportChanged){setSupportStatus('No hay cambios pendientes de guardar.');return}button.disabled=true;button.textContent='Guardando respaldos…';await syncSupports(journalId);showSupplierSuccess({title:'Respaldos actualizados',message:`Los respaldos de la factura ${$('invoiceNumber').value} se guardaron correctamente.`,total:invoiceAmounts().gross,accountingStatus:'Sin cambios',accountingMessage:'Los importes, pagos, retenciones y el asiento contable permanecen sin cambios.'});setSupportStatus('Respaldos guardados correctamente.','success');return}validateInvoicePayload(payload);button.disabled=true;button.textContent=invoiceId?'Actualizando...':'Guardando...';const saved=await api(invoiceId?`/api/purchasing/supplier-invoice-entry/${encodeURIComponent(invoiceId)}`:'/api/purchasing/supplier-invoice-entry',{method:invoiceId?'PUT':'POST',body:JSON.stringify(payload)});if(saved.budgetPending){$('error').textContent=saved.message||'Pendiente de autorizaci\u00f3n presupuestaria.';return;}await syncSupports(saved.journalId);originalInvoicePayload=JSON.stringify(payload);showSupplierSuccess({title:invoiceId?'Factura actualizada correctamente':'Factura registrada correctamente',message:`La factura ${$('invoiceNumber').value} fue ${invoiceId?'actualizada':'registrada'} sin inconvenientes.`,total:saved.total??invoiceAmounts().gross,accountingMessage:'La cuenta por pagar y el impacto contable quedaron actualizados.'})}catch(error){$('error').textContent=error.message}finally{button.disabled=false;button.textContent=invoiceId?'Actualizar factura':'Guardar factura'}};
 $('cancel').onclick=event=>{event.preventDefault();returnToSupplierInvoices()};document.querySelector('header a').onclick=event=>{event.preventDefault();returnToSupplierInvoices()};
-await import('/supplier-invoice-receipt-prefill.js?v=20261031-receipt-security');
+if(!invoiceId&&receiptRouteId!==null)await import('/supplier-invoice-receipt-prefill.js?v=20261104-optional-document-route-id-guard');
+}

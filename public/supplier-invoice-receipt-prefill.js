@@ -1,5 +1,15 @@
-const params=new URLSearchParams(location.search),receiptId=params.get('receiptId')||sessionStorage.getItem('nexo_supplier_invoice_receipt_id');
-if(receiptId&&!params.get('id')){
+import {readRouteId} from './route-id.js?v=20261103-route-id-guard';
+const params=new URLSearchParams(location.search),id=readRouteId(location.search);
+let receiptId=readRouteId(location.search,'receiptId'),invalidSource=(params.has('id')&&id===null)||(params.has('receiptId')&&receiptId===null);
+if(!invalidSource&&!params.has('id')&&!params.has('receiptId')){
+ const handoff=sessionStorage.getItem('nexo_supplier_invoice_receipt_id');
+ if(handoff!==null){receiptId=readRouteId('?'+new URLSearchParams({id:handoff}));if(receiptId===null)invalidSource=true;}
+}
+if(invalidSource){
+ document.getElementById('error').textContent='El identificador de la factura o de la recepción no es válido. Abra el documento desde su lista.';
+ document.querySelectorAll('input,select,textarea,button').forEach(control=>control.disabled=true);
+ throw Error('El identificador de la factura o de la recepción no es válido.');
+}else if(receiptId!==null&&!params.has('id')){
  const $=id=>document.getElementById(id),token=localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo_token'),device=localStorage.getItem('nexo_device_token')||sessionStorage.getItem('nexo_device_token');
  const request=async path=>{const response=await fetch(path,{headers:{Authorization:`Bearer ${token}`,'X-Device-Token':device||''}}),payload=await response.json();if(!response.ok)throw Error(payload?.error?.message||payload?.message||'No fue posible cargar la recepción.');return payload};
  try{
