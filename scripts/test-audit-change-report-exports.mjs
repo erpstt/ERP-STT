@@ -1,5 +1,8 @@
+import {randomBytes as syntheticAuditBytes} from 'node:crypto';
 import assert from 'node:assert/strict';
 import ExcelJS from 'exceljs';
+const syntheticAuditCanary=['SYNTHETIC','AUDIT',syntheticAuditBytes(24).toString('hex')].join('_');
+
 
 process.env.SUPABASE_URL = 'https://audit-export-test.invalid';
 process.env.SUPABASE_ANON_KEY = 'test-anon-key';
@@ -73,7 +76,7 @@ const report = {
       moduleLabel: 'Compras y cuentas por pagar',
       entityType: 'supplier_invoice',
       entityLabel: 'Factura de proveedor',
-      entityKey: 'supplier_invoice_id=8',
+      entityKey: syntheticAuditCanary,
       recordLabel: 'FAC_PRO-000008',
       transactionType: 'supplier_invoice',
       transactionTypeLabel: 'Facturas de proveedor',
@@ -117,7 +120,7 @@ assert.equal(pdf.buffer.subarray(0, 4).toString(), '%PDF');
 assert.equal(excel.buffer.subarray(0, 2).toString(), 'PK');
 assert.match(pdf.fileName, /auditoria-transacciones-2026-10\.pdf$/);
 assert.match(excel.fileName, /auditoria-transacciones-2026-10\.xlsx$/);
-assert.ok(!pdf.buffer.includes(Buffer.from('secret-old')));
+assert.ok(!(pdf.buffer.includes(Buffer.from('secret-old')) || pdf.buffer.includes(syntheticAuditCanary)));
 assert.ok(!excel.buffer.includes(Buffer.from('must-not-leak')));
 
 const workbook = new ExcelJS.Workbook();

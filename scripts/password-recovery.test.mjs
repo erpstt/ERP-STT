@@ -6,7 +6,7 @@ const recovery = await import('../dist/modules/auth/services/password-recovery.s
 const passwords = await import('../dist/shared/services/password.service.js');
 const originalFetch = globalThis.fetch;
 const originalEnvironment = { ...process.env };
-const authUserId = '123e4567-e89b-42d3-a456-426614174000';
+const authUserId = '11111111-1111-4111-8111-111111111111';
 
 const json = (value, status = 200) => new Response(JSON.stringify(value), {
   status,
@@ -354,7 +354,7 @@ test('rechaza un usuario ERP cuyo auth_user_id no coincide con el token de recup
   const email = 'cruzado@example.com';
   const state = 'E'.repeat(43);
   const issuedAt = Math.floor(Date.now() / 1_000);
-  const otherAuthUserId = '123e4567-e89b-42d3-a456-426614174099';
+  const otherAuthUserId = '22222222-2222-4222-8222-222222222222';
   let consumed = false;
   let passwordUpdated = false;
   globalThis.fetch = async (input, init = {}) => {

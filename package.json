@@ -125,7 +125,8 @@
     "test:support-entry-validation-ui": "node --test scripts/support-entry-validation-ui.test.mjs",
     "test:retired-branding-operator": "node --test scripts/retired-branding-operator.test.mjs",
     "test:role-access-public-errors": "npm run build && node --test scripts/role-access-public-errors.test.mjs",
-    "test:optional-bank-entry-route-id-security": "node --test scripts/optional-bank-entry-route-id-security.test.mjs"
+    "test:optional-bank-entry-route-id-security": "node --test scripts/optional-bank-entry-route-id-security.test.mjs",
+    "test:audit-export-login-isolated": "npm run build && node --test --test-concurrency=1 scripts/audit-export-canary-redaction.test.mjs scripts/login-device-context-http.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",

@@ -92,7 +92,9 @@ jobs:
             scripts/support-entry-validation-ui.test.mjs \
             scripts/retired-branding-operator.test.mjs \
             scripts/role-access-public-errors.test.mjs \
-            scripts/optional-bank-entry-route-id-security.test.mjs
+            scripts/optional-bank-entry-route-id-security.test.mjs \
+            scripts/audit-export-canary-redaction.test.mjs \
+            scripts/login-device-context-http.test.mjs
 
       - name: Reject high and critical dependency advisories
         run: npm audit --audit-level=high

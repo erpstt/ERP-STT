@@ -5,7 +5,7 @@ import nodemailer from 'nodemailer';
 
 const provisioning=await import('../dist/modules/auth/services/user-provisioning.service.js');
 const originalFetch=globalThis.fetch,originalEnvironment={...process.env},originalCreateTransport=nodemailer.createTransport;
-const authId='123e4567-e89b-42d3-a456-426614174000';
+const authId='11111111-1111-4111-8111-111111111111';
 const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
 const hash=value=>createHash('sha256').update(value).digest('hex');
 function configure(){process.env.SUPABASE_URL='https://project.example.test';process.env.SUPABASE_ANON_KEY='anon';process.env.SUPABASE_SERVICE_ROLE_KEY='service';process.env.GENTIA_APP_URL='https://erp.example.test';delete process.env.RAILWAY_PUBLIC_DOMAIN;delete process.env.SMTP_HOST;delete process.env.SMTP_FROM;}
