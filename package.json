@@ -95,7 +95,8 @@
     "test:document-access-security": "npm run build && node --test scripts/document-access-sql.test.mjs scripts/document-access-api.test.mjs",
     "test:expense-cash-access-security": "npm run build && node --test scripts/expense-cash-access-sql.test.mjs scripts/expense-cash-access-api.test.mjs",
     "test:technical-table-privileges": "node --test scripts/technical-table-privileges.test.mjs",
-    "test:transaction-engine-security": "npm run build && node --test scripts/transaction-engine-sql-security.test.mjs scripts/transaction-engine-api-security.test.mjs scripts/transaction-engine-ui-security.test.mjs"
+    "test:transaction-engine-security": "npm run build && node --test scripts/transaction-engine-sql-security.test.mjs scripts/transaction-engine-api-security.test.mjs scripts/transaction-engine-ui-security.test.mjs",
+    "test:ai-catalog-security": "npm run build && node --test scripts/ai-catalog-sql-security.test.mjs scripts/ai-catalog-api-security.test.mjs scripts/ai-catalog-ui-security.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
