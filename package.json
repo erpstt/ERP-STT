@@ -127,7 +127,8 @@
     "test:role-access-public-errors": "npm run build && node --test scripts/role-access-public-errors.test.mjs",
     "test:optional-bank-entry-route-id-security": "node --test scripts/optional-bank-entry-route-id-security.test.mjs",
     "test:audit-export-login-isolated": "npm run build && node --test --test-concurrency=1 scripts/audit-export-canary-redaction.test.mjs scripts/login-device-context-http.test.mjs",
-    "test:isolated-sales-pending-operator-guards": "npm run build && node --test --test-concurrency=1 scripts/isolated-sales-pending-operator-guards.test.mjs"
+    "test:isolated-sales-pending-operator-guards": "npm run build && node --test --test-concurrency=1 scripts/isolated-sales-pending-operator-guards.test.mjs",
+    "test:report-routing-operator-guards": "npm run build && node --test --test-concurrency=1 scripts/report-routing-operator-guards.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
