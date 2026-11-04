@@ -1,11 +1,21 @@
 (() => {
+  // This deferred classic script must snapshot a legacy handoff synchronously.
+  // Keep the decimal contract in parity with route-id.js without an async import.
+  const decimalId = value => typeof value === 'string' && value.length <= 16 && /^[1-9][0-9]*$/.test(value) && Number.isSafeInteger(Number(value)) ? value : null;
+  const auditTable = value => typeof value === 'string' && /^[a-z][a-z0-9_]*$/.test(value);
+  const recordId = value => {
+    if (value == null || value === '') return '';
+    if (typeof value !== 'string' && typeof value !== 'number') return null;
+    const text = String(value);
+    return decimalId(text) ?? (/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(text) ? text : null);
+  };
   const actorNames = { HUMAN: 'Usuario humano', AI_AGENT: 'Agente IA / LLM', SYSTEM_JOB: 'Proceso de sistema', EXTERNAL_API: 'API externa' };
   class RecordAudit extends HTMLElement {
     static observedAttributes = ['table', 'record-id'];
     constructor() { super(); this.attachShadow({ mode: 'open' }); }
     connectedCallback() { this.schedule(); }
     disconnectedCallback() { this.controller?.abort(); }
-    attributeChangedCallback() { this.schedule(); }
+    attributeChangedCallback() { this.controller?.abort(); this.schedule(); }
     schedule() {
       if (this.queued) return;
       this.queued = true;
@@ -26,11 +36,16 @@
     async load() {
       this.controller?.abort();
       const controller = this.controller = new AbortController();
-      const content = this.frame(), table = this.getAttribute('table'), id = this.getAttribute('record-id');
-      if (!id) { content.textContent = 'El creador se registrará automáticamente al guardar.'; return; }
+      const content = this.frame(), table = this.getAttribute('table'), id = recordId(this.getAttribute('record-id'));
+      if (!auditTable(table) || id === null) {
+        content.textContent = 'El identificador del registro no es válido para consultar su autoría.';
+        content.classList.add('error'); return;
+      }
+      if (id === '') { content.textContent = 'El creador se registrará automáticamente al guardar.'; return; }
+      const current = () => !controller.signal.aborted && this.controller === controller
+        && this.getAttribute('table') === table && recordId(this.getAttribute('record-id')) === id;
       content.textContent = 'Consultando quién creó o modificó este registro…';
       try {
-        if (!table) throw new Error('No fue posible identificar el registro.');
         const response = await fetch(`/api/audit/record-actor?${new URLSearchParams({ table, id })}`, {
           signal: controller.signal, cache: 'no-store', headers: {
             Authorization: `Bearer ${localStorage.getItem('nexo_token') || sessionStorage.getItem('nexo_token') || ''}`,
@@ -38,12 +53,12 @@
           }
         });
         const row = await response.json();
-        if (controller.signal.aborted) return;
+        if (!current()) return;
         if (!response.ok) throw new Error(row.error?.message || 'No fue posible consultar la autoría.');
         if (!row) throw new Error('El registro no está disponible con sus permisos actuales.');
         this.render(content, row);
       } catch (error) {
-        if (controller.signal.aborted) return;
+        if (!current()) return;
         content.textContent = error.message;
         content.classList.add('error');
         const retry = document.createElement('button'); retry.type = 'button'; retry.textContent = 'Reintentar';
@@ -84,21 +99,26 @@
   customElements.define('record-audit', RecordAudit);
   window.NexoRecordAudit = {
     button(table, id) {
+      const checkedId = recordId(id);
+      if (!auditTable(table) || checkedId === null || checkedId === '') return '';
       const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-      return `<button type="button" data-record-audit-table="${escape(table)}" data-record-audit-id="${escape(id)}">Autoría</button>`;
+      return `<button type="button" data-record-audit-table="${escape(table)}" data-record-audit-id="${escape(checkedId)}">Autoría</button>`;
     },
     show(table, id, selector = 'main') {
       const container = typeof selector === 'string' ? document.querySelector(selector) : selector;
       if (!container) return;
       let panel = [...container.children].find(child => child.tagName === 'RECORD-AUDIT');
       if (!panel) { panel = document.createElement('record-audit'); container.prepend(panel); }
-      panel.setAttribute('table', table); panel.setAttribute('record-id', id == null ? '' : String(id));
+      panel.setAttribute('table', auditTable(table) ? table : '');
+      panel.setAttribute('record-id', recordId(id) ?? 'invalid');
     },
     refresh() { document.querySelectorAll('record-audit').forEach(panel => panel.schedule()); }
   };
   document.addEventListener('click', event => {
     const button = event.target.closest?.('[data-record-audit-table]');
     if (!button) return;
+    const id = recordId(button.dataset.recordAuditId);
+    if (!auditTable(button.dataset.recordAuditTable) || id === null || id === '') return;
     event.preventDefault();
     const dialog = document.createElement('dialog');
     dialog.style.cssText = 'width:min(680px,90vw);border:1px solid #d6e4e8;border-radius:10px;padding:20px';
@@ -107,7 +127,7 @@
     close.type = 'button'; close.textContent = 'Cerrar'; close.onclick = () => dialog.close();
     dialog.append(title, body, close); document.body.append(dialog);
     dialog.addEventListener('close', () => dialog.remove(), { once: true });
-    window.NexoRecordAudit.show(button.dataset.recordAuditTable, button.dataset.recordAuditId, body);
+    window.NexoRecordAudit.show(button.dataset.recordAuditTable, id, body);
     dialog.showModal();
   });
   const page = location.pathname.split('/').pop(), query = new URLSearchParams(location.search);
@@ -124,9 +144,16 @@
   if (/^(supplier|sales)-note-(view|entry)\.html$/.test(page)) {
     pages[page] = (page.startsWith('supplier') ? 'supplier_' : '') + (query.get('kind') === 'DEBIT' ? 'debit_note' : 'credit_note');
   }
-  let id = query.get('id');
-  if (!id && page === 'journal-entry.html') id = sessionStorage.getItem('nexo_edit_journal');
-  if (!id && (page === 'supplier-invoice-view.html' || (page === 'supplier-invoice-entry.html' && query.get('view') === '1'))) id = sessionStorage.getItem('nexo_view_supplier_invoice');
   const auditLivesInListAction = page === 'journal-entry.html';
-  if (pages[page] && !auditLivesInListAction) document.addEventListener('DOMContentLoaded', () => window.NexoRecordAudit.show(pages[page], id, document.querySelector('main') || document.body), { once: true });
+  if (!pages[page] || auditLivesInListAction) return;
+  const ids = query.getAll('id');
+  let id = ids.length === 1 ? decimalId(ids[0]) : null;
+  if (ids.length > 0 && id === null) return;
+  if (ids.length === 0 && (page === 'supplier-invoice-view.html' || (page === 'supplier-invoice-entry.html' && query.get('view') === '1'))) {
+    const handoff = sessionStorage.getItem('nexo_view_supplier_invoice');
+    id = decimalId(handoff);
+    if (handoff !== null && id === null) return;
+  }
+  if (id === null && page.endsWith('-view.html')) return;
+  document.addEventListener('DOMContentLoaded', () => window.NexoRecordAudit.show(pages[page], id, document.querySelector('main') || document.body), { once: true });
 })();
