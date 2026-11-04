@@ -1,7 +1,17 @@
 .env
+.env.*
+!.env.example
 node_modules/
 dist/
 server-*.log
+*.log
+/.tmp/
+/brag-output/
+~$*
+*.pem
+*.key
+*.p12
+*.pfx
 .local-tools/
 cloudflare-tunnel-*.log
 
