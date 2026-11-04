@@ -1,5 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
+import { BoundedRateLimitState, BoundedRateLimitStateError } from '../../../core/security/bounded-rate-limit-state.js';
 import { hashPassword, validateNewPassword, verifyPassword } from '../../../shared/services/password.service.js';
 import { PublicAppUrlConfigurationError, publicAppUrl } from '../../../shared/services/public-app-url.js';
 
@@ -25,15 +26,13 @@ type RecoveryUser = {
   is_active: boolean;
 };
 
-type AttemptBucket = { timestamps: number[] };
-
 const REQUEST_WINDOW_MS = 60 * 60 * 1_000;
 const REQUEST_LIMIT = 3;
 const COMPLETION_WINDOW_MS = 15 * 60 * 1_000;
 const COMPLETION_LIMIT = 10;
 const GRANT_LIFETIME_MS = 30 * 60 * 1_000;
-const requestAttempts = new Map<string, AttemptBucket>();
-const completionAttempts = new Map<string, AttemptBucket>();
+const requestAttempts = new BoundedRateLimitState({ windowMs: REQUEST_WINDOW_MS, attemptLimit: REQUEST_LIMIT });
+const completionAttempts = new BoundedRateLimitState({ windowMs: COMPLETION_WINDOW_MS, attemptLimit: COMPLETION_LIMIT });
 
 export const PASSWORD_RECOVERY_NEUTRAL_MESSAGE =
   'Si el correo corresponde a un usuario registrado, recibirá un enlace para recuperar su contraseña.';
@@ -71,27 +70,19 @@ function safeHexEqual(left: string, right: string) {
 }
 
 function recordAttempt(
-  store: Map<string, AttemptBucket>,
+  store: BoundedRateLimitState,
   key: string,
-  windowMs: number,
-  limit: number,
   now = Date.now()
 ) {
-  const recent = (store.get(key)?.timestamps ?? []).filter(timestamp => now - timestamp < windowMs);
-  if (recent.length >= limit) {
-    const retryAfterSeconds = Math.max(1, Math.ceil((recent[0] + windowMs - now) / 1_000));
+  try { store.recordAttempt(key, now); }
+  catch (cause) {
+    if (!(cause instanceof BoundedRateLimitStateError)) throw cause;
+    const retryAfterSeconds = cause.retryAfterSeconds;
     throw new PasswordRecoveryError(
       `Se realizaron demasiados intentos. Intente nuevamente en ${Math.ceil(retryAfterSeconds / 60)} minuto(s).`,
       429,
       retryAfterSeconds
     );
-  }
-  recent.push(now);
-  store.set(key, { timestamps: recent });
-  if (store.size > 5_000) {
-    for (const [entryKey, bucket] of store) {
-      if (!bucket.timestamps.some(timestamp => now - timestamp < windowMs)) store.delete(entryKey);
-    }
   }
 }
 
@@ -186,7 +177,7 @@ async function removeGrant(stateHash: string) {
 export async function requestPasswordRecovery(input: RecoveryRequestInput, ipAddress?: string | null) {
   const startedAt = Date.now();
   const email = normalizeEmail(input.email);
-  recordAttempt(requestAttempts, `${ipAddress || 'unknown'}|${sha256(email)}`, REQUEST_WINDOW_MS, REQUEST_LIMIT);
+  recordAttempt(requestAttempts, `${ipAddress || 'unknown'}|${sha256(email)}`);
   const config = serviceConfiguration();
   const state = randomBytes(32).toString('base64url');
   const stateHash = sha256(state);
@@ -243,7 +234,7 @@ export async function completePasswordRecovery(
   input: RecoveryCompletionInput,
   ipAddress?: string | null
 ) {
-  recordAttempt(completionAttempts, ipAddress || 'unknown', COMPLETION_WINDOW_MS, COMPLETION_LIMIT);
+  recordAttempt(completionAttempts, ipAddress || 'unknown');
   const state = typeof input.state === 'string' ? input.state.trim() : '';
   if (!/^[A-Za-z0-9_-]{43}$/.test(state)) {
     throw new PasswordRecoveryError('El enlace de recuperación no es válido o ya expiró.', 401);
