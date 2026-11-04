@@ -1,338 +1,143 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import pg from 'pg';
+import {test,before,after} from 'node:test';
+import {assertIsolatedTestArgs} from './lib/migration-preview.mjs';
+assertIsolatedTestArgs();
+const {isolatedBankStatementDatabase,assumeSecurityUser,assumeSqlRole,beginIsolatedCase,deniedSql}=await import('./fixtures/isolated-bank-statement-security.mjs');
+let db,manifest;
+before(async()=>{({db,manifest}=await isolatedBankStatementDatabase());});
+after(async()=>{if(db)await db.close();});
+const value=async(sql,params=[])=>(await db.query(sql,params)).rows[0]?.value;
+const ids=async(table,key)=>(await db.query('select '+key+' from public.'+table+' order by '+key)).rows.map(row=>Number(row[key]));
+const options=async()=>(await db.query('select * from bank_statement_account_options() order by bank_account_id')).rows;
+const save=async(payload,id=null)=>value('select save_bank_statement_metadata($1,$2) value',[id,payload]);
+const remove=id=>value('select delete_bank_statement($1) value',[id]);
+const payload=(overrides={})=>({statement_date:'2026-11-01',bank_account_id:1,opening_balance:125,closing_balance:130,source_file_name:'synthetic-new.csv',...overrides});
+async function tx(t){await beginIsolatedCase(db,t);}
+async function hidden(){assert.deepEqual(await ids('bank_statement','statement_id'),[]);assert.deepEqual(await ids('bank_statement_line','statement_line_id'),[]);}
+async function deniedLifecycle(){
+ await deniedSql(db,'select bank_statement_account_options()');
+ await deniedSql(db,'select save_bank_statement_metadata(null,$1)',[payload()]);
+ await deniedSql(db,'select delete_bank_statement(1)');
+}
 
-process.loadEnvFile?.('.env');
-
-const projectRef = new URL(process.env.SUPABASE_URL).hostname.split('.')[0];
-const db = new pg.Client({
-  host: process.env.SUPABASE_DB_HOST || 'aws-0-us-east-1.pooler.supabase.com',
-  port: Number(process.env.SUPABASE_DB_PORT || 6543),
-  database: process.env.SUPABASE_DB_NAME || 'postgres',
-  user: process.env.SUPABASE_DB_USER || `postgres.${projectRef}`,
-  password: process.env.SUPABASE_DB_PASSWORD || process.env.PGPASSWORD,
-  ssl: { rejectUnauthorized: false },
-  connectionTimeoutMillis: 15_000
+test('fixture installs current C04 SELECT policies, closed direct writes and actual A06/session boundaries',async t=>{
+ await tx(t);
+ assert.ok(manifest.length>20);assert.ok(manifest.every(item=>/^[a-f0-9]{64}$/.test(item.sha256)));
+ assert.ok(!manifest.some(item=>item.source==='20261026115000_bank_statement_active_subsidiary_rls.sql'));
+ assert.equal(await value("select count(*)::int value from role_access_matrix where resource_key='legacy:all'"),0);
+ assert.deepEqual((await db.query("select tablename,policyname,cmd from pg_policies where schemaname='public' and tablename in('bank_statement','bank_statement_line') order by tablename")).rows,[{tablename:'bank_statement',policyname:'statement_read',cmd:'SELECT'},{tablename:'bank_statement_line',policyname:'statement_line_read',cmd:'SELECT'}]);
+ for(const role of['anon','authenticated','service_role'])for(const table of['bank_statement','bank_statement_line']){
+  assert.equal(await value("select has_table_privilege($1,$2,'INSERT,UPDATE,DELETE') value",[role,table]),false);
+ }
+ assert.equal(await value("select has_function_privilege('authenticated','reconciliation_private.identity()','EXECUTE') value"),false);
+ assert.equal(await value("select has_function_privilege('authenticated','reconciliation_private.can_read(text,bigint)','EXECUTE') value"),true);
+ for(const signature of['save_bank_statement_metadata(bigint,jsonb)','delete_bank_statement(bigint)']){
+  assert.equal(await value("select has_function_privilege('authenticated',$1,'EXECUTE') value",[signature]),true);
+  assert.equal(await value("select has_function_privilege('service_role',$1,'EXECUTE') value",[signature]),false);
+ }
 });
 
-const migration = await readFile(
-  new URL('../supabase/migrations/20261026115000_bank_statement_active_subsidiary_rls.sql', import.meta.url),
-  'utf8'
-);
-const optionsMigration = await readFile(
-  new URL('../supabase/migrations/20261027180000_bank_statement_account_options.sql', import.meta.url),
-  'utf8'
-);
+test('administrator is scoped to the active company, including options and statement lines',async t=>{
+ await tx(t);await assumeSecurityUser(db,4,5,1);
+ assert.deepEqual((await options()).map(row=>Number(row.bank_account_id)),[1,2,4]);
+ assert.deepEqual(await ids('bank_statement','statement_id'),[1]);assert.deepEqual(await ids('bank_statement_line','statement_line_id'),[1]);
+ assert.equal(await value('select bank_statement_in_active_subsidiary(1) value'),true);assert.equal(await value('select bank_statement_in_active_subsidiary(2) value'),false);
+ await assumeSecurityUser(db,4,5,2);
+ assert.deepEqual((await options()).map(row=>Number(row.bank_account_id)),[3]);
+ assert.deepEqual(await ids('bank_statement','statement_id'),[2]);assert.deepEqual(await ids('bank_statement_line','statement_line_id'),[2]);
+});
 
-async function assume(identity, sessionId) {
-  await db.query('reset role');
-  await db.query(
-    `select set_config('request.jwt.claims',$1,true),set_config('request.headers','{}',true)`,
-    [JSON.stringify({
-      role: 'authenticated',
-      email: identity.email,
-      sub: identity.authId,
-      session_id: sessionId
-    })]
-  );
-  await db.query('set local role authenticated');
-}
+test('assigned non-admin role switches visibility only with its active authorized company',async t=>{
+ await tx(t);await assumeSecurityUser(db,1,1,1);assert.deepEqual(await ids('bank_statement','statement_id'),[1]);
+ const first=(await options())[0];assert.equal(first.bank_name,'Synthetic bank');assert.equal(first.account_number,'DEMO-A');assert.equal(first.currency_code,'USD');assert.equal(Number(first.subsidiary_id),1);
+ await assumeSecurityUser(db,1,1,2);assert.deepEqual(await ids('bank_statement','statement_id'),[2]);assert.deepEqual((await options()).map(row=>Number(row.subsidiary_id)),[2]);
+});
 
-async function expectDenied(statement, params = []) {
-  await db.query('savepoint expected_denial');
-  try {
-    await db.query(statement, params);
-    assert.fail('La operacion entre subsidiarias fue permitida.');
-  } catch (error) {
-    if (error.code === 'ERR_ASSERTION') throw error;
-    assert.equal(error.code, '42501');
-  } finally {
-    await db.query('rollback to savepoint expected_denial');
-    await db.query('release savepoint expected_denial');
-  }
-}
+test('reader keeps scoped reads and options but cannot invoke any lifecycle mutation',async t=>{
+ await tx(t);await assumeSecurityUser(db,1,3,1);assert.deepEqual(await ids('bank_statement','statement_id'),[1]);assert.equal((await options()).length,3);
+ await deniedSql(db,'select save_bank_statement_metadata(null,$1)',[payload()]);
+ await deniedSql(db,'select save_bank_statement_metadata(1,$1)',[payload({statement_date:'2026-10-31'})]);await deniedSql(db,'select delete_bank_statement(1)');
+});
 
-async function createIdentity(label, nonce) {
-  const authId = crypto.randomUUID();
-  const email = `bank-statement-${label}-${nonce}@example.test`.toLowerCase();
-  await db.query(
-    `insert into auth.users(id,email,raw_app_meta_data) values($1,$2,'{}'::jsonb)`,
-    [authId, email]
-  );
-  const account = (await db.query(`
-    insert into public.users(email,password_hash,auth_user_id,first_name,last_name,is_active)
-    values($1,'auth:'||$2,$2::uuid,$3,'Extractos',true)
-    returning user_id
-  `, [email, authId, label])).rows[0];
-  return { authId, email, userId: account.user_id };
-}
+test('missing permission, unassigned role and unauthorized company cannot read or write',async t=>{
+ await tx(t);
+ for(const identity of[[2,4,1],[1,4,1],[3,1,2]]){await assumeSecurityUser(db,...identity);await hidden();await deniedLifecycle();}
+});
 
-await db.connect();
-try {
-  await db.query('begin');
-  await db.query("set local lock_timeout='5s'; set local statement_timeout='90s'");
-  await db.query(migration);
-  await db.query(optionsMigration);
+test('revoked company membership invalidates existing context while other membership remains useful',async t=>{
+ await tx(t);await db.exec('delete from user_subsidiaries where user_id=1 and subsidiary_id=1');
+ await assumeSecurityUser(db,1,1,1);await hidden();await deniedLifecycle();
+ await assumeSecurityUser(db,1,1,2);assert.deepEqual(await ids('bank_statement','statement_id'),[2]);
+});
 
-  const nonce = crypto.randomUUID().replaceAll('-', '');
-  const subsidiaries = (await db.query(`
-    select subsidiary_id,country_id,currency_id
-    from public.subsidiaries
-    where country_id is not null and currency_id is not null
-    order by subsidiary_id
-    limit 2
-  `)).rows;
-  assert.equal(subsidiaries.length, 2, 'Se requieren dos subsidiarias para validar el aislamiento.');
-  const [subsidiaryA, subsidiaryB] = subsidiaries;
-  const ledgerAccount = (await db.query(`
-    select account_id from public.chart_accounts order by account_id limit 1
-  `)).rows[0];
-  assert.ok(ledgerAccount, 'Se requiere una cuenta contable para crear las cuentas bancarias de prueba.');
+test('inactive user closes options and table visibility',async t=>{
+ await tx(t);await db.exec('update users set is_active=false where user_id=1');
+ await assumeSecurityUser(db,1,1,1);await hidden();await deniedLifecycle();
+});
 
-  const banks = [];
-  for (const [index, subsidiary] of subsidiaries.entries()) {
-    banks.push((await db.query(`
-      insert into public.banks(bank_code,bank_name,country_id)
-      values($1,$2,$3)
-      returning bank_id
-    `, [
-      `TBS${index}${nonce.slice(0, 10)}`,
-      `Banco aislamiento ${index + 1} ${nonce.slice(0, 8)}`,
-      subsidiary.country_id
-    ])).rows[0]);
-  }
+test('current device binding and ERP session revocation are honored by the banking predicates',async t=>{
+ await tx(t);await assumeSecurityUser(db,1,1,1,2);await hidden();await deniedLifecycle();
+ await db.exec('reset role;set role service_role');await db.query('select security_revoke_user_sessions(1)');
+ await assumeSecurityUser(db,1,1,1);await hidden();await deniedLifecycle();
+});
 
-  const bankAccounts = [];
-  for (const [index, subsidiary] of subsidiaries.entries()) {
-    bankAccounts.push((await db.query(`
-      insert into public.bank_account(
-        account_number,bank_id,subsidiary_id,currency_id,account_id,balance,country_id
-      ) values($1,$2,$3,$4,$5,0,$6)
-      returning bank_account_id
-    `, [
-      `TEST-${index + 1}-${nonce.slice(0, 16)}`,
-      banks[index].bank_id,
-      subsidiary.subsidiary_id,
-      subsidiary.currency_id,
-      ledgerAccount.account_id,
-      subsidiary.country_id
-    ])).rows[0]);
-  }
-  const [bankAccountA, bankAccountB] = bankAccounts;
+test('anonymous, service and identity-free sessions cannot use scoped bank statement data',async t=>{
+ await tx(t);
+ for(const role of['anon','service_role']){
+  await assumeSqlRole(db,role);await deniedSql(db,'select * from bank_statement');await deniedSql(db,'select * from bank_statement_line');await deniedLifecycle();
+ }
+ await assumeSqlRole(db,'authenticated');await hidden();await deniedLifecycle();
+});
 
-  const statementA = (await db.query(`
-    insert into public.bank_statement(statement_date,bank_account_id,opening_balance,closing_balance,source_file_name)
-    values('2099-01-31',$1,100,125,'subsidiaria-a.csv')
-    returning statement_id
-  `, [bankAccountA.bank_account_id])).rows[0];
-  const statementB = (await db.query(`
-    insert into public.bank_statement(statement_date,bank_account_id,opening_balance,closing_balance,source_file_name)
-    values('2099-01-31',$1,200,230,'subsidiaria-b.csv')
-    returning statement_id
-  `, [bankAccountB.bank_account_id])).rows[0];
-  const lineA = (await db.query(`
-    insert into public.bank_statement_line(statement_id,bank_date,reference,amount,source_row)
-    values($1,'2099-01-15','A-1',25,1)
-    returning statement_line_id
-  `, [statementA.statement_id])).rows[0];
-  const lineB = (await db.query(`
-    insert into public.bank_statement_line(statement_id,bank_date,reference,amount,source_row)
-    values($1,'2099-01-15','B-1',30,1)
-    returning statement_line_id
-  `, [statementB.statement_id])).rows[0];
+test('direct header and line DML stays closed even for a scoped administrator',async t=>{
+ await tx(t);await assumeSecurityUser(db,4,5,1);
+ const statements=[
+  "insert into bank_statement(statement_date,bank_account_id,opening_balance,closing_balance) values('2026-12-01',1,0,1)",
+  'update bank_statement set closing_balance=1 where statement_id=1','delete from bank_statement where statement_id=1',
+  "insert into bank_statement_line(statement_id,bank_date,reference,amount,source_row) values(1,'2026-10-15','SYNTHETIC',1,9)",
+  "update bank_statement_line set description='Synthetic' where statement_line_id=1",'delete from bank_statement_line where statement_line_id=1'
+ ];
+ for(const statement of statements)await deniedSql(db,statement);
+ await deniedSql(db,'select reconciliation_private.identity()');
+});
 
-  const administratorRole = (await db.query(`
-    select role_id
-    from public.roles
-    where lower(btrim(role_name)) in('administrador','administrator','admin')
-    order by case lower(btrim(role_name)) when 'administrador' then 0 else 1 end,role_id
-    limit 1
-  `)).rows[0];
-  assert.ok(administratorRole, 'Se requiere el rol Administrador para esta prueba.');
-  const viewerRole = (await db.query(`
-    insert into public.roles(role_name,description,is_system_role)
-    values($1,'Consulta de extractos sin permisos de escritura',false)
-    returning role_id
-  `, [`TEST-BANK-STATEMENT-VIEW-${nonce}`])).rows[0];
-  await db.query(`
-    insert into public.role_access_matrix(
-      role_id,resource_key,can_view,can_create,can_edit,can_delete
-    ) values($1,'banking:bank-statements',true,false,false,false)
-  `, [viewerRole.role_id]);
+test('current metadata RPC creates, edits and deletes only its synthetic header and lines',async t=>{
+ await tx(t);await assumeSecurityUser(db,1,1,1);const created=await save(payload()),id=Number(created.statement_id);assert.ok(id>2);assert.equal(Number(created.bank_account_id),1);
+ const updated=await save(payload({closing_balance:131,source_file_name:'synthetic-edit.csv'}),id);assert.equal(Number(updated.closing_balance),131);assert.equal(updated.source_file_name,'synthetic-edit.csv');
+ await db.exec('reset role');await db.query("insert into bank_statement_line(statement_id,bank_date,reference,amount,source_row) values($1,'2026-11-01','SYNTHETIC-DISPOSABLE',6,1)",[id]);
+ await assumeSecurityUser(db,1,1,1);assert.deepEqual(await remove(id),{success:true});
+ await db.exec('reset role');assert.deepEqual(await ids('bank_statement','statement_id'),[1,2]);assert.deepEqual(await ids('bank_statement_line','statement_line_id'),[1,2]);
+ assert.deepEqual((await db.query('select balance::float8 value from bank_account order by bank_account_id')).rows.map(row=>row.value),[1000,1000,1000,1000]);
+});
 
-  const administrator = await createIdentity('Administrador', nonce);
-  const viewer = await createIdentity('Consulta', nonce);
-  await db.query(`
-    insert into public.user_roles(user_id,role_id)
-    values($1,$2),($3,$4)
-  `, [
-    administrator.userId, administratorRole.role_id,
-    viewer.userId, viewerRole.role_id
-  ]);
-  await db.query(`
-    insert into public.user_subsidiaries(user_id,subsidiary_id)
-    values($1,$2),($1,$3),($4,$2),($4,$3)
-  `, [
-    administrator.userId, subsidiaryA.subsidiary_id, subsidiaryB.subsidiary_id,
-    viewer.userId
-  ]);
+test('foreign target and destination bank are rejected even with lifecycle permissions',async t=>{
+ await tx(t);await assumeSecurityUser(db,1,1,1);
+ await deniedSql(db,'select save_bank_statement_metadata(null,$1)',[payload({bank_account_id:3})]);
+ await deniedSql(db,'select save_bank_statement_metadata(2,$1)',[payload({statement_date:'2026-10-31'})]);
+ await deniedSql(db,'select save_bank_statement_metadata(1,$1)',[payload({statement_date:'2026-10-31',bank_account_id:3})]);await deniedSql(db,'select delete_bank_statement(2)');
+});
 
-  const adminSessionA = `bank-admin-a-${nonce}`;
-  const adminSessionB = `bank-admin-b-${nonce}`;
-  const viewerSessionA = `bank-view-a-${nonce}`;
-  await db.query(`
-    insert into public.user_role_sessions(session_id,user_id,role_id)
-    values($1,$2,$3),($4,$2,$3),($5,$6,$7)
-  `, [
-    adminSessionA, administrator.userId, administratorRole.role_id,
-    adminSessionB,
-    viewerSessionA, viewer.userId, viewerRole.role_id
-  ]);
-  await db.query(`
-    insert into public.user_company_sessions(session_id,user_id,subsidiary_id)
-    values($1,$2,$3),($4,$2,$5),($6,$7,$3)
-  `, [
-    adminSessionA, administrator.userId, subsidiaryA.subsidiary_id,
-    adminSessionB, subsidiaryB.subsidiary_id,
-    viewerSessionA, viewer.userId
-  ]);
+test('create-only and edit-only permissions cannot substitute for each other or delete',async t=>{
+ await tx(t);await db.exec("insert into roles(role_id,role_name,is_system_role) values(6,'Synthetic creator',false);insert into user_roles(user_id,role_id) values(1,6);insert into role_access_matrix(role_id,resource_key,can_view,can_create,can_edit,can_delete) values(6,'banking:bank-statements',true,true,false,false)");
+ await assumeSecurityUser(db,1,6,1);const created=await save(payload()),id=Number(created.statement_id);
+ await deniedSql(db,'select save_bank_statement_metadata($1,$2)',[id,payload({closing_balance:132})]);await deniedSql(db,'select delete_bank_statement($1)',[id]);
+ await assumeSecurityUser(db,1,2,1);assert.equal(Number((await save(payload({closing_balance:133}),id)).closing_balance),133);
+ await deniedSql(db,'select save_bank_statement_metadata(null,$1)',[payload({bank_account_id:2})]);await deniedSql(db,'select delete_bank_statement($1)',[id]);
+});
 
-  await assume(administrator, adminSessionA);
-  assert.deepEqual(
-    (await db.query(`
-      select bank_account_id,subsidiary_id,bank_name,account_number,currency_code
-      from public.bank_statement_account_options()
-      where bank_account_id=any($1::bigint[])
-    `, [[bankAccountA.bank_account_id, bankAccountB.bank_account_id]])).rows.map(row => ({
-      ...row,
-      bank_account_id: Number(row.bank_account_id),
-      subsidiary_id: Number(row.subsidiary_id)
-    })),
-    [{
-      bank_account_id: Number(bankAccountA.bank_account_id),
-      subsidiary_id: Number(subsidiaryA.subsidiary_id),
-      bank_name: `Banco aislamiento 1 ${nonce.slice(0, 8)}`,
-      account_number: `TEST-1-${nonce.slice(0, 16)}`,
-      currency_code: (await db.query('select currency_code from public.currencies where currency_id=$1',[subsidiaryA.currency_id])).rows[0].currency_code
-    }]
-  );
-  assert.deepEqual(
-    (await db.query(`
-      select statement_id from public.bank_statement
-      where statement_id=any($1::bigint[])
-      order by statement_id
-    `, [[statementA.statement_id, statementB.statement_id]])).rows,
-    [{ statement_id: statementA.statement_id }]
-  );
-  assert.deepEqual(
-    (await db.query(`
-      select statement_line_id from public.bank_statement_line
-      where statement_line_id=any($1::bigint[])
-      order by statement_line_id
-    `, [[lineA.statement_line_id, lineB.statement_line_id]])).rows,
-    [{ statement_line_id: lineA.statement_line_id }]
-  );
-  assert.equal((await db.query(`
-    update public.bank_statement set closing_balance=999
-    where statement_id=$1 returning statement_id
-  `, [statementB.statement_id])).rowCount, 0);
-  assert.equal((await db.query(`
-    delete from public.bank_statement where statement_id=$1 returning statement_id
-  `, [statementB.statement_id])).rowCount, 0);
-  await expectDenied(`
-    insert into public.bank_statement(statement_date,bank_account_id,opening_balance,closing_balance)
-    values('2099-02-28',$1,0,1)
-  `, [bankAccountB.bank_account_id]);
+test('reconciled lines and parent usage continue to protect metadata and deletion',async t=>{
+ await tx(t);await db.exec("update bank_statement_line set reconciliation_status='CONCILIADO' where statement_line_id=1");await assumeSecurityUser(db,1,1,1);
+ await deniedSql(db,'select save_bank_statement_metadata(1,$1)',[payload({statement_date:'2026-10-31'})],'55000');await deniedSql(db,'select delete_bank_statement(1)',[],'55000');
+ await db.exec("reset role;update bank_statement_line set reconciliation_status='PENDIENTE' where statement_line_id=1");await assumeSecurityUser(db,1,1,1);
+ await deniedSql(db,'select save_bank_statement_metadata(1,$1)',[payload({statement_date:'2026-10-31',bank_account_id:2})],'55000');
+ await db.exec("reset role;insert into bank_reconciliation(reconciliation_date,bank_account_id,fiscal_period_id,status) values('2026-10-31',1,10,'CERRADA')");
+ await assumeSecurityUser(db,1,1,1);
+ await deniedSql(db,'select save_bank_statement_metadata(1,$1)',[payload({statement_date:'2026-10-31'})],'55000');await deniedSql(db,'select delete_bank_statement(1)',[],'55000');
+});
 
-  const disposable = (await db.query(`
-    insert into public.bank_statement(statement_date,bank_account_id,opening_balance,closing_balance)
-    values('2099-02-28',$1,125,130)
-    returning statement_id
-  `, [bankAccountA.bank_account_id])).rows[0];
-  assert.equal((await db.query(`
-    update public.bank_statement set closing_balance=131
-    where statement_id=$1 returning statement_id
-  `, [disposable.statement_id])).rowCount, 1);
-  const disposableLine = (await db.query(`
-    insert into public.bank_statement_line(statement_id,bank_date,reference,amount,source_row)
-    values($1,'2099-02-15','A-2',6,1)
-    returning statement_line_id
-  `, [disposable.statement_id])).rows[0];
-  assert.ok(disposableLine.statement_line_id);
-  assert.equal((await db.query(`
-    delete from public.bank_statement where statement_id=$1 returning statement_id
-  `, [disposable.statement_id])).rowCount, 1);
-
-  await assume(administrator, adminSessionB);
-  assert.deepEqual(
-    (await db.query(`
-      select bank_account_id from public.bank_statement_account_options()
-      where bank_account_id=any($1::bigint[])
-    `, [[bankAccountA.bank_account_id, bankAccountB.bank_account_id]])).rows,
-    [{ bank_account_id: bankAccountB.bank_account_id }]
-  );
-  assert.deepEqual(
-    (await db.query(`
-      select statement_id from public.bank_statement
-      where statement_id=any($1::bigint[])
-      order by statement_id
-    `, [[statementA.statement_id, statementB.statement_id]])).rows,
-    [{ statement_id: statementB.statement_id }]
-  );
-  assert.deepEqual(
-    (await db.query(`
-      select statement_line_id from public.bank_statement_line
-      where statement_line_id=any($1::bigint[])
-      order by statement_line_id
-    `, [[lineA.statement_line_id, lineB.statement_line_id]])).rows,
-    [{ statement_line_id: lineB.statement_line_id }]
-  );
-
-  await assume(viewer, viewerSessionA);
-  assert.deepEqual(
-    (await db.query(`
-      select statement_id from public.bank_statement
-      where statement_id=any($1::bigint[])
-      order by statement_id
-    `, [[statementA.statement_id, statementB.statement_id]])).rows,
-    [{ statement_id: statementA.statement_id }]
-  );
-  assert.equal((await db.query(`
-    update public.bank_statement set closing_balance=777
-    where statement_id=$1 returning statement_id
-  `, [statementA.statement_id])).rowCount, 0);
-  assert.equal((await db.query(`
-    delete from public.bank_statement where statement_id=$1 returning statement_id
-  `, [statementA.statement_id])).rowCount, 0);
-  assert.equal((await db.query(`
-    update public.bank_statement_line set description='No permitido'
-    where statement_line_id=$1 returning statement_line_id
-  `, [lineA.statement_line_id])).rowCount, 0);
-  assert.equal((await db.query(`
-    delete from public.bank_statement_line where statement_line_id=$1 returning statement_line_id
-  `, [lineA.statement_line_id])).rowCount, 0);
-  await expectDenied(`
-    insert into public.bank_statement(statement_date,bank_account_id,opening_balance,closing_balance)
-    values('2099-03-31',$1,0,1)
-  `, [bankAccountA.bank_account_id]);
-  await expectDenied(`
-    insert into public.bank_statement_line(statement_id,bank_date,reference,amount,source_row)
-    values($1,'2099-03-15','VIEW-1',1,2)
-  `, [statementA.statement_id]);
-
-  await db.query('rollback');
-  console.log(JSON.stringify({
-    administratorScopedToActiveSubsidiary: true,
-    companySwitchChangesVisibility: true,
-    accountOptionsScopedToActiveSubsidiary: true,
-    statementLinesScopedWithHeader: true,
-    roleActionsRechecked: true,
-    crossSubsidiaryWritesBlocked: true,
-    rollback: true
-  }));
-} catch (error) {
-  await db.query('rollback').catch(() => {});
-  throw error;
-} finally {
-  await db.end();
-}
+test('invalid finite balances and unauthorized payload fields fail without creating rows',async t=>{
+ await tx(t);await assumeSecurityUser(db,1,1,1);
+ for(const balance of[null,'NaN','Infinity','-Infinity'])await deniedSql(db,'select save_bank_statement_metadata(null,$1)',[payload({opening_balance:balance})],'22023');
+ await deniedSql(db,'select save_bank_statement_metadata(null,$1)',[payload({subsidiary_id:2})],'22023');
+ assert.deepEqual(await ids('bank_statement','statement_id'),[1]);
+});

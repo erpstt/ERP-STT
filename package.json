@@ -134,7 +134,8 @@
     "test:opening-routing-operator-guards": "npm run build && node --test --test-concurrency=1 scripts/opening-routing-operator-guards.test.mjs",
     "test:journal-payment-request-route-id-security": "npm run build && node --test --test-concurrency=1 scripts/journal-payment-request-route-id-security.test.mjs",
     "test:source-secrets-scanner-contract": "npm run build && node --test --test-concurrency=1 scripts/security-source-secrets-check.test.mjs",
-    "test:bootstrap-matrix-public-errors": "npm run build && node --test --test-concurrency=1 scripts/bootstrap-matrix-public-errors.test.mjs"
+    "test:bootstrap-matrix-public-errors": "npm run build && node --test --test-concurrency=1 scripts/bootstrap-matrix-public-errors.test.mjs",
+    "test:isolated-bank-statement-db": "npm run build && node --test --test-concurrency=1 scripts/bank-statement-active-subsidiary-rls-db.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
