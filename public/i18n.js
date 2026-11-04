@@ -131,7 +131,8 @@ export class GentiaI18n extends EventTarget {
       if (event.key === this.storageKey && event.newValue) void this.setLocale(event.newValue, { persist: false, broadcast: false });
     };
     this.onMessage = event => {
-      if (event.origin && globalThis.location && event.origin !== location.origin) return;
+      const origin = globalThis.location?.origin;
+      if (!origin || origin === 'null' || event.origin !== origin) return;
       if (event.data?.type === 'gentia:language' && event.data.locale) void this.setLocale(event.data.locale, { persist: true, broadcast: false });
     };
   }
