@@ -106,7 +106,8 @@ jobs:
             scripts/bootstrap-matrix-public-errors.test.mjs \
             scripts/bank-statement-active-subsidiary-rls-db.test.mjs \
             scripts/repair-configuration-operator-guards.test.mjs \
-            scripts/configured-report-operator-guards.test.mjs
+            scripts/configured-report-operator-guards.test.mjs \
+            scripts/remaining-configuration-operator-guards.test.mjs
 
       - name: Reject high and critical dependency advisories
         run: npm audit --audit-level=high

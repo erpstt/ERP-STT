@@ -1,2 +1,10 @@
-﻿import pg from'pg';process.loadEnvFile?.('.env');const ref=new URL(process.env.SUPABASE_URL).hostname.split('.')[0],db=new pg.Client({host:process.env.SUPABASE_DB_HOST||'aws-0-us-east-1.pooler.supabase.com',port:Number(process.env.SUPABASE_DB_PORT||6543),database:'postgres',user:process.env.SUPABASE_DB_USER||`postgres.${ref}`,password:process.env.SUPABASE_DB_PASSWORD,ssl:{rejectUnauthorized:false}});await db.connect();try{const result=(await db.query('select sync_consolidated_exchange_rates(null)value')).rows[0].value,summary=await db.query("select count(*)::int total,count(distinct source_subsidiary_id)::int subsidiaries,min(period) first_period,max(period) last_period from consolidated_exchange_rates"),invalid=await db.query("select count(*)::int n from consolidated_exchange_rates r join currencies f on f.currency_id=r.from_currency_id join currencies t on t.currency_id=r.to_currency_id join subsidiaries h on h.subsidiary_id=r.holding_subsidiary_id join subsidiaries s on s.subsidiary_id=r.source_subsidiary_id where h.name<>'STT Group Latin American'or t.currency_code<>'USD'or f.currency_id<>s.currency_id");if(invalid.rows[0].n)throw Error(`Se generaron ${invalid.rows[0].n} registros fuera de la regla solicitada.`);console.log(JSON.stringify({sync:result,stored:summary.rows[0],rulesValid:true}));}finally{await db.end()}
-
+// Retired: this standalone CLI called the mutating sync_consolidated_exchange_rates
+// RPC and queried live consolidated_exchange_rates aggregates/rules without
+// a fixed SQL file manifest. The RPC, services and scheduled jobs are unchanged.
+// No replacement execution or incomplete preview is offered by this entrypoint.
+process.stderr.write(JSON.stringify({
+ mode:'blocked',code:'OPERATOR_RETIRED',
+ message:"Este operador ejecutaba una sincronización de tasas y verificaciones dependientes de datos sin manifiesto SQL fijo. Su ejecución y una vista previa parcial están retiradas. Use un flujo operativo revisado y pruebas aisladas.",
+ appliesSql:false,loadsEnvironment:false,opensConnections:false,executionSupported:false
+})+'\n');
+process.exitCode=2;
