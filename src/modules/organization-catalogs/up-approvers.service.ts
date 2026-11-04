@@ -1,6 +1,16 @@
 import{assertOrganizationMasterAccess}from'./organization-master.service.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 
+function publicProviderMessage(name:string){
+  switch(name){
+    case 'up_approver_options':return 'No fue posible cargar las opciones de aprobadores UP.';
+    case 'up_approver_selector_options':return 'No fue posible cargar la lista de aprobadores UP.';
+    case 'up_cost_centers_by_approver':return 'No fue posible consultar los centros de costo del aprobador UP.';
+    case 'up_reassign_cost_centers':return 'No fue posible reasignar los centros de costo al aprobador UP.';
+    default:return 'No fue posible procesar los aprobadores UP.';
+  }
+}
+
 async function rpc<T>(authorization:string,name:string,parameters:Record<string,unknown>={}){
   const config=getSupabaseConfig();
   if(!config)throw new Error('Supabase no está configurado.');
@@ -10,13 +20,14 @@ async function rpc<T>(authorization:string,name:string,parameters:Record<string,
     body:JSON.stringify(parameters)
   });
   const raw=await response.text();
-  const payload=raw?JSON.parse(raw):null;
   if(!response.ok){
-    const failure=new Error(payload?.message||'No fue posible procesar los aprobadores UP.')as Error&{status?:number};
+    let payload:{code?:unknown}|null=null;
+    try{payload=raw?JSON.parse(raw):null;}catch{}
+    const failure=new Error(publicProviderMessage(name))as Error&{status?:number};
     failure.status=payload?.code==='42501'?403:400;
     throw failure;
   }
-  return payload as T;
+  return (raw?JSON.parse(raw):null) as T;
 }
 
 export function upApproverOptions(authorization:string){

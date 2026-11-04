@@ -90,6 +90,10 @@ test('rechaza identificadores inválidos y conserva bloqueada la eliminación in
 
 test('la ruta HTTP exige edit para POST y view para las opciones',async()=>{
   const source=await readFile(new URL('../src/server.ts',import.meta.url),'utf8');
-  assert.match(source,/request\.method==='POST'&&resourceKey==='security:user-subsidiaries'\)\?'edit'/);
+  const {genericRouteAction}=await import('../dist/core/security/generic-route-action.js');
+  assert.match(source,/const accessAction=genericRouteAction\(request\.method,resourceKey\)/);
+  assert.equal(genericRouteAction('POST','security:user-subsidiaries'),'edit');
+  assert.equal(genericRouteAction('PATCH','security:user-subsidiaries'),'edit');
+  assert.equal(genericRouteAction('GET','security:user-subsidiaries'),'view');
   assert.match(source,/user-subsidiaries\/options'[\s\S]{0,500}assertRoleAccess\(authorization,'security:user-subsidiaries','view'\)/);
 });

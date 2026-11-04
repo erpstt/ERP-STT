@@ -58,7 +58,7 @@ export const roleAccessModules:AccessModule[] = [
     custom('accounting','Contabilidad','Solicitudes de Pago','payment-requests',['view','create','edit','delete']),
     custom('accounting','Contabilidad','Revaluación de moneda extranjera','fx-revaluation',['view','create']),
     custom('accounting','Contabilidad','Análisis de revaluación','fx-revaluation-analysis',['view'])]},
-  {key:'banking',name:'Bancos',resources:[...catalogs('banking','Bancos',bankingCatalogs),custom('banking','Bancos','Prueba de efectivo (4 columnas)','cash-proof',['view','create','edit'])]},
+  {key:'banking',name:'Bancos',resources:[...catalogs('banking','Bancos',bankingCatalogs),custom('banking','Bancos','Prueba de efectivo (4 columnas)','cash-proof',['view','create','edit']),custom('banking','Bancos','Comisiones bancarias','bank-fees',['view','create','edit','delete'])]},
   {key:'treasury',name:'Tesorería',resources:[...catalogs('treasury','Tesorería',treasuryCatalogs),
     custom('treasury','Tesorería','Solicitudes de Pago','payment-requests',['view','create','edit','delete']),
     custom('treasury','Tesorería','Generador de archivos de pago','payment-batches',['view','create']),

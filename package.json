@@ -141,7 +141,15 @@
     "test:remaining-configuration-operator-guards": "npm run build && node --test --test-concurrency=1 scripts/remaining-configuration-operator-guards.test.mjs",
     "test:tax-schedule-access-security": "npm run build && node --test --test-concurrency=1 scripts/tax-schedule-access-api-security.test.mjs scripts/tax-schedule-access-ui-security.test.mjs",
     "test:bank-statement-account-scope-isolated": "npm run build && node --test --test-concurrency=1 scripts/bank-statement-account-scope.test.mjs",
-    "test:bank-sql-fixture-security": "npm run build && node --test --test-concurrency=1 scripts/bank-fee-sql-security.test.mjs scripts/reconciliation-sql-security.test.mjs"
+    "test:bank-sql-fixture-security": "npm run build && node --test --test-concurrency=1 scripts/bank-fee-sql-security.test.mjs scripts/reconciliation-sql-security.test.mjs",
+    "test:up-approvers-public-errors": "npm run build && node --test --test-concurrency=1 scripts/up-approvers-public-errors.test.mjs",
+    "test:user-provisioning-public-errors": "npm run build && node --test --test-concurrency=1 scripts/user-provisioning-public-errors.test.mjs",
+    "test:vat-http-isolated": "npm run build && node --test --test-concurrency=1 scripts/test-vat-declaration-report-http.mjs",
+    "test:costa-rica-rate:isolated": "npm run build && node --test --test-concurrency=1 scripts/check-costa-rica-rate.mjs",
+    "test:generic-route:methods": "npm run build && node --test --test-concurrency=1 scripts/generic-route-method-security.test.mjs",
+    "test:bank-fees:access-catalog": "npm run build && node --test --test-concurrency=1 scripts/bank-fee-access-catalog.test.mjs",
+    "test:user-subsidiary:bulk-isolated": "npm run build && node --test --test-concurrency=1 scripts/user-subsidiary-bulk.test.mjs",
+    "test:bank:public-errors": "npm run build && node --test --test-concurrency=1 scripts/bank-operation-public-errors.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",

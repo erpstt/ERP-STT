@@ -7,7 +7,7 @@ import {Agent,request} from 'node:https';
 import {Readable} from 'node:stream';
 
 export const VERSION='8.30.1';
-export const SOURCE_ROOTS=Object.freeze(['src','public','scripts','supabase/migrations','package.json','package-lock.json']);
+export const SOURCE_ROOTS=Object.freeze(['src','public','scripts','supabase/migrations','services/pdf-renderer','.github/workflows','package.json','package-lock.json']);
 export const LIMITS=Object.freeze({files:20000,sourceBytes:100*1024*1024,reportBytes:2*1024*1024,archiveBytes:32*1024*1024,manifestBytes:64*1024,commandMilliseconds:70000});
 export const MANIFEST_SHA256='061476c21adaf5441516f96f185c1a4706a83cd6329b9b38762271b3d4a52fae';
 export const RELEASE_BASE='https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/';

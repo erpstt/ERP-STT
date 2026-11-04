@@ -112,7 +112,15 @@ jobs:
             scripts/tax-schedule-access-ui-security.test.mjs \
             scripts/bank-statement-account-scope.test.mjs \
             scripts/bank-fee-sql-security.test.mjs \
-            scripts/reconciliation-sql-security.test.mjs
+            scripts/reconciliation-sql-security.test.mjs \
+            scripts/up-approvers-public-errors.test.mjs \
+            scripts/user-provisioning-public-errors.test.mjs \
+            scripts/test-vat-declaration-report-http.mjs \
+            scripts/check-costa-rica-rate.mjs \
+            scripts/generic-route-method-security.test.mjs \
+            scripts/bank-fee-access-catalog.test.mjs \
+            scripts/user-subsidiary-bulk.test.mjs \
+            scripts/bank-operation-public-errors.test.mjs
 
       - name: Reject high and critical dependency advisories
         run: npm audit --audit-level=high

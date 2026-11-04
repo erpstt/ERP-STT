@@ -11,7 +11,7 @@ export async function bankFeeRpc(authorization:string,action:Action,name:string,
   const value=result as {code?:unknown;message?:unknown}|null;
   if(response.status===401)throw Object.assign(new Error('La sesión no es válida.'),{status:401});
   if(response.status===403||value?.code==='42501')throw Object.assign(new Error('No tiene permiso para operar este comisión bancaria.'),{status:403});
-  if(value?.code==='55000')throw Object.assign(new Error(typeof value.message==='string'?value.message:'El egreso no puede modificarse en su estado actual.'),{status:409});
+  if(value?.code==='55000')throw Object.assign(new Error('El egreso no puede modificarse en su estado actual.'),{status:409});
   if(['22023','22P02'].includes(String(value?.code)))throw Object.assign(new Error('Revise los datos del comisión bancaria.'),{status:400});
   throw Error('No fue posible procesar el comisión bancaria.');
  }

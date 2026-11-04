@@ -33,6 +33,17 @@ function syntheticGit(entries,{head=scopeSha,extraRows=[],badObject=false,declar
 }
 const baseEntries=[['package.json','{}\n'],['package-lock.json','{}\n'],['src/synthetic.mjs','export const number = 1;\n'],['public/synthetic.js','const number = 1;\n'],['supabase/migrations/synthetic.sql','select 1;\n']];
 
+test('source scope includes the isolated PDF renderer and workflows while excluding their environment files',t=>{
+ const root=temporary(t),workspace=join(root,'workspace'),directory=join(root,'source');mkdirSync(workspace);mkdirSync(directory);
+ const included=[...baseEntries,['services/pdf-renderer/server.mjs','export const synthetic = true;\n'],['services/pdf-renderer/Dockerfile','FROM synthetic-placeholder\n'],['services/pdf-renderer/package.json','{}\n'],['.github/workflows/synthetic.yml','name: synthetic\n']];
+ const ignored=[['services/pdf-renderer/.env','synthetic excluded value'],['.github/workflows/.env.local','synthetic excluded value']];
+ const git=syntheticGit([...included,...ignored]);
+ assert.deepEqual(createSourceSnapshot({workspace,scopeSha,directory,env:{},run:git.run}),{files:included.length,bytes:included.reduce((sum,entry)=>sum+Buffer.byteLength(entry[1]),0)});
+ for(const[name,body]of included)assert.equal(readFileSync(join(directory,name),'utf8'),body);
+ for(const[name]of ignored)assert.equal(existsSync(join(directory,name)),false);
+ const requests=git.events.filter(args=>args[0]==='ls-tree');assert.equal(requests.length,1);assert.ok(requests[0].includes('services/pdf-renderer'));assert.ok(requests[0].includes('.github/workflows'));
+});
+
 test('fixed release pins cover only Linux and Windows x64 without a global-binary fallback',()=>{
  assert.equal(VERSION,'8.30.1');assert.equal(assetFor('linux','x64').sha256,'551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb');
  assert.equal(assetFor('win32','x64').sha256,'d29144deff3a68aa93ced33dddf84b7fdc26070add4aa0f4513094c8332afc4e');assert.match(MANIFEST_SHA256,/^[a-f0-9]{64}$/);

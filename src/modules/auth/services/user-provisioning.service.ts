@@ -71,11 +71,44 @@ export async function validatePasswordAccessContinuation(input:PasswordAccessCon
   return{success:true};
 }
 async function payload(response:Response){const text=response.status===204?'':await response.text();if(!text)return null;try{return JSON.parse(text)as unknown;}catch{return null;}}
-function apiMessage(value:unknown,fallback:string){if(typeof value!=='object'||value===null)return fallback;for(const key of['message','msg','error_description']){const item=(value as Record<string,unknown>)[key];if(typeof item==='string'&&item.trim())return item;}return fallback;}
+function serviceRestMessage(path:string){
+  switch(path.split('?',1)[0]){
+    case 'users':return 'No fue posible administrar la información del usuario.';
+    case 'user_invitation_grants':return 'No fue posible administrar la invitación del usuario.';
+    case 'password_recovery_grants':return 'No fue posible administrar el enlace de recuperación.';
+    case 'password_history':return 'No fue posible consultar o registrar el historial de contraseñas.';
+    case 'rpc/consume_user_invitation_grant':return 'No fue posible verificar y consumir la invitación.';
+    case 'rpc/security_audit_user_password_notification':return 'No fue posible registrar la auditoría del enlace de recuperación.';
+    case 'rpc/security_revoke_user_sessions':return 'No fue posible cerrar las sesiones del usuario.';
+    default:return 'No fue posible administrar la invitación.';
+  }
+}
+function actorRpcMessage(name:string){
+  switch(name){
+    case 'security_assert_role_access':return 'No fue posible verificar el permiso para crear usuarios.';
+    case 'security_create_user':return 'No fue posible crear el usuario en el ERP.';
+    case 'security_mark_user_invitation_sent':return 'No fue posible registrar el envío de la invitación.';
+    case 'security_prepare_user_password_recovery':return 'No fue posible preparar el enlace de recuperación para el usuario indicado.';
+    default:return 'No fue posible crear el usuario en el ERP.';
+  }
+}
+function authAdminMessage(path:string){
+  if(path==='admin/generate_link')return 'No fue posible generar el enlace de acceso.';
+  if(path==='admin/users')return 'No fue posible crear la cuenta de acceso.';
+  return 'No fue posible administrar la cuenta de acceso.';
+}
+function legacyAuthDuplicate(value:unknown,status:number){
+  // Preserve the existing first-nonempty-field classification, never its text.
+  let text='';
+  if(typeof value==='object'&&value!==null)for(const key of['message','msg','error_description']){
+    const item=(value as Record<string,unknown>)[key];if(typeof item==='string'&&item.trim()){text=item;break;}
+  }
+  return status===409||/already|registered|exists|duplicate/i.test(text);
+}
 
-async function serviceRest<T>(path:string,init:RequestInit={}):Promise<T>{const c=config(),response=await fetchSupabase(new URL(`/rest/v1/${path}`,c.url),{...init,headers:{apikey:c.serviceKey,Authorization:`Bearer ${c.serviceKey}`,'Content-Type':'application/json',...(init.headers??{})}}),value=await payload(response);if(!response.ok){const raw=apiMessage(value,'No fue posible administrar la invitación.'),code=typeof value==='object'&&value!==null?(value as Record<string,unknown>).code:null,conflict=response.status===409||code==='23505';throw new UserProvisioningError(conflict?'Ya existe un usuario con ese correo electrónico.':raw,conflict?409:503);}return value as T;}
-async function actorRpc<T>(authorization:string,name:string,body:Record<string,unknown>):Promise<T>{const c=config(),response=await fetchSupabase(new URL(`/rest/v1/rpc/${name}`,c.url),{method:'POST',headers:{apikey:c.anonKey,Authorization:authorization,'Content-Type':'application/json'},body:JSON.stringify(body)}),value=await payload(response);if(!response.ok){const raw=apiMessage(value,'No fue posible crear el usuario en el ERP.'),code=typeof value==='object'&&value!==null?String((value as Record<string,unknown>).code??''):'',conflict=response.status===409||code==='23505',forbidden=response.status===401||response.status===403||code==='42501';throw new UserProvisioningError(conflict?'Ya existe un usuario con ese correo electrónico.':raw,conflict?409:forbidden?403:response.status>=500?503:400);}return value as T;}
-async function authAdmin(path:string,init:RequestInit){const c=config(),response=await fetchSupabase(new URL(`/auth/v1/${path}`,c.url),{...init,headers:{apikey:c.serviceKey,Authorization:`Bearer ${c.serviceKey}`,'Content-Type':'application/json',...(init.headers??{})}}),value=await payload(response);if(!response.ok){const raw=apiMessage(value,'No fue posible crear la cuenta de acceso.'),duplicate=response.status===409||/already|registered|exists|duplicate/i.test(raw);throw new UserProvisioningError(duplicate?'Ya existe una cuenta de acceso para ese correo electrónico.':raw,duplicate?409:400);}return value;}
+async function serviceRest<T>(path:string,init:RequestInit={}):Promise<T>{const c=config(),response=await fetchSupabase(new URL(`/rest/v1/${path}`,c.url),{...init,headers:{apikey:c.serviceKey,Authorization:`Bearer ${c.serviceKey}`,'Content-Type':'application/json',...(init.headers??{})}}),value=await payload(response);if(!response.ok){const code=typeof value==='object'&&value!==null?(value as Record<string,unknown>).code:null,conflict=response.status===409||code==='23505';throw new UserProvisioningError(conflict?'Ya existe un usuario con ese correo electrónico.':serviceRestMessage(path),conflict?409:503);}return value as T;}
+async function actorRpc<T>(authorization:string,name:string,body:Record<string,unknown>):Promise<T>{const c=config(),response=await fetchSupabase(new URL(`/rest/v1/rpc/${name}`,c.url),{method:'POST',headers:{apikey:c.anonKey,Authorization:authorization,'Content-Type':'application/json'},body:JSON.stringify(body)}),value=await payload(response);if(!response.ok){const code=typeof value==='object'&&value!==null?String((value as Record<string,unknown>).code??''):'',conflict=response.status===409||code==='23505',forbidden=response.status===401||response.status===403||code==='42501';throw new UserProvisioningError(conflict?'Ya existe un usuario con ese correo electrónico.':actorRpcMessage(name),conflict?409:forbidden?403:response.status>=500?503:400);}return value as T;}
+async function authAdmin(path:string,init:RequestInit){const c=config(),response=await fetchSupabase(new URL(`/auth/v1/${path}`,c.url),{...init,headers:{apikey:c.serviceKey,Authorization:`Bearer ${c.serviceKey}`,'Content-Type':'application/json',...(init.headers??{})}}),value=await payload(response);if(!response.ok){const duplicate=legacyAuthDuplicate(value,response.status);throw new UserProvisioningError(duplicate?'Ya existe una cuenta de acceso para ese correo electrónico.':authAdminMessage(path),duplicate?409:400);}return value;}
 async function deleteAuthUser(id:string){const c=config();try{const response=await fetchSupabase(new URL(`/auth/v1/admin/users/${encodeURIComponent(id)}`,c.url),{method:'DELETE',headers:{apikey:c.serviceKey,Authorization:`Bearer ${c.serviceKey}`}});return response.ok;}catch{return false;}}
 async function deleteGrant(stateHash:string){try{await serviceRest(`user_invitation_grants?state_hash=eq.${stateHash}`,{method:'DELETE'});return true;}catch{return false;}}
 function authIdentity(value:unknown){const source=typeof value==='object'&&value!==null&&'user'in value?(value as{user?:unknown}).user:value;if(typeof source!=='object'||source===null)throw new UserProvisioningError('Supabase devolvió una cuenta de acceso no válida.',502);const row=source as AuthUser,id=typeof row.id==='string'?row.id:'',email=typeof row.email==='string'?row.email.trim().toLowerCase():'';if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)||!email)throw new UserProvisioningError('Supabase devolvió una cuenta de acceso no válida.',502);return{id,email};}

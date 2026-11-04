@@ -2,6 +2,7 @@ import {isFinancialReportRoute,requireReportAccess} from './modules/reports/repo
 import {contentSecurityPolicy} from './core/security/content-security-policy.js';
 import{rateCatalogs,rateRpc}from'./modules/configuration-catalogs/rate-security.service.js';
 import{canonicalRequestTarget}from'./core/security/request-path.js';
+import { genericRouteAction } from './core/security/generic-route-action.js';
 import{withDeviceContext}from'./core/security/device-context.js';
 import{accessAdminRpc}from'./modules/security-catalogs/access-admin.service.js';
 import{organizationMasters,organizationMasterRpc}from'./modules/organization-catalogs/organization-master.service.js';
@@ -517,7 +518,13 @@ const server = createServer((request, response) => {
     const connectionRevoke=request.url?.match(/^\/api\/security\/connections\/(sessions|devices)\/([1-9][0-9]*)$/);
     if(connectionRevoke&&request.method==='DELETE')return json(response,200,await accessAdminRpc(request.headers.authorization!,'security_revoke_connection',{p_catalog:connectionRevoke[1],p_id:Number(connectionRevoke[2]),p_revision:((await body(request))as Record<string,unknown>)._revision??null}));
     const accessUrl=new URL(request.url??'/',`http://${request.headers.host??'localhost'}`),accessRoute=accessUrl.pathname.match(/^\/api\/(core|security|organization|configuration|accounting|banking|treasury|entities|inventory|sales|transaction-engine|purchasing|expenses|fixed-assets|workflow|documents|audit|consolidation|ai)\/([a-z-]+)(?:\/\d+)?$/);
-    if(accessRoute){const resourceKey=request.method==='GET'&&accessRoute[1]==='sales'&&['sales-invoice-lines','sales-invoice-withholdings'].includes(accessRoute[2]!)?'sales:invoices':request.method==='GET'&&accessRoute[1]==='purchasing'&&['supplier-invoice-lines','supplier-invoice-withholdings'].includes(accessRoute[2]!)?'purchasing:supplier-invoices':`${accessRoute[1]}:${accessRoute[2]}`;if(isRoleAccessResource(resourceKey)&&!/^\/api\/sales\/invoices\/\d+\/(pdf|email|pdf-line-unification)(?:\?|$)/.test(request.url??'')&&!(request.method==='GET'&&['sales:sales-note-lines','purchasing:supplier-note-lines','inventory:stock-movements'].includes(resourceKey))){const authorization=request.headers.authorization;if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const accessAction=request.method==='GET'?'view':request.method==='PATCH'||(request.method==='PUT'&&['purchasing:supplier-payments','sales:customer-payments'].includes(resourceKey))||(request.method==='POST'&&resourceKey==='security:user-subsidiaries')?'edit':request.method==='POST'?'create':'delete';await assertRoleAccess(authorization,resourceKey,accessAction);}}
+    if(accessRoute){const resourceKey=request.method==='GET'&&accessRoute[1]==='sales'&&['sales-invoice-lines','sales-invoice-withholdings'].includes(accessRoute[2]!)?'sales:invoices':request.method==='GET'&&accessRoute[1]==='purchasing'&&['supplier-invoice-lines','supplier-invoice-withholdings'].includes(accessRoute[2]!)?'purchasing:supplier-invoices':`${accessRoute[1]}:${accessRoute[2]}`;if(isRoleAccessResource(resourceKey)&&!/^\/api\/sales\/invoices\/\d+\/(pdf|email|pdf-line-unification)(?:\?|$)/.test(request.url??'')&&!(request.method==='GET'&&['sales:sales-note-lines','purchasing:supplier-note-lines','inventory:stock-movements'].includes(resourceKey))){
+      const accessAction=genericRouteAction(request.method,resourceKey);
+      if(!accessAction)return error(response,405,'Método no permitido.');
+      const authorization=request.headers.authorization;
+      if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');
+      await assertRoleAccess(authorization,resourceKey,accessAction);
+    }}
     if(request.method==='GET'&&accessUrl.pathname==='/api/core/catalog-access')return json(response,200,await coreDictionaryRpc(request.headers.authorization!,'core_dictionary_access',{p_catalog:accessUrl.searchParams.get('catalog')}));
     if(request.method==='GET'&&accessUrl.pathname==='/api/core/sequence-access')return json(response,200,await numberSequenceRpc(request.headers.authorization!,'number_sequence_access'));
     if(request.method==='GET'&&accessUrl.pathname==='/api/core/transaction-type-access')return json(response,200,await transactionTypeRpc(request.headers.authorization!,'transaction_type_access'));

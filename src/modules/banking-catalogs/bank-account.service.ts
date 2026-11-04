@@ -13,7 +13,7 @@ async function mutate(auth:string,action:Action,name:string,input:Record<string,
   const value=result as {code?:unknown;message?:unknown}|null;
   if(response.status===401)throw Object.assign(new Error('La sesión no es válida.'),{status:401});
   if(response.status===403||value?.code==='42501')throw Object.assign(new Error('No tiene permiso para administrar esta cuenta bancaria.'),{status:403});
-  if(value?.code==='55000')throw Object.assign(new Error(typeof value.message==='string'?value.message:'La cuenta tiene movimientos o saldo.'),{status:409});
+  if(value?.code==='55000')throw Object.assign(new Error('La cuenta tiene movimientos o saldo.'),{status:409});
   if(['22023','22P02'].includes(String(value?.code)))throw Object.assign(new Error('Revise los datos de la cuenta. El saldo se modifica mediante procesos contables.'),{status:400});
   throw Error('No fue posible administrar la cuenta bancaria.');
  }
