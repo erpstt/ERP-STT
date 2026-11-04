@@ -11,6 +11,18 @@ export type ScheduledReport={kind:string;title?:string;dateFrom?:string;data?:Re
 const title=(kind:string)=>kind==='AR'?'Cuentas por Cobrar':'Cuentas por Pagar';
 const money=(value:unknown)=>Number(value||0).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const date=(value:string)=>/^\d{4}-\d{2}-\d{2}$/.test(value)?value.split('-').reverse().join('/'):value;
+const userActions=new Set(['list','save','toggle','delete','preview']);
+type ScheduleAction='view'|'create'|'edit'|'delete';
+function actionFailure(message:string,status=400):never{throw Object.assign(new Error(message),{status});}
+function scheduleId(value:unknown){return(typeof value==='number'&&Number.isSafeInteger(value)&&value>0)||(typeof value==='string'&&/^[1-9][0-9]*$/.test(value)&&Number.isSafeInteger(Number(value))&&Number(value)>0);}
+async function scheduleAccess(authorization:string,action:ScheduleAction,capabilities:boolean){
+ if(!/^Bearer\s+\S+$/i.test(authorization||''))actionFailure('Debe iniciar sesión.',401);
+ const{assertRoleAccess,myRoleAccess}=await import('../security-catalogs/role-access-matrix.module.js');
+ await assertRoleAccess(authorization,'reports:scheduled-reports',action);
+ if(!capabilities)return null;
+ const access=await myRoleAccess(authorization),allowed=(action:ScheduleAction)=>access.isAdmin||access.grants.some(g=>g.resourceKey==='reports:scheduled-reports'&&g.canView===true&&g[`can${action[0].toUpperCase()}${action.slice(1)}`as'canView'|'canCreate'|'canEdit'|'canDelete']===true);
+ return{view:allowed('view'),create:allowed('create'),edit:allowed('edit'),delete:allowed('delete')};
+}
 export function scheduledReportCsv(report:ScheduledReport){
  if(!['AR','AP'].includes(report.kind))return genericReportCsv(report);
  const rows:unknown[][]=[['Sociedad','Moneda','Fecha de corte',report.kind==='AR'?'Cliente':'Proveedor','Documento','Fecha emisión','Vencimiento','Días vencidos','Importe original','Aplicado','Saldo pendiente'],
@@ -27,7 +39,13 @@ export async function scheduledReportFiles(report:ScheduledReport,format:string)
  if(format==='CSV'||format==='BOTH')files.push({fileName:name+'.csv',mimeType:'text/csv',base64:Buffer.from(scheduledReportCsv(report)).toString('base64')});
  if(!files.length)throw Error('Formato de reporte inválido.');return files;
 }
-export async function scheduledReportsAction(authorization:string,action:string,payload:Record<string,unknown>){
+export async function scheduledReportsAction(authorization:string,action:string,payload:Record<string,unknown>={}){
+ if(!userActions.has(action))actionFailure('Acción inválida.');
+ if(!payload||typeof payload!=='object'||Array.isArray(payload))actionFailure('Datos de programación inválidos.');
+ const hasId=Object.hasOwn(payload,'id');
+ if((action==='save'&&hasId||action==='toggle'||action==='delete')&&!scheduleId(payload.id))actionFailure('Programación inválida.');
+ const operation:ScheduleAction=action==='delete'?'delete':action==='toggle'?'edit':action==='save'?hasId?'edit':'create':'view';
+ const permissions=await scheduleAccess(authorization,operation,action==='list');
  if(action==='preview'){
   const data=await rpc('scheduled_report_manage',{p_action:'list',p:{}},authorization);
   const local=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Costa_Rica',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
@@ -36,8 +54,8 @@ export async function scheduledReportsAction(authorization:string,action:string,
   const snapshot=await rpc('scheduled_report_snapshot_v2',{p_sid:data.company.id,p_kind:payload.report,p_cutoff:cutoff.toISOString().slice(0,10),p_options:{...Object(payload.reportOptions),periodMode:payload.periodMode||'YEAR_TO_DATE'}},authorization);
   const files=await scheduledReportFiles(snapshot,payload.format==='CSV'?'CSV':'PDF');return{file:files[0],cutoff:snapshot.cutoff};
  }
- if(!['list','save','toggle','delete'].includes(action))throw Error('Acción inválida.');
- return {...await rpc('scheduled_report_manage',{p_action:action,p:payload},authorization),transport:smtpStatus()};
+ const result=await rpc('scheduled_report_manage',{p_action:action,p:payload},authorization);
+ return {...result,...(action==='list'?{permissions}:{}),transport:smtpStatus()};
 }
 
 type Job={id:string;lease:string;subsidiary_id:number;cutoff:string;recipient:string;configuration:{report_kind:string;format:string;name:string;owner_id?:number;period_mode?:string;report_options?:Record<string,unknown>}};

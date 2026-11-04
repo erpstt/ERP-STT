@@ -8,8 +8,14 @@ function deviceToken(){return localStorage.getItem('nexo_device_token')||session
 function headers(){return{Authorization:`Bearer ${token()}`,'X-Device-Token':deviceToken(),'Content-Type':'application/json'};}
 function escapeHtml(value){return String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));}
 function placeholderToken(value){const text=String(value??'').trim();return text.startsWith('{{')?text:`{{${text}}}`;}
+function can(action){return state.options.permissions?.view===true&&state.options.permissions?.[action]===true;}
+function requireAction(action){if(!can(action))throw Error('El rol activo no tiene permiso para realizar esta acción.');}
 
 async function api(action,payload={}){
+  if(action==='save')requireAction(Object.hasOwn(payload,'id')?'edit':'create');
+  else if(action==='delete')requireAction('delete');
+  else if(action==='save-template')requireAction('edit');
+  else if(!['options','list'].includes(action))throw Error('Acción de configuración tributaria inválida.');
   const response=await fetch(`/api/tax-obligations/${action}`,{method:'POST',headers:headers(),body:JSON.stringify(payload)});
   const raw=await response.text();
   let data={};
@@ -41,7 +47,7 @@ function fillCountries(){
   const remembered=sessionStorage.getItem('nexo_tax_country');
   const selected=state.options.countries.some(country=>String(country.id)===String(remembered))?remembered:String(state.options.countries[0]?.id??'');
   $('countryFilter').value=selected;$('obligationCountry').value=selected;
-  $('newObligation').disabled=!selected||!state.options.permissions.manage;
+  $('newObligation').disabled=!selected||!can('create');
 }
 
 async function loadConfiguration(){
@@ -64,25 +70,30 @@ function renderCatalog(){
     <td>${escapeHtml(frequencyLabels[item.frequency]||item.frequency)}</td>
     <td class="description-cell" title="${escapeHtml(item.description||'')}">${escapeHtml(item.description||'Sin descripción')}</td>
     <td><span class="status-chip ${item.isActive?'active':'inactive'}">${item.isActive?'Activa':'Inactiva'}</span></td>
-    <td><div class="row-actions"><button class="button secondary" type="button" data-edit-obligation="${escapeHtml(item.id)}">${state.options.permissions.manage?'Editar':'Ver'}</button></div></td>
+    <td><div class="row-actions"><button class="button secondary" type="button" data-edit-obligation="${escapeHtml(item.id)}">${can('edit')?'Editar':'Ver'}</button></div></td>
   </tr>`).join('');
 }
 
 function openObligation(id=null){
-  const item=id?state.obligations.find(row=>String(row.id)===String(id)):null;
+  if(!can('view')){setMessage('No tiene permiso para consultar la configuración tributaria.',true);return;}
+  const item=id!==null?state.obligations.find(row=>String(row.id)===String(id)):null;
+  if(id!==null&&!item){setMessage('La obligación tributaria no está disponible.',true);return;}
+  if(!item&&!can('create')){setMessage('El rol activo no tiene permiso para crear obligaciones tributarias.',true);return;}
+  const editable=can(item?'edit':'create');
   state.editing=item||null;$('obligationForm').reset();$('obligationError').textContent='';
-  $('obligationDialogTitle').textContent=item?'Editar obligación':'Nueva obligación';
+  $('obligationDialogTitle').textContent=item?(editable?'Editar obligación':'Ver obligación'):'Nueva obligación';
   $('obligationCountry').value=String(item?.countryId??selectedCountryId()??'');
   $('obligationCode').value=item?.code||'';$('obligationName').value=item?.name||'';
   $('obligationFrequency').value=item?.frequency||'monthly';$('obligationDescription').value=item?.description||'';
-  $('obligationActive').checked=item?Boolean(item.isActive):true;$('requestObligationDelete').hidden=!item||!state.options.permissions.manage;
-  for(const field of $('obligationForm').elements)field.disabled=!state.options.permissions.manage&&field.tagName!=='BUTTON';
-  $('obligationForm').querySelector('[type="submit"]').hidden=!state.options.permissions.manage;
-  $('cancelObligation').textContent=state.options.permissions.manage?'Cancelar':'Cerrar';
+  $('obligationActive').checked=item?Boolean(item.isActive):true;$('requestObligationDelete').hidden=!item||!can('delete');
+  for(const field of $('obligationForm').elements)field.disabled=!editable&&field.tagName!=='BUTTON';
+  $('obligationForm').querySelector('[type="submit"]').hidden=!editable;
+  $('cancelObligation').textContent=editable?'Cancelar':'Cerrar';
   $('obligationDialog').showModal();
 }
 async function saveObligation(){
-  const payload={id:state.editing?.id||undefined,countryId:Number($('obligationCountry').value),code:$('obligationCode').value.trim().toUpperCase(),name:$('obligationName').value.trim(),frequency:$('obligationFrequency').value,description:$('obligationDescription').value.trim()||null,isActive:$('obligationActive').checked};
+  requireAction(state.editing?'edit':'create');
+  const payload={...(state.editing?{id:state.editing.id}:{}),countryId:Number($('obligationCountry').value),code:$('obligationCode').value.trim().toUpperCase(),name:$('obligationName').value.trim(),frequency:$('obligationFrequency').value,description:$('obligationDescription').value.trim()||null,isActive:$('obligationActive').checked};
   if(!payload.countryId||!payload.code||!payload.name)throw Error('Complete el país, el código y el nombre de la obligación.');
   await api('save',payload);$('obligationDialog').close();state.editing=null;
   if(String(payload.countryId)!==String(selectedCountryId())){$('countryFilter').value=String(payload.countryId);sessionStorage.setItem('nexo_tax_country',String(payload.countryId));}
@@ -119,6 +130,7 @@ function insertPlaceholder(value){
   updatePreview();
 }
 async function saveTemplate(){
+  requireAction('edit');
   const payload={countryId:selectedCountryId(),kind:$('templateKind').value,subjectTemplate:$('templateSubject').value.trim(),bodyTemplate:$('templateBody').value.trim(),isActive:$('templateActive').checked};
   if(!payload.countryId)throw Error('Seleccione un país.');
   if(payload.subjectTemplate.length<3||payload.bodyTemplate.length<10)throw Error('Complete el asunto y el mensaje de la plantilla.');
@@ -134,7 +146,7 @@ $('newObligation').onclick=()=>openObligation();
 $('obligationRows').onclick=event=>{const button=event.target.closest('[data-edit-obligation]');if(button)openObligation(button.dataset.editObligation);};
 $('obligationForm').onsubmit=event=>{event.preventDefault();void perform(saveObligation,{success:'Obligación tributaria guardada.',errorTarget:'obligationError'}).catch(()=>{});};
 for(const id of ['closeObligation','cancelObligation'])$(id).onclick=()=>{if(!state.busy)$('obligationDialog').close();};
-$('requestObligationDelete').onclick=()=>{$('deleteObligationText').textContent=`Se eliminará “${state.editing?.name||'esta obligación'}” del catálogo de ${state.editing?.countryName||selectedCountryName()}.`;$('deleteObligationError').textContent='';$('deleteObligationDialog').showModal();};
+$('requestObligationDelete').onclick=()=>{if(!can('delete')||!state.editing){setMessage('El rol activo no tiene permiso para eliminar obligaciones tributarias.',true);return;}$('deleteObligationText').textContent=`Se eliminará “${state.editing?.name||'esta obligación'}” del catálogo de ${state.editing?.countryName||selectedCountryName()}.`;$('deleteObligationError').textContent='';$('deleteObligationDialog').showModal();};
 $('cancelObligationDelete').onclick=()=>{if(!state.busy)$('deleteObligationDialog').close();};
 $('confirmObligationDelete').onclick=()=>void perform(async()=>{await api('delete',{id:state.editing.id});$('deleteObligationDialog').close();$('obligationDialog').close();state.editing=null;await loadConfiguration();},{success:'Obligación eliminada.',errorTarget:'deleteObligationError'}).catch(()=>{});
 
@@ -154,8 +166,8 @@ async function initialize(){
     if(!state.options.permissions?.view)throw Error('No tiene permiso para consultar la configuración tributaria.');
     fillCountries();renderPlaceholders();
     if(!state.options.countries?.length)throw Error('No hay países disponibles para configurar obligaciones tributarias.');
-    $('workspace').hidden=false;$('accessDenied').hidden=true;$('newObligation').hidden=!state.options.permissions.manage;
-    if(!state.options.permissions.manage){$('saveTemplate').hidden=true;$('templateActive').disabled=true;$('templateSubject').readOnly=true;$('templateBody').readOnly=true;$('placeholderList').hidden=true;}
+    $('workspace').hidden=false;$('accessDenied').hidden=true;$('newObligation').hidden=!can('create');
+    if(!can('edit')){$('saveTemplate').hidden=true;$('templateActive').disabled=true;$('templateSubject').readOnly=true;$('templateBody').readOnly=true;$('placeholderList').hidden=true;}
     await loadConfiguration();
   }catch(cause){$('workspace').hidden=true;$('accessDenied').hidden=false;$('accessDenied').querySelector('p').textContent=cause instanceof Error?cause.message:'No fue posible abrir la configuración tributaria.';}
   finally{$('taxObligationsApp').setAttribute('aria-busy','false');}

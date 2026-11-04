@@ -138,7 +138,8 @@
     "test:isolated-bank-statement-db": "npm run build && node --test --test-concurrency=1 scripts/bank-statement-active-subsidiary-rls-db.test.mjs",
     "test:repair-configuration-operator-guards": "npm run build && node --test --test-concurrency=1 scripts/repair-configuration-operator-guards.test.mjs",
     "test:configured-report-operator-guards": "npm run build && node --test --test-concurrency=1 scripts/configured-report-operator-guards.test.mjs",
-    "test:remaining-configuration-operator-guards": "npm run build && node --test --test-concurrency=1 scripts/remaining-configuration-operator-guards.test.mjs"
+    "test:remaining-configuration-operator-guards": "npm run build && node --test --test-concurrency=1 scripts/remaining-configuration-operator-guards.test.mjs",
+    "test:tax-schedule-access-security": "npm run build && node --test --test-concurrency=1 scripts/tax-schedule-access-api-security.test.mjs scripts/tax-schedule-access-ui-security.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
