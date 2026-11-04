@@ -1,170 +1,160 @@
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
-import pg from 'pg';
+import {test} from 'node:test';
+import {assertIsolatedTestArgs} from './lib/migration-preview.mjs';
+import {isolatedPasswordNotificationDatabase} from './fixtures/isolated-password-notification-test.mjs';
 
-process.loadEnvFile?.('.env');
-const projectRef=new URL(process.env.SUPABASE_URL).hostname.split('.')[0];
-const db=new pg.Client({
-  host:process.env.SUPABASE_DB_HOST||'aws-0-us-east-1.pooler.supabase.com',
-  port:Number(process.env.SUPABASE_DB_PORT||6543),
-  database:process.env.SUPABASE_DB_NAME||'postgres',
-  user:process.env.SUPABASE_DB_USER||`postgres.${projectRef}`,
-  password:process.env.SUPABASE_DB_PASSWORD||process.env.PGPASSWORD,
-  ssl:{rejectUnauthorized:false},
-  connectionTimeoutMillis:15_000
-});
-const migrations=await Promise.all([
-  '20261027153000_user_edit_password_notification.sql',
-  '20261029100000_admin_global_user_password_recovery.sql'
-].map(file=>readFile(new URL(`../supabase/migrations/${file}`,import.meta.url),'utf8')));
+assertIsolatedTestArgs();
 
-await db.connect();
-try{
-  await db.query('begin');
-  await db.query("set local lock_timeout='5s';set local statement_timeout='60s'");
-  for(const migration of migrations)await db.query(migration);
-  let savepointCounter=0;
-  const expectSqlError=async(work,code)=>{
-    const savepoint=`expected_error_${++savepointCounter}`;
-    await db.query(`savepoint ${savepoint}`);
-    try{await work();assert.fail(`Se esperaba el error SQL ${code}.`);}
-    catch(error){await db.query(`rollback to savepoint ${savepoint}`);assert.equal(error?.code,code);}
-    finally{await db.query(`release savepoint ${savepoint}`);}
-  };
+// In-memory PostgreSQL only. This entry point never loads .env or creates a
+// database, Auth, HTTP or SMTP client, regardless of its parent's environment.
+const db=await isolatedPasswordNotificationDatabase();
+test.after(()=>db.close());
+const rows=async(sql,params=[])=>(await db.query(sql,params)).rows;
+const value=async(sql,params=[])=>(await rows(sql,params))[0]?.value;
+const prepare=id=>value('select public.security_prepare_user_password_recovery($1) value',[id]);
+const audit=(target=2,sid=1,result='ENVIADO',actor=4)=>value(
+ 'select public.security_audit_user_password_notification($1,$2,$3,$4) value',[actor,target,sid,result]);
 
-  const admin=(await db.query(`
-    select account.user_id,account.auth_user_id,account.email,role.role_id,scope.subsidiary_id
-    from public.users account
-    join public.user_roles membership using(user_id)
-    join public.roles role using(role_id)
-    join public.user_subsidiaries scope using(user_id)
-    join public.subsidiaries subsidiary using(subsidiary_id)
-    where account.is_active and account.auth_user_id is not null and subsidiary.is_active
-      and lower(role.role_name)in('administrador','administrator','admin')
-    order by account.user_id,scope.subsidiary_id limit 1`)).rows[0];
-  assert.ok(admin,'Se requiere un administrador activo con subsidiaria.');
-
-  const suffix=`${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
-  const target=(await db.query(`
-    insert into public.users(email,password_hash,auth_user_id,first_name,last_name,is_active)
-    values($1,'test-only',gen_random_uuid(),'Usuario','Recuperación',true)
-    returning user_id,email`,[`recovery-target-${suffix}@example.test`])).rows[0];
-  await db.query('insert into public.user_subsidiaries(user_id,subsidiary_id)values($1,$2)',[target.user_id,admin.subsidiary_id]);
-  const sessionId=`recovery-db-${suffix}`;
-  await db.query('insert into public.user_company_sessions(session_id,user_id,subsidiary_id)values($1,$2,$3)',[sessionId,admin.user_id,admin.subsidiary_id]);
-  await db.query('insert into public.user_role_sessions(session_id,user_id,role_id)values($1,$2,$3)',[sessionId,admin.user_id,admin.role_id]);
-  await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({sub:admin.auth_user_id,email:admin.email,session_id:sessionId,role:'authenticated'})]);
-
-  let prepared=(await db.query('select public.security_prepare_user_password_recovery($1) value',[target.user_id])).rows[0].value;
-  assert.equal(String(prepared.user_id),String(target.user_id));
-  assert.equal(String(prepared.actor_user_id),String(admin.user_id));
-  assert.equal(String(prepared.subsidiary_id),String(admin.subsidiary_id));
-  assert.equal(prepared.email,target.email);
-  assert.equal(Object.hasOwn(prepared,'auth_user_id'),false);
-  assert.equal(prepared.authorization_scope,'SUBSIDIARY');
-
-  const delivery=(await db.query("select public.user_password_recovery_email_settings('delivery','{}'::jsonb) value")).rows[0].value;
-  assert.equal(delivery.template.tipo_notificacion,'USUARIO_RECUPERACION');
-  assert.match(delivery.template.asunto_template,/Recupera tu acceso/);
-  assert.doesNotMatch(delivery.template.cuerpo_template,/Se creó una cuenta/);
-
-  await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({role:'service_role'})]);
-  await db.query(
-    'select public.security_audit_user_password_notification($1,$2,$3,$4)',
-    [admin.user_id,target.user_id,admin.subsidiary_id,'ENVIADO']
-  );
-  assert.equal((await db.query(`select count(*)::int count from public.activity_log
-    where user_id=$1 and activity_type='ENVIO_RECUPERACION_USUARIO_ENVIADO'
-      and path_accessed like $2`,[admin.user_id,`security/users/${target.user_id}/password-recovery%`])).rows[0].count,1);
-
-  // El Administrador activo puede recuperar a un usuario activo que no
-  // pertenece a la subsidiaria seleccionada. El alcance queda en auditoria.
-  const globalTarget=(await db.query(`
-    insert into public.users(email,password_hash,auth_user_id,first_name,last_name,is_active)
-    values($1,'test-only',gen_random_uuid(),'Usuario','Global',true)
-    returning user_id,email`,[`recovery-global-${suffix}@example.test`])).rows[0];
-  await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({sub:admin.auth_user_id,email:admin.email,session_id:sessionId,role:'authenticated'})]);
-  prepared=(await db.query('select public.security_prepare_user_password_recovery($1) value',[globalTarget.user_id])).rows[0].value;
-  assert.equal(String(prepared.user_id),String(globalTarget.user_id));
-  assert.equal(prepared.authorization_scope,'GLOBAL_ADMIN');
-  assert.equal(String(prepared.subsidiary_id),String(admin.subsidiary_id));
-
-  await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({role:'service_role'})]);
-  await db.query(
-    'select public.security_audit_user_password_notification($1,$2,$3,$4)',
-    [admin.user_id,globalTarget.user_id,admin.subsidiary_id,'ENVIADO']
-  );
-  const globalAudit=(await db.query(`select path_accessed from public.activity_log
-    where user_id=$1 and activity_type='ENVIO_RECUPERACION_USUARIO_ENVIADO'
-      and path_accessed like $2 order by "timestamp" desc limit 1`,
-    [admin.user_id,`security/users/${globalTarget.user_id}/password-recovery%`])).rows[0];
-  assert.match(globalAudit.path_accessed,/scope=global_admin$/);
-
-  // El RPC de auditoria no acepta combinaciones actor/objetivo que no fueron
-  // previamente autorizadas por la RPC actor-scoped.
-  await expectSqlError(
-    ()=>db.query('select public.security_audit_user_password_notification($1,$2,$3,$4)',[admin.user_id,globalTarget.user_id+1000000,admin.subsidiary_id,'ENVIADO']),
-    '22023'
-  );
-
-  const emailHash='a'.repeat(64),firstState='b'.repeat(64),secondState='c'.repeat(64);
-  await db.query(`insert into public.password_recovery_grants(email_hash,state_hash,expires_at)
-    values($1,$2,clock_timestamp()+interval '30 minutes'),($1,$3,clock_timestamp()+interval '30 minutes')`,
-    [emailHash,firstState,secondState]);
-  assert.equal((await db.query('select public.consume_password_recovery_grant($1,$2) consumed',[firstState,emailHash])).rows[0].consumed,true);
-  assert.equal((await db.query(`select count(*)::int count from public.password_recovery_grants
-    where email_hash=$1 and consumed_at is not null`,[emailHash])).rows[0].count,2);
-  assert.equal((await db.query('select public.consume_password_recovery_grant($1,$2) consumed',[secondState,emailHash])).rows[0].consumed,false);
-
-  await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({sub:admin.auth_user_id,email:admin.email,session_id:sessionId,role:'authenticated'})]);
-  await expectSqlError(
-    ()=>db.query('select public.security_audit_user_password_notification($1,$2,$3,$4)',[admin.user_id,target.user_id,admin.subsidiary_id,'ENVIADO']),
-    '42501'
-  );
-
-  await db.query('update public.users set is_active=false where user_id=$1',[globalTarget.user_id]);
-  await expectSqlError(()=>db.query('select public.security_prepare_user_password_recovery($1)',[globalTarget.user_id]),'22023');
-  await db.query('update public.users set is_active=true where user_id=$1',[globalTarget.user_id]);
-
-  // Un rol delegado con security:users.edit puede trabajar dentro de la
-  // subsidiaria, pero no hereda el alcance global del Administrador.
-  const delegatedRole=(await db.query(`insert into public.roles(role_name,description,is_system_role)
-    values($1,'Prueba edicion de usuarios por subsidiaria',false)returning role_id`,[`RECOVERY_SCOPED_EDIT_${suffix}`])).rows[0];
-  await db.query('insert into public.user_roles(user_id,role_id)values($1,$2)',[admin.user_id,delegatedRole.role_id]);
-  await db.query(`insert into public.role_access_matrix(role_id,resource_key,can_view,can_create,can_edit,can_delete)
-    values($1,'security:users',true,false,true,false)`,[delegatedRole.role_id]);
-  await db.query('update public.user_role_sessions set role_id=$1 where session_id=$2',[delegatedRole.role_id,sessionId]);
-  prepared=(await db.query('select public.security_prepare_user_password_recovery($1) value',[target.user_id])).rows[0].value;
-  assert.equal(prepared.authorization_scope,'SUBSIDIARY');
-  await expectSqlError(()=>db.query('select public.security_prepare_user_password_recovery($1)',[globalTarget.user_id]),'22023');
-
-  const restrictedRole=(await db.query(`insert into public.roles(role_name,description,is_system_role)
-    values($1,'Prueba sin permiso de edición',false)returning role_id`,[`RECOVERY_NO_EDIT_${suffix}`])).rows[0];
-  await db.query('insert into public.user_roles(user_id,role_id)values($1,$2)',[admin.user_id,restrictedRole.role_id]);
-  await db.query('update public.user_role_sessions set role_id=$1 where session_id=$2',[restrictedRole.role_id,sessionId]);
-  await expectSqlError(()=>db.query('select public.security_prepare_user_password_recovery($1)',[target.user_id]),'42501');
-
-  const privileges=(await db.query(`select
-    has_function_privilege('anon','public.security_prepare_user_password_recovery(bigint)','execute') anon_prepare,
-    has_function_privilege('anon','public.user_password_recovery_email_settings(text,jsonb)','execute') anon_template,
-    has_function_privilege('authenticated','public.security_prepare_user_password_recovery(bigint)','execute') authenticated_prepare,
-    has_function_privilege('authenticated','public.security_audit_user_password_notification(bigint,bigint,bigint,text)','execute') authenticated_audit,
-    has_function_privilege('service_role','public.security_audit_user_password_notification(bigint,bigint,bigint,text)','execute') service_audit,
-    has_function_privilege('authenticated','public.consume_password_recovery_grant(text,text)','execute') authenticated_consume,
-    has_function_privilege('service_role','public.consume_password_recovery_grant(text,text)','execute') service_consume`)).rows[0];
-  assert.deepEqual(privileges,{
-    anon_prepare:false,anon_template:false,authenticated_prepare:true,
-    authenticated_audit:false,service_audit:true,
-    authenticated_consume:false,service_consume:true
-  });
-
-  console.log(JSON.stringify({
-    migration:true,rollback:true,editPermission:true,subsidiaryScope:true,globalAdministratorScope:true,
-    inactiveRejected:true,authIdNotExposed:true,recoveryTemplate:true,audit:true,
-    globalScopeAudited:true,auditRequiresPreparedRequest:true,
-    allConcurrentLinksConsumed:true,serviceOnlyAudit:true
-  }));
-}finally{
-  await db.query('rollback').catch(()=>undefined);
-  await db.end();
+async function reset(t){
+ await db.exec('begin');
+ t.after(()=>db.exec('rollback'));
 }
+async function actor(user=4,role=5,sid=1){
+ await db.exec('reset role');
+ await db.query("insert into user_role_sessions values('password-synthetic',$1,$2) on conflict(session_id) do update set user_id=excluded.user_id,role_id=excluded.role_id",[user,role]);
+ await db.query("insert into user_company_sessions values('password-synthetic',$1,$2) on conflict(session_id) do update set user_id=excluded.user_id,subsidiary_id=excluded.subsidiary_id",[user,sid]);
+ await db.query("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({
+  sub:'00000000-0000-0000-0000-'+String(user).padStart(12,'0'),
+  session_id:'password-synthetic',role:'authenticated'
+ })]);
+ await db.exec('set role authenticated');
+}
+async function service(){
+ await db.exec('reset role');
+ await db.query("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({role:'service_role'})]);
+ await db.exec('set role service_role');
+}
+async function denied(work,code='42501'){
+ await db.exec('savepoint expected_denial');
+ try{await assert.rejects(work,error=>error?.code===code);}
+ finally{await db.exec('rollback to expected_denial;release expected_denial');}
+}
+
+test('central administrator prepares subsidiary/global recovery without disclosing Auth identity or granting membership',async t=>{
+ await reset(t);await actor();
+ const scoped=await prepare(2);
+ assert.deepEqual(scoped,{
+  actor_user_id:4,subsidiary_id:1,authorization_scope:'SUBSIDIARY',user_id:2,
+  email:'synthetic-2@example.invalid',first_name:'Synthetic',last_name:'User'
+ });
+ const global=await prepare(100);
+ assert.equal(global.authorization_scope,'GLOBAL_ADMIN');
+ assert.equal(global.user_id,100);assert.equal(global.actor_user_id,4);assert.equal(global.subsidiary_id,1);
+ assert.equal(global.email,'global-password@example.invalid');
+ assert.ok(!('auth_user_id' in scoped)&&!('auth_user_id' in global));
+ await db.exec('reset role');
+ assert.equal(await value('select count(*)::int value from user_subsidiaries where user_id=100'),0);
+ assert.equal(await value('select count(*)::int value from user_roles where user_id=100'),0);
+ const paths=await rows("select path_accessed from activity_log where activity_type='SOLICITUD_RECUPERACION_USUARIO' order by path_accessed");
+ assert.deepEqual(paths.map(row=>row.path_accessed).sort(),[
+  'security/users/100/password-recovery?subsidiary=1&scope=global_admin',
+  'security/users/2/password-recovery?subsidiary=1&scope=subsidiary'
+ ].sort());
+});
+
+test('delegated edit permission stays within the active subsidiary and cannot recover an administrator',async t=>{
+ await reset(t);await actor(1,1);
+ const scoped=await prepare(2);assert.equal(scoped.authorization_scope,'SUBSIDIARY');assert.equal(scoped.actor_user_id,1);
+ for(const target of[100,101,4])await denied(()=>prepare(target));
+ await actor(1,1,2);assert.equal((await prepare(101)).authorization_scope,'SUBSIDIARY');
+ await denied(()=>prepare(3));
+ await db.exec('reset role');
+ assert.equal(await value("select count(*)::int value from activity_log where activity_type='SOLICITUD_RECUPERACION_USUARIO'"),2);
+});
+
+test('view-only, unassigned role, missing company context and inactive actors/targets are denied',async t=>{
+ await reset(t);await actor(1,3);await denied(()=>prepare(2));
+ await actor(1,5);await denied(()=>prepare(2));
+ await actor(1,1,999);await denied(()=>prepare(2));
+ await actor();await denied(()=>prepare(102),'22023');await denied(()=>prepare(9999),'22023');
+ await db.exec('reset role');await db.exec('update users set is_active=false where user_id=4');
+ await actor();await denied(()=>prepare(2));
+ await db.exec('reset role');
+ assert.equal(await value("select count(*)::int value from activity_log where activity_type='SOLICITUD_RECUPERACION_USUARIO'"),0);
+});
+
+test('delivery uses the recovery template and obeys editing permission',async t=>{
+ await reset(t);await actor();
+ const delivery=await value("select user_password_recovery_email_settings('delivery','{}'::jsonb) value");
+ assert.equal(delivery.template.tipo_notificacion,'USUARIO_RECUPERACION');
+ assert.match(delivery.template.asunto_template,/Recupera tu acceso/);
+ assert.doesNotMatch(delivery.template.cuerpo_template,/Se creó una cuenta/);
+ assert.equal(delivery.subsidiary.id,1);
+ assert.ok(delivery.variables.includes('enlace_recuperacion'));
+ await actor(1,1);
+ assert.equal((await value("select user_password_recovery_email_settings('delivery','{}'::jsonb) value")).template.id_subsidiaria,1);
+ await denied(()=>value("select user_password_recovery_email_settings('save',$1) value",[{subject:'Denied',body:'Denied',active:true}]));
+ await actor(1,3);await denied(()=>value("select user_password_recovery_email_settings('delivery','{}'::jsonb) value"));
+});
+
+test('service auditing binds results to a prepared request, retaining its authorized scope',async t=>{
+ await reset(t);await actor();await prepare(2);await prepare(100);
+ await denied(()=>audit());
+ await service();assert.equal(await audit(),true);assert.equal(await audit(100,1,'ENVIADO_CON_ADVERTENCIA'),true);
+ await denied(()=>audit(101),'22023'); // Existing synthetic target, but no prepared request.
+ await denied(()=>audit(2,2),'22023');
+ await denied(()=>audit(2,1,'INVALID'),'22023');
+ await db.exec('reset role');
+ const events=await rows("select user_id,activity_type,path_accessed from activity_log where activity_type like 'ENVIO_RECUPERACION_USUARIO_%' order by activity_type");
+ assert.deepEqual(events,[
+  {user_id:4,activity_type:'ENVIO_RECUPERACION_USUARIO_ENVIADO',path_accessed:'security/users/2/password-recovery?subsidiary=1&scope=subsidiary'},
+  {user_id:4,activity_type:'ENVIO_RECUPERACION_USUARIO_ENVIADO_CON_ADVERTENCIA',path_accessed:'security/users/100/password-recovery?subsidiary=1&scope=global_admin'}
+ ]);
+ assert.ok(events.every(row=>!/(?:token|password=|https?:)/i.test(row.path_accessed)));
+});
+
+test('rate limits and expired authorization prevent additional recovery work',async t=>{
+ await reset(t);await actor();
+ for(let count=0;count<3;count++)await prepare(2);
+ await denied(()=>prepare(2),'22023');
+ await db.exec('reset role');
+ await db.exec("update activity_log set timestamp=clock_timestamp()-interval '2 hours'");
+ await service();await denied(()=>audit(),'22023');
+ await db.exec('reset role');
+ await db.exec("insert into activity_log(user_id,activity_type,path_accessed) select 4,'SOLICITUD_RECUPERACION_USUARIO','synthetic-limit/'||n from generate_series(1,10)n");
+ await actor();await denied(()=>prepare(100),'22023');
+});
+
+test('consuming a recovery grant invalidates every open link for that email and rejects replay/expiry/mismatch',async t=>{
+ await reset(t);
+ const email='a'.repeat(64),otherEmail='d'.repeat(64),first='b'.repeat(64),second='c'.repeat(64),expired='e'.repeat(64),otherState='f'.repeat(64);
+ await db.query("insert into password_recovery_grants(email_hash,state_hash,expires_at) values($1,$2,clock_timestamp()+interval '30 minutes'),($1,$3,clock_timestamp()+interval '30 minutes'),($4,$5,clock_timestamp()+interval '30 minutes')",[email,first,second,otherEmail,otherState]);
+ await db.query("insert into password_recovery_grants(email_hash,state_hash,created_at,expires_at) values($1,$2,clock_timestamp()-interval '2 hours',clock_timestamp()-interval '1 hour')",[otherEmail,expired]);
+ await actor();await denied(()=>value('select consume_password_recovery_grant($1,$2) value',[first,email]));
+ await service();
+ const consume=(state,mail)=>value('select consume_password_recovery_grant($1,$2) value',[state,mail]);
+ assert.equal(await consume('invalid',email),false);assert.equal(await consume(first,otherEmail),false);assert.equal(await consume(expired,otherEmail),false);
+ assert.equal(await consume(first,email),true);assert.equal(await consume(first,email),false);assert.equal(await consume(second,email),false);
+ assert.equal(await value('select count(*)::int value from password_recovery_grants where email_hash=$1 and consumed_at is not null',[email]),2);
+ assert.equal(await value('select count(*)::int value from password_recovery_grants where email_hash=$1 and consumed_at is null',[otherEmail]),2);
+});
+
+test('RPC grants and recovery-state storage deny public clients and reserve consumption/audit for service_role',async t=>{
+ await reset(t);
+ const privileges=await rows(`select role_name,
+  has_function_privilege(role_name,'public.security_prepare_user_password_recovery(bigint)','EXECUTE') prepare,
+  has_function_privilege(role_name,'public.user_password_recovery_email_settings(text,jsonb)','EXECUTE') template,
+  has_function_privilege(role_name,'public.security_audit_user_password_notification(bigint,bigint,bigint,text)','EXECUTE') audit,
+  has_function_privilege(role_name,'public.consume_password_recovery_grant(text,text)','EXECUTE') consume
+  from(values('anon'),('authenticated'),('service_role')) roles(role_name) order by role_name`);
+ assert.deepEqual(privileges,[
+  {role_name:'anon',prepare:false,template:false,audit:false,consume:false},
+  {role_name:'authenticated',prepare:true,template:true,audit:false,consume:false},
+  {role_name:'service_role',prepare:false,template:false,audit:true,consume:true}
+ ]);
+ for(const role of['anon','authenticated']){
+  await db.exec('reset role');await db.exec('set role '+role);
+  await denied(()=>rows('select * from password_recovery_grants'));
+  await denied(()=>rows("insert into password_recovery_grants(email_hash,state_hash,expires_at) values(repeat('a',64),repeat('b',64),clock_timestamp()+interval '1 hour')"));
+ }
+});

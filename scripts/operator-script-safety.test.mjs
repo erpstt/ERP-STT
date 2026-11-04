@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {createHash} from 'node:crypto';
 import {spawn} from 'node:child_process';
-import {mkdir,mkdtemp,writeFile,rm,symlink,truncate,realpath,lstat} from 'node:fs/promises';
+import {mkdir,mkdtemp,writeFile,readFile,rm,symlink,truncate,realpath,lstat} from 'node:fs/promises';
 import {join,resolve,relative,isAbsolute,basename,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createMigrationPreview,assertIsolatedTestArgs} from './lib/migration-preview.mjs';
@@ -13,6 +13,12 @@ const preloader=new URL('./fixtures/operator-no-live-io.mjs',import.meta.url).hr
 const name='20260101000000_synthetic_preview.sql',second='20260101000001_synthetic_second.sql';
 const config={entrypoint:'scripts/operator-fixture.mjs',defaultFiles:[name],allowFileArgument:true};
 const canary='SYNTHETIC-P82-DO-NOT-PRINT';
+const fixedOperatorCases=[
+  {file:'apply-auth-bootstrap.mjs',alias:'auth-bootstrap',migration:'20261029200000_auth_bootstrap_context.sql'},
+  {file:'apply-request-access-role-context.mjs',alias:'request-access-context',migration:'20261029220000_assert_request_access_role_context.sql'},
+  {file:'apply-accounting-options-bundle.mjs',alias:'accounting-options',migration:'20261029210000_accounting_report_options_bundle.sql'}
+];
+const operatorFiles=['apply-audit-migration.mjs','apply-audit-change-report.mjs','apply-migration.mjs',...fixedOperatorCases.map(item=>item.file)];
 function insideDirectory(parent,target){const path=relative(parent,target);return path!==''&&path!=='..'&&!path.startsWith('..'+sep)&&!isAbsolute(path);}
 async function fixtureDirectory(workspace,parent,name){
   const canonicalParent=await realpath(parent);
@@ -118,14 +124,41 @@ test('tripwire detects caught environment, credential, client-import and network
   const f=await fixture(t);await writeFile(join(f.directory,'.env'),'SUPABASE_DB_PASSWORD='+canary+'\n');
   for(const code of ["try{process.loadEnvFile('.env')}catch{}","try{process.env.SUPABASE_DB_PASSWORD}catch{}","try{await import('pg')}catch{}","try{await fetch('https://synthetic.invalid')}catch{}","try{(await import('node:fs')).readFileSync('.env')}catch{}","try{await(await import('node:fs/promises')).readFile('.env')}catch{}"]){const result=await child(['--input-type=module','-e',code],f.directory);assert.equal(result.code,86);assert.match(result.error,/OPERATOR_GUARD_FORBIDDEN:/);assert.ok(!result.error.includes(canary));}
 });
-test('all three real CLI entrypoints preview without environment, DB clients or network',async t=>{
+test('all six real CLI entrypoints preview without environment, DB clients or network',async t=>{
   const f=await fixture(t);await writeFile(join(f.directory,'.env'),'SUPABASE_DB_PASSWORD='+canary+'\n');
-  for(const [file,args,count]of [['apply-audit-migration.mjs',[],1],['apply-audit-change-report.mjs',['--dry-run'],3],['apply-migration.mjs',['20261104031255_contain_raw_audit_catalog_reads.sql'],1]]){
+  for(const [file,args,count]of [['apply-audit-migration.mjs',[],1],['apply-audit-change-report.mjs',['--dry-run'],3],['apply-migration.mjs',['20261104031255_contain_raw_audit_catalog_reads.sql'],1],...fixedOperatorCases.map(item=>[item.file,[],1])]){
     const result=await child([join(repository,'scripts',file),...args],f.directory);assert.equal(result.code,0,result.error);safeOutput(result);const plan=JSON.parse(result.output);assert.equal(plan.mode,'preview');assert.equal(plan.files.length,count);assert.equal(plan.opensConnections,false);assert.equal(plan.loadsEnvironment,false);assert.equal(plan.appliesSql,false);
+    assert.equal(plan.entrypoint,'scripts/'+file);assert.equal(plan.executionSupported,false);
+    const fixed=fixedOperatorCases.find(item=>item.file===file);if(fixed)assert.equal(plan.files[0].name,fixed.migration);
   }
 });
 test('real CLI rejects execution, target/secret flags and outside paths without leaking arguments',async t=>{
-  const f=await fixture(t),files=['apply-audit-migration.mjs','apply-audit-change-report.mjs','apply-migration.mjs'];
-  for(const file of files)for(const args of [['--apply','--project-ref='+canary],['--password='+canary]]){const result=await child([join(repository,'scripts',file),...args],f.directory);assert.equal(result.code,2);safeOutput(result);const failure=JSON.parse(result.error);assert.equal(failure.mode,'blocked');assert.equal(failure.code,args[0]==='--apply'?'APPLY_DISABLED':'INVALID_ARGUMENTS');assert.equal(failure.opensConnections,false);}
+  const f=await fixture(t);
+  for(const file of operatorFiles)for(const args of [['--apply','--project-ref='+canary],['--help','--apply'],['--dry-run','--apply'],['--password='+canary]]){const result=await child([join(repository,'scripts',file),...args],f.directory);assert.equal(result.code,2);safeOutput(result);const failure=JSON.parse(result.error);assert.equal(failure.mode,'blocked');assert.equal(failure.code,args.includes('--apply')?'APPLY_DISABLED':'INVALID_ARGUMENTS');assert.equal(failure.opensConnections,false);assert.equal(failure.loadsEnvironment,false);assert.equal(failure.appliesSql,false);}
   const result=await child([join(repository,'scripts/apply-migration.mjs'),join(f.directory,name)],f.directory);assert.equal(result.code,2);safeOutput(result);assert.equal(JSON.parse(result.error).code,'INVALID_MIGRATION_PATH');
+});
+test('fixed operator wrappers support help and dry-run while rejecting file overrides and repeated options',async t=>{
+  const f=await fixture(t);await writeFile(join(f.directory,'.env'),'SUPABASE_DB_PASSWORD='+canary+'\n');
+  for(const {file,migration}of fixedOperatorCases){
+    for(const flag of ['--help','-h','--dry-run']){
+      const result=await child([join(repository,'scripts',file),flag],f.directory);assert.equal(result.code,0,result.error);safeOutput(result);
+      const plan=JSON.parse(result.output);assert.equal(plan.mode,flag==='--dry-run'?'preview':'help');assert.equal(plan.executionSupported,false);assert.equal(plan.opensConnections,false);assert.equal(plan.loadsEnvironment,false);assert.equal(plan.appliesSql,false);
+      assert.deepEqual(plan.files.map(item=>item.name),flag==='--dry-run'?[migration]:[]);
+    }
+    for(const args of [[migration],[name],[join(f.directory,name)],['--dry-run','--dry-run'],['--help','-h']]){
+      const result=await child([join(repository,'scripts',file),...args],f.directory);assert.equal(result.code,2);safeOutput(result);assert.equal(JSON.parse(result.error).code,'INVALID_ARGUMENTS');
+    }
+  }
+});
+test('all six npm check/apply aliases resolve to guarded preview-only CLI contracts',async t=>{
+  const f=await fixture(t);await writeFile(join(f.directory,'.env'),'SUPABASE_DB_PASSWORD='+canary+'\n');
+  const {scripts}=JSON.parse(await readFile(join(repository,'package.json'),'utf8'));
+  for(const {file,alias,migration}of fixedOperatorCases)for(const mode of ['check','apply']){
+    const args=mode==='apply'?['--apply']:[],command='node scripts/'+file+(args.length?' --apply':'');
+    // Resolve each declared npm alias without invoking npm lifecycle hooks or inheriting its environment.
+    assert.equal(scripts['db:'+alias+':'+mode],command);
+    const result=await child([join(repository,'scripts',file),...args],f.directory);assert.equal(result.code,mode==='check'?0:2,result.error);safeOutput(result);
+    const plan=JSON.parse(mode==='check'?result.output:result.error);assert.equal(plan.mode,mode==='check'?'preview':'blocked');assert.equal(plan.opensConnections,false);assert.equal(plan.loadsEnvironment,false);assert.equal(plan.appliesSql,false);
+    if(mode==='check')assert.deepEqual(plan.files.map(item=>item.name),[migration]);else assert.equal(plan.code,'APPLY_DISABLED');
+  }
 });
