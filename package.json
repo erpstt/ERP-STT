@@ -100,7 +100,8 @@
     "test:purchase-legacy-security": "npm run build && node --test scripts/purchase-legacy-sql-security.test.mjs scripts/purchase-legacy-api-security.test.mjs scripts/purchase-legacy-ui-security.test.mjs",
     "test:audit-raw-security": "npm run build && node --test scripts/audit-raw-sql-security.test.mjs scripts/audit-raw-api-security.test.mjs scripts/audit-raw-ui-security.test.mjs",
     "test:operator-script-safety": "npm run build && node --test scripts/operator-script-safety.test.mjs scripts/audit-secret-redaction-db.test.mjs scripts/verify-audit.mjs scripts/test-audit-change-report-http.mjs",
-    "test:auth-operator-script-safety": "npm run build && node --test scripts/operator-script-safety.test.mjs scripts/user-edit-password-notification-db.test.mjs"
+    "test:auth-operator-script-safety": "npm run build && node --test scripts/operator-script-safety.test.mjs scripts/user-edit-password-notification-db.test.mjs",
+    "test:nodemailer-security": "node --test scripts/nodemailer-security.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
@@ -113,7 +114,7 @@
   },
   "dependencies": {
     "exceljs": "^4.4.0",
-    "nodemailer": "^10.0.10",
+    "nodemailer": "10.3.1",
     "pg": "^8.16.0",
     "read-excel-file": "^9.3.10",
     "sanitize-html": "^2.17.7",
