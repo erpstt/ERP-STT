@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
 import {setupExpenseCashAccess} from './fixtures/setup-expense-cash-access.mjs';
 const db=new PGlite(),tables=['expense_type','expense_policy','expense','expense_line','expense_approval','expense_payment','cashbox','cash_transaction','cash_opening','cash_closing','cash_transfer'];
-before(async()=>{await setupExpenseCashAccess(db);await db.exec('begin;'+await readFile('supabase/migrations/20261104005229_secure_expense_cash_catalog_access.sql','utf8')+'commit;');});after(()=>db.close());
+before(async()=>{await setupExpenseCashAccess(db);await db.exec('begin;'+await readFile('supabase/migrations/20261104010521_secure_expense_cash_catalog_access.sql','utf8')+'commit;');});after(()=>db.close());
 async function assume(user=1,role=10,sid=1,uid=true){await db.exec('reset role');await db.query("select set_config('fixture.user',$1,false),set_config('fixture.role',$2,false),set_config('fixture.sid',$3,false),set_config('fixture.uid',$4,false)",[String(user??''),String(role??''),String(sid??''),uid?'00000000-0000-4000-8000-000000000001':'']);await db.exec('set role authenticated');}
 async function tx(t){await db.exec('reset role;begin');t.after(()=>db.exec('rollback;reset role'));}
 async function denied(sql,code='42501'){await db.exec('savepoint denied');try{await assert.rejects(db.exec(sql),e=>e.code===code);}finally{await db.exec('rollback to savepoint denied;release savepoint denied');}}
