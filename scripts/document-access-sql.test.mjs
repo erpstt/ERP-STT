@@ -19,7 +19,7 @@ before(async()=>{
   for(const[op,fn,suffix]of [['select','support_visible','read'],['insert','support_allowed','insert'],['update','support_allowed','update'],['delete','support_allowed','delete']]){const expr=`${schema}.${fn}(journal_id)`;await db.exec(`create policy ${prefix}_support_${suffix} on journal_support as restrictive for ${op} to authenticated ${op==='insert'?`with check(${expr})`:op==='update'?`using(${expr})with check(${expr})`:`using(${expr})`};`);}
  }
  restrictionsBefore=(await db.query("select polname,polqual::text,polwithcheck::text from pg_policy where polrelid='journal_support'::regclass and not polpermissive order by polname")).rows;
- await db.exec('begin;'+await readFile('supabase/migrations/20261103222043_secure_document_catalogs_and_journal_supports.sql','utf8')+'commit;');
+ await db.exec('begin;'+await readFile('supabase/migrations/20261104002701_secure_document_catalogs_and_journal_supports.sql','utf8')+'commit;');
 });
 after(()=>db.close());
 async function assume(user=1,role=10,sid=1,uid=true){await db.exec('reset role');await db.query("select set_config('fixture.user',$1,false),set_config('fixture.role',$2,false),set_config('fixture.sid',$3,false),set_config('fixture.uid',$4,false)",[String(user??''),String(role??''),String(sid??''),uid?'00000000-0000-4000-8000-000000000001':'']);await db.exec('set role authenticated');}
