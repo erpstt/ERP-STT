@@ -1,0 +1,262 @@
+[
+  {
+    "name": "account_group",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "account_subsidiaries",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "accounting_books",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "activity_log",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=rxtm/postgres}"
+  },
+  {
+    "name": "ai_agents",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "ai_conversation",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "ai_document",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "ai_prediction",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "ai_prompt",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "allocation_rules",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "asset_impairment",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "asset_revaluation",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "audit_log",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=rxtm/postgres}"
+  },
+  {
+    "name": "bank_account",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,authenticated=rm/postgres,service_role=rm/postgres}"
+  },
+  {
+    "name": "banks",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "change_log",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=rxtm/postgres}"
+  },
+  {
+    "name": "chart_accounts",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "deleted_records",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=rxtm/postgres}"
+  },
+  {
+    "name": "document_permission",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "document_relation",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "document_type",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "document_types",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "document_version",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "documents",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "event_log",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=rxtm/postgres}"
+  },
+  {
+    "name": "folders",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "gl_impact",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=rDxtm/postgres,authenticated=rDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "holidays",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "intercompany_eliminations",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "journal_support",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "menu_permissions",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "menus",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "password_history",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,authenticated=arm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "payment_methods",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "payment_terms",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "permissions",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=m/postgres,authenticated=rm/postgres,service_role=rm/postgres}"
+  },
+  {
+    "name": "price_list",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "price_list_item",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "purchase_quote",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "purchase_requisition",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "role_access_matrix",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=m/postgres,authenticated=rm/postgres,service_role=rm/postgres}"
+  },
+  {
+    "name": "role_permissions",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=m/postgres,authenticated=rm/postgres,service_role=rm/postgres}"
+  },
+  {
+    "name": "roles",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=m/postgres,authenticated=rm/postgres,service_role=rm/postgres}"
+  },
+  {
+    "name": "series",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "subsidiary_approver_options",
+    "kind": "v",
+    "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "transaction",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "transaction_line",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "treasury_schedule",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "user_company_sessions",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "user_role_sessions",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+  },
+  {
+    "name": "user_roles",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=m/postgres,authenticated=rm/postgres,service_role=rm/postgres}"
+  },
+  {
+    "name": "user_subsidiaries",
+    "kind": "r",
+    "acl": "{postgres=arwdDxtm/postgres,anon=m/postgres,authenticated=rm/postgres,service_role=rm/postgres}"
+  }
+]

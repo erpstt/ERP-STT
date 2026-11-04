@@ -93,7 +93,8 @@
     "test:statement-ledger-security": "npm run build && node --test scripts/statement-ledger-sql-security.test.mjs scripts/statement-access-security.test.mjs scripts/statement-ui-security.test.mjs",
     "test:financial-catalog-direct-security": "npm run build && node --test scripts/financial-catalog-direct-sql.test.mjs scripts/financial-catalog-api-security.test.mjs",
     "test:document-access-security": "npm run build && node --test scripts/document-access-sql.test.mjs scripts/document-access-api.test.mjs",
-    "test:expense-cash-access-security": "npm run build && node --test scripts/expense-cash-access-sql.test.mjs scripts/expense-cash-access-api.test.mjs"
+    "test:expense-cash-access-security": "npm run build && node --test scripts/expense-cash-access-sql.test.mjs scripts/expense-cash-access-api.test.mjs",
+    "test:technical-table-privileges": "node --test scripts/technical-table-privileges.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
