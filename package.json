@@ -114,7 +114,8 @@
     "test:financial-operator-guards": "node --test scripts/financial-operator-guards.test.mjs",
     "test:report-journal-operator-guards": "node --test scripts/report-journal-operator-guards.test.mjs",
     "test:isolated-role-template-db": "node --test scripts/test-role-access-matrix-db.mjs scripts/user-invitation-template-db.test.mjs",
-    "test:tax-calendar-attachment-preauth": "npm run build && node --test scripts/tax-calendar-attachment-preauth.test.mjs"
+    "test:tax-calendar-attachment-preauth": "npm run build && node --test scripts/tax-calendar-attachment-preauth.test.mjs",
+    "test:bounded-rate-limit-state": "npm run build && node --test scripts/bounded-rate-limit-state.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
