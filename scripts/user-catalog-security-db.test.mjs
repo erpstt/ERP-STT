@@ -1,343 +1,131 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import pg from 'pg';
+import {test} from 'node:test';
+import {assertIsolatedTestArgs} from './lib/migration-preview.mjs';
 
-process.loadEnvFile?.('.env');
+assertIsolatedTestArgs();
+const {isolatedUserAccessDatabase,assumeSecurityUser,assumeSqlRole,beginIsolatedCase,deniedSql,authId,authSession}=await import('./fixtures/isolated-user-access-db-test.mjs');
+const db=await isolatedUserAccessDatabase({audit:true});
+test.after(()=>db.close());
+const rows=async(sql,params=[])=>(await db.query(sql,params)).rows;
+const value=async(sql,params=[])=>(await rows(sql,params))[0]?.value;
+const list=()=>value("select security_access_master_list('users') value");
+const save=(id,payload)=>value("select security_save_access_master('users',$1,$2) value",[payload,id]);
+const deny=(sql,params=[],code='42501')=>deniedSql(db,sql,params,code);
+const create=(email,identity,first='Synthetic',last='New user',timezone=null)=>value('select security_create_user($1,$2,$3,$4,$5,true) value',[email,identity,first,last,timezone]);
 
-const projectRef = new URL(process.env.SUPABASE_URL).hostname.split('.')[0];
-const db = new pg.Client({
-  host: process.env.SUPABASE_DB_HOST || 'aws-0-us-east-1.pooler.supabase.com',
-  port: Number(process.env.SUPABASE_DB_PORT || 6543),
-  database: process.env.SUPABASE_DB_NAME || 'postgres',
-  user: process.env.SUPABASE_DB_USER || `postgres.${projectRef}`,
-  password: process.env.SUPABASE_DB_PASSWORD || process.env.PGPASSWORD,
-  ssl: {rejectUnauthorized: false},
-  connectionTimeoutMillis: 15_000
+test('own profile uses verified Auth UUID while secrets and all direct profile mutations stay inaccessible',async t=>{
+ await beginIsolatedCase(db,t);await assumeSecurityUser(db);
+ assert.deepEqual(await rows('select user_id,email from users order by user_id'),[{user_id:1,email:'synthetic-1@example.invalid'}]);
+ assert.equal(await value('select app_user_id() value'),1);
+ for(const column of['password_hash','auth_user_id'])await deny('select '+column+' from users');
+ for(const sql of["update users set first_name='Blocked' where user_id=1",'delete from users where user_id=1',"insert into users(email,first_name,last_name) values('blocked@example.invalid','Blocked','Synthetic')"])await deny(sql);
+ await db.query("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({sub:authId(1),email:'synthetic-4@example.invalid',session_id:authSession(1),role:'authenticated'})]);
+ assert.equal(await value('select app_user_id() value'),1);
+ await db.query("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({email:'synthetic-1@example.invalid',session_id:authSession(1),role:'authenticated'})]);
+ assert.equal(await value('select app_user_id() value'),null);assert.deepEqual(await rows('select user_id from users'),[]);
+ await deny("select security_access_master_list('users')");
 });
 
-const migrations = await Promise.all([
-  '20261026110000_secure_user_auth_invitations.sql',
-  '20261026112000_harden_user_catalog_rls.sql',
-  '20261027170000_bulk_user_subsidiary_assignments.sql'
-].map(file => readFile(new URL(`../supabase/migrations/${file}`, import.meta.url), 'utf8')));
+test('explicit viewer is scoped to the active company and cannot edit, provision or mark invitations',async t=>{
+ await beginIsolatedCase(db,t);await assumeSecurityUser(db,1,3);
+ const catalog=await list();assert.ok(catalog.some(row=>row.user_id===100));assert.ok(!catalog.some(row=>row.user_id===101));
+ assert.ok(catalog.every(row=>row._revision&&!('password_hash'in row)&&!('auth_user_id'in row)));
+ const target=catalog.find(row=>row.user_id===100);assert.equal(target._actions.canEdit,false);
+ await deny("select security_save_access_master('users',$1,100)",[{first_name:'Denied',_revision:target._revision}]);
+ await deny("select security_create_user('new@example.invalid',$1,'New','Synthetic',null,true)",[authId(200)]);
+ await deny('select security_mark_user_invitation_sent(100)');
+ await deny("update users set first_name='Denied' where user_id=100");
+});
 
-async function assume(email, subject, sessionId) {
-  await db.query('reset role');
-  await db.query(
-    `select set_config('request.jwt.claims',$1,true),set_config('request.headers','{}',true)`,
-    [JSON.stringify({role: 'authenticated', email, sub: subject, session_id: sessionId})]
-  );
-  await db.query('set local role authenticated');
-}
+test('delegated editor changes only a scoped profile through revision-checked RPC and preserves real human audit attribution',async t=>{
+ await beginIsolatedCase(db,t);
+ await db.exec("insert into role_access_matrix(role_id,resource_key,can_view,can_create,can_edit,can_delete) values(1,'security:users',true,false,true,false)");
+ const identityBefore=(await rows('select auth_user_id,password_hash from users where user_id=100'))[0];
+ const otherCompanyRevision=await value("select access_admin_private.revision('users',101) value");
+ await assumeSecurityUser(db,1,1);const initial=(await list()).find(row=>row.user_id===100);
+ const changed=await save(100,{first_name:'Updated synthetic',_revision:initial._revision});
+ assert.equal(changed.first_name,'Updated synthetic');assert.notEqual(changed._revision,initial._revision);
+ await deny("select security_save_access_master('users',$1,100)",[{last_name:'Stale',_revision:initial._revision}],'55000');
+ await deny("select security_save_access_master('users',$1,100)",[{email:'changed@example.invalid',_revision:changed._revision}]);
+ await deny("select security_save_access_master('users',$1,100)",[{auth_user_id:authId(200),_revision:changed._revision}],'55000');
+ const admin=(await list()).find(row=>row.user_id===4);
+ await deny("select security_save_access_master('users',$1,4)",[{first_name:'Blocked administrator',_revision:admin._revision}]);
+ await deny("select security_save_access_master('users',$1,101)",[{first_name:'Other company',_revision:otherCompanyRevision}]);
+ const attribution=await value("select record_actor_audit('users','100') value");
+ assert.equal(attribution.updated_by_email,'synthetic-1@example.invalid');assert.equal(attribution.updated_actor_type,'HUMAN');
+ assert.equal(attribution.created_by_email,'synthetic-4@example.invalid');
+ await db.exec('reset role');
+ assert.deepEqual((await rows('select auth_user_id,password_hash from users where user_id=100'))[0],identityBefore);
+ assert.equal(await value("select count(*)::int value from audit_log where entity_type='users' and entity_id=100 and action='MODIFICACION' and user_id=1"),1);
+});
 
-async function expectDenied(statement, params = []) {
-  await db.query('savepoint expected_denial');
-  try {
-    await db.query(statement, params);
-    assert.fail('La operación insegura fue permitida.');
-  } catch (error) {
-    if (error.code === 'ERR_ASSERTION') throw error;
-    assert.equal(error.code, '42501');
-  } finally {
-    await db.query('rollback to savepoint expected_denial');
-    await db.query('release savepoint expected_denial');
-  }
-}
+test('central provisioning validates canonical Auth identity and returns a sanitized profile without assigning roles or companies',async t=>{
+ await beginIsolatedCase(db,t);
+ const email='synthetic-provisioned@example.invalid';await db.query('insert into auth.users(id,email) values($1,$2)',[authId(200),email]);
+ await assumeSecurityUser(db,4,5);
+ assert.deepEqual((await list()).map(row=>row.user_id).sort((a,b)=>a-b),[1,2,3,4,100,101]);
+ await deny('select security_create_user($1,$2,$3,$4,null,true)',[' '+email.toUpperCase()+' ',authId(200),'Synthetic','New'],'22023');
+ await deny('select security_create_user($1,$2,$3,$4,null,true)',['mismatch@example.invalid',authId(200),'Synthetic','New'],'22023');
+ await deny('select security_create_user($1,$2,$3,$4,999,true)',[email,authId(200),'Synthetic','New'],'22023');
+ const created=await create(email,authId(200),' Synthetic ',' New user ',1);
+ assert.deepEqual(Object.keys(created).sort(),['user_id','email','first_name','last_name','timezone_id','is_active','invitation_sent_at','invitation_accepted_at'].sort());
+ assert.equal(created.email,email);assert.equal(created.first_name,'Synthetic');assert.equal(created.last_name,'New user');
+ assert.equal(created.invitation_sent_at,null);assert.equal(created.invitation_accepted_at,null);
+ assert.equal(await value('select security_mark_user_invitation_sent($1) value',[created.user_id]),true);
+ await deny('select security_create_user($1,$2,$3,$4,null,true)',[email,authId(200),'Duplicate','Synthetic'],'23505');
+ const attribution=await value("select record_actor_audit('users',$1) value",[String(created.user_id)]);
+ assert.equal(attribution.actor_type,'HUMAN');assert.equal(attribution.created_by_email,'synthetic-4@example.invalid');
+ await db.exec('reset role');
+ const internal=(await rows('select auth_user_id,password_hash,invitation_sent_at from users where user_id=$1',[created.user_id]))[0];
+ assert.equal(internal.auth_user_id,authId(200));assert.equal(internal.password_hash,'auth:'+authId(200));assert.ok(internal.invitation_sent_at);
+ assert.equal(await value('select count(*)::int value from user_roles where user_id=$1',[created.user_id]),0);
+ assert.equal(await value('select count(*)::int value from user_subsidiaries where user_id=$1',[created.user_id]),0);
+ await deny("insert into users(email,password_hash,first_name,last_name) values(' Upper@example.invalid ','SYNTHETIC','Invalid','Canonical')",[],'23514');
+});
 
-async function expectErrorCode(statement, params, expectedCode) {
-  await db.query('savepoint expected_database_error');
-  try {
-    await db.query(statement, params);
-    assert.fail('La operación inválida fue permitida.');
-  } catch (error) {
-    if (error.code === 'ERR_ASSERTION') throw error;
-    assert.equal(error.code, expectedCode);
-  } finally {
-    await db.query('rollback to savepoint expected_database_error');
-    await db.query('release savepoint expected_database_error');
-  }
-}
+test('legacy and explicit delegated grants cannot create users, roles, role assignments or company assignments',async t=>{
+ await beginIsolatedCase(db,t);
+ await db.exec("insert into role_access_matrix(role_id,resource_key,can_view,can_create,can_edit,can_delete) values(1,'security:users',true,true,true,true),(1,'security:roles',true,true,true,true),(1,'security:user-roles',true,true,true,true),(1,'security:user-subsidiaries',true,true,true,true),(1,'legacy:all',true,true,true,true)");
+ await assumeSecurityUser(db,1,1);
+ await deny("select security_create_user('delegated@example.invalid',$1,'Denied','Synthetic',null,true)",[authId(200)]);
+ for(const catalog of['roles','user-roles','user-subsidiaries'])await deny('select security_save_access_master($1,$2,null)',[catalog,{}]);
+ await deny("select security_assert_role_access('security:users','create')");
+ await deny('select security_sync_user_subsidiaries(3,array[1,2])');
+ await deny('select access_admin_private.security_create_user($1,$2,$3,$4,null,true)',['private@example.invalid',authId(200),'Private','Denied']);
+});
 
-await db.connect();
-try {
-  await db.query('begin');
-  await db.query("set local lock_timeout='5s'; set local statement_timeout='90s'");
-  for (const migration of migrations) await db.query(migration);
+test('system roles and own links stay protected while the current central-only operational self-assignment remains allowed',async t=>{
+ await beginIsolatedCase(db,t);await assumeSecurityUser(db,4,5);
+ const custom=await value("select security_save_access_master('roles',$1,null) value",[{role_name:'Synthetic operational role'}]);
+ const own=await value("select security_save_access_master('user-roles',$1,null) value",[{user_id:4,role_id:custom.role_id}]);
+ assert.deepEqual(own._actions,{canEdit:false,canDelete:false});
+ await deny("select security_save_access_master('user-roles',$1,$2)",[{user_id:3,role_id:custom.role_id,_revision:own._revision},own.id]);
+ await deny('select security_delete_access_master($1,$2)',[own.id,own._revision]);
+ await deny("select security_save_access_master('user-roles',$1,null)",[{user_id:4,role_id:5}]);
+ await deny("select security_save_access_master('roles',$1,null)",[{role_name:' Admin '}],'22023');
+ await deny("select security_save_access_master('roles',$1,null)",[{role_name:'Injected system',is_system_role:true}],'22023');
+ const roles=await value("select security_access_master_list('roles') value"),system=roles.find(row=>row.role_id===5);
+ await deny("select security_save_access_master('roles',$1,5)",[{description:'Blocked system mutation',_revision:system._revision}]);
+ const self=(await list()).find(row=>row.user_id===4);await deny("select security_save_access_master('users',$1,4)",[{is_active:false,_revision:self._revision}]);
+});
 
-  const nonce = crypto.randomUUID();
-  const actor = (await db.query(`
-    select account.user_id,account.email,identity.id::text auth_id
-    from public.users account
-    join auth.users identity on lower(identity.email)=lower(account.email)
-    where account.is_active
-      and account.auth_user_id=identity.id
-    order by account.user_id
-    limit 1
-  `)).rows[0];
-  assert.ok(actor, 'Se requiere un usuario ERP activo enlazado con Supabase Auth.');
-  const targetEmail = `users-target-${nonce}@example.test`;
-  const targetIdentity = crypto.randomUUID();
-  const target = (await db.query(`
-    insert into public.users(email,password_hash,auth_user_id,first_name,last_name,is_active)
-    values($1,'auth:'||$2,$2::uuid,'Objetivo','Prueba',true)
-    returning user_id,email
-  `, [targetEmail, targetIdentity])).rows[0];
+test('revoked role/company context, wrong device and inactive identity cannot reach privileged catalog operations',async t=>{
+ await beginIsolatedCase(db,t);await assumeSecurityUser(db,1,3);
+ await db.exec('reset role;delete from user_roles where user_id=1 and role_id=3');await assumeSecurityUser(db,1,3);
+ assert.equal(await value('select app_active_role_id() value'),null);await deny("select security_access_master_list('users')");
+ await db.exec('reset role;delete from user_subsidiaries where user_id=4 and subsidiary_id=1');await assumeSecurityUser(db,4,5,1);
+ assert.equal(await value('select active_subsidiary_id() value'),null);await deny("select security_access_master_list('users')");
+ await assumeSecurityUser(db,4,5,2,1);assert.equal(await value('select app_user_id() value'),null);await deny("select security_access_master_list('users')");
+ await db.exec('reset role;update users set is_active=false where user_id=4');await assumeSecurityUser(db,4,5,2);
+ assert.equal(await value('select app_user_id() value'),null);await deny("select security_access_master_list('users')");
+});
 
-  const roles = (await db.query(`
-    insert into public.roles(role_name,description,is_system_role)
-    values($1,'Prueba lectura usuarios',false),($2,'Prueba edición usuarios',false),($3,'Prueba creación segura de usuarios',false)
-    returning role_id,role_name
-  `, [`TEST-USERS-VIEW-${nonce}`, `TEST-USERS-EDIT-${nonce}`, `TEST-USERS-CREATE-${nonce}`])).rows;
-  const roleId = Object.fromEntries(roles.map(role => [role.role_name, role.role_id]));
-  const viewerRole = roleId[`TEST-USERS-VIEW-${nonce}`];
-  const editorRole = roleId[`TEST-USERS-EDIT-${nonce}`];
-  const creatorRole = roleId[`TEST-USERS-CREATE-${nonce}`];
-  const systemRole=(await db.query(`
-    insert into public.roles(role_name,description,is_system_role)
-    values($1,'Rol de sistema protegido',true)
-    returning role_id
-  `,[`TEST-SYSTEM-${nonce}`])).rows[0].role_id;
-  await db.query(
-    `insert into public.user_roles(user_id,role_id) values($1,$2),($1,$3),($1,$4)`,
-    [actor.user_id, viewerRole, editorRole, creatorRole]
-  );
-  await db.query(`
-    insert into public.role_access_matrix(role_id,resource_key,can_view,can_create,can_edit,can_delete)
-    values($1,'security:users',true,false,false,false),
-          ($2,'security:users',true,false,true,false),
-          ($3,'security:users',true,true,false,false)
-  `, [viewerRole, editorRole, creatorRole]);
-  await db.query(`
-    insert into public.role_access_matrix(role_id,resource_key,can_view,can_create,can_edit,can_delete)
-    values($1,'security:roles',true,true,true,true),
-          ($1,'security:user-roles',true,true,true,true),
-          ($1,'security:user-subsidiaries',true,true,true,true)
-  `,[creatorRole]);
-  await db.query(`
-    insert into public.user_role_sessions(session_id,user_id,role_id)
-    values($1,$2,$3),($4,$2,$5),($6,$2,$7)
-  `, [
-    `view-session-${nonce}`, actor.user_id, viewerRole,
-    `edit-session-${nonce}`, editorRole,
-    `create-session-${nonce}`, creatorRole
-  ]);
-  const provisionAuthId=crypto.randomUUID(),provisionEmail=`users-rpc-${nonce}@example.test`;
-  await db.query(
-    `insert into auth.users(id,email,raw_app_meta_data) values($1,$2,'{}'::jsonb)`,
-    [provisionAuthId,provisionEmail]
-  );
-  const subsidiary=(await db.query(`
-    select subsidiary_id
-    from public.subsidiaries
-    order by subsidiary_id
-    limit 1
-  `)).rows[0];
-  assert.ok(subsidiary, 'Se requiere al menos una subsidiaria para probar el alcance empresarial.');
-
-  const privileges = (await db.query(`select
-    not has_table_privilege('anon','public.users','select') anon_denied,
-    not has_table_privilege('authenticated','public.users','insert') direct_insert_denied,
-    not has_table_privilege('authenticated','public.users','delete') direct_delete_denied,
-    has_column_privilege('authenticated','public.users','email','select') safe_select_allowed,
-    has_column_privilege('authenticated','public.users','first_name','update') safe_update_allowed,
-    not has_column_privilege('authenticated','public.users','password_hash','select') password_hidden,
-    not has_column_privilege('authenticated','public.users','password_hash','update') password_immutable,
-    not has_column_privilege('authenticated','public.users','auth_user_id','select') auth_identity_hidden,
-    not has_column_privilege('authenticated','public.users','auth_user_id','update') auth_identity_immutable,
-    not has_table_privilege('authenticated','public.user_subsidiaries','insert') subsidiary_direct_insert_denied,
-    not has_table_privilege('authenticated','public.user_subsidiaries','update') subsidiary_direct_update_denied,
-    not has_table_privilege('authenticated','public.user_subsidiaries','delete') subsidiary_direct_delete_denied
-  `)).rows[0];
-  assert.ok(Object.values(privileges).every(Boolean));
-  assert.equal((await db.query(`
-    select convalidated
-    from pg_constraint
-    where conrelid='public.users'::regclass
-      and conname='users_email_canonical_check'
-  `)).rows[0]?.convalidated, true);
-
-  await assume(actor.email, actor.auth_id, `self-session-${nonce}`);
-  assert.deepEqual(
-    (await db.query('select email from public.users order by user_id')).rows,
-    [{email: actor.email}]
-  );
-  await expectDenied('select password_hash from public.users');
-  await expectDenied('select auth_user_id from public.users');
-  await expectDenied(`insert into public.users(email,password_hash,first_name,last_name) values($1,'x','X','X')`, [`blocked-${nonce}@example.test`]);
-  await expectDenied('delete from public.users where user_id=$1', [target.user_id]);
-  assert.equal((await db.query(
-    `update public.users set first_name='Bloqueado' where user_id=$1 returning user_id`,
-    [target.user_id]
-  )).rowCount, 0);
-
-  await assume(actor.email, actor.auth_id, `view-session-${nonce}`);
-  assert.equal((await db.query(
-    'select user_id from public.users where email=any($1::text[])',
-    [[actor.email, targetEmail]]
-  )).rowCount, 2);
-  assert.equal((await db.query(
-    `update public.users set first_name='Bloqueado' where user_id=$1 returning user_id`,
-    [target.user_id]
-  )).rowCount, 0);
-  await expectDenied(
-    'select public.security_create_user($1,$2,$3,$4,$5,$6)',
-    [provisionEmail,provisionAuthId,'RPC','Denegado',null,true]
-  );
-
-  await assume(actor.email, actor.auth_id, `edit-session-${nonce}`);
-  assert.equal((await db.query(
-    `update public.users set first_name='Actualizado' where user_id=$1 returning user_id,first_name`,
-    [target.user_id]
-  )).rows[0].first_name, 'Actualizado');
-  await expectDenied('update public.users set email=$1 where user_id=$2', [
-    `forbidden-${nonce}@example.test`, target.user_id
-  ]);
-  await expectDenied('update public.users set auth_user_id=$1 where user_id=$2', [
-    crypto.randomUUID(), target.user_id
-  ]);
-
-  await assume(actor.email, actor.auth_id, `create-session-${nonce}`);
-  const provisioned=(await db.query(
-    'select public.security_create_user($1,$2,$3,$4,$5,$6) value',
-    [provisionEmail,provisionAuthId,'RPC','Autorizado',null,true]
-  )).rows[0].value;
-  assert.equal(provisioned.email,provisionEmail);
-  assert.equal(provisioned.first_name,'RPC');
-  assert.equal('password_hash' in provisioned,false);
-  assert.equal('auth_user_id' in provisioned,false);
-  assert.equal((await db.query(
-    'select public.security_mark_user_invitation_sent($1) value',
-    [provisioned.user_id]
-  )).rows[0].value,true);
-
-  // Un gestor delegado puede administrar terceros, pero no elevar sus propios
-  // privilegios, asignar roles de sistema ni ampliar su propio alcance.
-  const delegatedRole=(await db.query(`
-    insert into public.roles(role_name,description,is_system_role)
-    values($1,'Rol ordinario creado por gestor delegado',false)
-    returning role_id
-  `,[`TEST-DELEGATED-${nonce}`])).rows[0];
-  assert.ok(delegatedRole?.role_id);
-  await expectDenied(
-    'update public.roles set role_name=$1 where role_id=$2 returning role_id',
-    [' ADMIN ',viewerRole]
-  );
-  assert.equal((await db.query(
-    `update public.roles set description='Bloqueado' where role_id=$1 returning role_id`,
-    [systemRole]
-  )).rowCount,0);
-  await expectDenied(
-    'insert into public.user_roles(user_id,role_id) values($1,$2)',
-    [actor.user_id,delegatedRole.role_id]
-  );
-  await expectDenied(
-    'insert into public.user_roles(user_id,role_id) values($1,$2)',
-    [target.user_id,systemRole]
-  );
-  assert.equal((await db.query(
-    'insert into public.user_roles(user_id,role_id) values($1,$2) returning id',
-    [target.user_id,delegatedRole.role_id]
-  )).rowCount,1);
-
-  await db.query('reset role');
-  await db.query(
-    'delete from public.user_subsidiaries where user_id=$1 and subsidiary_id=$2',
-    [actor.user_id,subsidiary.subsidiary_id]
-  );
-  await assume(actor.email,actor.auth_id,`create-session-${nonce}`);
-  await expectDenied(
-    'insert into public.user_subsidiaries(user_id,subsidiary_id) values($1,$2)',
-    [actor.user_id,subsidiary.subsidiary_id]
-  );
-  await expectDenied(
-    'insert into public.user_subsidiaries(user_id,subsidiary_id) values($1,$2)',
-    [target.user_id,subsidiary.subsidiary_id]
-  );
-  const delegatedAssignment=(await db.query(
-    'select public.security_sync_user_subsidiaries($1,$2::bigint[]) value',
-    [target.user_id,[subsidiary.subsidiary_id]]
-  )).rows[0].value;
-  assert.deepEqual(delegatedAssignment.subsidiary_ids.map(Number),[Number(subsidiary.subsidiary_id)]);
-
-  // Las selecciones antiguas dejan de conceder acceso al retirar la asignacion.
-  await db.query('reset role');
-  await db.query(
-    'insert into public.user_subsidiaries(user_id,subsidiary_id) values($1,$2)',
-    [actor.user_id,subsidiary.subsidiary_id]
-  );
-  await db.query(`
-    insert into public.user_company_sessions(session_id,user_id,subsidiary_id)
-    values($1,$2,$3)
-  `,[`company-session-${nonce}`,actor.user_id,subsidiary.subsidiary_id]);
-  await assume(actor.email,actor.auth_id,`company-session-${nonce}`);
-  assert.equal(
-    Number((await db.query('select public.active_subsidiary_id() value')).rows[0].value),
-    Number(subsidiary.subsidiary_id)
-  );
-  await db.query('reset role');
-  await db.query(
-    'delete from public.user_subsidiaries where user_id=$1 and subsidiary_id=$2',
-    [actor.user_id,subsidiary.subsidiary_id]
-  );
-  await assume(actor.email,actor.auth_id,`company-session-${nonce}`);
-  assert.equal((await db.query('select public.active_subsidiary_id() value')).rows[0].value,null);
-
-  await db.query('reset role');
-  await db.query(
-    'delete from public.user_roles where user_id=$1 and role_id=$2',
-    [actor.user_id,creatorRole]
-  );
-  await assume(actor.email,actor.auth_id,`create-session-${nonce}`);
-  assert.equal((await db.query('select public.app_active_role_id() value')).rows[0].value,null);
-  assert.equal((await db.query('select public.app_is_admin() value')).rows[0].value,false);
-
-  await db.query('reset role');
-  const provisionedInternal=(await db.query(
-    'select auth_user_id,password_hash,invitation_sent_at from public.users where user_id=$1',
-    [provisioned.user_id]
-  )).rows[0];
-  assert.equal(provisionedInternal.auth_user_id,provisionAuthId);
-  assert.equal(provisionedInternal.password_hash,`auth:${provisionAuthId}`);
-  assert.ok(provisionedInternal.invitation_sent_at);
-  assert.equal((await db.query(`
-    select user_id from public.audit_log
-    where entity_type='users'and entity_id=$1
-    order by log_id desc limit 1
-  `,[provisioned.user_id])).rows[0]?.user_id,actor.user_id);
-
-  await db.query('reset role');
-  await db.query(`select set_config('request.jwt.claims',$1,true)`, [JSON.stringify({role: 'service_role'})]);
-  await db.query('set local role service_role');
-  const serviceEmail = `users-service-${nonce}@example.test`;
-  assert.equal((await db.query(`
-    insert into public.users(email,password_hash,auth_user_id,first_name,last_name,is_active)
-    values($1,$2,$3,'Servicio','Confianza',true)
-    returning user_id
-  `, [serviceEmail, `auth:${crypto.randomUUID()}`, crypto.randomUUID()])).rowCount, 1);
-  await expectErrorCode(`
-    insert into public.users(email,password_hash,auth_user_id,first_name,last_name,is_active)
-    values($1,$2,$3,'Correo','No canónico',true)
-  `, [` Upper-${nonce}@example.test `, `auth:${crypto.randomUUID()}`, crypto.randomUUID()], '23514');
-
-  console.log(JSON.stringify({
-    columnSecretsHidden: true,
-    directCreateDeleteDenied: true,
-    selfReadPreserved: true,
-    matrixViewPreserved: true,
-    matrixEditPreserved: true,
-    actorAuthorizedProvisioning: true,
-    databasePermissionRechecked: true,
-    humanAuditPreserved: true,
-    roleEscalationBlocked: true,
-    subsidiaryEscalationBlocked: true,
-    delegatedAdministrationPreserved: true,
-    staleSelectionsInvalidated: true,
-    serviceProvisioningPreserved: true,
-    canonicalEmailEnforced: true,
-    rollback: true
-  }));
-} finally {
-  await db.query('reset role').catch(() => {});
-  await db.query('rollback').catch(() => {});
-  await db.end();
-}
+test('service and anonymous callers cannot provision directly or invoke human administrative RPCs',async t=>{
+ await beginIsolatedCase(db,t);
+ for(const role of['anon','service_role']){
+  await assumeSqlRole(db,role,{sub:authId(4),session_id:authSession(4)});
+  await deny("insert into users(email,password_hash,auth_user_id,first_name,last_name) values('blocked-service@example.invalid','SYNTHETIC',$1,'Blocked','Synthetic')",[authId(200)]);
+  await deny("select security_create_user('blocked-service@example.invalid',$1,'Blocked','Synthetic',null,true)",[authId(200)]);
+  await deny("select security_access_master_list('users')");
+ }
+});
