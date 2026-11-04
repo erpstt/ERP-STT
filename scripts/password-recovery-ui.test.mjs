@@ -34,7 +34,8 @@ test('el correo administrativo pasa por una confirmación humana sin consumir el
   assert.match(app, /window\.location\.replace\(confirmationUrl\)/);
   assert.doesNotMatch(initializationCode, /location\.replace\(/);
   assert.ok(server.indexOf("request.url === '/api/auth/continue-password-access'") < server.lastIndexOf("request.url?.startsWith('/api/')"));
-  assert.match(server, /isPasswordAccessContinuation \? 16 \* 1024/);
+  // The 16 KiB continuation limit is exercised against the real router by
+  // auth-public-body-limit.test.mjs, including headers and chunked overflow.
   assert.match(server, /validatePasswordAccessContinuation\(input, clientIp\(request\)\)/);
   assert.match(server, /Referrer-Policy', 'no-referrer'/);
   assert.match(html, /meta name="referrer" content="no-referrer"/);
