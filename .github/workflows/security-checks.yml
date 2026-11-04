@@ -38,6 +38,9 @@ jobs:
       - name: Build trusted templates and TypeScript
         run: npm run build
 
+      - name: Install Chromium for isolated report browser tests
+        run: node node_modules/playwright/cli.js install --with-deps --only-shell chromium
+
       - name: Run explicit isolated security tests
         env:
           NODE_ENV: test
