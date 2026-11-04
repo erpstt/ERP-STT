@@ -132,7 +132,8 @@
     "test:i18n-message-origin-security": "npm run build && node --test --test-concurrency=1 scripts/i18n-message-origin-security.test.mjs scripts/i18n-runtime.test.mjs",
     "test:optional-document-entry-route-id-security": "npm run build && node --test --test-concurrency=1 scripts/optional-document-entry-route-id-security.test.mjs",
     "test:opening-routing-operator-guards": "npm run build && node --test --test-concurrency=1 scripts/opening-routing-operator-guards.test.mjs",
-    "test:journal-payment-request-route-id-security": "npm run build && node --test --test-concurrency=1 scripts/journal-payment-request-route-id-security.test.mjs"
+    "test:journal-payment-request-route-id-security": "npm run build && node --test --test-concurrency=1 scripts/journal-payment-request-route-id-security.test.mjs",
+    "test:source-secrets-scanner-contract": "npm run build && node --test --test-concurrency=1 scripts/security-source-secrets-check.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",

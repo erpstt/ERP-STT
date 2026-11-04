@@ -101,7 +101,30 @@ jobs:
             scripts/i18n-message-origin-security.test.mjs \
             scripts/i18n-runtime.test.mjs \
             scripts/opening-routing-operator-guards.test.mjs \
-            scripts/journal-payment-request-route-id-security.test.mjs
+            scripts/journal-payment-request-route-id-security.test.mjs \
+            scripts/security-source-secrets-check.test.mjs
 
       - name: Reject high and critical dependency advisories
         run: npm audit --audit-level=high
+
+  source-secrets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+          submodules: false
+          lfs: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24.18.1"
+          package-manager-cache: false
+
+      - name: Scan exact source commit with private counts only
+        run: node scripts/security-source-secrets-check.mjs
