@@ -1,172 +1,99 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import pg from 'pg';
+import {test} from 'node:test';
+import {assertIsolatedTestArgs} from './lib/migration-preview.mjs';
+import {isolatedPasswordSecurityDatabase,assumeSecurityUser,authId,authSession,hash} from './fixtures/isolated-security-user-db-test.mjs';
 
-process.loadEnvFile?.('.env');
+assertIsolatedTestArgs();
+const db=await isolatedPasswordSecurityDatabase();
+test.after(()=>db.close());
+const rows=async(sql,params=[])=>(await db.query(sql,params)).rows;
+const value=async(sql,params=[])=>(await rows(sql,params))[0]?.value;
+const catalog=()=>value("select security_connection_catalog('sessions') value");
+async function reset(t){await db.exec('reset role;begin');t.after(()=>db.exec('reset role;rollback'));}
+async function denied(work,code='42501'){
+ await db.exec('savepoint denied');
+ try{await assert.rejects(work,error=>error?.code===code);}
+ finally{await db.exec('rollback to denied;release denied');}
+}
 
-const projectRef = new URL(process.env.SUPABASE_URL).hostname.split('.')[0];
-const db = new pg.Client({
-  host: process.env.SUPABASE_DB_HOST || 'aws-0-us-east-1.pooler.supabase.com',
-  port: Number(process.env.SUPABASE_DB_PORT || 6543),
-  database: process.env.SUPABASE_DB_NAME || 'postgres',
-  user: process.env.SUPABASE_DB_USER || `postgres.${projectRef}`,
-  password: process.env.SUPABASE_DB_PASSWORD || process.env.PGPASSWORD,
-  ssl: { rejectUnauthorized: false },
-  connectionTimeoutMillis: 15_000,
+// Current session semantics: clients use checked RPCs and never insert/delete
+// raw session rows. Password-history owner policies remain actual SQL rules.
+test('password history is owner-scoped, append-only and confidential even from a central administrator',async t=>{
+ await reset(t);await assumeSecurityUser(db);
+ assert.deepEqual(await rows('select user_id,password_hash from password_history'),[{user_id:1,password_hash:'SYNTHETIC-HISTORY-1'}]);
+ await rows("insert into password_history(user_id,password_hash) values(1,'SYNTHETIC-NEW-HISTORY')");
+ await denied(()=>rows("insert into password_history(user_id,password_hash) values(2,'SYNTHETIC-CROSS-USER')"));
+ await denied(()=>rows('update password_history set created_at=now() where user_id=1'));
+ await denied(()=>rows('delete from password_history where user_id=1'));
+ await assumeSecurityUser(db,4,5);
+ assert.deepEqual(await rows('select user_id,password_hash from password_history'),[{user_id:4,password_hash:'SYNTHETIC-HISTORY-4'}]);
+ await rows("insert into password_history(user_id,password_hash) values(4,'SYNTHETIC-ADMIN-HISTORY')");
+ await denied(()=>rows("insert into password_history(user_id,password_hash) values(2,'SYNTHETIC-ADMIN-CROSS-USER')"));
 });
 
-const migration = await readFile(
-  new URL('../supabase/migrations/20261026100000_secure_password_sessions_rls.sql', import.meta.url),
-  'utf8',
-);
-const nonce = crypto.randomUUID();
-const ownerEmail = `rls-owner-${nonce}@example.test`;
-const otherEmail = `rls-other-${nonce}@example.test`;
-const ownerAuthId = crypto.randomUUID();
-const otherAuthId = crypto.randomUUID();
+test('current session catalogs expose only authorized rows and sanitized fields while direct writes and token reads fail',async t=>{
+ await reset(t);await assumeSecurityUser(db);
+ const own=await catalog();assert.equal(own.length,1);assert.equal(own[0].user_id,1);
+ const allowed=['_actions','_revision','created_at','expires_at','ip_address','session_id','user_id'];
+ assert.deepEqual(Object.keys(own[0]).sort(),allowed.sort());
+ for(const user of[1,2]){
+  await denied(()=>rows('delete from sessions where user_id=$1',[user]));
+  await denied(()=>rows('update sessions set expires_at=now() where user_id=$1',[user]));
+  await denied(()=>rows("insert into sessions(user_id,session_token,expires_at) values($1,'SYNTHETIC-SESSION',now()+interval '1 hour')",[user]));
+ }
+ for(const column of['session_token','auth_session_id','device_id'])await denied(()=>rows('select '+column+' from sessions'));
+ await assumeSecurityUser(db,4,5);const central=await catalog();assert.equal(central.length,4);
+ assert.ok(!JSON.stringify(central).includes('jwt-'));
+ assert.deepEqual((await rows('select distinct user_id from password_history')).map(row=>row.user_id),[4]);
+});
 
-async function assume(email, sessionId, subject = crypto.randomUUID()) {
-  await db.query('reset role');
-  await db.query(
-    `select set_config('request.jwt.claims',$1,true)`,
-    [JSON.stringify({ email, sub: subject, session_id: sessionId })],
-  );
-  await db.query('set local role authenticated');
-}
+test('session revocation uses ownership, revision and central role checks and invalidates the revoked identity',async t=>{
+ await reset(t);await assumeSecurityUser(db,4,5);
+ const target=(await catalog()).find(row=>row.user_id===2);
+ await assumeSecurityUser(db);await denied(()=>value("select security_revoke_connection('sessions',$1,$2) value",[target.session_id,target._revision]));
+ await assumeSecurityUser(db,4,5);
+ await denied(()=>value("select security_revoke_connection('sessions',$1,'STALE') value",[target.session_id]),'55000');
+ assert.equal(await value("select security_revoke_connection('sessions',$1,$2) value",[target.session_id,target._revision]),true);
+ await assumeSecurityUser(db,2,4);
+ assert.equal(await value('select app_user_id() value'),null);
+ await denied(()=>catalog());assert.deepEqual(await rows('select user_id from password_history'),[]);
+});
 
-async function expectDenied(statement, params = []) {
-  await db.query('savepoint expected_denial');
-  try {
-    await db.query(statement, params);
-    assert.fail('La operación insegura fue permitida.');
-  } catch (error) {
-    assert.match(String(error.code), /^(42501|P0001)$/);
-  } finally {
-    await db.query('rollback to savepoint expected_denial');
-    await db.query('release savepoint expected_denial');
-  }
-}
+test('history and session access require the bound Auth UUID, registered session and matching device',async t=>{
+ await reset(t);
+ for(const [device,session]of[[2,authSession(1)],[1,authSession(2)],[1,'22222222-0000-4000-8000-000000000001']]){
+  await assumeSecurityUser(db,1,1,1,device,session);
+  assert.equal(await value('select app_user_id() value'),null);
+  assert.deepEqual(await rows('select user_id from password_history'),[]);await denied(()=>catalog());
+ }
+ await assumeSecurityUser(db);
+ await db.query("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({sub:authId(2),email:'synthetic-1@example.invalid',session_id:authSession(1),role:'authenticated'})]);
+ assert.equal(await value('select app_user_id() value'),null);assert.deepEqual(await rows('select user_id from password_history'),[]);
+ await assumeSecurityUser(db);await db.query("select set_config('request.headers','{}',false)");
+ assert.equal(await value('select app_user_id() value'),null);await denied(()=>catalog());
+});
 
-await db.connect();
-try {
-  await db.query('begin');
-  await db.query("set local lock_timeout='5s'; set local statement_timeout='60s'");
-  // Permite ejecutar esta prueba tanto antes como después de la migración que
-  // vincula estrictamente cada usuario ERP con su identidad de Supabase Auth.
-  await db.query('alter table public.users add column if not exists auth_user_id uuid');
-  await db.query(migration);
+test('expired Auth/ERP sessions and inactive users cannot retain history or connection access',async t=>{
+ await reset(t);await assumeSecurityUser(db);
+ await db.exec("reset role;update sessions set expires_at=now()-interval '1 second' where user_id=1;set role authenticated");
+ assert.equal(await value('select app_user_id() value'),null);assert.deepEqual(await rows('select user_id from password_history'),[]);
+ await assumeSecurityUser(db,2,4);
+ await db.exec('reset role');await db.query("update auth.sessions set not_after=now()-interval '1 second' where id=$1",[authSession(2)]);await db.exec('set role authenticated');
+ assert.equal(await value('select app_user_id() value'),null);await denied(()=>catalog());
+ await assumeSecurityUser(db,3,1);await db.exec('reset role;update users set is_active=false where user_id=3;set role authenticated');
+ assert.equal(await value('select app_user_id() value'),null);assert.deepEqual(await rows('select user_id from password_history'),[]);
+});
 
-  const policyRows = (await db.query(`
-    select tablename,policyname,cmd
-    from pg_policies
-    where schemaname='public'
-      and tablename=any(array['sessions','password_history'])
-    order by tablename,policyname
-  `)).rows;
-  assert.deepEqual(policyRows.map((row) => row.policyname), [
-    'password_history_insert_owner',
-    'password_history_select_owner',
-    'sessions_delete_owner_or_admin',
-    'sessions_insert_owner',
-    'sessions_select_owner_or_admin',
-    'sessions_update_owner',
-  ]);
-  const privileges = (await db.query(`select
-    not has_table_privilege('anon','public.sessions','select') anon_sessions_denied,
-    not has_table_privilege('anon','public.password_history','select') anon_history_denied,
-    not has_table_privilege('authenticated','public.password_history','update') history_update_denied,
-    not has_table_privilege('authenticated','public.password_history','delete') history_delete_denied
-  `)).rows[0];
-  assert.ok(Object.values(privileges).every(Boolean));
-
-  const administrator = (await db.query(`
-    select account.user_id,account.email,auth_account.id::text auth_id,role.role_id
-    from public.users account
-    join auth.users auth_account on lower(auth_account.email)=lower(account.email)
-    join public.user_roles assignment on assignment.user_id=account.user_id
-    join public.roles role on role.role_id=assignment.role_id
-      and lower(role.role_name) in('administrador','administrator','admin')
-    where account.is_active
-    order by account.user_id
-    limit 1
-  `)).rows[0];
-  assert.ok(administrator, 'La base debe tener un usuario Supabase con rol Administrador.');
-
-  const users = (await db.query(`
-    insert into public.users(email,password_hash,auth_user_id,first_name,last_name,is_active)
-    values
-      ($1,'auth:managed-by-supabase',$3,'RLS','Owner',true),
-      ($2,'auth:managed-by-supabase',$4,'RLS','Other',true)
-    returning user_id,email
-  `, [ownerEmail, otherEmail, ownerAuthId, otherAuthId])).rows;
-  const idByEmail = Object.fromEntries(users.map((row) => [row.email, row.user_id]));
-  const ownerId = idByEmail[ownerEmail];
-  const otherId = idByEmail[otherEmail];
-  const adminId = administrator.user_id;
-
-  await db.query(`
-    insert into public.sessions(user_id,session_token,expires_at)
-    values($1,$2,now()+interval '1 hour'),($3,$4,now()+interval '1 hour'),($5,$6,now()+interval '1 hour')
-  `, [ownerId, `owner-${nonce}`, otherId, `other-${nonce}`, adminId, `admin-${nonce}`]);
-  await db.query(`
-    insert into public.password_history(user_id,password_hash)
-    values($1,$2),($3,$4),($5,$6)
-  `, [ownerId, `scrypt$owner$${nonce}`, otherId, `scrypt$other$${nonce}`, adminId, `scrypt$admin$${nonce}`]);
-  await db.query(`
-    insert into public.user_role_sessions(session_id,user_id,role_id)
-    values($1,$2,$3)
-  `, [`admin-session-${nonce}`, adminId, administrator.role_id]);
-
-  await assume(ownerEmail, `owner-session-${nonce}`, ownerAuthId);
-  assert.deepEqual((await db.query('select user_id from public.sessions order by user_id')).rows, [{ user_id: ownerId }]);
-  assert.deepEqual((await db.query('select user_id from public.password_history order by user_id')).rows, [{ user_id: ownerId }]);
-  await expectDenied(
-    'insert into public.password_history(user_id,password_hash) values($1,$2)',
-    [otherId, `scrypt$forbidden$${nonce}`],
-  );
-  await expectDenied('update public.password_history set created_at=now() where user_id=$1', [ownerId]);
-  const ownerCrossDelete = await db.query('delete from public.sessions where user_id=$1 returning session_id', [otherId]);
-  assert.equal(ownerCrossDelete.rowCount, 0);
-
-  await assume(administrator.email, `admin-session-${nonce}`, administrator.auth_id);
-  const ownerSessionInsert = await db.query(
-    `insert into public.sessions(user_id,session_token,expires_at)
-     values($1,$2,now()+interval '1 hour') returning session_id`,
-    [adminId, `admin-created-${nonce}`],
-  );
-  assert.equal(ownerSessionInsert.rowCount, 1);
-  const ownerHistoryInsert = await db.query(
-    'insert into public.password_history(user_id,password_hash) values($1,$2) returning history_id',
-    [adminId, `scrypt$admin-created$${nonce}`],
-  );
-  assert.equal(ownerHistoryInsert.rowCount, 1);
-  assert.equal((await db.query(
-    'select count(*)::int count from public.sessions where session_token=any($1::text[])',
-    [[`owner-${nonce}`, `other-${nonce}`, `admin-${nonce}`, `admin-created-${nonce}`]],
-  )).rows[0].count, 4);
-  assert.deepEqual((await db.query(
-    'select distinct user_id from public.password_history where password_hash=any($1::text[])',
-    [[`scrypt$owner$${nonce}`, `scrypt$other$${nonce}`, `scrypt$admin$${nonce}`]],
-  )).rows, [{ user_id: adminId }]);
-  await expectDenied(
-    'insert into public.sessions(user_id,session_token,expires_at) values($1,$2,now()+interval \'1 hour\')',
-    [otherId, `admin-forbidden-${nonce}`],
-  );
-  const deleted = await db.query('delete from public.sessions where user_id=$1 returning session_id', [otherId]);
-  assert.equal(deleted.rowCount, 1);
-
-  console.log(JSON.stringify({
-    policies: policyRows.length,
-    anonymousAccessDenied: true,
-    ownerIsolation: true,
-    ownerFlowsPreserved: true,
-    administratorSessionRevocation: true,
-    crossUserPasswordHashesHidden: true,
-    passwordHistoryImmutable: true,
-    rollback: true,
-  }));
-} finally {
-  await db.query('reset role').catch(() => {});
-  await db.query('rollback').catch(() => {});
-  await db.end();
-}
+test('anonymous clients and authenticated callers cannot bypass service registration or history/session grants',async t=>{
+ await reset(t);await assumeSecurityUser(db);
+ await denied(()=>rows("select security_register_login($1,$2,$3,$4,'Synthetic',now()+interval '1 hour',null)",[authId(1),authSession(1),hash('unused-jwt'),hash('unused-device')]));
+ await denied(()=>rows('select security_revoke_user_sessions(2)'));
+ await db.exec('reset role;set role anon');
+ for(const table of['sessions','password_history'])await denied(()=>rows('select * from '+table));
+ await denied(()=>catalog());
+ await db.exec('reset role');
+ const grants=await rows("select privilege_type from information_schema.role_table_grants where grantee='authenticated' and table_name='password_history' order by privilege_type");
+ assert.deepEqual(grants.map(row=>row.privilege_type),['INSERT','SELECT']);
+ const policies=await rows("select policyname from pg_policies where tablename='sessions'");
+ assert.deepEqual(policies,[{policyname:'connection_read'}]);
+});
