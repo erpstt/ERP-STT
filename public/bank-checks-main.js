@@ -1,6 +1,6 @@
 import {escapeHtml} from './html-safety.js?v=20261101-a03-1';
 import {bankContext,bankRequestScope,watchBankContext,lockBankForm,bankMoney} from './bank-ui.js?v=20261105-banking-functional';
-import {mountBankCsvImport} from './bank-csv-import.js?v=20261105-banking-functional';
+import {mountBankCsvImport} from './bank-csv-import.js?v=20261105-bank-import-wizard';
 const $=id=>document.getElementById(id),esc=value=>escapeHtml(value??'—'),context=bankContext(),reports=bankRequestScope();
 let options=null,deleting=null,busy=false,ready=false;
 async function api(path,init={}){if(context!==bankContext())throw Error('La empresa, el rol o la sesión cambió. Vuelva a abrir la pantalla.');const response=await fetch(path,{...init,headers:{Authorization:`Bearer ${localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo_token')||''}`,'X-Device-Token':localStorage.getItem('nexo_device_token')||sessionStorage.getItem('nexo_device_token')||'','Content-Type':'application/json'}}),data=await response.json();if(!response.ok)throw Error(data?.error?.message||data?.message||'No fue posible procesar la solicitud.');if(context!==bankContext())throw Error('El contexto cambió. Vuelva a abrir la lista para consultar el resultado.');return data;}

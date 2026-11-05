@@ -1,1 +1,1 @@
-try{await import('./bank-checks-main.js?v=20261105-banking-functional')}catch(error){const target=document.getElementById('message');if(target)target.textContent=`No fue posible cargar las transacciones: ${error.message}`;}
+try{await import('./bank-checks-main.js?v=20261105-bank-import-wizard')}catch(error){const target=document.getElementById('message');if(target)target.textContent=`No fue posible cargar las transacciones: ${error.message}`;}

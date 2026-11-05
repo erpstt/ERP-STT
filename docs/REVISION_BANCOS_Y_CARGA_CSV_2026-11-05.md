@@ -16,7 +16,7 @@ La revisión cubre cuentas bancarias, cheques o transferencias a beneficiarios, 
 
 ## Uso de las plantillas
 
-En **Cheques o Transferencias** y **Depósitos bancarios**, abra **Importar CSV**, descargue la plantilla correspondiente y reemplace los ejemplos por los datos de la subsidiaria activa. Seleccione el archivo, pulse **Validar y ver vista previa** y revise los documentos, importes y errores antes de **Confirmar importación**.
+En **Cheques o Transferencias** y **Depósitos bancarios**, abra **Importar CSV**. Cada pantalla muestra únicamente su propia plantilla y el proceso por pasos: seleccionar el archivo, revisar la validación e importar los documentos. Use **Descargar plantilla CSV**, reemplace los ejemplos por los datos de la subsidiaria activa y seleccione el archivo. Pulse **Validar archivo**, revise la vista previa y los errores y confirme con **Importar movimientos** o **Importar depósitos**, según la pantalla. El panel **Prepare su archivo** incluye las instrucciones completas y las reglas del lote.
 
 Archivos:
 
