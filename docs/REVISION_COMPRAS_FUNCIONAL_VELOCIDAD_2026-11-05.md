@@ -54,9 +54,10 @@ La muestra reciente de respuestas exitosas de Supabase tuvo medias de 78 ms para
 
 ## Verificación y límites
 
-- Resultado final de la batería explícita: **1.108/1.108 pruebas, 119 archivos explícitos, sin fallos ni omitidos**.
+- Batería general: **1.108/1.108 pruebas en 119 archivos, sin fallos ni omitidos**. La compatibilidad adicional de aperturas se comprobó con **3/3 pruebas** en un archivo adicional.
 - Los motores reales se ejercitaron con pagos parciales, varias tasas/cuentas, NC/ND, anticipos, retenciones completas, Tesorería e idempotencia; se verificaron permisos, subsidiaria, atributos de funciones y ausencia de cambios históricos durante las migraciones.
 - La diferencia cambiaria requiere un origen contable inequívoco. Aperturas sin vínculo exacto, revaluaciones no atribuibles y pagos anteriores incompatibles se rechazan antes de guardar y requieren revisión. No se reparan ni se reescriben documentos anteriores automáticamente.
+- El importador de aperturas puede guardar asiento, corrida y línea exacta sin repetir la transacción en cada factura. En ese caso se obtiene la transacción del asiento sólo en memoria. Las pruebas usan el INSERT real del importador y dos facturas con asiento compartido; comprueban pago local y extranjero, conservación de la cabecera vacía y rechazo de referencias incorrectas o de otra empresa.
 - Los controles de adjuntos de documentos de compra y pagos que no tenían persistencia implementada quedan deshabilitados con un mensaje explícito. Los respaldos ya soportados de facturas/notas conservan su flujo.
 - No se certificó la latencia de una sesión autenticada completa: el host del navegador no estuvo disponible y el acceso nativo expiró. La verificación de pantallas fue aislada; la telemetría de servidor es real y de sólo lectura.
 - El filtro de calendario del período usa ese identificador cuando el DTO lo expone. Cuando sólo expone el año, se validan empresa, fechas y estados en pantalla; la regla de calendario permanece en el servidor.

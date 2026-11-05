@@ -108,6 +108,7 @@ jobs:
             scripts/purchasing-loading-integrity-ui.test.mjs \
             scripts/supplier-note-historical-tax-sql.test.mjs \
             scripts/supplier-payment-historical-fx-sql.test.mjs \
+            scripts/opening-supplier-payment-transaction-sql.test.mjs \
             scripts/supplier-invoice-performance-sql.test.mjs \
             scripts/supplier-invoice-location-sql.test.mjs \
             scripts/purchasing-migrations-integration-sql.test.mjs \
