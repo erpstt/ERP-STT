@@ -18,7 +18,7 @@ test('login valida identidad ERP mediante registro exclusivo del servidor',async
   globalThis.fetch=async(input,init={})=>{
     const url=new URL(String(input)),method=init.method??'GET';
     requests.push({url:url.toString(),method,body:init.body,headers:init.headers});
-    if(url.pathname==='/auth/v1/token')return json({access_token:accessToken,user:{id:'123e4567-e89b-42d3-a456-426614174000',email:'persona@example.com'}});
+    if(url.pathname==='/auth/v1/token')return json({access_token:accessToken,refresh_token:'synthetic-refresh-login-only',user:{id:'123e4567-e89b-42d3-a456-426614174000',email:'persona@example.com'}});
     if(url.pathname==='/rest/v1/rpc/security_register_login'&&method==='POST')return json({userId:44,expiresAt:new Date(Date.now()+900000).toISOString()});
     if(url.pathname==='/rest/v1/password_history'&&method==='GET')return json([{history_id:1}]);
     if(['/rest/v1/devices','/rest/v1/sessions','/rest/v1/login_history'].includes(url.pathname)&&method==='POST')return new Response(null,{status:204});
@@ -47,7 +47,7 @@ test('login revoca Auth local y no autoaprovisiona si el registro protegido fall
   globalThis.fetch=async(input,init={})=>{
     const url=new URL(String(input)),method=init.method??'GET';
     requests.push({url:url.toString(),method,body:init.body,headers:init.headers});
-    if(url.pathname==='/auth/v1/token')return json({access_token:accessToken,user:{id:'123e4567-e89b-42d3-a456-426614174000',email:'persona@example.com'}});
+    if(url.pathname==='/auth/v1/token')return json({access_token:accessToken,refresh_token:'synthetic-refresh-login-only',user:{id:'123e4567-e89b-42d3-a456-426614174000',email:'persona@example.com'}});
     if(url.pathname==='/rest/v1/rpc/security_register_login'&&method==='POST')return json({message:'Denied'},403);
     if(url.pathname==='/auth/v1/logout'&&method==='POST'){loggedOut=true;return new Response(null,{status:204});}
     throw new Error(`Solicitud inesperada: ${method} ${url.pathname}`);
@@ -66,8 +66,8 @@ test('login inicializa historial con el dispositivo del cuerpo y el JWT del usua
   const deviceToken='  login-device-with-more-than-twenty-characters  ',historyRequests=[];
   globalThis.fetch=async(input,init={})=>{
     const url=new URL(String(input)),method=init.method??'GET',headers=new Headers(init.headers);
-    if(url.pathname==='/auth/v1/token')return json({access_token:accessToken,user:{id:'123e4567-e89b-42d3-a456-426614174000',email:'persona@example.com'}});
-    if(url.pathname==='/rest/v1/rpc/security_register_login')return json({userId:44});
+    if(url.pathname==='/auth/v1/token')return json({access_token:accessToken,refresh_token:'synthetic-refresh-login-only',user:{id:'123e4567-e89b-42d3-a456-426614174000',email:'persona@example.com'}});
+    if(url.pathname==='/rest/v1/rpc/security_register_login')return json({userId:44,expiresAt:new Date(Date.now()+900000).toISOString()});
     if(url.pathname==='/rest/v1/password_history'){
       historyRequests.push({method,headers,body:init.body});
       if(headers.get('x-erp-device-hash')!==deviceHash(deviceToken.trim()))return json({message:'new row violates row-level security policy for table "password_history"'},403);
@@ -108,9 +108,9 @@ test('logins concurrentes reemplazan el contexto heredado con su propio disposit
     const url=new URL(String(input)),headers=new Headers(init.headers),method=init.method??'GET';
     if(url.pathname==='/auth/v1/token'){
       const account=accounts.find(item=>item.email===JSON.parse(init.body).email);
-      return json({access_token:account.token,user:{id:account.authId,email:account.email}});
+      return json({access_token:account.token,refresh_token:'synthetic-refresh-login-only',user:{id:account.authId,email:account.email}});
     }
-    if(url.pathname==='/rest/v1/rpc/security_register_login')return json({userId:accounts.find(item=>item.authId===JSON.parse(init.body).p_auth_user_id).userId});
+    if(url.pathname==='/rest/v1/rpc/security_register_login')return json({userId:accounts.find(item=>item.authId===JSON.parse(init.body).p_auth_user_id).userId,expiresAt:new Date(Date.now()+900000).toISOString()});
     if(url.pathname==='/rest/v1/password_history'){
       const account=accounts.find(item=>headers.get('authorization')===`Bearer ${item.token}`);
       assert.ok(account);
@@ -152,8 +152,8 @@ for(const failureMethod of ['GET','POST'])test(`login revoca Auth local si falla
   globalThis.fetch=async(input,init={})=>{
     const url=new URL(String(input)),method=init.method??'GET';
     requests.push({url,method,headers:new Headers(init.headers)});
-    if(url.pathname==='/auth/v1/token')return json({access_token:accessToken,user:{id:'123e4567-e89b-42d3-a456-426614174000',email:'persona@example.com'}});
-    if(url.pathname==='/rest/v1/rpc/security_register_login')return json({userId:44});
+    if(url.pathname==='/auth/v1/token')return json({access_token:accessToken,refresh_token:'synthetic-refresh-login-only',user:{id:'123e4567-e89b-42d3-a456-426614174000',email:'persona@example.com'}});
+    if(url.pathname==='/rest/v1/rpc/security_register_login')return json({userId:44,expiresAt:new Date(Date.now()+900000).toISOString()});
     if(url.pathname==='/rest/v1/password_history')return method===failureMethod?json({message:'Historial no disponible'},403):json([]);
     if(url.pathname==='/auth/v1/logout')return new Response(null,{status:204});
     throw new Error(`Solicitud inesperada: ${method} ${url.pathname}`);

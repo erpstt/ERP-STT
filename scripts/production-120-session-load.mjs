@@ -110,6 +110,7 @@ async function observedRequest({ phase, label, path, method = 'GET', session, bo
   const record = { phase, label, status: 0, startedAtMs: started, endedAtMs: started, durationMs: 0, ok: false, timeout: false };
   try {
     const headers = { Accept: 'application/json' };
+    if (path === '/api/auth/login' || path === '/api/auth/logout') headers.Origin = new URL(baseUrl).origin;
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (session) {
       headers.Authorization = `Bearer ${session.accessToken}`;

@@ -110,6 +110,7 @@ test('real router sanitizes only unknown fallbacks with correlated server UUIDs 
  const origin='http://127.0.0.1:'+upstream.address().port;
  const env={};for(const key of['SystemRoot','WINDIR','COMSPEC','PATHEXT','PATH','TEMP','TMP'])if(process.env[key]!==undefined)env[key]=process.env[key];
  Object.assign(env,{PORT:String(port),NODE_ENV:'test',DISABLE_BACKGROUND_JOBS:'true',SUPABASE_URL:origin,SUPABASE_ANON_KEY:'p97-synthetic-public',SUPABASE_PUBLISHABLE_KEY:'p97-synthetic-public',SUPABASE_SERVICE_ROLE_KEY:'p97-synthetic-service-'+canary,AUTH_REQUEST_ACCESS_CACHE_TTL_MS:'0',EMAIL_NOTIFICATIONS_ENABLED:'false',TURNSTILE_ENABLED:'false'});
+ env.APP_BASE_URL='http://127.0.0.1:'+port;env.SESSION_REFRESH_ALLOW_LOCAL_HTTP='true';
  // Loopback-only fetch; .env is unavailable. Inject one pre-router TypeError
  // solely in this child to exercise the outer 500 without a production hook.
  const preloader="import{ServerResponse}from'node:http';const original=ServerResponse.prototype.setHeader;ServerResponse.prototype.setHeader=function(name,value){if(name==='X-Content-Type-Options'&&this.req?.url?.startsWith('/api/health?p97-outer=')){const failure=new TypeError("+JSON.stringify(canary)+");failure.name="+JSON.stringify(canary)+";failure.code="+JSON.stringify(canary)+";failure.stack="+JSON.stringify(canary)+";throw failure;}return original.call(this,name,value);};process.loadEnvFile=()=>{throw Error('Synthetic environment-file access disabled');};const fetchLocal=globalThis.fetch;globalThis.fetch=(input,init)=>{const target=new URL(input instanceof Request?input.url:String(input));if(target.origin!=="+JSON.stringify(origin)+")throw Error('P97_NON_LOOPBACK_FETCH_BLOCKED');return fetchLocal(input,init);};";
@@ -119,7 +120,7 @@ test('real router sanitizes only unknown fallbacks with correlated server UUIDs 
  function request(path,{method='GET',raw='{}',auth,declaredLength,sendBody=true}={}){
   const bytes=Buffer.from(raw),hasBody=method!=='GET'&&method!=='HEAD';
   return new Promise((done,reject)=>{
-   const req=httpRequest({hostname:'127.0.0.1',port,path,method,agent:false,headers:{'X-Request-ID':clientId,'X-Private-Fixture':canary,'User-Agent':canary,...(auth?{Authorization:'Bearer '+auth,'X-Device-Token':'p97-synthetic-device-with-enough-entropy'}:{}),...(hasBody?{'Content-Type':'application/json','Content-Length':declaredLength??bytes.byteLength}:{})}},response=>{
+   const req=httpRequest({hostname:'127.0.0.1',port,path,method,agent:false,headers:{Origin:'http://127.0.0.1:'+port,'X-Request-ID':clientId,'X-Private-Fixture':canary,'User-Agent':canary,...(auth?{Authorization:'Bearer '+auth,'X-Device-Token':'p97-synthetic-device-with-enough-entropy'}:{}),...(hasBody?{'Content-Type':'application/json','Content-Length':declaredLength??bytes.byteLength}:{})}},response=>{
     const chunks=[];response.on('data',chunk=>chunks.push(chunk));response.on('error',reject);response.on('end',()=>{const text=Buffer.concat(chunks).toString('utf8');done({status:response.statusCode,headers:response.headers,text,json:()=>JSON.parse(text)});});
    });req.setTimeout(5000,()=>req.destroy(Error('Isolated loopback request timed out')));req.on('error',reject);req.end(hasBody&&sendBody?bytes:undefined);
   });

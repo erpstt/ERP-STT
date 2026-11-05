@@ -90,7 +90,9 @@ import { listUserCompanies, selectUserCompany } from './modules/auth/services/co
 import { listUserRoles, selectUserRole } from './modules/auth/services/role-access.service.js';
 import { getLanguagePreference, setLanguagePreference } from './modules/auth/services/language-preference.service.js';
 import { bootstrapSession } from './modules/auth/services/bootstrap.service.js';
-import { revokeCurrentSession, SessionAuthenticationError } from './modules/auth/services/session.service.js';
+import { SessionAuthenticationError } from './modules/auth/services/session.service.js';
+import {assertAuthOrigin,clearRefreshCookie,publicAuthSession,readSessionHint,refreshSetCookie,SessionRenewalError} from './modules/auth/services/session-credentials.js';
+import {logoutSession,renewSession} from './modules/auth/services/session-renewal.service.js';
 import { assertRequestAccess, invalidateRequestAccess } from './modules/auth/services/request-access.service.js';
 import { changePassword } from './modules/auth/services/password-history.service.js';
 import { completePasswordRecovery, PasswordRecoveryError, requestPasswordRecovery } from './modules/auth/services/password-recovery.service.js';
@@ -148,6 +150,8 @@ const compressible = new Set(['.html','.css','.js','.json','.svg','.csv']);
 const PUBLIC_AUTH_JSON_MAX_BYTES = 16 * 1024;
 const publicAuthJsonRoutes = new Set([
   '/api/auth/login',
+  '/api/auth/refresh',
+  '/api/auth/logout',
   '/api/auth/request-password-recovery',
   '/api/auth/continue-password-access',
   '/api/auth/complete-password-recovery',
@@ -253,6 +257,10 @@ async function serveFile(pathname: string, request: IncomingMessage, response: S
         : `${gentiaAssets}${html}`;
         content=Buffer.from(branded.includes('<head>')?branded.replace('<head>',`<head>${guard}`):guard+branded,'utf8');
       }
+      if(extension==='.html'){
+        const html=content.toString('utf8'),renewal='<script src="/session-renewal.js?v=20261105-session-renewal"></script>';
+        content=Buffer.from(/<head\b[^>]*>/i.test(html)?html.replace(/<head\b[^>]*>/i,head=>head+renewal):renewal+html,'utf8');
+      }
       cached={mtimeMs:metadata.mtimeMs,size:metadata.size,content,etag:`W/\"${createHash('sha256').update(content).digest('base64url').slice(0,22)}\"`};
       staticCache.set(file,cached);
     }
@@ -304,26 +312,40 @@ const server = createServer((request, response) => {
       return json(response, 200, turnstilePublicConfig());
     }
     if (request.method === 'POST' && request.url === '/api/auth/login') {
-      const input = await body(request) as { email: string; password: string; deviceToken?: string; deviceName?: string; turnstileToken?: string };
+      const input = await body(request) as { email: string; password: string; deviceToken?: string; deviceName?: string; turnstileToken?: string;rememberMe?:boolean };
+      assertAuthOrigin(request);
       const ip = clientIp(request);
       assertLoginAllowed(ip, input.email);
       try {
         await verifyTurnstileToken(input.turnstileToken, ip);
         const result = await authController.signIn(input, ip);
+        response.setHeader('Set-Cookie',refreshSetCookie(result.refreshCredential));
         clearLoginFailures(ip, input.email);
-        return json(response, 200, result);
+        return json(response, 200, publicAuthSession(result));
       } catch (cause) {
         if (!(cause instanceof TurnstileValidationError && cause.status === 503)) recordLoginFailure(ip, input.email);
         throw cause;
       }
     }
-    if (request.method === 'POST' && request.url === '/api/auth/logout') {
-      const authorization = request.headers.authorization;
-      if (authorization?.startsWith('Bearer ')) {
-        try { await revokeCurrentSession(authorization); }
-        finally { invalidateRequestAccess(authorization); }
+    if(request.method==='POST'&&(request.url==='/api/auth/refresh'||request.url==='/api/auth/logout')){
+      const input=await body(request,1024);
+      if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).length)throw Object.assign(Error('La solicitud de sesión no es válida.'),{status:400});
+      assertAuthOrigin(request);
+      try{
+        if(request.url==='/api/auth/refresh'){
+          const result=await renewSession(request,clientIp(request));
+          response.setHeader('Set-Cookie',refreshSetCookie(result.refreshCredential));
+          return json(response,200,publicAuthSession(result));
+        }
+        const sid=await logoutSession(request,clientIp(request));
+        response.setHeader('Set-Cookie',clearRefreshCookie(sid));
+        return json(response,200,{success:true});
+      }catch(cause){
+        if(cause instanceof SessionAuthenticationError||(cause instanceof SessionRenewalError&&cause.status===401)){
+          try{response.setHeader('Set-Cookie',clearRefreshCookie(readSessionHint(request.headers.authorization).authSessionId));}catch{}
+        }
+        throw cause;
       }
-      return json(response, 200, { success: true });
     }
     if (request.method === 'POST' && request.url === '/api/auth/request-password-recovery') {
       const input = await body(request) as { email?: string; turnstileToken?: string };
@@ -877,6 +899,7 @@ const server = createServer((request, response) => {
     await serveFile(request.url?.split('?')[0] ?? '/', request, response);
   } catch (cause) {
     if (cause instanceof LoginRateLimitError) response.setHeader('Retry-After', String(cause.retryAfterSeconds));
+    if (cause instanceof SessionRenewalError&&cause.retryAfterSeconds) response.setHeader('Retry-After',String(cause.retryAfterSeconds));
     if (cause instanceof PasswordRecoveryError && cause.retryAfterSeconds) response.setHeader('Retry-After', String(cause.retryAfterSeconds));
     if (cause instanceof UserProvisioningError && cause.retryAfterSeconds) response.setHeader('Retry-After', String(cause.retryAfterSeconds));
     const declaredStatus=(cause as {status?:number})?.status;

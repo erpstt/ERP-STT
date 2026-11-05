@@ -69,7 +69,7 @@ test('login HTTP inicializa historial con el dispositivo del cuerpo, sin cabecer
         assert.equal(url.searchParams.get('grant_type'), 'password');
         assert.deepEqual(body, { email, password });
         assert.equal(request.headers.apikey, serviceKey);
-        return json({ access_token: token, user: { id: authId, email } });
+        return json({ access_token: token, refresh_token: 'synthetic-refresh-http-only', user: { id: authId, email } });
       }
       if (url.pathname === '/rest/v1/rpc/security_register_login' && request.method === 'POST') {
         assert.equal(request.headers.apikey, serviceKey);
@@ -77,7 +77,7 @@ test('login HTTP inicializa historial con el dispositivo del cuerpo, sin cabecer
         assert.equal(body.p_auth_user_id, authId);
         assert.equal(body.p_auth_session_id, sessionId);
         assert.equal(body.p_device_token_hash, hash(expectedDevice.trim()));
-        return json({ userId: 44 });
+        return json({ userId: 44, expiresAt: new Date(Date.now()+900000).toISOString() });
       }
       if (url.pathname === '/rest/v1/password_history') {
         assert.equal(request.headers.apikey, publicKey);
@@ -140,6 +140,8 @@ test('login HTTP inicializa historial con el dispositivo del cuerpo, sin cabecer
   }
   const upstreamOrigin = `http://127.0.0.1:${stub.address().port}`;
   Object.assign(childEnvironment, {
+    SESSION_REFRESH_ALLOW_LOCAL_HTTP: 'true',
+    APP_BASE_URL: `http://127.0.0.1:${port}`,
     PORT: String(port), NODE_ENV: 'test', DISABLE_BACKGROUND_JOBS: 'true',
     TURNSTILE_ENABLED: 'false', EMAIL_NOTIFICATIONS_ENABLED: 'false', SMTP_ENABLED: 'false',
     SUPABASE_URL: upstreamOrigin, SUPABASE_ANON_KEY: publicKey,
@@ -186,14 +188,19 @@ test('login HTTP inicializa historial con el dispositivo del cuerpo, sin cabecer
     const before = calls.length;
     const response = await fetch(`${base}/api/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(headerDevice ? { 'X-Device-Token': headerDevice } : {}) },
+      headers: { Origin: base, 'Content-Type': 'application/json', ...(headerDevice ? { 'X-Device-Token': headerDevice } : {}) },
       body: JSON.stringify({ email, password, deviceToken: expectedDevice, deviceName: 'Synthetic HTTP browser' }),
       signal: AbortSignal.timeout(5000),
     });
     const payload = await response.json();
     assert.deepEqual(failures, []);
     assert.equal(response.status, 200, JSON.stringify(payload));
-    assert.deepEqual(payload, { accessToken: token, user: { name: 'login-http', email } });
+    assert.equal(payload.accessToken, token);
+    assert.deepEqual(payload.user, { name: 'login-http', email });
+    for (const name of ['expiresAt','erpSessionExpiresAt','refreshAt']) assert.ok(Number.isFinite(Date.parse(payload[name])));
+    assert.equal(Object.hasOwn(payload, 'refreshCredential'), false);
+    assert.equal(JSON.stringify(payload).includes('synthetic-refresh-http-only'), false);
+    assert.match(response.headers.get('set-cookie') || '', /HttpOnly; SameSite=Strict/);
     const result = JSON.stringify(payload);
     assert.equal(result.includes(serviceKey), false);
     assert.equal(result.includes(password), false);

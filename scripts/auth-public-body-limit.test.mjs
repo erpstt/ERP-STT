@@ -94,6 +94,7 @@ function localRequest(path, { method = 'POST', raw = '{}', auth = false, chunked
     const request = httpRequest({
       hostname: '127.0.0.1', port, path, method, agent: false,
       headers: {
+        Origin: 'http://127.0.0.1:' + port,
         ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
         ...(auth ? { Authorization: authorization, 'X-Device-Token': deviceToken } : {}),
         ...(hasBody ? chunked ? { 'Transfer-Encoding': 'chunked' } : { 'Content-Length': declaredLength ?? data.byteLength } : {})
@@ -179,6 +180,8 @@ before(async () => {
     if (process.env[key] !== undefined) childEnvironment[key] = process.env[key];
   }
   Object.assign(childEnvironment, {
+    SESSION_REFRESH_ALLOW_LOCAL_HTTP: 'true',
+    APP_BASE_URL: 'http://127.0.0.1:' + port,
     PORT: String(port), NODE_ENV: 'test', DISABLE_BACKGROUND_JOBS: 'true',
     SUPABASE_URL: 'http://127.0.0.1:' + upstream.address().port,
     SUPABASE_ANON_KEY: publicKey, SUPABASE_PUBLISHABLE_KEY: publicKey,
@@ -230,7 +233,8 @@ test('fixture starts the real router with an empty CWD and only allowlisted synt
     'SystemRoot', 'WINDIR', 'COMSPEC', 'PATHEXT', 'PATH', 'TEMP', 'TMP',
     'PORT', 'NODE_ENV', 'DISABLE_BACKGROUND_JOBS', 'SUPABASE_URL',
     'SUPABASE_ANON_KEY', 'SUPABASE_PUBLISHABLE_KEY', 'SUPABASE_SERVICE_ROLE_KEY',
-    'AUTH_REQUEST_ACCESS_CACHE_TTL_MS', 'EMAIL_NOTIFICATIONS_ENABLED', 'TURNSTILE_ENABLED'
+    'AUTH_REQUEST_ACCESS_CACHE_TTL_MS', 'EMAIL_NOTIFICATIONS_ENABLED', 'TURNSTILE_ENABLED',
+    'APP_BASE_URL', 'SESSION_REFRESH_ALLOW_LOCAL_HTTP'
   ]);
   assert.ok(Object.keys(childEnvironment).every(key => allowed.has(key)));
   for (const name of ['SUPABASE_ACCESS_TOKEN', 'SUPABASE_DB_PASSWORD', 'PGPASSWORD',

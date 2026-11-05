@@ -2,9 +2,10 @@ import{registerTrustedLogin}from'../services/trusted-session.service.js';
 import type { LoginDto } from '../dto/login.dto.js';
 import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
 import { withDeviceContext } from '../../../core/security/device-context.js';
+import {issueSession,providerSession,type IssuedAuthSession} from '../services/session-credentials.js';
 
 export interface AuthRepository {
-  signIn(input: LoginDto, ipAddress?: string | null): Promise<{ accessToken: string; user: { name: string; email: string } }>;
+  signIn(input: LoginDto, ipAddress?: string | null): Promise<IssuedAuthSession>;
 }
 
 export class SupabaseAuthRepository implements AuthRepository {
@@ -44,9 +45,11 @@ export class SupabaseAuthRepository implements AuthRepository {
       await revokeAuthSession();
       throw new Error('No fue posible validar la identidad del usuario en el ERP. Contacte al administrador.');
     }
-    let erpUserId:number;
+    let freshSession:ReturnType<typeof providerSession>;
+    try{freshSession=providerSession(payload);}catch(cause){await revokeAuthSession();throw cause;}
+    let erpUserId:number;let erpExpiresAt:string;
     try{
-      const registered=await registerTrustedLogin(accessToken,authUserId,input.deviceToken,input.deviceName,ipAddress);erpUserId=registered.userId;
+      const registered=await registerTrustedLogin(accessToken,authUserId,input.deviceToken,input.deviceName,ipAddress);erpUserId=registered.userId;erpExpiresAt=registered.expiresAt;
     }catch{
       await revokeAuthSession();
       throw new Error('El usuario no está aprovisionado correctamente o se encuentra inactivo en el ERP. Contacte al administrador.');
@@ -59,9 +62,7 @@ export class SupabaseAuthRepository implements AuthRepository {
       await revokeAuthSession();
       throw cause;
     }
-    return {
-      accessToken,
-      user: { name: email.split('@')[0], email }
-    };
+    try{return issueSession(accessToken,{name:email.split('@')[0]!,email},erpExpiresAt,freshSession.refreshToken,input.deviceToken!.trim(),input.rememberMe===true);}
+    catch(cause){await revokeAuthSession();throw cause;}
   }
 }

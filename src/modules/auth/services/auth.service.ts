@@ -5,6 +5,7 @@ import type { AuthRepository } from '../repositories/auth.repository.js';
 export class AuthService {
   constructor(private readonly repository: AuthRepository) {}
   async signIn(input: LoginDto, ipAddress?: string | null) {
+    if(input.rememberMe!==undefined&&typeof input.rememberMe!=='boolean')throw new Error('La preferencia de sesión no es válida.');
     if (!/^\S+@\S+\.\S+$/.test(input.email)) throw new Error('Ingrese un correo electrónico válido.');
     if (!isValidPassword(input.password)) throw new Error('La contraseña debe tener al menos 6 caracteres.');
     if (!input.deviceToken || input.deviceToken.trim().length < 20) throw new Error('No fue posible identificar el dispositivo. Actualice el navegador e intente nuevamente.');
