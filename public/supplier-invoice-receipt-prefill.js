@@ -17,6 +17,8 @@ if(invalidSource){
   if(!$('receiptDocumentId')){const field=document.createElement('input');field.type='hidden';field.id='receiptDocumentId';document.body.append(field);}
   const header=receipt.header;
   if(!header||header.document_type!=='RECEIPT')throw Error('La recepción indicada no es válida.');
+  const locationId=String(header.location_id??'');if(!/^[1-9][0-9]*$/.test(locationId)||![...$('location').options].some(option=>option.value===locationId))throw Error('La ubicaci\u00f3n de la recepci\u00f3n no est\u00e1 disponible para esta subsidiaria.');
+  $('location').value=locationId;$('location').disabled=true;
   $('invoiceNumber').value='';
   const reference=document.querySelector('.receipt-reference');if(reference)reference.hidden=false;
   if($('receiptReference'))$('receiptReference').value=header.document_number||'';
@@ -42,6 +44,7 @@ if(invalidSource){
   }
   document.querySelector('h1').textContent=`Nueva factura desde ${header.document_number}`;
   const returnTo=()=>location.assign('/purchase-documents.html?type=RECEIPT');document.querySelector('main>header a').onclick=event=>{event.preventDefault();returnTo()};$('cancel').onclick=event=>{event.preventDefault();returnTo()};setTimeout(()=>{if($('invoiceNumber').value===header.document_number)$('invoiceNumber').value='';$('invoiceNumber').focus();if(reference)reference.hidden=false},800);
+  $('receiptDocumentId').dataset.ready='true';document.dispatchEvent(new CustomEvent('nexo:supplier-invoice-receipt-ready'));
   sessionStorage.removeItem('nexo_supplier_invoice_receipt');sessionStorage.removeItem('nexo_supplier_invoice_receipt_id');
- }catch(error){const target=$('error');if(target)target.textContent=`No fue posible completar la factura desde la recepción: ${error.message}`;if($('save'))$('save').disabled=true;console.error(error)}
+ }catch(error){if($('receiptDocumentId'))$('receiptDocumentId').dataset.ready='false';document.dispatchEvent(new CustomEvent('nexo:supplier-invoice-receipt-ready'));const target=$('error');if(target)target.textContent=`No fue posible completar la factura desde la recepción: ${error.message}`;if($('save'))$('save').disabled=true;console.error(error)}
 }

@@ -85,6 +85,32 @@ jobs:
             scripts/test-role-access-matrix-db.mjs \
             scripts/user-invitation-template-db.test.mjs \
             scripts/payment-request-approved-email-sql.test.mjs \
+            scripts/supplier-payment-ui-security.test.mjs \
+            scripts/supplier-payment-api-security.test.mjs \
+            scripts/supplier-payment-sql-security.test.mjs \
+            scripts/supplier-note-ui-security.test.mjs \
+            scripts/supplier-note-api-security.test.mjs \
+            scripts/supplier-note-sql-security.test.mjs \
+            scripts/supplier-invoice-ui-security.test.mjs \
+            scripts/supplier-invoice-api-security.test.mjs \
+            scripts/supplier-invoice-sql-security.test.mjs \
+            scripts/purchase-receipt-ui-security.test.mjs \
+            scripts/purchase-receipt-api-security.test.mjs \
+            scripts/purchase-receipt-sql-security.test.mjs \
+            scripts/purchase-order-ui-security.test.mjs \
+            scripts/purchase-order-api-security.test.mjs \
+            scripts/purchase-order-sql-security.test.mjs \
+            scripts/purchase-legacy-ui-security.test.mjs \
+            scripts/purchase-legacy-api-security.test.mjs \
+            scripts/purchase-legacy-sql-security.test.mjs \
+            scripts/test-settled-supplier-invoices-ui.mjs \
+            scripts/purchasing-report-export-functional.test.mjs \
+            scripts/purchasing-loading-integrity-ui.test.mjs \
+            scripts/supplier-note-historical-tax-sql.test.mjs \
+            scripts/supplier-payment-historical-fx-sql.test.mjs \
+            scripts/supplier-invoice-performance-sql.test.mjs \
+            scripts/supplier-invoice-location-sql.test.mjs \
+            scripts/purchasing-migrations-integration-sql.test.mjs \
             scripts/treasury-manager-execution-sql.test.mjs \
             scripts/payment-request-approved-email.test.mjs \
             scripts/payment-request-approved-settings.test.mjs \

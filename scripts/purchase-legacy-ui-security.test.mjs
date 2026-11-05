@@ -85,14 +85,14 @@ test('operational create controls continue to use their workflow access response
  const bootstrap=workflowSource.match(/^const now=new Date\(\),first=.*$/m)?.[0];assert.ok(bootstrap,'Missing real workflow bootstrap');
  for(const [,slug,type]of targets)for(const canCreate of [false,true]){
   const elements=new Map(),calls=[],access={canView:true,canCreate,canEdit:true};
-  const context={type,access:{},purchaseLegacyReadOnly:true,catalog:{allowCreate:false,allowEdit:false,allowDelete:false},
+  const context={type,access:{},optionsReady:false,syncFormState(){},purchaseLegacyReadOnly:true,catalog:{allowCreate:false,allowEdit:false,allowDelete:false},
    $:id=>{if(!elements.has(id))elements.set(id,{hidden:false,value:'',textContent:''});return elements.get(id);},
    api:async path=>{calls.push(path);return access;},loadOptions:async()=>calls.push('options'),load:async()=>calls.push('report'),
    URLSearchParams,location:{search:'?type='+type},open:async()=>assert.fail('Unexpected automatic create'),copySource:async()=>assert.fail('Unexpected source copy')};
   await vm.runInNewContext('(async()=>{'+bootstrap+'})()',context);
   assert.equal(elements.get('new').hidden,!canCreate);
   assert.deepEqual(calls,['/api/purchasing/workflow/access?type='+type,'options','report']);
-  assert.equal(context.access.canEdit,true,slug);
+  assert.equal(context.access.canEdit,true,slug);assert.equal(context.optionsReady,true);
  }
 });
 test('generic read-only guard preserves unrelated catalog action permissions',()=>{

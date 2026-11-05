@@ -9,7 +9,7 @@ assertIsolatedTestArgs();
 
 const version='20261104-support-write-validation';
 const bankEntryVersion='20261104-optional-bank-route-id-guard';
-const supplierEntryVersion='20261104-optional-document-route-id-guard';
+const supplierEntryVersion='20261105-purchasing-functional-review';
 const journalEntryVersion='20261104-journal-payment-route-id-guard';
 const screens=[
  {name:'journal-entry'}, {name:'supplier-invoice-entry'}, {name:'supplier-note-entry'},
@@ -53,7 +53,7 @@ function fixture(screen){
   }
  }
  const forbidden=()=>{io++;assert.fail('An attachment entry handler attempted external IO');};
- const context=vm.createContext({URL,safeHttpUrl,FileReader,$:node,supportItems:items,supports:items,
+ const context=vm.createContext({URL,safeHttpUrl,FileReader,$:node,supportItems:items,supports:items,viewMode:false,invoiceSaving:false,invoiceUploading:0,noteSaving:false,noteUploading:0,syncInvoiceControls(){},syncNoteControls(){},
   renderSupports:()=>{renders++;},hasPendingSupportChanges:()=>items.some(item=>item._new),invoiceId:null,
   setSupportStatus:(...value)=>status.push(value),api:forbidden,fetch:forbidden,
   localStorage:{getItem:forbidden},sessionStorage:{getItem:forbidden}});

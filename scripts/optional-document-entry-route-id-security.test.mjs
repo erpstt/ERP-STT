@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import {assertIsolatedTestArgs} from './lib/migration-preview.mjs';
 assertIsolatedTestArgs();
-const version='20261104-optional-document-route-id-guard',bankVersion='20261104-optional-bank-route-id-guard';
+const purchasingVersion='20261105-purchasing-functional-review',version='20261104-optional-document-route-id-guard',bankVersion='20261104-optional-bank-route-id-guard';
 const mains=['sales-invoice-entry','sales-note-entry','supplier-invoice-entry','supplier-note-entry'];
 const helpers=['sales-invoice-delivery-prefill','supplier-invoice-receipt-prefill'];
 const sources=new Map(await Promise.all([...mains,...helpers].map(async name=>[name,await readFile(new URL('../public/'+name+'.js',import.meta.url),'utf8')])));
@@ -49,17 +49,17 @@ async function execute(name,search='',{session={},deny=false,full=false,sourceFa
  const nodes=new Map(),controls=[],reads=[],removes=[],events=[],calls=[],imports=[],timers=[],navigation=[],handlers=[];
  const node=id=>{if(!nodes.has(id)){const element=new Node(id);nodes.set(id,element);controls.push(element);}return nodes.get(id);};
  for(const id of['error','save','add','successModal','lines','customer','supplier','term','date','currency','memo','invoiceNumber','paymentTerm','invoiceDate','period','rate','receiptReference','cancel'])node(id);
- node('successModal').hidden=true;
+ node('successModal').hidden=true;node('location').options=[{value:'1'}];
  const heading=new Node('heading'),reference=new Node('reference'),back=new Node('back');
  const body=new Node('body');body.append=element=>{nodes.set(element.id,element);};
- const document={body,getElementById:id=>id==='receiptDocumentId'?(nodes.get(id)??null):node(id),createElement:()=>new Node(),
+ const document={body,dispatchEvent(event){events.push('dispatch:'+event.type);},getElementById:id=>id==='receiptDocumentId'?(nodes.get(id)??null):node(id),createElement:()=>new Node(),
   querySelector(selector){if(selector==='h1')return heading;if(selector==='.receipt-reference')return reference;if(selector==='main>header a'||selector==='header a')return back;throw Error('Unexpected bootstrap DOM selector '+selector);},
   querySelectorAll(selector){assert.equal(selector,'input,select,textarea,button');return controls;}};
  const values=new Map(Object.entries(session));
  const storage=area=>({getItem(key){reads.push({area,key});events.push('read:'+key);return values.has(key)?values.get(key):key==='nexo_token'?'synthetic-document-token':key==='nexo_device_token'?'synthetic-document-device':key==='nexo_company'?'1':null;},removeItem(key){removes.push(key);events.push('remove:'+key);values.delete(key);}});
  class FixtureDate extends Date{static now(){return now;}}
  const sandbox={document,location:{search,assign:path=>navigation.push(path)},URL,URLSearchParams,Date:FixtureDate,Map,Set,Number,
-  localStorage:storage('local'),sessionStorage:storage('session'),console:{error(){}},Event:class{constructor(type){this.type=type;}},
+  localStorage:storage('local'),sessionStorage:storage('session'),console:{error(){}},CustomEvent:class{constructor(type){this.type=type;}},Event:class{constructor(type){this.type=type;}},
   addEventListener(type,callback){handlers.push({type,callback});},setTimeout(callback,delay){timers.push({callback,delay});},
   async loadModule(path){imports.push(path);assert.fail('A bootstrap boundary or invalid route imported a live module');},
   async fetch(path,init={}){
@@ -68,7 +68,7 @@ async function execute(name,search='',{session={},deny=false,full=false,sourceFa
    assert.ok(path.startsWith('/api/'));assert.equal(call.method,'GET','Bootstrap/prefill must never write');
    let payload;
    if(path.includes('/invoice-source'))payload={header:{document_type:'DELIVERY',document_number:'SYN-DELIVERY',document_date:'2026-11-04',customer_id:1,currency_id:1},lines:[]};
-   else if(path.includes('/supplier-invoice-receipt-source/'))payload={header:{document_type:'RECEIPT',document_number:'SYN-RECEIPT',document_id:42,document_date:'2026-11-04',supplier_id:1,currency_id:1},lines:[]};
+   else if(path.includes('/supplier-invoice-receipt-source/'))payload={header:{document_type:'RECEIPT',location_id:1,document_number:'SYN-RECEIPT',document_id:42,document_date:'2026-11-04',supplier_id:1,currency_id:1},lines:[]};
    else if(path.includes('invoice-context')||path.includes('note-context'))payload={access:{canCreate:!deny,canEdit:!deny}};
    else if(path.includes('supplier-invoice-access')||path.includes('supplier-note-access'))payload={canView:!deny,canCreate:!deny,canEdit:!deny};
    else if(path.includes('supplier-note-options'))payload={invoices:[]};else payload=[];
@@ -165,7 +165,7 @@ for(const name of mains){
    const row={querySelectorAll(selector){assert.equal(selector,'[data-k]');return Object.entries(values).map(([key,value])=>({dataset:{k:key},value}));}};
    const context=vm.createContext({$,document:{querySelectorAll(selector){assert.equal(selector,'#lines tr');return[row];}},
     editId:id,recordId:id,invoiceId:id,deliveryId:null,kind,supportItems:[],parse:Number,parseAmount:Number,money:String,pdfPreferenceSave:Promise.resolve(),defaultUnifiedPdfDescription:'Synthetic',
-    originalInvoicePayload:'{}',journalId:8,collectInvoicePayload:()=>({synthetic:'changed'}),hasPendingSupportChanges:()=>false,validateInvoicePayload(){},invoiceAmounts:()=>({gross:10}),
+    viewMode:false,invoiceSaving:false,invoiceUploading:0,savedInvoiceResult:null,noteSaving:false,noteUploading:0,savedNoteResult:null,invoiceSourceReady:()=>true,syncInvoiceControls(){},syncNoteControls(){},pendingSupports:()=>false,originalInvoicePayload:'{}',journalId:8,collectInvoicePayload:()=>({synthetic:'changed'}),hasPendingSupportChanges:()=>false,validateInvoicePayload(){},invoiceAmounts:()=>({gross:10}),
     syncUnifiedPdfDescription(){},setSupportStatus(){},async syncSupports(){},showSuccess:value=>success.push(value),showSupplierSuccess:value=>success.push(value),
     async api(path,init){calls.push({path,method:init.method,body:JSON.parse(init.body)});return{journalId:8,transactionNumber:'SYNTHETIC',total:10};}});
    const action=vm.runInContext('('+saveAction(name)+')',context,{timeout:1000});await action();assert.equal(calls.length,1,$('error').textContent);
@@ -181,8 +181,8 @@ test('real invoice delivery save uses only its checked canonical source route',a
  await vm.runInContext('('+saveAction('sales-invoice-entry')+')',context,{timeout:1000})();assert.deepEqual(calls,[{path:'/api/sales/workflow/9007199254740991/invoice',method:'POST'}]);
 });
 test('four own HTML and helper imports refresh while the real P94 validator and bank P120 caches stay intact',async()=>{
- for(const [name,page]of pages){assert.ok(page.includes('/'+name+'.js?v='+version));assert.ok(sources.get(name).includes("from './route-id.js?v=20261103-route-id-guard'"));}
- for(const [name,helper]of[[mains[0],helpers[0]],[mains[2],helpers[1]]])assert.ok(sources.get(name).includes("import('/"+helper+".js?v="+version+"')"));
+ for(const [name,page]of pages){assert.ok(page.includes('/'+name+'.js?v='+(['supplier-invoice-entry','supplier-note-entry'].includes(name)?purchasingVersion:version)));assert.ok(sources.get(name).includes("from './route-id.js?v=20261103-route-id-guard'"));}
+ for(const [name,helper]of[[mains[0],helpers[0]],[mains[2],helpers[1]]])assert.ok(sources.get(name).includes("import('/"+helper+".js?v="+(name==='supplier-invoice-entry'?purchasingVersion:version)+"')"));
  for(const name of['bank-check-entry','bank-deposit-entry']){const page=await readFile(new URL('../public/'+name+'.html',import.meta.url),'utf8');assert.ok(page.includes('/'+name+'.js?v='+bankVersion));}
  for(const source of sources.values())assert.doesNotMatch(source,/\/api\/(?:sales|purchasing)\/[^`]*\$\{(?:editId|recordId|deliveryId|invoiceId)\}/);
 });
