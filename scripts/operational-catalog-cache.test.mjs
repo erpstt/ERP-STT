@@ -62,12 +62,26 @@ test.after(() => {
   else process.env.SUPABASE_ANON_KEY = originalKey;
 });
 
-test('clientes se cachean por sesión y una eliminación invalida todas las vistas', async () => {
+test('clientes revalidan cada lectura y su eliminación conserva el RPC con revisión', async () => {
+  for (const auth of [firstAuthorization, secondAuthorization]) await primeRoleAccessCache(auth, {
+    isAdmin: false, grants: [{ resourceKey: 'entities:customers', canView: true, canCreate: false, canEdit: false, canDelete: true }],
+  });
   let customerReads = 0;
   let deletes = 0;
   globalThis.fetch = async (input, init = {}) => {
     const url = new URL(String(input));
     const method = init.method ?? 'GET';
+    if (url.pathname.endsWith('/rpc/entity_master_list')) {
+      assert.equal(method, 'POST');
+      assert.deepEqual(JSON.parse(init.body), { p_catalog: 'customers' });
+      customerReads += 1;
+      return Response.json([{ customer_id: 1, company_name: 'Cliente', subsidiary_ids: [7], currency_ids: [2], _revision: 'SYN' }]);
+    }
+    if (url.pathname.endsWith('/rpc/delete_entity_master')) {
+      assert.deepEqual(JSON.parse(init.body), { p_catalog: 'customers', p_id: 1, p_revision: 'SYN' });
+      deletes += 1;
+      return Response.json(true);
+    }
     if (url.pathname.endsWith('/customers')) {
       if (method === 'DELETE') { deletes += 1; return new Response(null, { status: 204 }); }
       customerReads += 1;
@@ -83,13 +97,13 @@ test('clientes se cachean por sesión y una eliminación invalida todas las vist
   await listEntityRows(catalog, firstAuthorization);
   await listEntityRows(catalog, firstAuthorization);
   await listEntityRows(catalog, secondAuthorization);
-  assert.equal(customerReads, 2, 'Cada sesión debe conservar su propio contexto activo.');
+  assert.equal(customerReads, 3, 'El maestro protegido debe revalidar cada lectura con el JWT de la sesión.');
 
-  await deleteEntityRow(catalog, firstAuthorization, 1);
+  await deleteEntityRow(catalog, firstAuthorization, 1, { _revision: 'SYN' });
   await listEntityRows(catalog, firstAuthorization);
   await listEntityRows(catalog, secondAuthorization);
   assert.equal(deletes, 1);
-  assert.equal(customerReads, 4, 'Un CRUD debe invalidar el catálogo para todas las sesiones del proceso.');
+  assert.equal(customerReads, 5, 'Ambas sesiones vuelven a consultar después de la eliminación.');
 });
 
 test('departamentos revalida cada consulta y usa RPC para eliminar',async()=>{
@@ -98,7 +112,7 @@ test('departamentos revalida cada consulta y usa RPC para eliminar',async()=>{
  const c=getOrganizationCatalog('departments');await listOrganizationRows(c,firstAuthorization);await listOrganizationRows(c,firstAuthorization);await listOrganizationRows(c,secondAuthorization);assert.equal(reads,3);await deleteOrganizationRow(c,firstAuthorization,80,{_revision:'SYN'});await listOrganizationRows(c,firstAuthorization);await listOrganizationRows(c,secondAuthorization);assert.equal(reads,5);assert.equal(deletes,1);
 });
 
-test('facturas de venta revalidan cada lectura; otros catálogos reutilizan solo dentro de sesión', async () => {
+test('facturas de venta y saldos bancarios revalidan cada lectura; los demás catálogos reutilizan dentro de sesión', async () => {
   invalidateOperationalCatalogs();
   const reads = new Map();
   globalThis.fetch = async (input, init = {}) => {
@@ -120,7 +134,7 @@ test('facturas de venta revalidan cada lectura; otros catálogos reutilizan solo
   assert.deepEqual(Object.fromEntries(reads), {
     invoice: 2,
     supplier_invoice: 1,
-    bank_account: 1,
+    bank_account: 2,
     bank_statement: 1,
     asset: 1,
     asset_category: 1,
@@ -128,6 +142,24 @@ test('facturas de venta revalidan cada lectura; otros catálogos reutilizan solo
 
   await sales.listSalesRows(sales.getSalesCatalog('invoices'), secondAuthorization);
   assert.equal(reads.get('invoice'), 3, 'Otra sesión no debe reutilizar datos de la empresa activa anterior.');
+});
+
+test('el saldo bancario refleja movimientos de otros procesos sin invalidación local', async () => {
+  let balance = 1000, reads = 0;
+  globalThis.fetch = async input => {
+    assert.equal(new URL(String(input)).pathname, '/rest/v1/bank_account');
+    reads++;
+    return Response.json([{ bank_account_id: 1, account_number: 'SYN-BANK', balance }]);
+  };
+  const catalog = banking.getBankingCatalog('bank-accounts');
+  assert.equal((await banking.listBankingRows(catalog, firstAuthorization))[0].balance, 1000);
+  balance = 1250.123456; // A customer deposit committed through another worker.
+  assert.equal((await banking.listBankingRows(catalog, firstAuthorization))[0].balance, balance);
+  balance = 1200.123456; // A Treasury payment committed through another module.
+  for (const authorization of [firstAuthorization, secondAuthorization]) {
+    assert.equal((await banking.listBankingRows(catalog, authorization))[0].balance, balance);
+  }
+  assert.equal(reads, 4);
 });
 
 test('guardar facturas, activos y categorías invalida sus listados especializados', async () => {

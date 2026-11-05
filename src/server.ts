@@ -133,6 +133,7 @@ import { bankTransferJournal, bankTransferOptions, createBankTransfer, runBankTr
 import { bankDepositOptions, saveBankDeposit, listBankDeposits, bankDepositDetail, updateBankDeposit, deleteBankDeposit } from './modules/banking-catalogs/bank-deposit.service.js';
 import { bankCheckOptions, saveBankCheck, bankCheckReport, bankCheckDetail, deleteBankCheck } from './modules/banking-catalogs/bank-check.service.js';
 import { bankCheckPeriods } from './modules/banking-catalogs/bank-check-period.service.js';
+import {previewBankingCsv,importBankingCsv} from './modules/banking-catalogs/banking-csv.service.js';
 import { bankFeeOptions, saveBankFee, importBankFees, bankFeeReport, bankFeeDetail, updateBankFee, deleteBankFee, registerStatementBankFees } from './modules/banking-catalogs/bank-fee.service.js';
 import { autoMatchQuadraticReconciliation, deleteQuadraticReconciliationItem, exportQuadraticReconciliationExcel, exportQuadraticReconciliationPdf, getQuadraticReconciliation, getQuadraticReconciliationMatrix, listQuadraticReconciliations, matchQuadraticReconciliation, quadraticReconciliationOptions, saveQuadraticReconciliation, saveQuadraticReconciliationItem, transitionQuadraticReconciliation, unmatchQuadraticReconciliation } from './modules/banking-catalogs/quadratic-reconciliation.service.js';
 import { purchaseDocumentAccess, purchaseDocumentSource, purchaseWorkflowOptions, purchaseDocuments, purchaseDocumentDetail, savePurchaseDocument, deletePurchaseDocument } from './modules/purchasing-catalogs/purchase-workflow.service.js';
@@ -479,6 +480,8 @@ const server = createServer((request, response) => {
     }
     const forecastRoute=request.url?.match(/^\/api\/reports\/income-forecast\/(options|generate|save|pdf)$/);
     if(request.method==='POST'&&forecastRoute){const auth=request.headers.authorization;if(!auth?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión.');const input=await body(request,forecastRoute[1]==='pdf'?128*1024:undefined)as Record<string,unknown>;return json(response,200,forecastRoute[1]==='pdf'?await renderAccountingPdf(auth,'forecast',input):await incomeForecastAction(auth,forecastRoute[1],input));}
+    const bankingCsvRoute=request.url?.match(/^\/api\/banking\/csv\/(checks|deposits)\/(preview|import)$/);
+    if(bankingCsvRoute){if(request.method!=='POST')return error(response,405,'Método no permitido.');const input=await body(request,5*1024*1024)as Record<string,unknown>;const result=await(bankingCsvRoute[2]==='preview'?previewBankingCsv:importBankingCsv)(request.headers.authorization!,bankingCsvRoute[1],input);return json(response,bankingCsvRoute[2]==='import'&&Number(result.created)>0?201:200,result);}
     if(request.method==='GET'&&request.url==='/api/banking/transfers/options'){return json(response,200,await bankTransferOptions(request.headers.authorization!));}
     if(request.method==='POST'&&request.url==='/api/banking/transfers'){return json(response,201,await createBankTransfer(request.headers.authorization!,await body(request) as Record<string,unknown>));}
     if(request.method==='POST'&&request.url==='/api/banking/deposit-entry'){return json(response,201,await saveBankDeposit(request.headers.authorization!,await body(request) as Record<string,unknown>));}

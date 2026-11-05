@@ -1,12 +1,8 @@
 import assert from 'node:assert/strict';
-import { chromium } from '../.tmp/record-audit-validation/node_modules/playwright-core/index.mjs';
-
-const browser=await chromium.launch({
-  headless:true,
-  executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'
-});
-const page=await browser.newPage({viewport:{width:1500,height:950}});
-page.setDefaultTimeout(10000);
+import {test} from 'node:test';
+import {bankBrowserFixture} from './lib/bank-browser-fixture.mjs';
+test('comisiones del extracto mantienen selección confirmación y registro aislados',{timeout:60000},async t=>{
+const {page,baseURL:BASE_URL,cleanup}=await bankBrowserFixture(t);
 await page.addInitScript(()=>localStorage.setItem('nexo_token','bank-fee-browser-test'));
 
 let registered=false;
@@ -35,8 +31,8 @@ await page.route('**/api/reports/accounting/bank-reconciliation/bank-fees',async
 });
 
 try{
-  await page.goto('http://localhost:3000/');
-  await page.setContent('<iframe id="app" src="http://localhost:3000/accounting-reports.html" style="width:1500px;height:950px"></iframe>');
+  await page.goto(`${BASE_URL}/`);
+  await page.setContent(`<iframe id="app" src="${BASE_URL}/accounting-reports.html" style="width:1500px;height:950px"></iframe>`);
   const app=page.frameLocator('#app');
   await app.getByText('Bancos y Conciliación',{exact:true}).click();
   await app.locator('#bankCutoff').fill('2026-10-27');
@@ -70,5 +66,6 @@ try{
   assert.equal(await app.locator('[data-bank-fee-line]').count(),0,'La línea conciliada no debe quedar disponible para reproceso.');
   console.log('PASS: selección, confirmación y registro masivo de comisiones verificados en navegador.');
 }finally{
-  await browser.close();
+  await cleanup();
 }
+});

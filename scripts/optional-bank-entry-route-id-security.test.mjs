@@ -4,9 +4,10 @@ import {test} from 'node:test';
 import vm from 'node:vm';
 import {assertIsolatedTestArgs} from './lib/migration-preview.mjs';
 assertIsolatedTestArgs();
-const version='20261104-optional-bank-route-id-guard',sharedVersion='20261103-route-id-guard';
+const version='20261105-banking-functional',sharedVersion='20261103-route-id-guard';
 const validator=(await readFile(new URL('../public/route-id.js',import.meta.url),'utf8')).replace(/^export /gm,'');
 const safety=(await readFile(new URL('../public/html-safety.js',import.meta.url),'utf8')).replace(/^export /gm,'');
+const bankUi=(await readFile(new URL('../public/bank-ui.js',import.meta.url),'utf8')).replace(/^export /gm,'');
 const names=['bank-check-entry','bank-check-entry-main','bank-deposit-entry','bank-deposit-edit','bank-deposit-layout'];
 const sources=new Map(await Promise.all(names.map(async name=>[name,await readFile(new URL('../public/'+name+'.js',import.meta.url),'utf8')])));
 const html=new Map(await Promise.all(['bank-check-entry','bank-deposit-entry'].map(async name=>[name,await readFile(new URL('../public/'+name+'.html',import.meta.url),'utf8')])));
@@ -23,6 +24,7 @@ class Element{
  get options(){return this.querySelectorAll('option');}get rows(){return this.children.filter(node=>node.tagName==='TR');}get lastElementChild(){return this.children.at(-1);}get firstChild(){return this.childNodes?.[0]??{textContent:''};}
  append(...nodes){for(const node of nodes){node.parentElement=this;this.children.push(node);}}appendChild(node){this.append(node);return node;}
  insertBefore(node,target){node.remove();node.parentElement=this;this.children.splice(Math.max(0,this.children.indexOf(target)),0,node);}
+ after(node){const parent=this.parentElement;if(parent)parent.insertBefore(node,parent.children[parent.children.indexOf(this)+1]);}
  remove(){if(this.parentElement)this.parentElement.children=this.parentElement.children.filter(child=>child!==this);}
  removeAttribute(name){delete this.attrs[name];delete this[name];}setAttribute(name,value){this.attrs[name]=String(value);this[name]=String(value);}
  matches(selector){
@@ -30,14 +32,15 @@ class Element{
   if(attr)return Object.hasOwn(this.attrs,attr[1])&&(attr[2]===undefined||this.attrs[attr[1]]===attr[2]);
   if(selector.startsWith('#'))return this.id===selector.slice(1);if(selector.startsWith('.'))return this.className.split(/\s+/).includes(selector.slice(1));return this.tagName===selector.toUpperCase();
  }
- querySelectorAll(selector){const parts=selector.split(/\s+/),out=[];const visit=node=>{for(const child of node.children){if(child.matches(parts.at(-1))){let parent=child.parentElement,index=parts.length-2;while(index>=0&&parent){if(parent.matches(parts[index]))index--;parent=parent.parentElement;}if(index<0)out.push(child);}visit(child);}};visit(this);return out;}
+ querySelectorAll(selector){if(selector.includes(','))return selector.split(',').flatMap(part=>this.querySelectorAll(part.trim()));const parts=selector.split(/\s+/),out=[];const visit=node=>{for(const child of node.children){if(child.matches(parts.at(-1))){let parent=child.parentElement,index=parts.length-2;while(index>=0&&parent){if(parent.matches(parts[index]))index--;parent=parent.parentElement;}if(index<0)out.push(child);}visit(child);}};visit(this);return out;}
  querySelector(selector){return this.querySelectorAll(selector)[0]??null;}closest(selector){for(let node=this;node;node=node.parentElement)if(node.matches(selector))return node;return null;}
  addEventListener(type,callback,capture){this.listeners.push({type,callback,capture});}
  dispatchEvent(event){for(const listener of this.listeners.filter(item=>item.type===event.type&&item.capture))listener.callback(event);const result=this['on'+event.type]?.(event);for(const listener of this.listeners.filter(item=>item.type===event.type&&!item.capture))listener.callback(event);return result;}
  click(){if(!this.disabled)return this.dispatchEvent({type:'click',preventDefault(){},stopImmediatePropagation(){}});}
 }
 class Document{
- constructor(source){this.ids=new Map();this.root=new Element(this,'root');this.parse(source,this.root);}
+ constructor(source){this.ids=new Map();this.listeners=[];this.root=new Element(this,'root');this.parse(source,this.root);}
+ addEventListener(type,callback,capture){this.listeners.push({type,callback,capture});}
  parse(source,root){const stack=[root];for(const token of source.matchAll(/<!--[\s\S]*?-->|<![^>]*>|<\/?([a-z][a-z0-9-]*)\b([^>]*)>|([^<]+)/gi)){
   if(!token[1]){if(token[3]){const parent=stack.at(-1);parent.textContent+=token[3];(parent.childNodes??=[]).push({nodeType:3,textContent:token[3]});}continue;}
   const tag=token[1].toLowerCase();if(token[0].startsWith('</')){for(let i=stack.length-1;i>0;i--)if(stack[i].tagName===tag.toUpperCase()){stack.length=i;break;}continue;}
@@ -69,23 +72,23 @@ async function execute(name,search='',{denyDetail=false,denyWrite=false}={}){
  const location={search,replace:path=>navigation.push(path),assign:path=>navigation.push(path),reload:()=>navigation.push('reload')};
  const evaluate=async module=>{
   let code=sources.get(module);assert.ok(code,'Only known local modules may execute');
-  const deps=[...code.matchAll(/^import[^\r\n]*from\s*'([^']+)';/gm)].map(match=>match[1]);assert.ok(deps.every(path=>/^\.\/(html-safety|route-id)\.js\?v=/.test(path)));
+  const deps=[...code.matchAll(/^import[^\r\n]*from\s*'([^']+)';/gm)].map(match=>match[1]);assert.ok(deps.every(path=>new Set(['./html-safety.js?v=20261101-a03-1','./route-id.js?v='+sharedVersion,'./bank-ui.js?v='+version]).has(path)));
   code=code.replace(/^import[^\r\n]*\r?\n/gm,'').replace(/export async function loadDepositEdit/,'async function loadDepositEdit').replace(/await import\(/g,'await loadModule(');
   const tail=module==='bank-deposit-edit'?'\nreturn {loadDepositEdit};':'';
-  return vm.runInContext('(async()=>{"use strict";\n'+validator+'\n'+safety+'\n'+code+tail+'\n})()',context,{timeout:1500,filename:module+'.js'});
+  return vm.runInContext('(async()=>{"use strict";\n'+validator+'\n'+safety+'\n'+bankUi+'\n'+code+tail+'\n})()',context,{timeout:1500,filename:module+'.js'});
  };
- const sandbox={document,location,URL,URLSearchParams,Response,Intl,Date,Map,Set,Math,Node:{TEXT_NODE:3},crypto:{randomUUID:()=> '11111111-1111-4111-8111-111111111111'},
+ const sandbox={document,location,URL,URLSearchParams,Response,Intl,Date,Map,Set,Math,AbortController,addEventListener(){},Node:{TEXT_NODE:3},crypto:{randomUUID:()=> '11111111-1111-4111-8111-111111111111'},
   localStorage:storage,sessionStorage:storage,console:{warn(){}},queueMicrotask,
   Event:class{constructor(type){this.type=type;}preventDefault(){}stopImmediatePropagation(){}},
   MutationObserver:class{constructor(callback){this.callback=callback;}observe(target){observers.push(target);}},
   FileReader:class{readAsDataURL(file){fileReads.push(file);this.result='data:'+(file.type||'application/octet-stream')+';base64,QQ==';this.onload();}},
-  async loadModule(path){const mapping={['./bank-check-entry-main.js?v='+version]:'bank-check-entry-main',['./bank-deposit-edit.js?v='+version]:'bank-deposit-edit','./bank-deposit-layout.js?v=20261102-a03-capture2':'bank-deposit-layout'};assert.ok(mapping[path],'Unknown dynamic module');imports.push(path);return evaluate(mapping[path]);},
+  async loadModule(path){const mapping={['./bank-check-entry-main.js?v='+version]:'bank-check-entry-main',['./bank-deposit-edit.js?v='+version]:'bank-deposit-edit',['./bank-deposit-layout.js?v='+version]:'bank-deposit-layout'};assert.ok(mapping[path],'Unknown dynamic module');imports.push(path);return evaluate(mapping[path]);},
   async fetch(path,init={}){
    path=String(path);const method=init.method??'GET';assert.ok(fixed.has(path)||path==='/api/banking/checks/'+id||path==='/api/banking/deposits/'+id||['/api/banking/checks','/api/banking/deposit-entry','/api/accounting/journal-supports'].includes(path),'Unexpected synthetic API '+path);
    const call={path,method,headers:{...init.headers},body:init.body?JSON.parse(init.body):null};calls.push(call);assert.equal(call.headers.Authorization,'Bearer synthetic-bank-token');assert.equal(call.headers['X-Device-Token'],'synthetic-bank-device');
    if(denyDetail&&method==='GET'&&[('/api/banking/checks/'+id),('/api/banking/deposits/'+id)].includes(path))return Response.json({error:{message:'Synthetic access denied'}},{status:403});
    if(method!=='GET')return Response.json(denyWrite?{error:{message:'Synthetic write denied'}}:{journalId:8,transactionNumber:'SYN-BANK',total:25},{status:denyWrite?403:200});
-   if(path==='/api/banking/checks/options'||path==='/api/banking/deposits/options')return Response.json({subsidiary:{id:1,name:'Synthetic company',currencyId:1},location:{id:1,name:'Synthetic location'},accounts:[account],periods});
+   if(path==='/api/banking/checks/options'||path==='/api/banking/deposits/options')return Response.json({subsidiary:{id:1,name:'Synthetic company',currencyId:1},location:{id:1,name:'Synthetic location'},accounts:[account],periods,access:{canView:true,canCreate:true,canEdit:true,canDelete:true}});
    if(path==='/api/banking/checks/'+id)return Response.json({header:{check_number:'SYN-CHECK',payment_type:'CHEQUE',payment_date:'2026-11-04',fiscal_period_id:1,bank_account_id:5,bank_reference:'SYN-REF'},lines:[]});
    if(path==='/api/banking/deposits/'+id)return Response.json({deposit:{deposit_number:'SYN-DEPOSIT',deposit_date:'2026-11-04',fiscal_period_id:1,bank_account_id:5,bank_reference:'SYN-REF'},lines:[]});
    return Response.json(common[path]??[]);
@@ -117,7 +120,7 @@ for(const name of['bank-check-entry','bank-check-entry-main','bank-deposit-entry
   assert.equal(typeof f.document.getElementById('save').onclick,'function');assert.equal(f.document.getElementById('lines').rows.length,1);
   assert.equal(f.calls.some(call=>/\/api\/banking\/(checks|deposits)\/null$/.test(call.path)),false);
   const $=id=>f.document.getElementById(id);$('supportLinkUrl').value='http://synthetic.invalid/';$('addSupportLink').click();assert.match($('error').textContent,/https:\/\//);
-  const before=f.calls.length;await $('supportFiles').onchange({target:{files:[{name:'empty.bin',size:0,type:''}],value:''}});assert.equal(f.fileReads.length,0);assert.match($('error').textContent,/5 MB/);assert.equal(f.calls.length,before);
+  const before=f.calls.length;for(const file of[{name:'empty.bin',size:0,type:''},{name:'oversized.bin',size:5242881,type:''}]){await $('supportFiles').onchange({target:{files:[file],value:''}});assert.equal(f.fileReads.length,0);assert.match($('error').textContent,/5 MB/);assert.equal(f.calls.length,before);}
  });
 }
 test('standalone deposit edit with absent ID remains a no-op without credential or API access',async()=>{
@@ -150,5 +153,5 @@ test('fresh own HTML/main/edit versions preserve shared P94 and P118 feedback so
  for(const [name,page]of html){assert.ok(page.includes('/'+name+'.js?v='+version));assert.ok(sources.get(name).includes("from './route-id.js?v="+sharedVersion+"'"));}
  assert.ok(sources.get('bank-check-entry').includes("import('./bank-check-entry-main.js?v="+version+"')"));
  assert.ok(sources.get('bank-deposit-entry').includes("import('./bank-deposit-edit.js?v="+version+"')"));
- for(const name of['bank-check-entry-main','bank-deposit-entry']){assert.ok(sources.get(name).includes("mime_type:file.type||'application/octet-stream'"));assert.ok(sources.get(name).includes('file.size===0||file.size>5242880'));assert.ok(sources.get(name).includes("url.protocol!=='https:'"));}
+ for(const name of['bank-check-entry-main','bank-deposit-entry']){assert.ok(sources.get(name).includes("mime_type:file.type||'application/octet-stream'"));assert.ok(sources.get(name).includes('!file.size||file.size>5242880'));assert.ok(sources.get(name).includes("url.protocol!=='https:'"));}
 });

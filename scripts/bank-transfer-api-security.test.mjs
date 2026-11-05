@@ -20,16 +20,18 @@ test('las llamadas internas exigen permisos antes de consultar datos y validan i
  await primeRoleAccessCache(auth,{isAdmin:false,grants:[]});
  for(const action of [()=>bankTransferOptions(auth),()=>createBankTransfer(auth,transfer),()=>runBankTransferReport(auth,filters),()=>bankTransferJournal(auth,17)])
   await assert.rejects(action(),e=>e.status===403);
+ const blind='Bearer transfer-direct-write-without-view';await primeRoleAccessCache(blind,{isAdmin:false,grants:[{resourceKey:resource,canView:false,canCreate:true,canEdit:true,canDelete:true}]});
+ for(const action of [()=>bankTransferOptions(blind),()=>createBankTransfer(blind,transfer),()=>runBankTransferReport(blind,filters),()=>bankTransferJournal(blind,17)])await assert.rejects(action(),e=>e.status===403);
  await assert.rejects(bankTransferOptions(''),e=>e.status===401);
  for(const id of [0,-1,1.5,NaN,Number.MAX_SAFE_INTEGER+1])assert.throws(()=>bankTransferJournal(auth,id),e=>e.status===400);
 });
 
 test('las cuatro rutas respetan lectura/creacion y el JWT; los rechazos no invocan operaciones bancarias', {timeout:25000},async t=>{
- const calls=[];const roles={denied:null,reader:'view',creator:'create',editor:'edit',admin:'admin'};
+ const calls=[];const roles={denied:null,reader:'view',creator:'create',editor:'edit',blindWriter:'write-without-view',admin:'admin'};
  const stub=createServer(async(request,response)=>{
   response.setHeader('Content-Type','application/json');const role=request.headers.authorization?.replace('Bearer transfer-http-','');
   if(request.url==='/rest/v1/rpc/assert_request_access'){
-   response.end(JSON.stringify({allowed:true,roleAccess:{isAdmin:role==='admin',grants:[{resourceKey:resource,canView:roles[role]==='view',canCreate:roles[role]==='create',canEdit:roles[role]==='edit',canDelete:false}]}}));return;
+   response.end(JSON.stringify({allowed:true,roleAccess:{isAdmin:role==='admin',grants:[{resourceKey:resource,canView:Boolean(roles[role])&&role!=='blindWriter',canCreate:role==='blindWriter'||roles[role]==='create',canEdit:role==='blindWriter'||roles[role]==='edit',canDelete:role==='blindWriter'}]}}));return;
   }
   const chunks=[];for await(const chunk of request)chunks.push(chunk);
   calls.push({path:request.url,authorization:request.headers.authorization,key:request.headers.apikey,payload:JSON.parse(Buffer.concat(chunks).toString()||'{}')});
@@ -46,14 +48,15 @@ test('las cuatro rutas respetan lectura/creacion y el JWT; los rechazos no invoc
   for(const [role,grant]of Object.entries(roles)){
    const authorization=`Bearer transfer-http-${role}`;const before=calls.length;
    const response=await fetch(base+path,{method,headers:{Authorization:authorization,'X-Device-Token':'transfer-http-device-fixture','Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
-   const allowed=role==='admin'||grant===action;const sqlDenied=role==='admin'&&rpc==='bank_transfer_journal';
+   const allowed=role==='admin'||role!=='blindWriter'&&(grant===action||action==='view'&&Boolean(grant));const sqlDenied=role==='admin'&&rpc==='bank_transfer_journal';
    assert.equal(response.status,!allowed||sqlDenied?403:rpc==='create_bank_transfer'?201:200,`${role} ${rpc}`);
    if(!allowed)assert.equal(calls.length,before,'Sin permiso no debe llamar a los RPC');
-   else{assert.equal(calls.length,before+1);assert.deepEqual(calls.at(-1),{path:`/rest/v1/rpc/${rpc}`,authorization,key:'public-fixture',payload});}
+   if(role==='blindWriter'){assert.equal(response.status,403,'write grants require view');assert.equal(calls.length,before,'blind writer must not reach a financial provider RPC');}
+   if(allowed){assert.equal(calls.length,before+1);assert.deepEqual(calls.at(-1),{path:`/rest/v1/rpc/${rpc}`,authorization,key:'public-fixture',payload});}
    if(sqlDenied)assert.doesNotMatch(await response.text(),/private SQL detail/);checked++;
   }
   const before=calls.length;const anonymous=await fetch(base+path,{method,...(body?{headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{})});
   assert.equal(anonymous.status,401);assert.equal(calls.length,before);
  }
- assert.equal(checked,20);
+ assert.equal(checked,24);
 });

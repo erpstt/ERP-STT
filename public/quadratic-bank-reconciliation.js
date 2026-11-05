@@ -1,3 +1,4 @@
+import {bankContext,bankRequestScope,watchBankContext,parseBankAmount,bankAmountInput,validBankAmount,lockBankForm,protectBankNavigation} from './bank-ui.js?v=20261105-banking-functional';
 const $ = id => document.getElementById(id);
 const BASE = '/api/v1/bank-reconciliations/quadratic';
 const token = () => localStorage.getItem('nexo_token') || sessionStorage.getItem('nexo_token') || '';
@@ -15,32 +16,26 @@ const ITEM_LABELS = {
 };
 const BANK_TYPES = new Set(['DEPOSIT_IN_TRANSIT_CURRENT','DEPOSIT_IN_TRANSIT_PRIOR','OUTSTANDING_CHECK_CURRENT','OUTSTANDING_CHECK_PRIOR','BANK_ERROR']);
 const state = {options:{},history:[],detail:null,currentId:null,selectedStatementId:null,selectedBookId:null,busy:false};
+const pageContext=bankContext(),detailRequests=bankRequestScope(),periodRequests=bankRequestScope();
 
 function unwrap(value){return value?.result ?? value?.data ?? value ?? {};}
 function rows(value,...keys){for(const key of keys){if(Array.isArray(value?.[key]))return value[key];}return Array.isArray(value)?value:[];}
 function pick(source,...keys){for(const key of keys)if(source?.[key]!==undefined&&source?.[key]!==null)return source[key];return null;}
 function esc(value){return String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));}
 function number(value){const parsed=Number(value);return Number.isFinite(parsed)?parsed:0;}
-function parseMoney(value){
-  let text=String(value??'').trim().replace(/[^\d,.-]/g,'');
-  if(!text)return 0;
-  const comma=text.lastIndexOf(','),dot=text.lastIndexOf('.');
-  if(comma>=0&&dot>=0)text=comma>dot?text.replaceAll('.','').replace(',','.'):text.replaceAll(',','');
-  else if(comma>=0)text=text.replaceAll('.','').replace(',','.');
-  else if((text.match(/\./g)||[]).length>1)text=text.replaceAll('.','');
-  const parsed=Number(text);return Number.isFinite(parsed)?parsed:0;
-}
-function editMoney(value){return number(value).toFixed(2).replace('.',',');}
+const parseMoney=parseBankAmount;
+function editMoney(value){return bankAmountInput(value);}
 function money(value){
   const n=number(value),symbol=currencySymbol(),formatted=Math.abs(n).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2});
   return n<0?`(${symbol} ${formatted})`:`${symbol} ${formatted}`.trim();
 }
 function dateLabel(value){if(!value)return '—';const date=new Date(String(value).length===10?`${value}T12:00:00`:value);return Number.isNaN(date.valueOf())?String(value):date.toLocaleDateString('es-CR',{day:'2-digit',month:'short',year:'numeric'});}
 function setMessage(text='',kind='success'){$('message').textContent=text;$('message').className=`message${kind==='error'?' error':''}`;}
-function setBusy(busy){state.busy=busy;document.querySelector('.page-shell').classList.toggle('loading',busy);document.querySelector('.page-shell').setAttribute('aria-busy',String(busy));}
+function setBusy(busy){state.busy=busy;lockBankForm(document.querySelector('.page-shell'),busy);lockBankForm($('itemDialog'),busy);document.querySelector('.page-shell').classList.toggle('loading',busy);document.querySelector('.page-shell').setAttribute('aria-busy',String(busy));if(!busy)renderWorkflow();}
 function errorMessage(error){return error instanceof Error?error.message:'No fue posible completar la operación.';}
 
 async function api(path,init={}){
+  if(pageContext!==bankContext())throw Error('La empresa, el rol o la sesión cambió. Vuelva a abrir la conciliación.');
   if(!token())throw Error('La sesión no está disponible. Inicie sesión nuevamente.');
   const response=await fetch(path,{...init,headers:{Authorization:`Bearer ${token()}`,'X-Device-Token':device(),...(init.body?{'Content-Type':'application/json'}:{}),...(init.headers||{})}});
   const raw=await response.text();let data=null;
@@ -116,6 +111,7 @@ function renderOptions(){
 }
 
 function resetDraft({keepSelection=true}={}){
+  detailRequests.cancel();periodRequests.cancel();
   state.detail=null;state.currentId=null;state.selectedStatementId=null;state.selectedBookId=null;
   for(const id of['bankStartBalance','bankTotalReceipts','bankTotalDisbursements','bankEndBalance'])$(id).value='0,00';
   $('workspace').hidden=keepSelection?!$('bankAccount').value:true;$('emptyState').hidden=!$('workspace').hidden;
@@ -201,28 +197,32 @@ async function loadOptions(){
   finally{setBusy(false);}
 }
 async function loadDetail(id,{announce=false}={}){
-  if(!id)return;
+  if(!id)return;const request=detailRequests.begin(),selection=JSON.stringify([$('bankAccount').value,$('periodYear').value,$('periodMonth').value]);
   setBusy(true);setMessage();
   try{
-    const [detailResult,matrixResult]=await Promise.allSettled([api(`${BASE}/${encodeURIComponent(id)}`),api(`${BASE}/${encodeURIComponent(id)}/matrix`)]),detail=detailResult.status==='fulfilled'?unwrap(detailResult.value):null,matrix=matrixResult.status==='fulfilled'?unwrap(matrixResult.value):null;
+    const [detailResult,matrixResult]=await Promise.allSettled([api(`${BASE}/${encodeURIComponent(id)}`,{signal:request.signal}),api(`${BASE}/${encodeURIComponent(id)}/matrix`,{signal:request.signal})]),detail=detailResult.status==='fulfilled'?unwrap(detailResult.value):null,matrix=matrixResult.status==='fulfilled'?unwrap(matrixResult.value):null;
+    if(!request.current()||selection!==JSON.stringify([$('bankAccount').value,$('periodYear').value,$('periodMonth').value]))return;
     if(!detail)throw detailResult.reason;
     state.currentId=id;state.detail={...detail,...(matrix&&matrix!==detail?{matrix:matrix.matrix||matrix,continuity:matrix.continuity||detail.continuity}:{}),items:rows(detail,'items','reconciliationItems','reconciliation_items'),statementLines:rows(detail,'statementLines','statement_lines','bankStatementLines','bank_statement_lines'),bookTransactions:rows(detail,'bookTransactions','book_transactions','transactions','bankTransactions','bank_transactions'),matches:rows(detail,'matches','reconciliationMatches','reconciliation_matches')};
     $('workspace').hidden=false;$('emptyState').hidden=true;hydrateInputs();renderAll();if(announce)setMessage('Conciliación cargada correctamente.');
-  }catch(error){setMessage(errorMessage(error),'error');}
-  finally{setBusy(false);}
+  }catch(error){if(request.current())setMessage(errorMessage(error),'error');}
+  finally{if(request.current())setBusy(false);}
 }
 async function openPeriod(){
+  if(state.busy)return;const request=periodRequests.begin();
   const bankAccountId=$('bankAccount').value,periodYear=$('periodYear').value,periodMonth=$('periodMonth').value;if(!bankAccountId){setMessage('Seleccione una cuenta bancaria.','error');return;}
   setBusy(true);setMessage();
   try{
-    const query=new URLSearchParams({bankAccountId,periodYear,periodMonth}),response=unwrap(await api(`${BASE}?${query}`)),list=rows(response,'reconciliations','rows','items'),existing=list.find(row=>String(pick(row,'periodYear','period_year'))===periodYear&&String(pick(row,'periodMonth','period_month'))===periodMonth)||state.history.find(row=>String(pick(row,'bankAccountId','bank_account_id'))===bankAccountId&&String(pick(row,'periodYear','period_year'))===periodYear&&String(pick(row,'periodMonth','period_month'))===periodMonth);
+    const query=new URLSearchParams({bankAccountId,periodYear,periodMonth}),response=unwrap(await api(`${BASE}?${query}`,{signal:request.signal})),list=rows(response,'reconciliations','rows','items'),existing=list.find(row=>String(pick(row,'periodYear','period_year'))===periodYear&&String(pick(row,'periodMonth','period_month'))===periodMonth)||state.history.find(row=>String(pick(row,'bankAccountId','bank_account_id'))===bankAccountId&&String(pick(row,'periodYear','period_year'))===periodYear&&String(pick(row,'periodMonth','period_month'))===periodMonth);
+    if(!request.current())return;
     if(existing){setBusy(false);await loadDetail(reconciliationId(existing),{announce:true});return;}
     resetDraft();$('workspace').hidden=false;$('emptyState').hidden=true;renderAll();setMessage(`Nuevo borrador para ${MONTHS[Number(periodMonth)-1]} de ${periodYear}. Ingrese los cuatro valores del extracto y guarde.`);
   }catch(error){resetDraft();$('workspace').hidden=false;$('emptyState').hidden=true;setMessage(errorMessage(error),'error');}
   finally{setBusy(false);}
 }
 function draftPayload(){return{id:state.currentId||undefined,reconciliationId:state.currentId||undefined,bankAccountId:Number($('bankAccount').value),periodYear:Number($('periodYear').value),periodMonth:Number($('periodMonth').value),bankStartBalance:parseMoney($('bankStartBalance').value),bankTotalReceipts:parseMoney($('bankTotalReceipts').value),bankTotalDisbursements:parseMoney($('bankTotalDisbursements').value),bankEndBalance:parseMoney($('bankEndBalance').value)};}
-async function saveDraft(){
+async function saveDraft(){if(state.busy)return;
+  if(['bankStartBalance','bankTotalReceipts','bankTotalDisbursements','bankEndBalance'].some(id=>!validBankAmount(parseMoney($(id).value)))){setMessage('Los importes deben ser válidos y tener como máximo 6 decimales.','error');return;}
   if(!$('bankAccount').value){setMessage('Seleccione una cuenta bancaria.','error');return;}if(!renderBankIdentity()){setMessage('Los valores del extracto no cumplen saldo inicial + ingresos − egresos = saldo final.','error');return;}
   setBusy(true);setMessage();
   try{const saved=unwrap(await api(BASE,{method:'POST',body:JSON.stringify(draftPayload())})),id=reconciliationId(saved)||reconciliationId(saved.header)||state.currentId;if(!id)throw Error('El servidor guardó el borrador, pero no devolvió su identificador.');setBusy(false);await loadOptionsAfterSave(id);setMessage('Borrador guardado y valores de libros recalculados.');}
@@ -239,29 +239,32 @@ function suggestedImpact(type,amount){
 }
 function applySuggestedImpact(){const type=$('itemType').value,values=suggestedImpact(type,parseMoney($('itemAmount').value));if(!['BOOK_ERROR','BANK_ERROR'].includes(type))['impactStart','impactReceipts','impactDisbursements','impactEnd'].forEach((id,index)=>$(id).value=editMoney(values[index]));$('impactHelp').textContent=['BOOK_ERROR','BANK_ERROR'].includes(type)?'Ingrese el impacto firmado. Debe cumplirse: saldo inicial + ingresos − egresos = saldo final.':'Impacto estándar aplicado automáticamente según el tipo de partida.';}
 function openItemDialog(item=null){
+  if(state.busy)return;
   $('itemForm').reset();$('itemId').value=item?String(pick(item,'id','itemId','item_id')):'';$('itemTransactionId').value=item?String(pick(item,'transactionId','transaction_id')||''):'';$('itemDialogTitle').textContent=item?'Editar partida':'Nueva partida';$('itemType').value=item?String(pick(item,'itemType','item_type')):'DEPOSIT_IN_TRANSIT_CURRENT';$('itemDate').value=String(pick(item,'transactionDate','transaction_date')||new Date().toISOString().slice(0,10));$('itemReference').value=String(pick(item,'referenceNumber','reference_number')||'');$('itemDescription').value=String(pick(item,'description')||'');
   const v=item?impact(item):null,amount=item?Math.max(...Object.values(v).map(Math.abs)):0;$('itemAmount').value=editMoney(amount);if(v)['impactStart','impactReceipts','impactDisbursements','impactEnd'].forEach((id,index)=>$(id).value=editMoney([v.start,v.receipts,v.disbursements,v.end][index]));else applySuggestedImpact();$('itemError').textContent='';$('itemDialog').showModal();
 }
 async function saveItem(event){
-  event.preventDefault();const impacts={impactStartBalance:parseMoney($('impactStart').value),impactReceipts:parseMoney($('impactReceipts').value),impactDisbursements:parseMoney($('impactDisbursements').value),impactEndBalance:parseMoney($('impactEnd').value)},identity=impacts.impactStartBalance+impacts.impactReceipts-impacts.impactDisbursements-impacts.impactEndBalance;
+  event.preventDefault();if(state.busy)return;const impacts={impactStartBalance:parseMoney($('impactStart').value),impactReceipts:parseMoney($('impactReceipts').value),impactDisbursements:parseMoney($('impactDisbursements').value),impactEndBalance:parseMoney($('impactEnd').value)},identity=impacts.impactStartBalance+impacts.impactReceipts-impacts.impactDisbursements-impacts.impactEndBalance;
+  if(!validBankAmount(parseMoney($('itemAmount').value))||Object.values(impacts).some(value=>!validBankAmount(value))){$('itemError').textContent='Los importes deben ser válidos y tener como máximo 6 decimales.';return;}
   if(Math.abs(identity)>=.005){$('itemError').textContent=`La partida no conserva la identidad de cuatro columnas. Diferencia: ${money(identity)}.`;return;}
   const payload={id:$('itemId').value?Number($('itemId').value):undefined,itemId:$('itemId').value?Number($('itemId').value):undefined,transactionId:$('itemTransactionId').value?Number($('itemTransactionId').value):null,itemType:$('itemType').value,description:$('itemDescription').value.trim(),referenceNumber:$('itemReference').value.trim()||null,transactionDate:$('itemDate').value,amount:parseMoney($('itemAmount').value),...impacts};
   if(!payload.description){$('itemError').textContent='Ingrese una descripción para la partida.';return;}
   setBusy(true);try{await api(`${BASE}/${state.currentId}/items`,{method:'POST',body:JSON.stringify(payload)});$('itemDialog').close();setBusy(false);await loadDetail(state.currentId);setMessage('Partida de conciliación guardada.');}catch(error){$('itemError').textContent=errorMessage(error);}finally{setBusy(false);}
 }
 function confirmAction(title,text,button='Confirmar'){return new Promise(resolve=>{const dialog=$('confirmDialog'),action=$('confirmAction');$('confirmTitle').textContent=title;$('confirmText').textContent=text;action.textContent=button;const onClose=()=>{dialog.removeEventListener('close',onClose);resolve(dialog.returnValue==='confirm');};dialog.addEventListener('close',onClose);dialog.showModal();});}
-async function deleteItem(id){if(!await confirmAction('Eliminar partida','La partida se retirará de la matriz y se recalcularán las cuatro diferencias.','Eliminar'))return;setBusy(true);try{await api(`${BASE}/${state.currentId}/items/${encodeURIComponent(id)}`,{method:'DELETE'});setBusy(false);await loadDetail(state.currentId);setMessage('Partida eliminada.');}catch(error){setMessage(errorMessage(error),'error');}finally{setBusy(false);}}
+async function deleteItem(id){if(state.busy)return;if(!await confirmAction('Eliminar partida','La partida se retirará de la matriz y se recalcularán las cuatro diferencias.','Eliminar'))return;setBusy(true);try{await api(`${BASE}/${state.currentId}/items/${encodeURIComponent(id)}`,{method:'DELETE'});setBusy(false);await loadDetail(state.currentId);setMessage('Partida eliminada.');}catch(error){setMessage(errorMessage(error),'error');}finally{setBusy(false);}}
 
-async function autoMatch(){setBusy(true);setMessage();try{const result=unwrap(await api(`${BASE}/${state.currentId}/auto-match`,{method:'POST',body:JSON.stringify({toleranceDays:Number($('toleranceDays').value)||0})})),count=number(pick(result,'matched','matchedCount','matched_count','count'));setBusy(false);await loadDetail(state.currentId);setMessage(`${count} movimiento${count===1?'':'s'} conciliado${count===1?'':'s'} automáticamente.`);}catch(error){setMessage(errorMessage(error),'error');}finally{setBusy(false);}}
-async function manualMatch(){if(!state.selectedStatementId||!state.selectedBookId)return;setBusy(true);try{await api(`${BASE}/${state.currentId}/matches`,{method:'POST',body:JSON.stringify({statementLineId:Number(state.selectedStatementId),bookTransactionId:Number(state.selectedBookId)})});state.selectedStatementId=null;state.selectedBookId=null;setBusy(false);await loadDetail(state.currentId);setMessage('Movimientos conciliados manualmente.');}catch(error){setMessage(errorMessage(error),'error');}finally{setBusy(false);}}
-async function unmatch(matchId){if(!await confirmAction('Desconciliar movimientos','Los movimientos volverán a quedar disponibles para el punteo.','Desconciliar'))return;setBusy(true);try{await api(`${BASE}/${state.currentId}/matches/${encodeURIComponent(matchId)}`,{method:'DELETE'});setBusy(false);await loadDetail(state.currentId);setMessage('Los movimientos se marcaron como pendientes.');}catch(error){setMessage(errorMessage(error),'error');}finally{setBusy(false);}}
+async function autoMatch(){if(state.busy)return;setBusy(true);setMessage();try{const result=unwrap(await api(`${BASE}/${state.currentId}/auto-match`,{method:'POST',body:JSON.stringify({toleranceDays:Number($('toleranceDays').value)||0})})),count=number(pick(result,'matched','matchedCount','matched_count','count'));setBusy(false);await loadDetail(state.currentId);setMessage(`${count} movimiento${count===1?'':'s'} conciliado${count===1?'':'s'} automáticamente.`);}catch(error){setMessage(errorMessage(error),'error');}finally{setBusy(false);}}
+async function manualMatch(){if(state.busy)return;if(!state.selectedStatementId||!state.selectedBookId)return;setBusy(true);try{await api(`${BASE}/${state.currentId}/matches`,{method:'POST',body:JSON.stringify({statementLineId:Number(state.selectedStatementId),bookTransactionId:Number(state.selectedBookId)})});state.selectedStatementId=null;state.selectedBookId=null;setBusy(false);await loadDetail(state.currentId);setMessage('Movimientos conciliados manualmente.');}catch(error){setMessage(errorMessage(error),'error');}finally{setBusy(false);}}
+async function unmatch(matchId){if(state.busy)return;if(!await confirmAction('Desconciliar movimientos','Los movimientos volverán a quedar disponibles para el punteo.','Desconciliar'))return;setBusy(true);try{await api(`${BASE}/${state.currentId}/matches/${encodeURIComponent(matchId)}`,{method:'DELETE'});setBusy(false);await loadDetail(state.currentId);setMessage('Los movimientos se marcaron como pendientes.');}catch(error){setMessage(errorMessage(error),'error');}finally{setBusy(false);}}
 async function transition(target){
+  if(state.busy)return;
   const titles={in_review:'Enviar a revisión',approved:'Aprobar conciliación',closed:'Cerrar período'},texts={in_review:'El borrador quedará disponible para revisión y aprobación.',approved:'Se validarán nuevamente las cuatro diferencias antes de aprobar.',closed:'El período y sus partidas quedarán bloqueados contra modificaciones.'};
   if(!await confirmAction(titles[target],texts[target],titles[target]))return;setBusy(true);setMessage();
   try{const endpoint=target==='approved'?'approve':target==='closed'?'close':'transition',body=target==='in_review'?{status:'in_review',targetStatus:'in_review'}:{};await api(`${BASE}/${state.currentId}/${endpoint}`,{method:'POST',body:JSON.stringify(body)});setBusy(false);await loadDetail(state.currentId);setMessage(target==='closed'?'Período cerrado. La conciliación quedó inmutable.':target==='approved'?'Conciliación aprobada.':'Conciliación enviada a revisión.');}
   catch(error){setMessage(errorMessage(error),'error');}finally{setBusy(false);}
 }
-async function downloadFile(format){
+async function downloadFile(format){if(state.busy)return;
   if(!state.currentId)return;setBusy(true);setMessage();
   try{
     const response=await fetch(`${BASE}/${state.currentId}/${format}`,{headers:{Authorization:`Bearer ${token()}`,'X-Device-Token':device()}});if(!response.ok){const raw=await response.text();let payload;try{payload=JSON.parse(raw)}catch{}throw Error(payload?.error?.message||payload?.message||'No fue posible generar el archivo.');}
@@ -285,3 +288,6 @@ function wireEvents(){
 
 wireEvents();
 loadOptions();
+
+protectBankNavigation(()=>state.busy,message=>setMessage(message,'error'));
+watchBankContext(()=>{detailRequests.cancel();periodRequests.cancel();resetDraft();setBusy(true);setMessage('La empresa, el rol o la sesión cambió. Vuelva a abrir la conciliación.','error');});

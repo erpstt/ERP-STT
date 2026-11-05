@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import {assertIsolatedTestArgs} from './lib/migration-preview.mjs';
 assertIsolatedTestArgs();
-const purchasingVersion='20261105-purchasing-functional-review',version='20261104-optional-document-route-id-guard',bankVersion='20261104-optional-bank-route-id-guard';
+const purchasingVersion='20261105-purchasing-functional-review',version='20261104-optional-document-route-id-guard',bankVersion='20261105-banking-functional';
 const mains=['sales-invoice-entry','sales-note-entry','supplier-invoice-entry','supplier-note-entry'];
 const helpers=['sales-invoice-delivery-prefill','supplier-invoice-receipt-prefill'];
 const sources=new Map(await Promise.all([...mains,...helpers].map(async name=>[name,await readFile(new URL('../public/'+name+'.js',import.meta.url),'utf8')])));

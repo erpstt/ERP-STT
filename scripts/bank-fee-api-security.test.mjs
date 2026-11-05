@@ -13,14 +13,16 @@ const cases=[['GET','/fees/options','view','bank_fee_options',undefined,{}],['PO
 test('autorizacion interna de las ocho operaciones precede a cualquier consulta',async t=>{
  t.after(()=>invalidateRoleAccessCaches());const auth='Bearer fee-direct-denied';await primeRoleAccessCache(auth,{isAdmin:false,grants:[]});
  for(const action of [()=>bankFeeOptions(auth),()=>importBankFees(auth,batch),()=>registerStatementBankFees(auth,statement),()=>bankFeeReport(auth,filters),()=>bankFeeDetail(auth,17),()=>saveBankFee(auth,payload),()=>updateBankFee(auth,17,payload),()=>deleteBankFee(auth,17)])await assert.rejects(action(),e=>e.status===403);
+ const blind='Bearer fee-direct-write-without-view';await primeRoleAccessCache(blind,{isAdmin:false,grants:[{resourceKey:resource,canView:false,canCreate:true,canEdit:true,canDelete:true}]});
+ for(const action of [()=>bankFeeOptions(blind),()=>importBankFees(blind,batch),()=>registerStatementBankFees(blind,statement),()=>bankFeeReport(blind,filters),()=>bankFeeDetail(blind,17),()=>saveBankFee(blind,payload),()=>updateBankFee(blind,17,payload),()=>deleteBankFee(blind,17)])await assert.rejects(action(),e=>e.status===403);
  await assert.rejects(bankFeeOptions(''),e=>e.status===401);
  for(const id of [0,-1,1.5,NaN,Number.MAX_SAFE_INTEGER+1])assert.throws(()=>bankFeeDetail(auth,id),e=>e.status===400);
 });
 test('ocho rutas exigen view/create/edit/delete y conservan identidad, parametros y denegaciones SQL', {timeout:25000},async t=>{
- const calls=[];const roles={denied:null,reader:'view',creator:'create',editor:'edit',deleter:'delete',admin:'admin'};
+ const calls=[];const roles={denied:null,reader:'view',creator:'create',editor:'edit',deleter:'delete',blindWriter:'write-without-view',admin:'admin'};
  const stub=createServer(async(req,res)=>{
   res.setHeader('Content-Type','application/json');const role=req.headers.authorization?.replace('Bearer fee-http-','');
-  if(req.url==='/rest/v1/rpc/assert_request_access'){res.end(JSON.stringify({allowed:true,roleAccess:{isAdmin:role==='admin',grants:[{resourceKey:resource,canView:roles[role]==='view',canCreate:roles[role]==='create',canEdit:roles[role]==='edit',canDelete:roles[role]==='delete'}]}}));return;}
+  if(req.url==='/rest/v1/rpc/assert_request_access'){res.end(JSON.stringify({allowed:true,roleAccess:{isAdmin:role==='admin',grants:[{resourceKey:resource,canView:Boolean(roles[role])&&role!=='blindWriter',canCreate:role==='blindWriter'||roles[role]==='create',canEdit:role==='blindWriter'||roles[role]==='edit',canDelete:role==='blindWriter'||roles[role]==='delete'}]}}));return;}
   const chunks=[];for await(const c of req)chunks.push(c);calls.push({path:req.url,auth:req.headers.authorization,key:req.headers.apikey,payload:JSON.parse(Buffer.concat(chunks).toString()||'{}')});
   if(role==='admin'&&req.url.endsWith('/update_bank_fee')){res.writeHead(403);res.end(JSON.stringify({code:'42501',message:'private SQL detail'}));return;}
   res.end(JSON.stringify({fixture:true}));
@@ -34,9 +36,10 @@ test('ocho rutas exigen view/create/edit/delete y conservan identidad, parametro
   for(const [role,grant]of Object.entries(roles)){
    const auth=`Bearer fee-http-${role}`;const before=calls.length;
    const response=await fetch(url,{method,headers:{Authorization:auth,'X-Device-Token':'fee-http-device-fixture','Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
-   const allowed=role==='admin'||grant===action;const sqlDenied=role==='admin'&&rpc==='update_bank_fee';
+   const allowed=role==='admin'||role!=='blindWriter'&&(grant===action||action==='view'&&Boolean(grant));const sqlDenied=role==='admin'&&rpc==='update_bank_fee';
    assert.equal(response.status,!allowed||sqlDenied?403:['save_bank_fee','import_bank_fees','register_bank_statement_fees'].includes(rpc)?201:200,`${role} ${rpc}`);
    assert.equal(calls.length,before+(allowed?1:0));
+   if(role==='blindWriter'){assert.equal(response.status,403,'write grants require view');assert.equal(calls.length,before,'blind writer must not reach a financial provider RPC');}
    if(allowed)assert.deepEqual(calls.at(-1),{path:'/rest/v1/rpc/'+rpc,auth,key:'public-fixture',payload:expected});
    if(sqlDenied)assert.doesNotMatch(await response.text(),/private SQL detail/);
   }

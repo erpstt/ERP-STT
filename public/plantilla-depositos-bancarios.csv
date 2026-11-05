@@ -1,0 +1,4 @@
+﻿documento_referencia;fecha;cuenta_bancaria;moneda;tipo_cambio;referencia_bancaria;ubicacion;nota_documento;numero_cuenta;importe;metodo_pago;nota_linea;tipo_entidad;identificacion_entidad;departamento;centro_costos;clase;acreedor_financiero;compania_relacionada
+EJEMPLO-DEP-001;2026-11-05;REEMPLAZAR_CUENTA_BANCARIA;CRC;1;REEMPLAZAR_REFERENCIA;;Ejemplo de depósito con dos líneas;REEMPLAZAR_CUENTA_CONTABLE;150.25;REEMPLAZAR_CODIGO_METODO;Primera aplicación;;;;;;;
+EJEMPLO-DEP-001;2026-11-05;REEMPLAZAR_CUENTA_BANCARIA;CRC;1;REEMPLAZAR_REFERENCIA;;Ejemplo de depósito con dos líneas;REEMPLAZAR_CUENTA_CONTABLE;49.75;REEMPLAZAR_CODIGO_METODO;Segunda aplicación;;;;;;;
+EJEMPLO-DEP-002;2026-11-05;REEMPLAZAR_CUENTA_BANCARIA;CRC;1;REEMPLAZAR_REFERENCIA_2;;Ejemplo de depósito adicional;REEMPLAZAR_CUENTA_CONTABLE;100.123456;REEMPLAZAR_CODIGO_METODO;Aplicación de depósito;;;;;;;

@@ -11,7 +11,9 @@ async function rpc<T>(authorization:string,action:'view'|'create',name:string,in
     const code=typeof payload==='object'&&payload&&'code'in payload?payload.code:null;
     if(response.status===401)throw Object.assign(new Error('La sesión no es válida.'),{status:401});
     if(response.status===403||code==='42501')throw Object.assign(new Error('No tiene permiso para realizar esta operación bancaria.'),{status:403});
-    throw new Error(typeof payload==='object'&&payload&&'message'in payload?String(payload.message):'No fue posible procesar la transferencia.');
+    if(code==='55000')throw Object.assign(new Error('La transferencia no puede realizarse en su estado actual.'),{status:409});
+    if(code==='22023'||code==='22P02')throw Object.assign(new Error('Revise los datos de la transferencia bancaria.'),{status:400});
+    throw new Error('No fue posible procesar la transferencia.');
   }
   return payload as T;
 }

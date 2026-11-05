@@ -8,13 +8,14 @@ import {assertIsolatedTestArgs} from './lib/migration-preview.mjs';
 assertIsolatedTestArgs();
 
 const version='20261104-support-write-validation';
-const bankEntryVersion='20261104-optional-bank-route-id-guard';
+const bankEntryVersion='20261105-banking-functional';
 const supplierEntryVersion='20261105-purchasing-functional-review';
 const journalEntryVersion='20261104-journal-payment-route-id-guard';
 const screens=[
  {name:'journal-entry'}, {name:'supplier-invoice-entry'}, {name:'supplier-note-entry'},
  {name:'bank-check-entry',script:'bank-check-entry-main'}, {name:'bank-deposit-entry'}
 ];
+const bankUiSource=(await readFile(new URL('../public/bank-ui.js',import.meta.url),'utf8')).replace(/^export /gm,'');
 function handler(sourceFile,id,event){
  const found=[];
  function visit(node){
@@ -34,12 +35,18 @@ for(const screen of screens){
  assert.equal(parsed.parseDiagnostics.length,0,'The real entry script must parse');
  screen.fileHandler=handler(parsed,'supportFiles','onchange');
  screen.linkHandler=handler(parsed,'addSupportLink','onclick');
+ if(screen.name.startsWith('bank-')){
+  const functions=[];function visit(node){if(ts.isFunctionDeclaration(node)&&node.name?.text==='syncSave')functions.push(node);ts.forEachChild(node,visit);}visit(parsed);
+  assert.equal(functions.length,1,'Bank control locking must use the real entry implementation');
+  screen.syncSave=functions[0].getText(parsed);
+ }
 }
 function fixture(screen){
  const nodes=new Map(),items=[],status=[];
+ const banking=screen.name.startsWith('bank-');
  let constructions=0,reads=0,renders=0,io=0;
  const node=id=>{
-  if(!nodes.has(id))nodes.set(id,{value:'',textContent:'',files:[]});
+  if(!nodes.has(id))nodes.set(id,{value:'',textContent:'',files:[],dataset:{},disabled:false});
   return nodes.get(id);
  };
  class FileReader{
@@ -53,10 +60,16 @@ function fixture(screen){
   }
  }
  const forbidden=()=>{io++;assert.fail('An attachment entry handler attempted external IO');};
+ const storage={getItem(key){assert.ok(['nexo_token','nexo_company','nexo_role','nexo_device_token'].includes(key));return({'nexo_token':'synthetic-token','nexo_company':'1','nexo_role':'1','nexo_device_token':'synthetic-device'})[key];}};
  const context=vm.createContext({URL,safeHttpUrl,FileReader,$:node,supportItems:items,supports:items,viewMode:false,invoiceSaving:false,invoiceUploading:0,noteSaving:false,noteUploading:0,syncInvoiceControls(){},syncNoteControls(){},
+  saving:false,uploading:false,savedResult:null,detailReady:true,id:null,depositId:null,
+  data:{options:{access:{canCreate:true,canEdit:true}},depositOptions:{access:{canCreate:true,canEdit:true}}},retrySupports:node('retrySupports'),
+  document:{querySelector(selector){assert.equal(selector,'main');return{querySelectorAll(selector){assert.equal(selector,'input,select,textarea,button');return[...nodes.values()];}};}},
+  window:{NexoSessionRenewal:{current:()=>({generation:'synthetic-generation'})}},
   renderSupports:()=>{renders++;},hasPendingSupportChanges:()=>items.some(item=>item._new),invoiceId:null,
   setSupportStatus:(...value)=>status.push(value),api:forbidden,fetch:forbidden,
-  localStorage:{getItem:forbidden},sessionStorage:{getItem:forbidden}});
+  localStorage:banking?storage:{getItem:forbidden},sessionStorage:banking?storage:{getItem:forbidden}});
+ if(banking){new vm.Script(bankUiSource+'\n'+screen.syncSave+'\nconst entryContext=bankContext();').runInContext(context,{timeout:1000});}
  const addLink=new vm.Script('('+screen.linkHandler+')').runInContext(context,{timeout:1000});
  const changeFiles=new vm.Script('('+screen.fileHandler+')').runInContext(context,{timeout:1000});
  return{items,node,status,counts:()=>({constructions,reads,renders,io}),

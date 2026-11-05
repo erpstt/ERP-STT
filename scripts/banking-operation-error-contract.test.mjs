@@ -1,0 +1,21 @@
+import assert from'node:assert/strict';import{test}from'node:test';import{readFile}from'node:fs/promises';import vm from'node:vm';import ts from'typescript';import{assertIsolatedTestArgs}from'./lib/migration-preview.mjs';
+assertIsolatedTestArgs();
+const marker='SYNTHETIC_PRIVATE_BANK_CONTEXT',authorization='Bearer synthetic-banking-actor',input={synthetic:true};
+const definitions=[
+ {file:'bank-transfer.service.ts',operation:'createBankTransfer',resource:'banking:bank-transfers',action:'create',rpc:'create_bank_transfer',body:{p_payload:input},args:[input],state:'La transferencia no puede realizarse en su estado actual.',validation:'Revise los datos de la transferencia bancaria.',fallback:'No fue posible procesar la transferencia.'},
+ {file:'bank-deposit.service.ts',operation:'updateBankDeposit',resource:'banking:bank-deposits',action:'edit',rpc:'update_bank_deposit',body:{p_deposit_id:7,p_payload:input},args:[7,input],state:'El depósito no puede modificarse en su estado actual.',validation:'Revise los datos del depósito bancario.',fallback:'No fue posible procesar el depósito.'}
+];
+for(const definition of definitions){
+ const file=new URL('../src/modules/banking-catalogs/'+definition.file,import.meta.url),source=await readFile(file,'utf8');const ast=ts.createSourceFile(file.pathname,source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);const transformed=ts.transform(ast,[context=>node=>ts.visitEachChild(node,child=>ts.isImportDeclaration(child)?undefined:child,context)]);const compiled=ts.transpileModule(ts.createPrinter().printFile(transformed.transformed[0]),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;transformed.dispose();
+ function fixture(status,payload,denied=false){const exports={},calls=[],guards=[];const context=vm.createContext({exports,URL,Error,JSON,Number,String,Object,Array,getSupabaseConfig:()=>({url:'https://synthetic-bank.example.invalid',anonKey:'synthetic-public'}),assertRoleAccess:async(...args)=>{guards.push(args);if(denied)throw Object.assign(Error('Denied'),{status:403});},fetchSupabase:async(url,init)=>{assert.equal(new URL(url).pathname,'/rest/v1/rpc/'+definition.rpc);assert.equal(init.method,'POST');assert.equal(init.headers.Authorization,authorization);assert.deepEqual(JSON.parse(init.body),definition.body);calls.push(true);return Response.json(payload,{status});}});new vm.Script(compiled).runInContext(context,{timeout:1000});return{calls,guards,run:(auth=authorization)=>exports[definition.operation](auth,...definition.args)};}
+ function expected(status,message){return error=>{assert.equal(error.status,status);assert.equal(error.message,message);assert.equal(String(error.stack).includes(marker),false);for(const key of['cause','details','hint','payload','response'])assert.equal(error[key],undefined);return true;};}
+ test(definition.file+' maps state and validation failures without exposing provider context',async()=>{
+  for(const[code,status,message]of[['55000',409,definition.state],['22023',400,definition.validation],['22P02',400,definition.validation]]){const f=fixture(400,{code,message:marker,details:marker,hint:marker});await assert.rejects(f.run(),expected(status,message));assert.equal(f.calls.length,1);assert.deepEqual(f.guards,[[authorization,definition.resource,definition.action]]);}
+ });
+ test(definition.file+' keeps permission and authentication checks before financial RPCs',async()=>{
+  const denied=fixture(200,{},true);await assert.rejects(denied.run(),e=>e.status===403);assert.equal(denied.calls.length,0);const anonymous=fixture(200,{});await assert.rejects(anonymous.run(''),e=>e.status===401);assert.equal(anonymous.calls.length,0);for(const[http,code]of[[401,'55000'],[403,'55000'],[400,'42501']]){const f=fixture(http,{code,message:marker});await assert.rejects(f.run(),e=>{assert.equal(e.status,http===401?401:403);assert.equal(e.message.includes(marker),false);return true;});}
+ });
+ test(definition.file+' preserves successful results and uses a safe fallback for unexpected provider errors',async()=>{
+  const f=fixture(200,{saved:true});assert.deepEqual(await f.run(),{saved:true});const failed=fixture(500,{code:'XX000',message:marker,details:marker});await assert.rejects(failed.run(),expected(undefined,definition.fallback));
+ });
+}

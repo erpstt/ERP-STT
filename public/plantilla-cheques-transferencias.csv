@@ -1,0 +1,4 @@
+﻿documento_referencia;tipo_movimiento;fecha;cuenta_bancaria;moneda;tipo_cambio;referencia_bancaria;beneficiario;ubicacion;nota_documento;numero_cuenta;importe;nota_linea;tipo_entidad;identificacion_entidad;departamento;centro_costos;clase;acreedor_financiero;compania_relacionada
+EJEMPLO-CH-001;CHEQUE;2026-11-05;REEMPLAZAR_CUENTA_BANCARIA;CRC;1;REEMPLAZAR_REFERENCIA;REEMPLAZAR_BENEFICIARIO;;Ejemplo de cheque con dos líneas;REEMPLAZAR_CUENTA_CONTABLE;125.50;Primera aplicación;;;;;;;
+EJEMPLO-CH-001;CHEQUE;2026-11-05;REEMPLAZAR_CUENTA_BANCARIA;CRC;1;REEMPLAZAR_REFERENCIA;REEMPLAZAR_BENEFICIARIO;;Ejemplo de cheque con dos líneas;REEMPLAZAR_CUENTA_CONTABLE;74.50;Segunda aplicación;;;;;;;
+EJEMPLO-TR-002;TRANSFERENCIA;2026-11-05;REEMPLAZAR_CUENTA_BANCARIA;CRC;1;REEMPLAZAR_REFERENCIA_2;REEMPLAZAR_BENEFICIARIO;;Ejemplo de transferencia a beneficiario;REEMPLAZAR_CUENTA_CONTABLE;300.123456;Aplicación de transferencia;;;;;;;
