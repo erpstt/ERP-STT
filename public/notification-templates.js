@@ -49,6 +49,16 @@ const kinds={
   schedule:'Envío automático: al completar la aprobación final de la solicitud de pago. Las aprobaciones parciales no generan este aviso y el mensaje no ejecuta el pago.',
   transport:'SMTP activado. Las nuevas solicitudes con aprobación final se notificarán al correo de Tesorería de esta subsidiaria.'
  },
+ SOLICITUD_PAGO_RECORDATORIO_APROBACION:{
+  title:'Solicitud de pago pendiente · Recordatorio al aprobador',
+  tags:['empresa_nombre','numero_solicitud','moneda','monto_total','beneficiario_nombre','concepto','fecha_solicitud','fecha_pago_programada','solicitante_nombre','aprobador_nombre','fecha_inicio_aprobacion','fecha_limite_recordatorio','tipo_solicitud','enlace_solicitud'],
+  active:'Recordar al aprobador las solicitudes de pago pendientes de esta subsidiaria',
+  activeHelp:'Se envía al aprobador asignado si la solicitud sigue pendiente de aprobación al cumplir el plazo. También requiere que el envío SMTP esté activado en el servidor.',
+  automatic:'El número de solicitud, la subsidiaria, el aprobador, el monto, las fechas del plazo y el enlace de consulta autenticada se agregan automáticamente. El correo no aprueba la solicitud ni ejecuta el pago.',
+  preview:'Ejemplo de una solicitud de pago pendiente de aprobación durante 48 horas de lunes a viernes. Esta vista no envía correos, no aprueba solicitudes ni ejecuta pagos.',
+  schedule:'Recordatorio automático tras 48 horas de reloj de lunes a viernes (dos días hábiles). No se cuentan los sábados ni los domingos completos. El plazo se calcula en la zona horaria de la subsidiaria desde el inicio de la etapa o asignación vigente.',
+  transport:'SMTP activado. Las solicitudes que sigan pendientes al cumplir las 48 horas de lunes a viernes se recordarán al aprobador asignado.'
+ },
  USUARIO_INVITACION:{
   title:'Invitación y activación de usuarios',
   tags:['empresa_nombre','usuario_nombre','usuario_correo','enlace_activacion','fecha_expiracion'],
