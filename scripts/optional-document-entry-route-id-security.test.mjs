@@ -4,8 +4,9 @@ import {test} from 'node:test';
 import vm from 'node:vm';
 import ts from 'typescript';
 import {assertIsolatedTestArgs} from './lib/migration-preview.mjs';
+import {buildSupplierInvoiceFormOptions} from './lib/supplier-invoice-form-options-fixture.mjs';
 assertIsolatedTestArgs();
-const purchasingVersion='20261105-purchasing-functional-review',version='20261104-optional-document-route-id-guard',bankVersion='20261105-banking-functional';
+const purchasingVersion='20261105-purchasing-functional-review',invoiceEntryVersion='20261106-supplier-invoice-form-options',version='20261104-optional-document-route-id-guard',bankVersion='20261105-banking-functional';
 const mains=['sales-invoice-entry','sales-note-entry','supplier-invoice-entry','supplier-note-entry'];
 const helpers=['sales-invoice-delivery-prefill','supplier-invoice-receipt-prefill'];
 const sources=new Map(await Promise.all([...mains,...helpers].map(async name=>[name,await readFile(new URL('../public/'+name+'.js',import.meta.url),'utf8')])));
@@ -33,6 +34,12 @@ function bootstrap(name){
   const index=statements.findIndex(ts.isTryStatement),attempt=statements[index];assert.ok(index>=0);
   assert.match(attempt.tryBlock.statements[0].getText(parsed),/note-context/);assert.match(attempt.tryBlock.statements[1].getText(parsed),/canEdit/);
   body=statements.slice(0,index).map(node=>node.getText(parsed)).join('\n')+'\ntry{'+attempt.tryBlock.statements.slice(0,2).map(node=>node.getText(parsed)).join('\n')+'\n'+boundary+'}'+attempt.catchClause.getText(parsed);
+ }else if(name==='supplier-invoice-entry'){
+  const index=statements.findIndex(node=>ts.isIfStatement(node)&&node.expression.getText(parsed)==='await loadInvoiceFormOptions()'),attempt=statements[index];
+  assert.ok(index>=0&&ts.isBlock(attempt.thenStatement),'Known invoice form-options boundary');
+  const mounted=[...attempt.thenStatement.statements],hasBelongs=node=>ts.isVariableStatement(node)&&node.declarationList.declarations.some(declaration=>declaration.name.getText(parsed)==='belongs'),boundaryIndex=mounted.findIndex(node=>hasBelongs(node)||(ts.isTryStatement(node)&&node.tryBlock.statements.some(hasBelongs)));
+  assert.ok(boundaryIndex>=0,'Known invoice form mount boundary');
+  body=statements.slice(0,index).map(node=>node.getText(parsed)).join('\n')+'\nif('+attempt.expression.getText(parsed)+'){'+mounted.slice(0,boundaryIndex).map(node=>node.getText(parsed)).join('\n')+'\n'+boundary+'}';
  }else{
   const marker=name==='sales-invoice-entry'?'safeOptionText':name==='supplier-invoice-entry'?'belongs':'urls';
   const index=statements.findIndex(node=>ts.isVariableStatement(node)&&node.declarationList.declarations.some(declaration=>declaration.name.getText(parsed)===marker));assert.ok(index>=0,'Known authorization boundary '+name);
@@ -54,7 +61,7 @@ async function execute(name,search='',{session={},deny=false,full=false,sourceFa
  const body=new Node('body');body.append=element=>{nodes.set(element.id,element);};
  const document={body,dispatchEvent(event){events.push('dispatch:'+event.type);},getElementById:id=>id==='receiptDocumentId'?(nodes.get(id)??null):node(id),createElement:()=>new Node(),
   querySelector(selector){if(selector==='h1')return heading;if(selector==='.receipt-reference')return reference;if(selector==='main>header a'||selector==='header a')return back;throw Error('Unexpected bootstrap DOM selector '+selector);},
-  querySelectorAll(selector){assert.equal(selector,'input,select,textarea,button');return controls;}};
+  querySelectorAll(selector){assert.ok(['input,select,textarea,button','main input,main select,main textarea,main button'].includes(selector));return controls;}};
  const values=new Map(Object.entries(session));
  const storage=area=>({getItem(key){reads.push({area,key});events.push('read:'+key);return values.has(key)?values.get(key):key==='nexo_token'?'synthetic-document-token':key==='nexo_device_token'?'synthetic-document-device':key==='nexo_company'?'1':null;},removeItem(key){removes.push(key);events.push('remove:'+key);values.delete(key);}});
  class FixtureDate extends Date{static now(){return now;}}
@@ -71,6 +78,10 @@ async function execute(name,search='',{session={},deny=false,full=false,sourceFa
    else if(path.includes('/supplier-invoice-receipt-source/'))payload={header:{document_type:'RECEIPT',location_id:1,document_number:'SYN-RECEIPT',document_id:42,document_date:'2026-11-04',supplier_id:1,currency_id:1},lines:[]};
    else if(path.includes('invoice-context')||path.includes('note-context'))payload={access:{canCreate:!deny,canEdit:!deny}};
    else if(path.includes('supplier-invoice-access')||path.includes('supplier-note-access'))payload={canView:!deny,canCreate:!deny,canEdit:!deny};
+   else if(path.startsWith('/api/purchasing/supplier-invoice-form-options')){
+    const id=new URL(path,'https://synthetic.invalid').searchParams.get('invoiceId');
+    payload=buildSupplierInvoiceFormOptions({'/api/organization/subsidiaries':[{subsidiary_id:1}],'/api/purchasing/supplier-invoices':id===null?[]:[{invoice_id:Number(id),subsidiary_id:1}]},{invoiceId:id});
+   }
    else if(path.includes('supplier-note-options'))payload={invoices:[]};else payload=[];
    return{ok:!sourceFailure,async json(){return sourceFailure?{error:{message:'Synthetic source denied'}}:payload;}};
   }};
@@ -92,7 +103,7 @@ for(const name of mains){
    assert.equal(f.result.id,queryId===null?null:decodeURIComponent(queryId));
    if(name==='sales-invoice-entry')assert.equal(f.calls[0].path,'/api/sales/invoice-context?action='+(queryId===null?'create':'edit&id='+decodeURIComponent(queryId)));
    if(name==='sales-note-entry')assert.equal(f.calls[0].path,'/api/sales/note-context/CREDIT?action='+(queryId===null?'create':'edit&id='+decodeURIComponent(queryId)));
-   if(name==='supplier-invoice-entry')assert.equal(f.calls[0].path,'/api/purchasing/supplier-invoice-access');
+   if(name==='supplier-invoice-entry')assert.deepEqual(f.calls.map(call=>call.path),['/api/purchasing/supplier-invoice-access','/api/purchasing/supplier-invoice-form-options'+(queryId===null?'':'?invoiceId='+decodeURIComponent(queryId)),...(queryId===null?[]:['/api/accounting/journal-supports'])]);
    if(name==='supplier-note-entry')assert.deepEqual(f.calls.map(call=>call.path),['/api/purchasing/supplier-note-access/CREDIT','/api/purchasing/supplier-note-options/CREDIT']);
   }
  });
@@ -165,7 +176,7 @@ for(const name of mains){
    const row={querySelectorAll(selector){assert.equal(selector,'[data-k]');return Object.entries(values).map(([key,value])=>({dataset:{k:key},value}));}};
    const context=vm.createContext({$,document:{querySelectorAll(selector){assert.equal(selector,'#lines tr');return[row];}},
     editId:id,recordId:id,invoiceId:id,deliveryId:null,kind,supportItems:[],parse:Number,parseAmount:Number,money:String,pdfPreferenceSave:Promise.resolve(),defaultUnifiedPdfDescription:'Synthetic',
-    viewMode:false,invoiceSaving:false,invoiceUploading:0,savedInvoiceResult:null,noteSaving:false,noteUploading:0,savedNoteResult:null,invoiceSourceReady:()=>true,syncInvoiceControls(){},syncNoteControls(){},pendingSupports:()=>false,originalInvoicePayload:'{}',journalId:8,collectInvoicePayload:()=>({synthetic:'changed'}),hasPendingSupportChanges:()=>false,validateInvoicePayload(){},invoiceAmounts:()=>({gross:10}),
+    viewMode:false,invoiceFormReady:true,invoiceContextInvalid:false,checkInvoiceContext:()=>true,invoiceSaving:false,invoiceUploading:0,savedInvoiceResult:null,noteSaving:false,noteUploading:0,savedNoteResult:null,invoiceSourceReady:()=>true,syncInvoiceControls(){},syncNoteControls(){},pendingSupports:()=>false,originalInvoicePayload:'{}',journalId:8,collectInvoicePayload:()=>({synthetic:'changed'}),hasPendingSupportChanges:()=>false,validateInvoicePayload(){},invoiceAmounts:()=>({gross:10}),
     syncUnifiedPdfDescription(){},setSupportStatus(){},async syncSupports(){},showSuccess:value=>success.push(value),showSupplierSuccess:value=>success.push(value),
     async api(path,init){calls.push({path,method:init.method,body:JSON.parse(init.body)});return{journalId:8,transactionNumber:'SYNTHETIC',total:10};}});
    const action=vm.runInContext('('+saveAction(name)+')',context,{timeout:1000});await action();assert.equal(calls.length,1,$('error').textContent);
@@ -181,7 +192,7 @@ test('real invoice delivery save uses only its checked canonical source route',a
  await vm.runInContext('('+saveAction('sales-invoice-entry')+')',context,{timeout:1000})();assert.deepEqual(calls,[{path:'/api/sales/workflow/9007199254740991/invoice',method:'POST'}]);
 });
 test('four own HTML and helper imports refresh while the real P94 validator and bank P120 caches stay intact',async()=>{
- for(const [name,page]of pages){assert.ok(page.includes('/'+name+'.js?v='+(['supplier-invoice-entry','supplier-note-entry'].includes(name)?purchasingVersion:version)));assert.ok(sources.get(name).includes("from './route-id.js?v=20261103-route-id-guard'"));}
+ for(const [name,page]of pages){assert.ok(page.includes('/'+name+'.js?v='+(name==='supplier-invoice-entry'?invoiceEntryVersion:name==='supplier-note-entry'?purchasingVersion:version)));assert.ok(sources.get(name).includes("from './route-id.js?v=20261103-route-id-guard'"));}
  for(const [name,helper]of[[mains[0],helpers[0]],[mains[2],helpers[1]]])assert.ok(sources.get(name).includes("import('/"+helper+".js?v="+(name==='supplier-invoice-entry'?purchasingVersion:version)+"')"));
  for(const name of['bank-check-entry','bank-deposit-entry']){const page=await readFile(new URL('../public/'+name+'.html',import.meta.url),'utf8');assert.ok(page.includes('/'+name+'.js?v='+bankVersion));}
  for(const source of sources.values())assert.doesNotMatch(source,/\/api\/(?:sales|purchasing)\/[^`]*\$\{(?:editId|recordId|deliveryId|invoiceId)\}/);

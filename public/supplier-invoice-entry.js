@@ -2,6 +2,13 @@ import {escapeHtml,safeHttpUrl,configureAttachmentLink} from './html-safety.js?v
 const esc=escapeHtml;
 import { isEnabledFlag, supplierPayableRoute } from '/supplier-payable-routing.js';
 import {readRouteId} from './route-id.js?v=20261103-route-id-guard';
+function showInvoiceLoadFailure(message,blockForm=true){
+ const detail=String(message||'No fue posible cargar los datos de la factura.'),banner=document.getElementById('invoiceLoadError'),status=document.getElementById('invoiceLoadStatus');
+ document.getElementById('error').textContent=detail;if(status)status.hidden=true;
+ if(banner){banner.textContent=detail;banner.hidden=false;banner.focus();}
+ if(blockForm)document.querySelectorAll('main input,main select,main textarea,main button').forEach(control=>control.disabled=true);
+ const save=document.getElementById('save');if(save)save.textContent='Carga incompleta';
+}
 const routeParams=new URLSearchParams(location.search),routeId=readRouteId(location.search);
 let validRoute=!routeParams.has('id')||routeId!==null;
 let receiptRouteId=readRouteId(location.search,'receiptId'),selectedInvoiceId=routeId;
@@ -24,7 +31,7 @@ if(validRoute&&!routeParams.has('id')&&!routeParams.has('receiptId')){
 if(validRoute&&requestedView&&selectedInvoiceId===null)validRoute=false;
 if(validRoute&&routeParams.has('id'))sessionStorage.removeItem(invoiceHandoffKey);
 if(!validRoute){
- document.getElementById('error').textContent='El identificador del documento o de su origen no es válido. Abra el documento desde su lista.';
+ showInvoiceLoadFailure('El identificador del documento o de su origen no es válido. Abra el documento desde su lista.');
  document.querySelectorAll('input,select,textarea,button').forEach(control=>control.disabled=true);
  document.getElementById('successModal').hidden=true;
 }else{
@@ -32,12 +39,33 @@ function withholdingBaseLabel(value){switch(value){case 'Subtotal antes de impue
 const $=id=>document.getElementById(id),token=localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo_token'),device=localStorage.getItem('nexo_device_token'),sid=String(localStorage.getItem('nexo_company')||sessionStorage.getItem('nexo_company')||''),data={};
 const pageParams=new URLSearchParams(window.location.search);let viewMode=pageParams.get('view')==='1';
 const invoiceId=selectedInvoiceId;
+let invoiceFormReady=false,invoiceContextInvalid=false;
+const invoiceContext=()=>{const value=key=>localStorage.getItem(key)||sessionStorage.getItem(key)||'';return JSON.stringify([window.NexoSessionRenewal?.current?.()?.generation||value('nexo_token'),value('nexo_company'),value('nexo_role'),value('nexo_device_token')]);},openedContext=invoiceContext();
+const initialControls=new Map([...document.querySelectorAll('main input,main select,main textarea,main button')].map(control=>[control,control.disabled]));initialControls.forEach((_disabled,control)=>control.disabled=true);
+function checkInvoiceContext(){if(invoiceContextInvalid||invoiceContext()!==openedContext){invoiceContextInvalid=true;invoiceFormReady=false;showInvoiceLoadFailure('La empresa, el rol o la sesión cambiaron. Vuelva a abrir la factura para cargar sus datos.');return false;}return true;}
+window.addEventListener('storage',checkInvoiceContext);window.addEventListener('focus',checkInvoiceContext);window.addEventListener('nexo:session-ended',checkInvoiceContext);try{window.top.addEventListener('nexo:approval-context-changed',checkInvoiceContext);}catch{}
 if(invoiceId){document.querySelector('h1').textContent='Cargando factura de proveedor…';$('save').disabled=true;$('save').textContent='Cargando…'}
 if(!token||!sid)location.assign('/');
-async function api(path,init={}){const response=await fetch(path,{...init,headers:{Authorization:`Bearer ${token}`,'X-Device-Token':device,...(init.body?{'Content-Type':'application/json'}:{})}}),payload=await response.json();if(!response.ok)throw Error(payload.error?.message||'No fue posible completar la operación.');window.NexoBudgetFeedback?.handle(payload);return payload}
-let invoiceAccess;try{invoiceAccess=await api('/api/purchasing/supplier-invoice-access');}catch(error){$('save').disabled=true;$('error').textContent=error.message;throw error;}if(invoiceId){if(!invoiceAccess.canView){$('save').disabled=true;$('error').textContent='No tiene permiso para consultar esta factura.';throw Error('Invoice access denied');}if(!invoiceAccess.canEdit)viewMode=true;}else if(!invoiceAccess.canCreate){$('save').disabled=true;$('error').textContent='No tiene permiso para crear facturas.';throw Error('Invoice creation denied');}
-const paths={accounts:'/api/accounting/chart-accounts',accountGroups:'/api/accounting/account-groups',taxes:'/api/configuration/tax-codes',taxTypes:'/api/configuration/tax-types',departments:'/api/organization/departments',classes:'/api/organization/classes',costs:'/api/organization/cost-centers',creditors:'/api/organization/financial-creditors',related:'/api/organization/related-companies',customers:'/api/entities/customers',suppliers:'/api/entities/suppliers',paymentTerms:'/api/configuration/payment-terms',periods:'/api/organization/accounting-periods',currencies:'/api/core/currencies',rates:'/api/configuration/exchange-rates',countries:'/api/core/countries',subsidiaries:'/api/organization/subsidiaries',locations:'/api/organization/locations',invoiceLines:'/api/purchasing/supplier-invoice-lines',invoices:'/api/purchasing/supplier-invoices',supports:'/api/accounting/journal-supports'};
-try{await Promise.all(Object.entries(paths).map(async([key,path])=>data[key]=!invoiceId&&['invoices','invoiceLines'].includes(key)?[]:key==='supports'?await api(path).catch(()=>[]):await api(path)))}catch(error){document.querySelector('h1').textContent=invoiceId?'No fue posible cargar la factura':'Crear factura de proveedor';$('save').disabled=Boolean(invoiceId);$('save').textContent=invoiceId?'Carga incompleta':'Guardar factura';$('error').textContent=invoiceId?`No se pudieron recuperar los datos de la factura: ${error.message}`:error.message;throw error}
+async function api(path,init={}){if(!checkInvoiceContext())throw Error('El contexto de la factura cambió. Vuelva a abrirla.');const response=await fetch(path,{...init,headers:{Authorization:`Bearer ${token}`,'X-Device-Token':device,...(init.body?{'Content-Type':'application/json'}:{})}});let payload;try{payload=await response.json();}catch{throw Error('El servidor no devolvió una respuesta válida. Vuelva a abrir la factura.');}if(!response.ok)throw Error(payload?.error?.message||'No fue posible completar la operación.');if((!init.method||init.method==='GET')&&!checkInvoiceContext())throw Error('El contexto de la factura cambió. Vuelva a abrirla.');window.NexoBudgetFeedback?.handle(payload);return payload}
+const formOptionKeys=['accounts','accountGroups','taxes','taxTypes','departments','classes','costs','creditors','related','customers','suppliers','paymentTerms','periods','currencies','rates','countries','subsidiaries','locations','invoices','invoiceLines'];
+function validateFormOptions(bundle){
+ if(!bundle||typeof bundle!=='object'||Array.isArray(bundle)||formOptionKeys.some(key=>!Array.isArray(bundle[key])||bundle[key].some(row=>!row||typeof row!=='object'||Array.isArray(row))))throw Error('Los datos del formulario están incompletos. Vuelva a abrir la factura.');
+ if(!bundle.context||String(bundle.context.subsidiaryId)!==sid||(invoiceId?String(bundle.context.invoiceId)!==String(invoiceId):bundle.context.invoiceId!==null))throw Error('Los datos recibidos no corresponden a la subsidiaria o factura solicitada.');
+ if(!bundle.subsidiaries.some(row=>String(row.subsidiary_id)===sid))throw Error('No se encontró la subsidiaria activa en los datos del formulario.');
+ if(invoiceId){if(bundle.invoices.length!==1||String(bundle.invoices[0].invoice_id)!==String(invoiceId)||String(bundle.invoices[0].subsidiary_id)!==sid||bundle.invoiceLines.some(row=>String(row.invoice_id)!==String(invoiceId)))throw Error('No se encontró la factura solicitada para la subsidiaria activa.');}
+ else if(bundle.invoices.length||bundle.invoiceLines.length)throw Error('La respuesta de creación contiene documentos que no corresponden al formulario.');
+ return bundle;
+}
+async function loadInvoiceFormOptions(){try{
+ const access=await api('/api/purchasing/supplier-invoice-access');
+ if(invoiceId){if(!access.canView)throw Error('No tiene permiso para consultar esta factura.');if(!access.canEdit)viewMode=true;}else if(!access.canCreate)throw Error('No tiene permiso para crear facturas.');
+ const bundle=validateFormOptions(await api('/api/purchasing/supplier-invoice-form-options'+(invoiceId?'?invoiceId='+encodeURIComponent(invoiceId):'')));for(const key of formOptionKeys)data[key]=bundle[key];
+ data.supports=invoiceId?await api('/api/accounting/journal-supports').catch(error=>{if(!checkInvoiceContext())throw error;return [];}):[];
+ if(!checkInvoiceContext())throw Error('El contexto de la factura cambió. Vuelva a abrirla.');return true;
+}catch(error){document.querySelector('h1').textContent=invoiceId?'No fue posible cargar la factura':'Crear factura de proveedor';showInvoiceLoadFailure(`No fue posible cargar los datos de la factura: ${error.message}`);return false;}}
+if(await loadInvoiceFormOptions()){
+initialControls.forEach((disabled,control)=>control.disabled=disabled);initialControls.clear();$('save').disabled=true;
+try{
 const belongs=row=>Array.isArray(row.subsidiary_ids)?row.subsidiary_ids.map(String).includes(sid):!row.subsidiary_id||String(row.subsidiary_id)===sid,label=row=>row.period_name||row.account_name||row.company_name||row.name||row.code_name||row.code||'',opts=(rows,id,empty='Sin asignar',text=label)=>`<option value="">${esc(empty)}</option>`+[...rows].sort((a,b)=>text(a).localeCompare(text(b),'es')).map(row=>`<option value="${esc(row[id])}">${esc(text(row))}</option>`).join(''),parseAmount=value=>{const text=String(value??'').trim().replace(/\s/g,'');if(!text)return 0;if(text.includes(',')&&text.includes('.'))return Number(text.lastIndexOf(',')>text.lastIndexOf('.')?text.replace(/\./g,'').replace(',','.'):text.replace(/,/g,''))||0;if(text.includes(','))return Number(text.replace(',','.'))||0;return Number(text)||0},money=value=>(Number.isFinite(Number(value))?Number(value):0).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:6});
 function activeReference(row){return !isEnabledFlag(row.is_inactive)&&(row.is_active==null||isEnabledFlag(row.is_active));}
 function referenceRows(rows,key,current=null){return rows.filter(row=>(belongs(row)&&activeReference(row))||(current!=null&&String(row[key])===String(current)));}
@@ -81,11 +109,11 @@ let supportItems=[],deletedSupportIds=[],originalInvoicePayload=null,invoiceSavi
 const invoiceLocks=new Map(),invoiceSourceReady=()=>Boolean(invoiceId)||receiptRouteId===null||($('receiptDocumentId')?.dataset.ready==='true'&&$('receiptDocumentId').value===String(receiptRouteId));
 function syncInvoiceControls(){
  const lock=(selector,locked)=>document.querySelectorAll(selector).forEach(control=>{if(locked){if(!invoiceLocks.has(control))invoiceLocks.set(control,control.disabled);control.disabled=true}else if(invoiceLocks.has(control)){control.disabled=invoiceLocks.get(control);invoiceLocks.delete(control)}});
- lock('#invoiceNumber,#invoiceType,#supplier,#paymentTerm,#invoiceDate,#period,#currency,#rate,#location,#memo,#lines input,#lines select,#lines button,#addLine',invoiceSaving||Boolean(savedInvoiceResult));
- lock('#supportFiles,#supportLinkName,#supportLinkUrl,#addSupportLink,#supportList button',invoiceSaving||invoiceUploading>0);
+ lock('#invoiceNumber,#invoiceType,#supplier,#paymentTerm,#invoiceDate,#period,#currency,#rate,#location,#memo,#lines input,#lines select,#lines button,#addLine',invoiceContextInvalid||invoiceSaving||Boolean(savedInvoiceResult));
+ lock('#supportFiles,#supportLinkName,#supportLinkUrl,#addSupportLink,#supportList button',invoiceContextInvalid||invoiceSaving||invoiceUploading>0);
  for(const control of invoiceLocks.keys())if(!control.isConnected)invoiceLocks.delete(control);
- $('save').disabled=viewMode||invoiceSaving||invoiceUploading>0||!invoiceSourceReady()||Boolean(savedInvoiceResult&&!hasPendingSupportChanges());
- $('saveSupports').disabled=viewMode||invoiceSaving||invoiceUploading>0||!hasPendingSupportChanges();$('cancel').setAttribute('aria-disabled',String(invoiceSaving));$('cancel').tabIndex=invoiceSaving?-1:0;
+ $('save').disabled=!invoiceFormReady||invoiceContextInvalid||viewMode||invoiceSaving||invoiceUploading>0||!invoiceSourceReady()||Boolean(savedInvoiceResult&&!hasPendingSupportChanges());
+ $('saveSupports').disabled=invoiceContextInvalid||viewMode||invoiceSaving||invoiceUploading>0||!hasPendingSupportChanges();$('cancel').setAttribute('aria-disabled',String(invoiceSaving));$('cancel').tabIndex=invoiceSaving?-1:0;
 }
 const hasPendingSupportChanges=()=>deletedSupportIds.length>0||supportItems.some(item=>item._new);
 function setSupportStatus(message='',state=''){$('supportStatus').textContent=message;$('supportStatus').className=`support-save-status${state?` ${state}`:''}`}
@@ -140,7 +168,7 @@ $('successModal').addEventListener('keydown',handleSuccessDialogKeydown);
 $('successAccept').onclick=returnToSupplierInvoices;
 $('successNew').onclick=createAnotherSupplierInvoice;
 $('save').onclick=async()=>{
- const button=$('save');if(viewMode||invoiceSaving||invoiceUploading||!invoiceSourceReady())return;
+ const button=$('save');if(!invoiceFormReady||invoiceContextInvalid||viewMode||invoiceSaving||invoiceUploading||!invoiceSourceReady())return;
  try{
   $('error').textContent='';
   if(savedInvoiceResult){invoiceSaving=true;syncInvoiceControls();await syncSupports(journalId);showSupplierSuccess({title:invoiceId?'Factura actualizada correctamente':'Factura registrada correctamente',message:`La factura ${$('invoiceNumber').value} y sus respaldos quedaron guardados.`,total:savedInvoiceResult.total??invoiceAmounts().gross,accountingMessage:'La cuenta por pagar y el impacto contable quedaron actualizados.'});return;}
@@ -157,5 +185,12 @@ $('save').onclick=async()=>{
 $('cancel').onclick=event=>{event.preventDefault();returnToSupplierInvoices()};document.querySelector('header a').onclick=event=>{event.preventDefault();returnToSupplierInvoices()};
 document.querySelectorAll('header a,#cancel').forEach(link=>link.addEventListener('click',event=>{if(invoiceSaving){event.preventDefault();event.stopImmediatePropagation();}},true));
 document.addEventListener('nexo:supplier-invoice-receipt-ready',syncInvoiceControls);syncInvoiceControls();
-if(!invoiceId&&receiptRouteId!==null)await import('/supplier-invoice-receipt-prefill.js?v=20261105-purchasing-functional-review');
+let receiptLoadError=null;
+if(!invoiceId&&receiptRouteId!==null)try{await import('/supplier-invoice-receipt-prefill.js?v=20261105-purchasing-functional-review');}catch(error){receiptLoadError=error;}
+if(!checkInvoiceContext())throw Error('El contexto de la factura cambió. Vuelva a abrirla.');
+invoiceFormReady=true;if($('invoiceLoadStatus'))$('invoiceLoadStatus').hidden=true;
+if(!invoiceSourceReady())showInvoiceLoadFailure($('error').textContent||(receiptLoadError?'No fue posible cargar el formulario de recepción. Vuelva a abrir la factura.':'No fue posible cargar los datos de la recepción.'),false);
+syncInvoiceControls();
+}catch(error){invoiceFormReady=false;showInvoiceLoadFailure(`No fue posible completar la carga de la factura: ${error.message}`);}
+}
 }

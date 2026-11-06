@@ -8,6 +8,7 @@
     "build": "node scripts/build-vue-templates.mjs && tsc",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
+    "test:supplier-invoice-form-options": "npm run build && node --test --test-concurrency=1 scripts/supplier-invoice-form-options-api.test.mjs scripts/supplier-invoice-form-options-sql.test.mjs scripts/supplier-invoice-form-options-ui.test.mjs",
     "test:payment-request-approval-reminders": "npm run build && node --test --test-concurrency=1 scripts/payment-request-approval-reminder-email.test.mjs scripts/payment-request-approval-reminder-settings.test.mjs scripts/payment-request-approval-reminder-sql.test.mjs scripts/payment-request-approval-reminder-ui.test.mjs",
     "test:opening-pending": "npm run build && node --test scripts/opening-pending-parser.test.mjs",
     "test:opening-files": "npm run build && node --test scripts/opening-all-file-parser.test.mjs",

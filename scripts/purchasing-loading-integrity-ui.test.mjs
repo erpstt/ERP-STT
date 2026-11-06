@@ -4,6 +4,7 @@ import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {resolve,sep,extname} from 'node:path';
 import {chromium} from '@playwright/test';
+import {buildSupplierInvoiceFormOptions,supplierInvoiceFormOptionPaths} from './lib/supplier-invoice-form-options-fixture.mjs';
 
 const deferred=()=>{let resolve;const promise=new Promise(done=>resolve=done);return{promise,resolve}};
 async function until(check){const end=Date.now()+5000;while(Date.now()<end){if(check())return;await new Promise(done=>setTimeout(done,10))}throw Error('Synthetic request not observed')}
@@ -47,7 +48,7 @@ test('reporte ignora respuesta vieja después de filtros nuevos',{timeout:45000}
 });
 async function invoice(t,extra=()=>undefined,url='/supplier-invoice-entry.html'){
  const data=JSON.parse(await readFile(new URL('./fixtures/supplier-invoice-ui.json',import.meta.url),'utf8'));data['/api/organization/locations']=[{location_id:1,name:'A location',subsidiary_id:1},{location_id:2,name:'B location',subsidiary_id:1}];
- const result=await fixture(t,async(call,calls)=>{const custom=await extra(call,calls,data);if(custom!==undefined)return custom;if(call.path==='/api/purchasing/supplier-invoice-access')return{canView:true,canCreate:true,canEdit:true};if(call.path==='/api/purchasing/supplier-invoice-entry')return{invoiceId:77,journalId:700,total:100};if(call.path==='/api/accounting/journal-supports'&&call.method==='POST')return{support_id:1};return data[call.path]||[]});await result.page.goto(result.base+url);await result.page.locator('#lines tr').first().waitFor();return result;
+ const result=await fixture(t,async(call,calls)=>{const custom=await extra(call,calls,data);if(custom!==undefined)return custom;if(call.path==='/api/purchasing/supplier-invoice-access')return{canView:true,canCreate:true,canEdit:true};if(call.path==='/api/purchasing/supplier-invoice-form-options'){const catalogs={...data};for(const path of Object.values(supplierInvoiceFormOptionPaths)){const value=await extra({...call,path,query:'',method:'GET',payload:null},calls,data);catalogs[path]=value===undefined?data[path]||[]:value;}return buildSupplierInvoiceFormOptions(catalogs,{invoiceId:new URLSearchParams(call.query).get('invoiceId')});}if(call.path==='/api/purchasing/supplier-invoice-entry')return{invoiceId:77,journalId:700,total:100};if(call.path==='/api/accounting/journal-supports'&&call.method==='POST')return{support_id:1};return data[call.path]||[]});await result.page.goto(result.base+url);await result.page.locator('#lines tr').first().waitFor();return result;
 }
 async function fillInvoice(page){await page.fill('#invoiceNumber','SYN-NEW');await page.selectOption('#supplier','1');await page.fill('#invoiceDate','2026-10-31');await page.locator('#invoiceDate').dispatchEvent('change');await page.fill('.account-search','631001');await page.locator('.account-search').dispatchEvent('change');await page.fill('[data-key=unit_price]','100');await page.locator('[data-key=unit_price]').dispatchEvent('blur')}
 async function addLink(page,name){await page.click('#supportsTab');await page.fill('#supportLinkName',name);await page.fill('#supportLinkUrl','https://example.invalid/'+name);await page.click('#addSupportLink')}

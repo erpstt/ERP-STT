@@ -94,6 +94,9 @@ jobs:
             scripts/supplier-invoice-ui-security.test.mjs \
             scripts/supplier-invoice-api-security.test.mjs \
             scripts/supplier-invoice-sql-security.test.mjs \
+            scripts/supplier-invoice-form-options-api.test.mjs \
+            scripts/supplier-invoice-form-options-sql.test.mjs \
+            scripts/supplier-invoice-form-options-ui.test.mjs \
             scripts/purchase-receipt-ui-security.test.mjs \
             scripts/purchase-receipt-api-security.test.mjs \
             scripts/purchase-receipt-sql-security.test.mjs \
