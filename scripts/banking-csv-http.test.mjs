@@ -3,6 +3,9 @@ import {test} from 'node:test';
 import {createServer} from 'node:http';
 import {spawn} from 'node:child_process';
 import {readFile} from 'node:fs/promises';
+import {parseBankingCsv,bankingCsvHeaders} from '../dist/modules/banking-catalogs/banking-csv.service.js';
+
+function legacyChecksCsv(text,rate){const headers=[...bankingCsvHeaders.CHECKS.slice(0,5),'tipo_cambio',...bankingCsvHeaders.CHECKS.slice(5)],quote=value=>'"'+String(value??'').replaceAll('"','""')+'"';return headers.join(';')+'\r\n'+parseBankingCsv(text,'CHECKS').map(row=>headers.map(key=>quote(key==='tipo_cambio'?rate:row[key])).join(';')).join('\r\n');}
 test('CSV HTTP routes require view+create, public caller identity and explicit preview confirmation',{timeout:35000},async t=>{
  const csv=await readFile(new URL('../public/plantilla-cheques-transferencias.csv',import.meta.url),'utf8'),depositCsv=await readFile(new URL('../public/plantilla-depositos-bancarios.csv',import.meta.url),'utf8');const calls=[];let saved=false,fail=false;
  const stub=createServer(async(req,res)=>{
@@ -17,9 +20,10 @@ test('CSV HTTP routes require view+create, public caller identity and explicit p
  const request=(path,input,role='creator',method='POST')=>fetch(base+'/api/banking/csv/'+path,{method,headers:{Authorization:'Bearer csv-http-'+role,'X-Device-Token':'synthetic-csv-device','Content-Type':'application/json'},...(method==='POST'?{body:JSON.stringify(input)}:{})});
  for(const [kind,text]of[['checks',csv],['deposits',depositCsv]]){
   for(const role of['denied','reader','blind']){const before=calls.length;for(const action of['preview','import']){const r=await request(kind+'/'+action,{csv:text,subsidiaryId:1},role);assert.equal(r.status,403,role+' '+action);assert.equal(calls.length,before);}}
-  let r=await request(kind+'/preview',{csv:text,subsidiaryId:1});assert.equal(r.status,200);const p=await r.json();assert.ok(p.previewToken);assert.equal(calls.at(-1).input.p_kind,kind==='checks'?'CHECKS':'DEPOSITS');assert.equal(calls.at(-1).key,'public-csv-http');assert.equal(calls.at(-1).auth,'Bearer csv-http-creator');const before=calls.length;
+  let r=await request(kind+'/preview',{csv:text,subsidiaryId:1});assert.equal(r.status,200);const p=await r.json();assert.ok(p.previewToken);assert.equal(calls.at(-1).input.p_kind,kind==='checks'?'CHECKS':'DEPOSITS');assert.equal(calls.at(-1).key,'public-csv-http');assert.equal(calls.at(-1).auth,'Bearer csv-http-creator');const canonicalRows=calls.at(-1).input.p_rows;assert.equal(Object.hasOwn(canonicalRows[0],'tipo_cambio'),kind==='deposits');const before=calls.length;
   r=await request(kind+'/import',{csv:text,subsidiaryId:1});assert.equal(r.status,409);assert.equal(calls.length,before);saved=false;
   r=await request(kind+'/import',{csv:text,subsidiaryId:1,previewToken:p.previewToken});assert.equal(r.status,201);r=await request(kind+'/import',{csv:text,subsidiaryId:1,previewToken:p.previewToken});assert.equal(r.status,200);assert.equal((await r.json()).created,0);
+  if(kind==='checks'){r=await request('checks/preview',{csv:legacyChecksCsv(text,'not an authoritative rate'),subsidiaryId:1});assert.equal(r.status,200);assert.deepEqual(calls.at(-1).input.p_rows,canonicalRows);r=await request('checks/import',{csv:legacyChecksCsv(text,'another ignored value'),subsidiaryId:1,previewToken:p.previewToken});assert.equal(r.status,200);assert.equal((await r.json()).created,0);assert.deepEqual(calls.at(-1).input.p_rows,canonicalRows);}
   fail=true;r=await request(kind+'/import',{csv:text,subsidiaryId:1,previewToken:p.previewToken});assert.equal(r.status,403);assert.doesNotMatch(await r.text(),/private SQL/);fail=false;
   r=await request(kind+'/preview',null);assert.equal(r.status,400);r=await request(kind+'/preview',{},'creator','GET');assert.equal(r.status,405);
  }

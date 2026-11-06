@@ -20,10 +20,10 @@ En **Cheques o Transferencias** y **Depósitos bancarios**, abra **Importar CSV*
 
 Archivos:
 
-- `plantilla-cheques-transferencias.csv`: cheques y transferencias a beneficiarios, con 20 columnas.
+- `plantilla-cheques-transferencias.csv`: cheques y transferencias a beneficiarios, con 19 columnas y tipo de cambio automático.
 - `plantilla-depositos-bancarios.csv`: depósitos con sus métodos de pago, con 19 columnas.
 
-Las plantillas usan UTF-8, encabezado y separador `;`. También se acepta un CSV separado por comas con los campos correctamente entrecomillados. Los importes admiten punto o coma decimal, sin separadores de miles, hasta seis decimales; el tipo de cambio admite diez. Guarde los números de cuenta e identificaciones como texto para conservar los ceros iniciales.
+Las plantillas usan UTF-8, encabezado y separador `;`. También se acepta un CSV separado por comas con los campos correctamente entrecomillados. Los importes admiten punto o coma decimal, sin separadores de miles, hasta seis decimales. En depósitos, el tipo de cambio se indica en el archivo y admite diez decimales. Guarde los números de cuenta e identificaciones como texto para conservar los ceros iniciales.
 
 Cada documento se identifica con `documento_referencia`. Repita esa referencia y sus datos de encabezado en todas sus líneas. Use otra referencia para el siguiente documento. El límite es 2 MB, 2.000 filas y 200 documentos por archivo.
 
@@ -34,7 +34,7 @@ Cada documento se identifica con `documento_referencia`. Repita esa referencia y
 | `fecha` | Fecha en formato `AAAA-MM-DD`, dentro de un período abierto de la empresa. |
 | `cuenta_bancaria` | Número exacto de la cuenta bancaria de la subsidiaria activa. |
 | `moneda` | Código de la moneda de esa cuenta. |
-| `tipo_cambio` | Unidades de moneda local por una unidad de la moneda del documento; 1 para moneda local. |
+| `tipo_cambio` | Sólo depósitos: unidades de moneda local por una unidad de la moneda del documento; 1 para moneda local. En cheques o transferencias se calcula automáticamente. |
 | `referencia_bancaria` | Número del cheque o referencia bancaria del movimiento. |
 | `beneficiario` | Nombre del beneficiario del egreso. |
 | `ubicacion` | Nombre de una ubicación propia o compartida autorizada. Es opcional; si se omite, no se asigna ubicación. |
@@ -48,13 +48,25 @@ Cada documento se identifica con `documento_referencia`. Repita esa referencia y
 
 Los datos de ejemplo contienen campos `REEMPLAZAR_...` y deben completarse antes de validar. La moneda y la fecha del ejemplo también deben corresponder al movimiento real.
 
+### Tipo de cambio automático en cheques o transferencias
+
+La tasa se obtiene del catálogo del sistema según `fecha` y `moneda`, con destino a la moneda local de la subsidiaria activa. Para moneda local se aplica 1. Para moneda extranjera se utiliza la última tasa directa vigente en la fecha del documento o antes de ella. Si no existe una tasa directa, se busca la última inversa vigente y se calcula su recíproco con diez decimales. No se utilizan tasas futuras. Una tasa ausente, inválida o ambigua impide importar el documento y debe corregirse en el catálogo.
+
+La vista previa muestra **TC aplicado** y **Fecha tasa**. En moneda local la fecha se muestra como un guion, porque no requiere cotización. La moneda del archivo debe coincidir con la cuenta bancaria. Los importes del archivo siguen expresados en la moneda original.
+
+También se aceptan las plantillas anteriores de 20 columnas: su columna `tipo_cambio` se ignora y la tasa se obtiene del sistema. Sus valores no cambian la identidad de la carga. No es necesario rellenar esa columna ni introducir una tasa manual.
+
 ## Validación y confirmación
 
 La vista previa comprueba datos maestros, permisos, empresa, período, moneda, saldo acumulado de egresos, referencias y redondeo. No crea documentos, recibos o asientos ni consume números de documento. Un error indica el registro, el documento y el campo que debe revisarse.
 
 La validación queda vinculada al archivo, usuario, sesión, rol, empresa y datos vigentes durante 15 minutos. Cambiar el archivo o contexto requiere validarlo de nuevo. La confirmación vuelve a comprobar esos datos y utiliza los mismos escritores protegidos de la carga manual.
 
+En cheques o transferencias también se vinculan la cotización utilizada, su fecha y su origen. Si cambian antes de confirmar, la pantalla exige validar de nuevo para mostrar la tasa actualizada. No se contabiliza con una validación desactualizada.
+
 La importación financiera es atómica: un fallo no deja documentos parciales. Los comprobantes y las referencias evitan volver a contabilizar la misma carga, incluso cuando se pierde la respuesta y el usuario reintenta. No se modifican registros históricos automáticamente.
+
+Los comprobantes anteriores a la tasa automática conservan su identidad histórica. Al reenviar uno de esos archivos, la protección de referencias puede indicar que el documento ya fue importado; no vuelve a crear movimientos ni asientos. Los depósitos conservan su contrato e identidad de carga anteriores.
 
 ## Velocidad y evidencia
 

@@ -198,6 +198,8 @@ jobs:
             scripts/banking-csv-http.test.mjs \
             scripts/banking-csv-service-sql-integration.test.mjs \
             scripts/banking-csv-sql.test.mjs \
+            scripts/banking-csv-automatic-rate-sql.test.mjs \
+            scripts/bank-csv-automatic-rates-ui.test.mjs \
             scripts/banking-functional-guards-sql.test.mjs \
             scripts/bank-list-buttons-ui.test.mjs \
             scripts/banking-functional-ui.test.mjs \

@@ -4,7 +4,7 @@ import {assertRoleAccess} from '../security-catalogs/role-access-matrix.module.j
 
 export type BankingCsvKind='CHECKS'|'DEPOSITS';
 const common=['documento_referencia','fecha','cuenta_bancaria','moneda','tipo_cambio','referencia_bancaria','ubicacion','nota_documento','numero_cuenta','importe','nota_linea','tipo_entidad','identificacion_entidad','departamento','centro_costos','clase','acreedor_financiero','compania_relacionada'];
-export const bankingCsvHeaders={CHECKS:[common[0]!,'tipo_movimiento',...common.slice(1,6),'beneficiario',...common.slice(6)],DEPOSITS:[...common.slice(0,10),'metodo_pago',...common.slice(10)]};
+export const bankingCsvHeaders={CHECKS:[common[0]!,'tipo_movimiento',...common.slice(1,6),'beneficiario',...common.slice(6)].filter(header=>header!=='tipo_cambio'),DEPOSITS:[...common.slice(0,10),'metodo_pago',...common.slice(10)]};
 const failure=(status:number,message:string)=>Object.assign(Error(message),{status});
 export function bankingCsvKind(value:unknown):BankingCsvKind{if(value==='checks'||value==='CHECKS')return'CHECKS';if(value==='deposits'||value==='DEPOSITS')return'DEPOSITS';throw failure(400,'Seleccione cheques/transferencias o depósitos bancarios.');}
 export function parseBankingCsv(source:string,kind:BankingCsvKind):Record<string,string>[] {
@@ -23,9 +23,13 @@ export function parseBankingCsv(source:string,kind:BankingCsvKind):Record<string
  }
  if(quoted)throw failure(400,'CSV inválido: hay comillas sin cerrar.');if(field||row.length||closed)finishRow();
  const headers=records.shift(),expected=bankingCsvHeaders[kind];
- if(!headers||new Set(headers).size!==headers.length||headers.length!==expected.length||headers.some(h=>!expected.includes(h)))throw failure(400,'Conserve las columnas de la plantilla: '+expected.join(';')+'.');
+ const accepted=kind==='CHECKS'&&headers?.includes('tipo_cambio')?[...expected,'tipo_cambio']:expected;
+ if(!headers||new Set(headers).size!==headers.length||headers.length!==accepted.length||headers.some(h=>!accepted.includes(h)))throw failure(400,'Conserve las columnas de la plantilla: '+expected.join(';')+'.');
  if(!records.length)throw failure(400,'El CSV no contiene filas para validar.');
- return records.map((values,index)=>{if(values.length!==headers.length)throw failure(400,`Registro ${index+2}: cantidad de columnas incorrecta.`);return Object.fromEntries(headers.map((h,column)=>[h,values[column]!]));});
+ // CHECKS rates come exclusively from the database. Removing even malformed
+ // legacy values keeps old/new files bound to the same canonical input/proof.
+ const columns=kind==='CHECKS'?expected.map(header=>[header,headers.indexOf(header)]as const):headers.map((header,column)=>[header,column]as const);
+ return records.map((values,index)=>{if(values.length!==headers.length)throw failure(400,`Registro ${index+2}: cantidad de columnas incorrecta.`);return Object.fromEntries(columns.map(([header,column])=>[header,values[column]!]));});
 }
 type CsvContext={userId:number;roleId:number;subsidiaryId:number;sessionId:string;revision?:string};
 type PreviewProof={version:1;kind:BankingCsvKind;context:CsvContext;fingerprint:string;validationDigest:string;expiresAt:number};
