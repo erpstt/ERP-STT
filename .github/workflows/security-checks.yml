@@ -201,6 +201,7 @@ jobs:
             scripts/banking-functional-guards-sql.test.mjs \
             scripts/bank-list-buttons-ui.test.mjs \
             scripts/banking-functional-ui.test.mjs \
+            scripts/bank-check-beneficiary-ui.test.mjs \
             scripts/banking-operation-error-contract.test.mjs \
             scripts/banking-shell-ui.test.mjs \
             scripts/operational-catalog-cache.test.mjs \

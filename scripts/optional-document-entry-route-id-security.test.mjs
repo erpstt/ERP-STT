@@ -194,6 +194,6 @@ test('real invoice delivery save uses only its checked canonical source route',a
 test('four own HTML and helper imports refresh while the real P94 validator and bank P120 caches stay intact',async()=>{
  for(const [name,page]of pages){assert.ok(page.includes('/'+name+'.js?v='+(name==='supplier-invoice-entry'?invoiceEntryVersion:name==='supplier-note-entry'?purchasingVersion:version)));assert.ok(sources.get(name).includes("from './route-id.js?v=20261103-route-id-guard'"));}
  for(const [name,helper]of[[mains[0],helpers[0]],[mains[2],helpers[1]]])assert.ok(sources.get(name).includes("import('/"+helper+".js?v="+(name==='supplier-invoice-entry'?purchasingVersion:version)+"')"));
- for(const name of['bank-check-entry','bank-deposit-entry']){const page=await readFile(new URL('../public/'+name+'.html',import.meta.url),'utf8');assert.ok(page.includes('/'+name+'.js?v='+bankVersion));}
+ for(const name of['bank-check-entry','bank-deposit-entry']){const page=await readFile(new URL('../public/'+name+'.html',import.meta.url),'utf8');assert.ok(page.includes('/'+name+'.js?v='+(name==='bank-check-entry'?'20261106-bank-check-beneficiary':bankVersion)));}
  for(const source of sources.values())assert.doesNotMatch(source,/\/api\/(?:sales|purchasing)\/[^`]*\$\{(?:editId|recordId|deliveryId|invoiceId)\}/);
 });

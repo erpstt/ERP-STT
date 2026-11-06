@@ -150,7 +150,7 @@ test('valid create and edit keep provider write denial and never display a succe
  }
 });
 test('fresh own HTML/main/edit versions preserve shared P94 and P118 feedback source',()=>{
- for(const [name,page]of html){assert.ok(page.includes('/'+name+'.js?v='+version));assert.ok(sources.get(name).includes("from './route-id.js?v="+sharedVersion+"'"));}
+ for(const [name,page]of html){const pageVersion=name==='bank-check-entry'?'20261106-bank-check-beneficiary':version;assert.ok(page.includes('/'+name+'.js?v='+pageVersion));assert.ok(sources.get(name).includes("from './route-id.js?v="+sharedVersion+"'"));}
  assert.ok(sources.get('bank-check-entry').includes("import('./bank-check-entry-main.js?v="+version+"')"));
  assert.ok(sources.get('bank-deposit-entry').includes("import('./bank-deposit-edit.js?v="+version+"')"));
  for(const name of['bank-check-entry-main','bank-deposit-entry']){assert.ok(sources.get(name).includes("mime_type:file.type||'application/octet-stream'"));assert.ok(sources.get(name).includes('!file.size||file.size>5242880'));assert.ok(sources.get(name).includes("url.protocol!=='https:'"));}

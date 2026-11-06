@@ -140,7 +140,7 @@ for(const screen of screens){
 test('each own HTML and the bank-check wrapper point at the new entry-handler version',async()=>{
  for(const screen of screens){
   const scripts=[...screen.html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)].map(match=>match[1]);
-  const expectedVersion=['bank-check-entry','bank-deposit-entry'].includes(screen.name)?bankEntryVersion:screen.name==='supplier-invoice-entry'?supplierInvoiceEntryVersion:screen.name==='supplier-note-entry'?supplierEntryVersion:screen.name==='journal-entry'?journalEntryVersion:version;
+  const expectedVersion=screen.name==='bank-check-entry'?'20261106-bank-check-beneficiary':screen.name==='bank-deposit-entry'?bankEntryVersion:screen.name==='supplier-invoice-entry'?supplierInvoiceEntryVersion:screen.name==='supplier-note-entry'?supplierEntryVersion:screen.name==='journal-entry'?journalEntryVersion:version;
   assert.equal(scripts.filter(src=>src==='/'+screen.name+'.js?v='+expectedVersion).length,1);
  }
  const wrapper=await readFile(new URL('../public/bank-check-entry.js',import.meta.url),'utf8');
