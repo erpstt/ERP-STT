@@ -98,7 +98,7 @@ export async function setupPaymentRequestBeneficiaryBanks(db){
   };
   const before=await fingerprint();
   await db.exec('begin');
-  try{await db.exec(await readFile(migrationFile(beneficiaryBankMigration),'utf8'));await db.exec('commit');}
+  try{await db.exec((await readFile(migrationFile(beneficiaryBankMigration),'utf8')).replace(/\r\n/g,'\n'));await db.exec('commit');}
   catch(error){await db.exec('rollback');throw error;}
   return {before,after:await fingerprint(),historicalId};
 }

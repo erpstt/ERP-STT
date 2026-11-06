@@ -116,6 +116,9 @@ jobs:
             scripts/payment-request-approved-email.test.mjs \
             scripts/payment-request-approved-settings.test.mjs \
             scripts/payment-request-approved-ui.test.mjs \
+            scripts/payment-request-ui-security.test.mjs \
+            scripts/payment-request-beneficiary-banks-ui.test.mjs \
+            scripts/payment-request-search-ui.test.mjs \
             scripts/tax-calendar-attachment-preauth.test.mjs \
             scripts/bounded-rate-limit-state.test.mjs \
             scripts/auth-flow-rate-limit-state.test.mjs \
