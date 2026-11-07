@@ -13,6 +13,8 @@ const requests={
  auto:{name:'auto_match_bank_reconciliation',input:{p_bank_account_id:17,p_cutoff:'2026-10-31'},result:2},
  match:{name:'match_bank_transaction',input:{p_bank_tran_id:31,p_statement_line_id:41,p_cutoff:'2026-10-31'},result:true},
  unmatch:{name:'unmatch_bank_reconciliation',input:{p_bank_account_id:17,p_cutoff:'2026-10-31',p_match_id:51},result:{success:true,matchId:51}},
+ 'unmatch-all-preview':{name:'preview_bank_reconciliation_unmatch_all',input:{p_bank_account_id:17,p_cutoff:'2026-10-31'},result:{bankAccountId:17,cutoff:'2026-10-31',statementId:71,matchCount:3,fingerprint:'a'.repeat(64),canUnmatch:true}},
+ 'unmatch-all':{name:'unmatch_all_bank_reconciliation',input:{p_bank_account_id:17,p_cutoff:'2026-10-31',p_statement_id:71,p_expected_fingerprint:'a'.repeat(64),p_expected_count:3},result:{success:true,unmatchedCount:3}},
  close:{name:'close_bank_reconciliation',input:{p_bank_account_id:17,p_cutoff:'2026-10-31'},result:{id:71,status:'CERRADA',date:'2026-10-31'}}
 };
 beforeEach(async()=>{
@@ -36,7 +38,7 @@ function backend({action='close',fail=false,onOptions}={}){
   const expected=action==='close-report'?{name:'bank_reconciliation_close_report',input:{p_bank_account_id:17,p_cutoff:'2026-10-31'},result:{status:'CERRADA',report:'synthetic-read-only'}}:requests[action];
   assert.equal(url.pathname,'/rest/v1/rpc/'+expected.name);assert.deepEqual(body,expected.input);assert.equal(auth,first);
   if(fail)return Response.json({code:'55000',message:'Synthetic protected period'},{status:400});
-  if(action!=='close-report'){revision++;if(action==='close')status='CERRADA';}
+  if(!['close-report','unmatch-all-preview'].includes(action)){revision++;if(action==='close')status='CERRADA';}
   return Response.json(expected.result);
  };
  return{calls,reads,bundle};
@@ -54,7 +56,7 @@ test('a successful close replaces hot ABIERTA history with CERRADA for two sessi
 });
 
 test('successful import, automatic and manual matching and unmatching invalidate only after their protected RPC succeeds',async()=>{
- for(const action of['import','auto','match','unmatch']){
+ for(const action of['import','auto','match','unmatch','unmatch-all']){
   invalidateAccountingReportOptionsCache();const stub=backend({action});await warm(stub);
   const input=structuredClone(requests[action].input);assert.deepEqual(await bankReconciliationAction(first,action,input),requests[action].result);assert.deepEqual(input,requests[action].input);
   for(const auth of sessions){assert.equal((await accountingReportOptions(auth)).bankOptions.revision,2);assert.equal(stub.reads.get(auth),2);}
@@ -64,6 +66,18 @@ test('successful import, automatic and manual matching and unmatching invalidate
 test('reading a close report preserves hot options for every session',async()=>{
  const stub=backend({action:'close-report'});await warm(stub);
  const input={p_bank_account_id:17,p_cutoff:'2026-10-31'};assert.deepEqual(await bankReconciliationAction(first,'close-report',input),{status:'CERRADA',report:'synthetic-read-only'});
+ for(const auth of sessions){assert.equal((await accountingReportOptions(auth)).bankOptions.revision,1);assert.equal(stub.reads.get(auth),1);}
+});
+
+test('previewing all matches is read-only and preserves hot options for every session',async()=>{
+ const stub=backend({action:'unmatch-all-preview'});await warm(stub);
+ assert.deepEqual(await bankReconciliationAction(first,'unmatch-all-preview',requests['unmatch-all-preview'].input),requests['unmatch-all-preview'].result);
+ for(const auth of sessions){assert.equal((await accountingReportOptions(auth)).bankOptions.revision,1);assert.equal(stub.reads.get(auth),1);}
+});
+
+test('a rejected bulk unmatch preserves the cached options for both sessions',async()=>{
+ const stub=backend({action:'unmatch-all',fail:true});await warm(stub);
+ await assert.rejects(bankReconciliationAction(first,'unmatch-all',requests['unmatch-all'].input),error=>error.status===409);
  for(const auth of sessions){assert.equal((await accountingReportOptions(auth)).bankOptions.revision,1);assert.equal(stub.reads.get(auth),1);}
 });
 
