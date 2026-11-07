@@ -7,8 +7,8 @@ import {
   normalizeJournalServiceMonths,
   parseJournalCsv
 } from '../dist/modules/accounting-catalogs/journal-import.service.js';
-const header = journalCsvHeaders.slice(0,11).join(',');
-const line = 'A,ASI_DIA,2026-09-08,CRC,1,Nota,001,10.00,0.00,Detalle,';
+const header = journalCsvHeaders.slice(0,10).join(',');
+const line = 'A,ASI_DIA,2026-09-08,CRC,Nota,001,10.00,0.00,Detalle,';
 test('the downloadable template has two balanced journals and preserves account codes', () => {
   const rows = parseJournalCsv(readFileSync('public/plantilla-asientos-contables.csv','utf8'));
   const totals = new Map();
@@ -17,12 +17,12 @@ test('the downloadable template has two balanced journals and preserves account 
   assert.equal(parseJournalCsv(`${header}\n${line}`)[0].numero_cuenta, '001');
 });
 test('BOM, CRLF, quoted commas, escaped quotes and multiline notes', () => {
-  const rows = parseJournalCsv(`\uFEFF${header}\r\nA,ASI_DIA,2026-09-08,CRC,1,"Nota, con ""comillas""\r\ny salto",001,10,0,Detalle,\r\n`);
+  const rows = parseJournalCsv(`\uFEFF${header}\r\nA,ASI_DIA,2026-09-08,CRC,"Nota, con ""comillas""\r\ny salto",001,10,0,Detalle,\r\n`);
   assert.equal(rows[0].nota_asiento, 'Nota, con "comillas"\ny salto');
 });
 test('semicolon files and reordered columns', () => {
   assert.equal(parseJournalCsv(`${header.replaceAll(',',';')}\n${line.replaceAll(',',';')}`)[0].debito,'10.00');
-  assert.equal(parseJournalCsv(`${journalCsvHeaders.slice(0,11).toReversed().join(',')}\n${line.split(',').reverse().join(',')}`)[0].numero_cuenta,'001');
+  assert.equal(parseJournalCsv(`${journalCsvHeaders.slice(0,10).toReversed().join(',')}\n${line.split(',').reverse().join(',')}`)[0].numero_cuenta,'001');
 });
 test('malformed or empty files are rejected instead of silently dropping records', () => {
   for (const csv of ['',header,`${header}\n${line},extra`,`${header}\n"open`,`${header}\n${line.replace('Nota','No"ta')}`,`${header}\n${line.replace('Nota','"Nota"extra')}`,`${header.replace('fecha','moneda')}\n${line}`]) assert.throws(() => parseJournalCsv(csv));
@@ -39,6 +39,19 @@ test('additional dimensions are retained and blank optional columns preserve old
   assert.equal(expanded.departamento,'Servicios'); assert.equal(expanded.centro_costos,'Proyecto');
   assert.equal(expanded.clase,'Consultoria'); assert.equal(expanded.acreedor_financiero,'Banco'); assert.equal(expanded.compania_relacionada,'Relacionada');
   assert.deepEqual(parseJournalCsv(`${fullHeader}\n${line},,,,,,,,`),parseJournalCsv(`${header}\n${line}`));
+});
+
+test('new 18-column journals and legacy 19-column journals ignore rate text while preserving native precision and optional dimensions',()=>{
+  assert.equal(journalCsvHeaders.length,18);assert.equal(journalCsvHeaders.includes('tipo_cambio'),false);
+  const source={asiento_referencia:'SYN-A',tipo_asiento:'ASI_PEN',fecha:'2026-10-10',moneda:'USD',nota_asiento:'Synthetic',numero_cuenta:'001',debito:'10.123456',credito:'0.000000',nota_linea:'Synthetic line',mes_servicio:'2026-09',pais_servicio:'Synthetic country',entidad:'Cliente',nombre:'Synthetic entity',departamento:'Synthetic department',centro_costos:'SYN-CC',clase:'Synthetic class',acreedor_financiero:'SYN-CRED',compania_relacionada:'SYN-REL'};
+  const quote=value=>'"'+String(value??'').replaceAll('"','""')+'"',csv=(headers,rate)=>headers.join(';')+'\r\n'+headers.map(key=>quote(key==='tipo_cambio'?rate:source[key])).join(';');
+  const expected=parseJournalCsv(csv(journalCsvHeaders));assert.equal(expected[0].debito,'10.123456');assert.equal(expected[0].numero_cuenta,'001');assert.equal(expected[0].mes_servicio,'2026-09');assert.equal(expected[0].entidad,'Cliente');assert.equal(Object.hasOwn(expected[0],'tipo_cambio'),false);
+  const legacy=[...journalCsvHeaders];legacy.splice(4,0,'tipo_cambio');
+  for(const rate of['','0','-1','160.1234567890','NaN','Infinity','not authoritative','quoted; ignored\nvalue'])assert.deepEqual(parseJournalCsv(csv(legacy,rate)),expected);
+  assert.deepEqual(parseJournalCsv(csv(legacy.toReversed(),'ignored')),expected);
+  const minimumLegacy=[...journalCsvHeaders.slice(0,10)];minimumLegacy.splice(4,0,'tipo_cambio');
+  assert.deepEqual(parseJournalCsv(csv(minimumLegacy,'ignored')),parseJournalCsv(csv(journalCsvHeaders.slice(0,10))));
+  for(const headers of[[...legacy,'unknown_rate'],legacy.map(key=>key==='tipo_cambio'?'unknown_rate':key),legacy.map(key=>key==='fecha'?'tipo_cambio':key),legacy.filter(key=>key!=='moneda')])assert.throws(()=>parseJournalCsv(csv(headers,'ignored')));
 });
 test('service dimensions are ignored only for journal types derived from the posting date',()=>{
   const source=[

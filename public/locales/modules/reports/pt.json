@@ -108,7 +108,7 @@
       "oneRow": "Uma linha por linha contábil.",
       "sameReference": "A mesma referência agrupa as linhas de um lançamento.",
       "balanced": "Débitos e créditos devem ser iguais em cada lançamento.",
-      "fileRate": "É utilizada a taxa de câmbio indicada no arquivo.",
+      "fileRate": "A taxa de câmbio é calculada automaticamente pela data e moeda do lançamento.",
       "viewInstructions": "Ver instruções completas",
       "atomicBatch": "Registro completo do lote",
       "atomicHelp": "Se um lançamento tiver erros, nenhum será salvo. Corrija o arquivo e valide novamente.",

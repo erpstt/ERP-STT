@@ -108,7 +108,7 @@
       "oneRow": "Una fila por línea contable.",
       "sameReference": "La misma referencia agrupa las líneas de un asiento.",
       "balanced": "Los débitos y créditos deben coincidir en cada asiento.",
-      "fileRate": "Se utiliza el tipo de cambio indicado en el archivo.",
+      "fileRate": "El tipo de cambio es automático según la moneda y fecha del asiento.",
       "viewInstructions": "Ver instrucciones completas",
       "atomicBatch": "Registro completo del lote",
       "atomicHelp": "Si un asiento presenta errores, no se guarda ninguno. Corrija el archivo y vuelva a validarlo.",

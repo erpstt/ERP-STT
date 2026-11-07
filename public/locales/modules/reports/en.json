@@ -108,7 +108,7 @@
       "oneRow": "One row per accounting line.",
       "sameReference": "The same reference groups the lines of one entry.",
       "balanced": "Debits and credits must balance in each entry.",
-      "fileRate": "The exchange rate provided in the file is used.",
+      "fileRate": "The exchange rate is determined automatically from the journal date and currency.",
       "viewInstructions": "View full instructions",
       "atomicBatch": "Complete batch posting",
       "atomicHelp": "If an entry has errors, none are saved. Correct the file and validate it again.",

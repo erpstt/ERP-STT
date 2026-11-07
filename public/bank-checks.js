@@ -1,1 +1,1 @@
-try{await import('./bank-checks-main.js?v=20261106-bank-csv-auto-rates')}catch(error){const target=document.getElementById('message');if(target)target.textContent=`No fue posible cargar las transacciones: ${error.message}`;}
+try{await import('./bank-checks-main.js?v=20261107-auto-template-rates')}catch(error){const target=document.getElementById('message');if(target)target.textContent=`No fue posible cargar las transacciones: ${error.message}`;}

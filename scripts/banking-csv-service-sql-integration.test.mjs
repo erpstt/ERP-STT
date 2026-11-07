@@ -4,11 +4,13 @@ import {test} from 'node:test';
 import {PGlite} from '@electric-sql/pglite';
 import {setupBankingCsvImport} from './fixtures/setup-banking-csv-import.mjs';
 import {configureCheckCsvRateCatalog,applyCheckCsvAutomaticRate} from './fixtures/setup-check-csv-automatic-rate.mjs';
+import {applyDepositCsvAutomaticRate} from './fixtures/setup-journal-csv-automatic-rate.mjs';
 import {previewBankingCsv,importBankingCsv,parseBankingCsv,bankingCsvHeaders} from '../dist/modules/banking-catalogs/banking-csv.service.js';
 import {primeRoleAccessCache,invalidateRoleAccessCaches} from '../dist/modules/security-catalogs/role-access-matrix.module.js';
 import {assertIsolatedTestArgs} from './lib/migration-preview.mjs';
 assertIsolatedTestArgs();
-function checkCsv(rows,legacyRate){const headers=[...bankingCsvHeaders.CHECKS];if(legacyRate!==undefined)headers.splice(5,0,'tipo_cambio');const quote=value=>'"'+String(value??'').replaceAll('"','""')+'"';return headers.join(';')+'\r\n'+rows.map(row=>headers.map(key=>quote(key==='tipo_cambio'?legacyRate:row[key])).join(';')).join('\r\n');}
+function bankCsv(rows,kind,legacyRate){const headers=[...bankingCsvHeaders[kind]];if(legacyRate!==undefined)headers.splice(kind==='CHECKS'?5:4,0,'tipo_cambio');const quote=value=>'"'+String(value??'').replaceAll('"','""')+'"';return headers.join(';')+'\r\n'+rows.map(row=>headers.map(key=>quote(key==='tipo_cambio'?legacyRate:row[key])).join(';')).join('\r\n');}
+const checkCsv=(rows,legacyRate)=>bankCsv(rows,'CHECKS',legacyRate);
 
 test('downloaded bank CSV templates traverse the real Node/SQL boundary with preview, context checks and lost-response recovery', {timeout:90000}, async t=>{
  const db=new PGlite(),originalFetch=globalThis.fetch,originalEnvironment={...process.env};
@@ -18,7 +20,7 @@ test('downloaded bank CSV templates traverse the real Node/SQL boundary with pre
  await db.exec("alter table payment_methods add column if not exists method_code text;update payment_methods set method_code=coalesce(method_code,'SYN-TRANSFER')");
  const migration=(await readFile(new URL('../supabase/migrations/20261105184055_add_banking_csv_atomic_import.sql',import.meta.url),'utf8')).replace(/\r\n/g,'\n');
  await db.exec('begin');try{await db.exec(migration);await db.exec('commit');}catch(cause){await db.exec('rollback');delete cause.query;throw cause;}
- await configureCheckCsvRateCatalog(db);await applyCheckCsvAutomaticRate(db);
+ await configureCheckCsvRateCatalog(db);await applyCheckCsvAutomaticRate(db);await applyDepositCsvAutomaticRate(db);
  const actor=async role=>{
   await db.exec('reset role');
   await db.query("insert into user_role_sessions values('bridge-session',1,$1)on conflict(session_id)do update set role_id=$1",[role]);
@@ -67,7 +69,8 @@ test('downloaded bank CSV templates traverse the real Node/SQL boundary with pre
  const recovered=await importBankingCsv(auth,'checks',{csv:checks,subsidiaryId:1,previewToken:preview.previewToken});assert.equal(recovered.alreadyImported,true);assert.equal(recovered.created,0);assert.equal(recovered.entries.length,2);assert.deepEqual(await snapshot(),committed);
  const repeatPreview=await previewBankingCsv(auth,'checks',{csv:checkCsv(parseBankingCsv(checks,'CHECKS'),'another ignored legacy value'),subsidiaryId:1});assert.equal(repeatPreview.alreadyImported,true);assert.equal(repeatPreview.previewToken,undefined);assert.deepEqual(await snapshot(),committed);
  const depositPreview=await previewBankingCsv(auth,'deposits',{csv:deposits,subsidiaryId:1});assert.equal(depositPreview.valid,true,JSON.stringify(depositPreview.errors));assert.equal(depositPreview.entries.length,2);assert.deepEqual(await snapshot(),committed);
- assert.ok(depositPreview.entries.every(entry=>!Object.hasOwn(entry,'exchangeRate')&&!Object.hasOwn(entry,'rateDate')&&!Object.hasOwn(entry,'rateSource')));
+ assert.ok(depositPreview.entries.every(entry=>entry.exchangeRate==='1'&&entry.rateDate===null&&entry.rateSource==='LOCAL'));
+ const depositLegacy=bankCsv(parseBankingCsv(deposits,'DEPOSITS'),'DEPOSITS','not an authoritative rate'),depositLegacyPreview=await previewBankingCsv(auth,'deposits',{csv:depositLegacy,subsidiaryId:1});assert.equal(depositLegacyPreview.fingerprint,depositPreview.fingerprint);assert.equal(depositLegacyPreview.validationDigest,depositPreview.validationDigest);assert.deepEqual(await snapshot(),committed);
  const result=await importBankingCsv(auth,'deposits',{csv:deposits,subsidiaryId:1,previewToken:depositPreview.previewToken});assert.equal(result.valid,true);assert.equal(result.created,2);
  const final=await snapshot();assert.equal(final.deposits,initial.deposits+2);assert.equal(final.checks,initial.checks+2);assert.equal(final.journals,initial.journals+4);assert.equal(final.receipts,2);assert.equal(final.references,4);
  assert.equal(Number((await db.query('select balance from bank_account where bank_account_id=1')).rows[0].balance),800);
@@ -82,4 +85,11 @@ test('downloaded bank CSV templates traverse the real Node/SQL boundary with pre
  const freshForeign=await previewBankingCsv(auth,'checks',{csv:foreignCsv,subsidiaryId:1});assert.equal(freshForeign.entries[0].exchangeRate,foreignPreview.entries[0].exchangeRate);assert.equal(freshForeign.entries[0].rateDate,'2026-10-10');const foreignResult=await importBankingCsv(auth,'checks',{csv:foreignCsv,subsidiaryId:1,previewToken:freshForeign.previewToken});assert.equal(foreignResult.created,1);assert.equal(foreignResult.entries[0].exchangeRate,'160.1234567890');assert.equal(foreignResult.entries[0].localAmount,'16032.113880');
  const foreignCommitted=await snapshot();const foreignReplay=await importBankingCsv(auth,'checks',{csv:checkCsv(parseBankingCsv(foreignCsv,'CHECKS'),'0'),subsidiaryId:1,previewToken:freshForeign.previewToken});assert.equal(foreignReplay.created,0);assert.equal(foreignReplay.alreadyImported,true);assert.deepEqual(await snapshot(),foreignCommitted);
  assert.equal(Number((await db.query('select coalesce(sum(debit_amount-credit_amount),0) value from gl_impact')).rows[0].value),0);
+ const beforeDepositReplay=await snapshot(),depositReplay=await importBankingCsv(auth,'deposits',{csv:depositLegacy,subsidiaryId:1,previewToken:depositPreview.previewToken});assert.equal(depositReplay.created,0);assert.equal(depositReplay.alreadyImported,true);assert.deepEqual(await snapshot(),beforeDepositReplay);
+ const foreignDeposit=bankCsv([{...parseBankingCsv(deposits,'DEPOSITS')[0],documento_referencia:'SYN-AUTO-DEPOSIT-FOREIGN',cuenta_bancaria:'SYN-FOREIGN',moneda:'CRC',importe:'100.123456'}],'DEPOSITS'),foreignDepositPreview=await previewBankingCsv(auth,'deposits',{csv:foreignDeposit,subsidiaryId:1});assert.equal(foreignDepositPreview.valid,true,JSON.stringify(foreignDepositPreview.errors));assert.equal(foreignDepositPreview.entries[0].exchangeRate,'160.1234567890');assert.equal(foreignDepositPreview.entries[0].rateDate,'2026-10-10');assert.equal(foreignDepositPreview.entries[0].rateSource,'DIRECT');assert.equal(foreignDepositPreview.entries[0].localAmount,'16032.113880');const beforeForeignDeposit=await snapshot();
+ await db.exec("update exchange_rates set spot_rate=160.2234567890 where from_currency_id=2 and to_currency_id=1 and effective_date='2026-10-10'");await assert.rejects(importBankingCsv(auth,'deposits',{csv:foreignDeposit,subsidiaryId:1,previewToken:foreignDepositPreview.previewToken}),cause=>cause.status===409);assert.deepEqual(await snapshot(),beforeForeignDeposit);
+ await db.exec("update exchange_rates set spot_rate=160.1234567890 where from_currency_id=2 and to_currency_id=1 and effective_date='2026-10-10';delete from exchange_rates where from_currency_id=2 and to_currency_id=1 and effective_date='2026-10-10'");
+ await assert.rejects(importBankingCsv(auth,'deposits',{csv:foreignDeposit,subsidiaryId:1,previewToken:foreignDepositPreview.previewToken}),cause=>cause.status===409);assert.deepEqual(await snapshot(),beforeForeignDeposit,'A catalog-source/date change must invalidate deposit confirmation even when the applied value is unchanged');
+ const refreshedDeposit=await previewBankingCsv(auth,'deposits',{csv:foreignDeposit,subsidiaryId:1});assert.equal(refreshedDeposit.entries[0].rateDate,'2026-10-09');const savedDeposit=await importBankingCsv(auth,'deposits',{csv:foreignDeposit,subsidiaryId:1,previewToken:refreshedDeposit.previewToken});assert.equal(savedDeposit.created,1);assert.equal(savedDeposit.entries[0].exchangeRate,'160.1234567890');assert.equal(savedDeposit.entries[0].localAmount,'16032.113880');
+ const afterForeignDeposit=await snapshot(),repeatedForeignDeposit=await importBankingCsv(auth,'deposits',{csv:bankCsv(parseBankingCsv(foreignDeposit,'DEPOSITS'),'DEPOSITS','Infinity'),subsidiaryId:1,previewToken:refreshedDeposit.previewToken});assert.equal(repeatedForeignDeposit.created,0);assert.equal(repeatedForeignDeposit.alreadyImported,true);assert.deepEqual(await snapshot(),afterForeignDeposit);assert.equal(Number((await db.query('select coalesce(sum(debit_amount-credit_amount),0) value from gl_impact')).rows[0].value),0);
 });

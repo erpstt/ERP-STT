@@ -31,7 +31,7 @@ test('language messages require the exact non-opaque current origin before chang
 });
 
 test('the shell and server-injected language module both select the origin-hardened version',async()=>{
- const version='20261104-i18n-message-origin';
+ const version='20261107-auto-template-rates';
  for(const file of['../public/index.html','../src/server.ts']){
   const text=await readFile(new URL(file,import.meta.url),'utf8');
   assert.equal(text.split('/i18n.js?v='+version).length,2);

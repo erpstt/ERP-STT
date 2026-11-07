@@ -157,6 +157,12 @@ jobs:
             scripts/i18n-runtime.test.mjs \
             scripts/opening-routing-operator-guards.test.mjs \
             scripts/journal-payment-request-route-id-security.test.mjs \
+            scripts/journal-csv-automatic-rate-sql.test.mjs \
+            scripts/journal-csv-auto-rate-api.test.mjs \
+            scripts/journal-csv-auto-rate-service-sql-integration.test.mjs \
+            scripts/journal-csv-automatic-rates-ui.test.mjs \
+            scripts/test-journal-csv.test.mjs \
+            scripts/test-journal-csv-ui.test.mjs \
             scripts/security-source-secrets-check.test.mjs \
             scripts/bootstrap-matrix-public-errors.test.mjs \
             scripts/bank-statement-active-subsidiary-rls-db.test.mjs \
@@ -199,6 +205,7 @@ jobs:
             scripts/banking-csv-service-sql-integration.test.mjs \
             scripts/banking-csv-sql.test.mjs \
             scripts/banking-csv-automatic-rate-sql.test.mjs \
+            scripts/deposit-csv-automatic-rate-sql.test.mjs \
             scripts/banking-csv-entity-activity-sql.test.mjs \
             scripts/bank-csv-automatic-rates-ui.test.mjs \
             scripts/banking-functional-guards-sql.test.mjs \
