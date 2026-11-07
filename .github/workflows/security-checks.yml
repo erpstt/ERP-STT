@@ -193,6 +193,7 @@ jobs:
             scripts/bank-reconciliation-history-bridge-ui.test.mjs \
             scripts/bank-reconciliation-movements.test.mjs \
             scripts/bank-reconciliation-pending-views-ui.test.mjs \
+            scripts/bank-auto-match-result-ui.test.mjs \
             scripts/bank-reconciliation-statement-fees.test.mjs \
             scripts/bank-reconciliation-ux-ui.test.mjs \
             scripts/bank-statement-account-selector-ui.test.mjs \

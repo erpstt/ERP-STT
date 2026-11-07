@@ -119,6 +119,7 @@ test('las conciliaciones manuales, automáticas y las comisiones salen de pendie
     await expect.poll(()=>state.manual.length).toBe(1);assert.equal(state.manual[0].p_bank_tran_id,11);assert.equal(state.manual[0].p_statement_line_id,20);
    }else if(mode==='automatic'){
     await page.locator('#autoMatch').click();await expect.poll(()=>state.automatic.length).toBe(1);
+    await expect(page.locator('#bankAutoMatchResultDialog')).toBeVisible();await expect(page.locator('#bankAutoMatchResultMessage')).toHaveText('Se concilió 1 movimiento automáticamente.');await page.locator('#acknowledgeBankAutoMatchResult').click();
    }else{
     await page.locator('#bankFeeMode').check();
     await page.locator('[data-bank-fee-line][value="20"]').check();await page.locator('#registerBankFees').click();
