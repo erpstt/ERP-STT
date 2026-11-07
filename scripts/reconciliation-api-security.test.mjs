@@ -13,6 +13,7 @@ const cases=[
  ['POST','/api/reports/accounting/bank-reconciliation','view','run_bank_reconciliation_report',filters,{p_filters:filters},200],
  ...['auto','close','close-report'].map(a=>['POST','/api/reports/accounting/bank-reconciliation/'+a,a==='close-report'?'view':'edit',{auto:'auto_match_bank_reconciliation',close:'close_bank_reconciliation','close-report':'bank_reconciliation_close_report'}[a],{p_bank_account_id:1,p_cutoff:'2026-10-31'},{p_bank_account_id:1,p_cutoff:'2026-10-31'},200]),
  ['POST','/api/reports/accounting/bank-reconciliation/match','edit','match_bank_transaction',{p_bank_tran_id:1,p_statement_line_id:2,p_cutoff:'2026-10-31'},{p_bank_tran_id:1,p_statement_line_id:2,p_cutoff:'2026-10-31'},200],
+ ['POST','/api/reports/accounting/bank-reconciliation/unmatch','edit','unmatch_bank_reconciliation',{p_bank_account_id:1,p_cutoff:'2026-10-31',p_match_id:3},{p_bank_account_id:1,p_cutoff:'2026-10-31',p_match_id:3},200],
  ['POST','/api/reports/accounting/bank-reconciliation/import','create','import_bank_statement',{p_bank_account_id:1,p_statement_date:'2026-10-31',p_opening_balance:0,p_closing_balance:60,p_lines:[]},{p_bank_account_id:1,p_statement_date:'2026-10-31',p_opening_balance:0,p_closing_balance:60,p_lines:[]},200],
  ['POST','/api/banking/bank-statements','create','save_bank_statement_metadata',metadata,{p_statement_id:null,p_payload:metadata},201],
  ['PATCH','/api/banking/bank-statements/17','edit','save_bank_statement_metadata',metadata,{p_statement_id:17,p_payload:metadata},200],
@@ -38,7 +39,7 @@ test('guardas internas cubren reportes, exportaciones, acciones, catalogo y cuad
  for(const call of [()=>bankReconciliationAction(auth,'auto',{}),()=>bankReconciliationAction(auth,'import',{p_file_base64:'not-a-file'}),()=>runAccountingReport(auth,'bank-reconciliation',filters),()=>q.quadraticReconciliationOptions(auth),()=>q.listQuadraticReconciliations(auth),()=>q.getQuadraticReconciliation(auth,17),()=>q.saveQuadraticReconciliation(auth,header),()=>q.saveQuadraticReconciliationItem(auth,17,item),()=>q.matchQuadraticReconciliation(auth,17,{bankTransactionId:1,statementLineId:2}),()=>q.deleteQuadraticReconciliationItem(auth,17,3),()=>q.unmatchQuadraticReconciliation(auth,17,3),()=>q.autoMatchQuadraticReconciliation(auth,17),()=>q.transitionQuadraticReconciliation(auth,17,'closed'),()=>q.exportQuadraticReconciliationPdf(auth,17),()=>q.exportQuadraticReconciliationExcel(auth,17),()=>createBankingRow(s,auth,metadata),()=>updateBankingRow(s,auth,17,metadata),()=>deleteBankingRow(s,auth,17),()=>listBankingRows(s,auth)])await assert.rejects(call(),e=>e.status===403);
  await assert.rejects(q.quadraticReconciliationOptions(''),e=>e.status===401);
 });
-test('23 variantes HTTP separan permisos y conservan JWT, apikey y parametros; acceso anonimo denegado', {timeout:40000},async t=>{
+test('variantes HTTP separan permisos y conservan JWT, apikey y parametros; acceso anonimo denegado', {timeout:40000},async t=>{
  const calls=[],roles={denied:null,reader:'view',creator:'create',editor:'edit',deleter:'delete',admin:'admin'};
  const resources=['reports:accounting-reports','banking:bank-statements','banking:bank-reconciliations','banking:cash-proof'];
  const stub=createServer(async(req,res)=>{res.setHeader('Content-Type','application/json');const role=req.headers.authorization?.replace('Bearer rec-http-','');

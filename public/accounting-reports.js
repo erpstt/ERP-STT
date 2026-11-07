@@ -245,6 +245,54 @@ async function exportBankMovementRows(type){
  download(await reportWorkbook({headers,rows,context:exportContext(),title}),name+'.xlsx');
 }
 function selectBankMovementView(mode){resetBankFeeMode();$('bankView').value=mode;resetBankManualSelection();page=1;updateBankViewControls(mode);renderBankPageOrRun()}
+let bankUnmatchPending=null,bankUnmatchBlockedRevision=-1;
+function bankUnmatchDescriptor(row){
+ if(current?.[1]!=='bank-reconciliation'||$('bankView')?.value!=='RECONCILED'||!canRenderBankMovementSnapshot()||data.reconciliation?.status==='CERRADA'||row?.can_unmatch!==true||String(row.reconciliation_status).toUpperCase()!=='CONCILIADO'||bankUnmatchBlockedRevision===dataRevision)return null;
+ const positive=value=>/^[1-9]\d*$/.test(String(value))&&Number.isSafeInteger(Number(value)),cutoff=String(row.reconciliation_cutoff??''),parts=cutoff.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+ if(!positive(row.match_id)||!positive(row.reconciliation_id)||!parts)return null;
+ const date=new Date(Date.UTC(Number(parts[1]),Number(parts[2])-1,Number(parts[3])));
+ if(date.getUTCFullYear()!==Number(parts[1])||date.getUTCMonth()+1!==Number(parts[2])||date.getUTCDate()!==Number(parts[3]))return null;
+ return{matchId:Number(row.match_id),reconciliationId:Number(row.reconciliation_id),cutoff};
+}
+function bankUnmatchButton(row,side){const match=bankUnmatchDescriptor(row);return match?'<button type="button" class="button-link" data-bank-unmatch="'+htmlText(match.matchId)+'" data-bank-unmatch-side="'+side+'" data-bank-unmatch-row="'+htmlText(side==='erp'?row.id:row.statement_line_id)+'"'+(bankUnmatchPending?' disabled':'')+'>Deshacer punteo</button>':'';}
+function bankUnmatchContextCurrent(snapshot){return current?.[1]==='bank-reconciliation'&&$('bankView')?.value==='RECONCILED'&&snapshot.context===bankStatementContext();}
+function refreshBankUnmatchButtons(){document.querySelectorAll('[data-bank-unmatch]').forEach(button=>{const items=button.dataset.bankUnmatchSide==='erp'?data.rows:data.statementLines,key=button.dataset.bankUnmatchSide==='erp'?'id':'statement_line_id',row=(items||[]).find(item=>String(item[key])===button.dataset.bankUnmatchRow);button.disabled=Boolean(bankUnmatchPending)||!bankUnmatchDescriptor(row);});}
+function openBankUnmatch(row,trigger){
+ const match=bankUnmatchDescriptor(row);if(bankUnmatchPending||!match||$('workspace').classList.contains('loading'))return;
+ const snapshot={...match,context:bankStatementContext(),revision:dataRevision,bankAccountId:Number($('bankAccount').value),phase:'confirm',trigger};
+ bankUnmatchPending=snapshot;refreshBankUnmatchButtons();
+ const dialog=$('bankUnmatchDialog'),cancel=$('cancelBankUnmatch'),confirm=$('confirmBankUnmatch'),account=(options.bankOptions?.accounts||[]).find(item=>Number(item.id)===snapshot.bankAccountId);
+ $('bankUnmatchAccount').textContent=[account?.bankName,account?.number,account?.currencyCode].filter(Boolean).join(' · ')||$('bankAccount').selectedOptions[0]?.textContent||'—';
+ $('bankUnmatchCutoff').textContent=match.cutoff.split('-').reverse().join('/');$('bankUnmatchReference').textContent=row.reference||'Sin referencia';
+ $('bankUnmatchProgress').hidden=true;$('bankUnmatchError').hidden=true;$('bankUnmatchError').textContent='';cancel.disabled=false;confirm.disabled=false;confirm.textContent='Deshacer punteo';
+ const dismiss=()=>{if(!['saving','refreshing'].includes(snapshot.phase))dialog.close();};cancel.onclick=dismiss;
+ dialog.oncancel=event=>{if(['saving','refreshing'].includes(snapshot.phase))event.preventDefault();};
+ dialog.onkeydown=event=>{if(event.key!=='Tab')return;const buttons=[cancel,confirm].filter(button=>!button.disabled);if(!buttons.length){event.preventDefault();return;}const first=buttons[0],last=buttons.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}};
+ dialog.addEventListener('close',()=>{dialog.onkeydown=null;dialog.oncancel=null;cancel.onclick=null;confirm.onclick=null;if(bankUnmatchPending===snapshot)bankUnmatchPending=null;refreshBankUnmatchButtons();const target=bankUnmatchContextCurrent(snapshot)&&trigger.isConnected&&!trigger.disabled?trigger:$('bankView');if(target?.isConnected&&!target.disabled&&target.getClientRects().length)target.focus({preventScroll:true});},{once:true});
+ confirm.onclick=async()=>{
+  if(bankUnmatchPending!==snapshot||snapshot.phase!=='confirm')return;
+  const latest=bankUnmatchDescriptor(row);
+  if(!bankUnmatchContextCurrent(snapshot)||snapshot.revision!==dataRevision||!latest||latest.matchId!==snapshot.matchId||latest.reconciliationId!==snapshot.reconciliationId||latest.cutoff!==snapshot.cutoff||$('workspace').classList.contains('loading')){$('bankUnmatchError').hidden=false;$('bankUnmatchError').textContent='La vista o el contexto cambió. Cierre esta ventana y vuelva a consultar la conciliación.';confirm.disabled=true;return;}
+  snapshot.phase='saving';cancel.disabled=true;confirm.disabled=true;$('bankUnmatchProgress').hidden=false;$('bankUnmatchProgress').textContent='Deshaciendo el punteo…';
+  let persisted=false;
+  try{
+   const response=await api('/api/reports/accounting/bank-reconciliation/unmatch',{method:'POST',body:JSON.stringify({p_bank_account_id:snapshot.bankAccountId,p_cutoff:snapshot.cutoff,p_match_id:snapshot.matchId})}),result=response?.result;
+   if(result?.success!==true||Number(result.bankAccountId)!==snapshot.bankAccountId||Number(result.matchId)!==snapshot.matchId||result.cutoff!==snapshot.cutoff)throw Error('No fue posible confirmar el resultado. Actualice el reporte para comprobar el estado del punteo antes de volver a intentarlo.');
+   persisted=true;if(!bankUnmatchContextCurrent(snapshot)){dialog.close();return;}
+   snapshot.phase='refreshing';$('bankUnmatchProgress').textContent='Punteo deshecho. Actualizando los movimientos…';resetBankManualSelection();resetBankStatementPreview();loadedReportKey='';loadedReportFilters=null;
+   $('summary').textContent='';$('thead').textContent='';$('tbody').innerHTML='<tr><td>Actualizando los movimientos después de deshacer el punteo…</td></tr>';
+   const nextOptions=await api('/api/reports/accounting/options');if(!bankUnmatchContextCurrent(snapshot)){dialog.close();return;}options=nextOptions;page=1;await run();
+   if(!bankUnmatchContextCurrent(snapshot)){dialog.close();return;}
+   if(loadedReportKey!=='bank-reconciliation'||!canRenderBankMovementSnapshot()||(data.rows||[]).some(item=>Number(item.match_id)===snapshot.matchId)||(data.statementLines||[]).some(item=>Number(item.match_id)===snapshot.matchId))throw Error('No fue posible actualizar los movimientos.');
+   dialog.close();showBankActionMessage('Punteo deshecho. El movimiento del ERP y la línea del extracto quedaron pendientes; sus importes no cambiaron.','success');
+  }catch(error){
+   if(!bankUnmatchContextCurrent(snapshot)){dialog.close();return;}
+   bankUnmatchBlockedRevision=dataRevision;
+   snapshot.phase='failed';$('bankUnmatchProgress').hidden=true;$('bankUnmatchError').hidden=false;$('bankUnmatchError').textContent=persisted?'El punteo quedó deshecho, pero no fue posible actualizar la pantalla. Vuelva a cargar el reporte; no es necesario deshacerlo otra vez.':`${friendlyBankError(error)} Actualice el reporte para comprobar su estado antes de volver a intentarlo.`;cancel.disabled=false;confirm.disabled=true;cancel.focus();
+  }
+ };
+ dialog.showModal();cancel.focus();
+}
 function renderBankMovementLists(mode){
  const view=bankMovementPage(data,mode,page,Number($('pageSize').value)),completed=mode==='RECONCILED';page=view.page;
  const table=$('tbody').closest('.table-wrap'),tabs=document.createElement('div');tabs.className='bank-movement-tabs';tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Estado de los movimientos bancarios');
@@ -261,9 +309,10 @@ function renderBankMovementLists(mode){
   const erp=view.rows[index],bank=view.statementLines[index],erpAmount=erp?Number(erp.deposits)-Number(erp.withdrawals):null;
   const erpChoice=completed?'':'<td>'+(erp?'<input type="radio" name="erpMatch" value="'+htmlText(erp.id)+'" data-amount="'+htmlText(erpAmount)+'" aria-label="Elegir movimiento ERP '+escapeHtml(erp.reference||'sin referencia')+'">':'')+'</td>';
   const bankChoice=completed?'':'<td'+(bank?' data-statement-line-id="'+htmlText(bank.statement_line_id)+'"':'')+'>'+(bank?'<input type="radio" name="bankMatch" value="'+htmlText(bank.statement_line_id)+'" data-amount="'+htmlText(Number(bank.amount))+'" aria-label="Elegir movimiento del extracto '+escapeHtml(bank.reference||'sin referencia')+'">':'')+'</td>';
-  html.push('<tr class="'+(completed?'bank-reconciled-row':'bank-match-row')+'">'+erpChoice+'<td>'+(erp?bankStatus(erp.reconciliation_status):'')+'</td><td>'+(erp?escapeHtml(erp.date):'')+'</td><td>'+(erp?escapeHtml(erp.reference||'—'):'')+'</td><td class="bank-note">'+(erp?escapeHtml(erp.note||erp.description||'Sin nota registrada'):'')+'</td><td class="number">'+(erp?htmlText(bankMoney(erpAmount)):'')+'</td>'+bankChoice+'<td>'+(bank?bankStatus(bank.reconciliation_status):'')+'</td><td>'+(bank?escapeHtml(bank.bank_date):'')+'</td><td>'+(bank?escapeHtml(bank.reference||'—'):'')+'</td><td class="bank-note">'+(bank?escapeHtml(bank.description||'Sin nota registrada'):'')+'</td><td class="number">'+(bank?htmlText(bankMoney(bank.amount)):'')+'</td></tr>');
+  html.push('<tr class="'+(completed?'bank-reconciled-row':'bank-match-row')+'">'+erpChoice+'<td>'+(erp?bankStatus(erp.reconciliation_status)+(completed?bankUnmatchButton(erp,'erp'):''):'')+'</td><td>'+(erp?escapeHtml(erp.date):'')+'</td><td>'+(erp?escapeHtml(erp.reference||'—'):'')+'</td><td class="bank-note">'+(erp?escapeHtml(erp.note||erp.description||'Sin nota registrada'):'')+'</td><td class="number">'+(erp?htmlText(bankMoney(erpAmount)):'')+'</td>'+bankChoice+'<td>'+(bank?bankStatus(bank.reconciliation_status)+(completed?bankUnmatchButton(bank,'statement'):''):'')+'</td><td>'+(bank?escapeHtml(bank.bank_date):'')+'</td><td>'+(bank?escapeHtml(bank.reference||'—'):'')+'</td><td class="bank-note">'+(bank?escapeHtml(bank.description||'Sin nota registrada'):'')+'</td><td class="number">'+(bank?htmlText(bankMoney(bank.amount)):'')+'</td></tr>');
  }
  $('tbody').innerHTML=html.join('')||'<tr><td colspan="'+columns*2+'"><div class="bank-empty-movements"><b>No hay movimientos '+caption+' para esta cuenta y fecha.</b><span>'+(completed?'Los movimientos aparecerán aquí a medida que los concilie.':'Consulte los movimientos completados en Movimientos conciliados.')+'</span></div></td></tr>';
+ $('tbody').querySelectorAll('[data-bank-unmatch]').forEach(button=>{button.onclick=()=>{const items=button.dataset.bankUnmatchSide==='erp'?data.rows:data.statementLines,key=button.dataset.bankUnmatchSide==='erp'?'id':'statement_line_id',row=(items||[]).find(item=>String(item[key])===button.dataset.bankUnmatchRow);openBankUnmatch(row,button);};});
  if(!completed){
   const hint=document.createElement('div');hint.className='bank-match-hint';hint.textContent='Seleccione un movimiento pendiente del ERP y uno del extracto para comparar sus montos y notas.';table.insertAdjacentElement('beforebegin',hint);
   const button=document.createElement('button');button.className='primary manual-match';button.textContent='Conciliar los dos movimientos seleccionados';button.disabled=true;button.onclick=manualMatchBank;table.insertAdjacentElement('beforebegin',button);

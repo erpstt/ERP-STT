@@ -509,7 +509,7 @@ const server = createServer((request, response) => {
       return json(response,201,{result:await registerStatementBankFees(authorization,await body(request) as Record<string,unknown>)});
     }
     if(request.method==='POST'&&request.url==='/api/reports/accounting/bank-reconciliation/preview'){return json(response,200,{result:await previewBankStatement(request.headers.authorization!,await body(request) as Record<string,unknown>)});}
-    const bankActionRoute=request.url?.match(/^\/api\/reports\/accounting\/bank-reconciliation\/(import|auto|match|close|close-report)$/);
+    const bankActionRoute=request.url?.match(/^\/api\/reports\/accounting\/bank-reconciliation\/(import|auto|match|unmatch|close|close-report)$/);
     if(request.method==='POST'&&bankActionRoute){return json(response,200,{result:await bankReconciliationAction(request.headers.authorization!,bankActionRoute[1],await body(request) as Record<string,unknown>)});}
      const journalReverseRoute=request.url?.match(/^\/api\/reports\/accounting\/journal\/(\d+)\/reverse$/);
      if(request.method==='POST'&&journalReverseRoute){return json(response,201,{journalId:await reverseJournalEntry(request.headers.authorization!,Number(journalReverseRoute[1]))});}

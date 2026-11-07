@@ -81,9 +81,16 @@ export async function executePendingInvoiceReclassification(authorization:string
 export async function bankReconciliationAction(authorization:string,action:string,input:Record<string,unknown>){
  const resource=action==='import'?'banking:bank-statements':action==='close-report'?'reports:accounting-reports':'banking:bank-reconciliations',permission=action==='import'?'create':action==='close-report'?'view':'edit';
  await requireReconciliationAccess(authorization,resource,permission);
- const names:Record<string,string>={import:'import_bank_statement',auto:'auto_match_bank_reconciliation',match:'match_bank_transaction',close:'close_bank_reconciliation','close-report':'bank_reconciliation_close_report'};
+ const names:Record<string,string>={import:'import_bank_statement',auto:'auto_match_bank_reconciliation',match:'match_bank_transaction',unmatch:'unmatch_bank_reconciliation',close:'close_bank_reconciliation','close-report':'bank_reconciliation_close_report'};
  if(!names[action])throw new Error('Acción bancaria no válida.');
  let payload={...input};
+ if(action==='unmatch'){
+  const fields=['p_bank_account_id','p_cutoff','p_match_id'];
+  if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(key=>!fields.includes(key))||!Number.isSafeInteger(input.p_bank_account_id)||Number(input.p_bank_account_id)<=0||!Number.isSafeInteger(input.p_match_id)||Number(input.p_match_id)<=0)throw Object.assign(new Error('Seleccione un punteo bancario válido.'),{status:400});
+  const cutoff=input.p_cutoff;
+  if(typeof cutoff!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(cutoff)||Number(cutoff.slice(0,4))===0||!Number.isFinite(Date.parse(cutoff+'T00:00:00.000Z'))||new Date(cutoff+'T00:00:00.000Z').toISOString().slice(0,10)!==cutoff)throw Object.assign(new Error('Seleccione una fecha de conciliación válida.'),{status:400});
+  payload={p_bank_account_id:input.p_bank_account_id,p_cutoff:cutoff,p_match_id:input.p_match_id};
+ }
  if(action==='import'&&(typeof input.p_file_text==='string'||typeof input.p_file_base64==='string')){
   const prepared=await previewBankStatement(authorization,input);
   payload={p_bank_account_id:input.p_bank_account_id,p_statement_date:input.p_statement_date,p_file_name:input.p_file_name,p_opening_balance:prepared.openingBalance,p_closing_balance:prepared.closingBalance,p_lines:prepared.lines};
@@ -95,7 +102,7 @@ export async function bankReconciliationAction(authorization:string,action:strin
   payload={...input,p_opening_balance:opening,p_closing_balance:closing};
  }
  const result=await reconciliationRpc(authorization,names[action],payload,resource,permission);
- if(['import','auto','match','close'].includes(action))invalidateAccountingReportOptionsCache();
+ if(['import','auto','match','unmatch','close'].includes(action))invalidateAccountingReportOptionsCache();
  return result;
 }
 

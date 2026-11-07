@@ -187,6 +187,8 @@ jobs:
             scripts/bank-fee-api-security.test.mjs \
             scripts/bank-reconciliation-close-pdf-ui.test.mjs \
             scripts/bank-reconciliation-options-cache.test.mjs \
+            scripts/bank-reconciliation-unmatch-api.test.mjs \
+            scripts/bank-classic-unmatch-ui.test.mjs \
             scripts/bank-reconciliation-close-history-ui.test.mjs \
             scripts/bank-close-confirmation-switch-ui.test.mjs \
             scripts/bank-reconciliation-fee-mode-ui.test.mjs \
@@ -226,6 +228,7 @@ jobs:
             scripts/banking-shell-ui.test.mjs \
             scripts/operational-catalog-cache.test.mjs \
             scripts/reconciliation-sql-security.test.mjs \
+            scripts/classic-bank-unmatch-sql.test.mjs \
             scripts/up-approvers-public-errors.test.mjs \
             scripts/user-provisioning-public-errors.test.mjs \
             scripts/test-vat-declaration-report-http.mjs \

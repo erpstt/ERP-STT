@@ -13,6 +13,7 @@ export async function reconciliationRpc<T=unknown>(auth:string,name:string,input
  if(!r.ok){
   if(r.status===401)throw Object.assign(new Error('La sesión no es válida.'),{status:401});
   if(r.status===403||value?.code==='42501')throw Object.assign(new Error('No tiene permiso para operar esta conciliación o extracto.'),{status:403});
+  if(value?.code==='PBU01')throw Object.assign(new Error('El punteo cambió o ya no está disponible para deshacer. Actualice los movimientos y revise nuevamente.'),{status:409});
   const continuityErrors:Record<string,string>={
    PBC01:'El saldo inicial no coincide con el cierre del extracto anterior. Vuelva a validar el archivo.',
    PBC02:'El saldo final no coincide con el saldo inicial más los movimientos. Revise el extracto.',

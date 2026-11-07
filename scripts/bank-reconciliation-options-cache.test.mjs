@@ -12,6 +12,7 @@ const requests={
  import:{name:'import_bank_statement',input:{p_bank_account_id:17,p_statement_date:'2026-10-31',p_file_name:'synthetic.csv',p_opening_balance:100,p_closing_balance:105,p_lines:[{date:'2026-10-31',amount:5,reference:'SYN'}]},result:{imported:1}},
  auto:{name:'auto_match_bank_reconciliation',input:{p_bank_account_id:17,p_cutoff:'2026-10-31'},result:2},
  match:{name:'match_bank_transaction',input:{p_bank_tran_id:31,p_statement_line_id:41,p_cutoff:'2026-10-31'},result:true},
+ unmatch:{name:'unmatch_bank_reconciliation',input:{p_bank_account_id:17,p_cutoff:'2026-10-31',p_match_id:51},result:{success:true,matchId:51}},
  close:{name:'close_bank_reconciliation',input:{p_bank_account_id:17,p_cutoff:'2026-10-31'},result:{id:71,status:'CERRADA',date:'2026-10-31'}}
 };
 beforeEach(async()=>{
@@ -52,8 +53,8 @@ test('a successful close replaces hot ABIERTA history with CERRADA for two sessi
  assert.equal(stub.calls.filter(call=>call.path.endsWith('/close_bank_reconciliation')).length,1);
 });
 
-test('successful import, automatic and manual matching invalidate only after their protected RPC succeeds',async()=>{
- for(const action of['import','auto','match']){
+test('successful import, automatic and manual matching and unmatching invalidate only after their protected RPC succeeds',async()=>{
+ for(const action of['import','auto','match','unmatch']){
   invalidateAccountingReportOptionsCache();const stub=backend({action});await warm(stub);
   const input=structuredClone(requests[action].input);assert.deepEqual(await bankReconciliationAction(first,action,input),requests[action].result);assert.deepEqual(input,requests[action].input);
   for(const auth of sessions){assert.equal((await accountingReportOptions(auth)).bankOptions.revision,2);assert.equal(stub.reads.get(auth),2);}
