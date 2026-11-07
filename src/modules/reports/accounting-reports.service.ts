@@ -93,7 +93,9 @@ export async function bankReconciliationAction(authorization:string,action:strin
   if(!Number.isFinite(closing))throw Object.assign(new Error('El saldo final debe ser finito.'),{status:400});
   payload={...input,p_opening_balance:opening,p_closing_balance:closing};
  }
- return reconciliationRpc(authorization,names[action],payload,resource,permission);
+ const result=await reconciliationRpc(authorization,names[action],payload,resource,permission);
+ if(['import','auto','match','close'].includes(action))invalidateAccountingReportOptionsCache();
+ return result;
 }
 
 export async function renderBankReconciliationPdf(input:Record<string,unknown>){

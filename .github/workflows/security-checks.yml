@@ -186,6 +186,8 @@ jobs:
             scripts/bank-deposit-sql-security.test.mjs \
             scripts/bank-fee-api-security.test.mjs \
             scripts/bank-reconciliation-close-pdf-ui.test.mjs \
+            scripts/bank-reconciliation-options-cache.test.mjs \
+            scripts/bank-reconciliation-close-history-ui.test.mjs \
             scripts/bank-close-confirmation-switch-ui.test.mjs \
             scripts/bank-reconciliation-fee-mode-ui.test.mjs \
             scripts/bank-reconciliation-fees-browser.test.mjs \
