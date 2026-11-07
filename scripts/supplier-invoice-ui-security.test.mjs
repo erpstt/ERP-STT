@@ -13,7 +13,7 @@ test('pantalla limita permisos y distingue pendiente presupuestario de factura c
    await route.fulfill({json:fixture[path]??[]});
   });await page.goto(`http://127.0.0.1:${server.address().port}/supplier-invoice-entry.html${existing?'?id=1':''}`);
   if(scenario==='denied'){await page.locator('#error').filter({hasText:'No tiene permiso'}).waitFor();assert.equal(await page.locator('#save').isDisabled(),true);assert.deepEqual(calls,['/api/purchasing/supplier-invoice-access']);}
-  else if(scenario==='reader'){await page.locator('#invoiceNumber:disabled').waitFor();assert.equal(await page.locator('main>footer').isHidden(),true);assert.equal(saves,0);}
+  else if(scenario==='reader'){await page.locator('#invoiceLoadStatus').waitFor({state:'hidden'});await page.locator('#invoiceNumber:disabled').waitFor();assert.equal(await page.locator('main>footer').isHidden(),true);assert.equal(saves,0);}
   else{
    await page.locator('#lines tr').waitFor();if(!existing){await page.locator('#invoiceNumber').fill('SYN-NEW');await page.locator('#supplier').selectOption('1');await page.locator('.account-search').fill('631001');await page.locator('.account-search').dispatchEvent('change');await page.locator('[data-key="unit_price"]').fill('100');await page.locator('[data-key="unit_price"]').dispatchEvent('blur');assert.ok(!calls.includes('/api/purchasing/supplier-invoices'));assert.ok(!calls.includes('/api/purchasing/supplier-invoice-lines'));}
    await page.locator('#invoiceDate').fill('2026-10-31');await page.locator('#invoiceDate').dispatchEvent('change');assert.equal(await page.locator('#period').inputValue(),'1');await page.locator('#memo').fill('Synthetic UI change');await page.locator('#save').click();
