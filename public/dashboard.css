@@ -231,6 +231,20 @@ td{padding:15px 18px;border-top:1px solid #edf0f3;color:#344054;font-size:12px}
 .bank-statement-table-card .field-opening_balance,.bank-statement-table-card .field-closing_balance{min-width:145px;text-align:right}
 .bank-statement-account{color:#1f3b63;font-weight:650}
 .bank-statement-amount{display:inline-block;min-width:96px;color:#102d52;font:750 13px Manrope,DM Sans,sans-serif;font-variant-numeric:tabular-nums;text-align:right}
+.bank-statement-table-card .bank-statement-filters{display:flex;flex-wrap:wrap;align-items:end;gap:14px;padding:0 22px 18px;border-bottom:1px solid #e5ebf1}
+.bank-statement-table-card .bank-statement-filters label{display:grid;gap:6px;min-width:0;flex:1 1 220px;color:#52657d;font-size:11px;font-weight:700}
+.bank-statement-table-card .bank-statement-filters label:first-child{flex-grow:2}
+.bank-statement-table-card .bank-statement-filters select{width:100%;min-width:0;min-height:42px;border:1px solid #d3dee9;border-radius:8px;padding:8px 12px;background:#fff;color:#102d52;font:inherit;font-size:12px;font-weight:500}
+.bank-statement-table-card .bank-statement-filters button{min-height:44px;padding:8px 14px;border:1px solid #d3dee9;border-radius:8px;background:#fff;color:#102d52;font:inherit;font-size:12px;font-weight:500;white-space:nowrap;cursor:pointer}
+.bank-statement-table-card .bank-statement-filters button:disabled{border-color:#dde4ed;background:#f5f7fa;color:#8694a6;opacity:1;cursor:default}
+.bank-statement-table-card .bank-statement-account-group th{padding:15px 18px;background:#eef4fb;color:#163f70;font-size:13px;font-weight:800;text-align:left;white-space:normal;overflow-wrap:anywhere}
+.bank-statement-table-card .bank-statement-month-group th{padding:10px 18px;background:#f5faf8;color:#22634e;font-size:12px;font-weight:750;text-align:left;text-transform:capitalize}
+.bank-statement-table-card .bank-statement-month-group small{margin-left:14px;color:#64748b;font-size:11px;font-weight:500;text-transform:none}
+.bank-statement-table-card .bank-statement-continuity{display:grid;gap:4px;max-width:255px;margin-top:7px;color:#64748b;font-size:10px;font-weight:400;line-height:1.45;white-space:normal;text-align:right}
+.bank-statement-table-card .bank-statement-continuity strong{font-size:10px;font-weight:700}
+.bank-statement-table-card .bank-statement-continuity.is-review strong{color:#955208}
+.bank-statement-table-card .bank-statement-continuity.is-ok strong{color:#227154}
+@media(max-width:680px){.bank-statement-table-card .bank-statement-filters{gap:10px;padding:0 16px 16px}.bank-statement-table-card .bank-statement-filters label{flex-basis:100%}.bank-statement-table-card .table-tools{flex-wrap:wrap;gap:10px}.bank-statement-table-card .search-box{min-width:0;max-width:100%;flex:1 1 100%}.bank-statement-table-card .search-box input{width:100%;min-width:0}}
 
 @media(max-width:680px){.bank-statement-form-overview{grid-template-columns:auto 1fr}.bank-statement-company{grid-column:2;max-width:100%;justify-self:start}.bank-statement-form-grid{grid-template-columns:1fr}.bank-statement-modal form{padding-right:20px;padding-left:20px}.bank-statement-form-overview{margin-right:-20px;margin-left:-20px;padding-right:20px;padding-left:20px}}
 

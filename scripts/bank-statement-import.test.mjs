@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import ExcelJS from 'exceljs';
-import {parseBankStatementFile, resolveBankStatementBalances} from '../dist/modules/reports/bank-statement-import.js';
+import {parseBankStatementFile, resolveBankStatementBalances, calculateBankStatementClosing} from '../dist/modules/reports/bank-statement-import.js';
 
 const csv = text => parseBankStatementFile({fileName:'extracto.csv',text});
 
@@ -19,7 +19,8 @@ test('lee saldos en filas de cabecera sin exigir digitación y conserva saldo ce
 test('deriva el saldo inicial desde saldo final sin asumir cero',async()=>{
   const parsed=await csv('date,amount,closing_balance\n2026-11-02,100,0\n2026-11-03,-50,\n');
   assert.equal(parsed.openingBalance,-50);assert.equal(parsed.closingBalance,0);
-  assert.equal(resolveBankStatementBalances(parsed,999).openingBalance,-50);
+  assert.equal(resolveBankStatementBalances(parsed).openingBalance,-50);
+  assert.throws(()=>resolveBankStatementBalances(parsed,999,'2026-10-31'),/Esperado: 1049.00/);
 });
 
 test('infiere ambos saldos desde saldos acumulados en orden ascendente',async()=>{
@@ -50,7 +51,7 @@ test('sin saldos devuelve null y solo usa un cierre anterior explícito, incluid
   assert.equal(parsed.openingBalance,null);assert.equal(parsed.closingBalance,null);assert.equal(parsed.balanceSource,null);
   assert.throws(()=>resolveBankStatementBalances(parsed),/no incluye saldos/);
   const resolved=resolveBankStatementBalances(parsed,0);
-  assert.equal(resolved.openingBalance,0);assert.equal(resolved.closingBalance,-15);assert.equal(resolved.balanceSource,'PREVIOUS_RECONCILIATION');
+  assert.equal(resolved.openingBalance,0);assert.equal(resolved.closingBalance,-15);assert.equal(resolved.balanceSource,'PREVIOUS_STATEMENT');
   assert.equal(parsed.openingBalance,null);
 });
 
@@ -102,4 +103,57 @@ test('rechaza formato, codificación y tamaño inválidos',async()=>{
   await assert.rejects(parseBankStatementFile({fileName:'extracto.csv',base64:'%%%='}),/codificación/);
   await assert.rejects(parseBankStatementFile({fileName:'extracto.csv',text:'x'.repeat(5*1024*1024+1)}),/5 MB/);
   await assert.rejects(parseBankStatementFile({fileName:'extracto.xlsx',base64:Buffer.from('invalid excel').toString('base64')}),/Excel no se pudo leer/);
+});
+
+test('el antecedente gobierna la continuidad y conserva la evidencia bancaria separada',async()=>{
+  const matching=await csv('fecha,monto,saldo_inicial,saldo_final\n2026-10-31,-20869.99,20895.66,25.67\n');
+  const result=resolveBankStatementBalances(matching,20895.66,'2026-09-30');
+  assert.equal(result.openingBalance,20895.66);assert.equal(result.closingBalance,25.67);
+  assert.equal(result.openingBalanceSource,'PREVIOUS_STATEMENT');assert.equal(result.balanceSource,'FILE_BALANCES');
+  assert.equal(result.fileOpeningBalance,20895.66);assert.equal(result.fileClosingBalance,25.67);
+  const wrongOpening=await csv('fecha,monto,saldo_inicial,saldo_final\n2026-10-31,-20869.99,20893.66,23.67\n');
+  assert.throws(()=>resolveBankStatementBalances(wrongOpening,20895.66,'2026-09-30'),/saldo inicial.*2026-09-30.*Esperado: 20895.66.*diferencia: -2.000000/);
+});
+
+test('un running balance no puede ocultar dos dólares faltantes y conserva la primera comisión',async()=>{
+  const missing=await csv('fecha,monto,saldo\n2026-10-31,-20869.99,23.67\n');
+  assert.equal(missing.openingBalance,20893.66);assert.equal(missing.fileOpeningBalance,null);
+  assert.throws(()=>resolveBankStatementBalances(missing,20895.66,'2026-09-30'),/saldo final.*Esperado: 25.67.*diferencia: -2.000000/);
+  for(const rows of[
+    '2026-10-01,-2,20893.66\n2026-10-31,-20869.99,23.67\n',
+    '2026-10-31,-20869.99,23.67\n2026-10-01,-2,20893.66\n'
+  ]){
+    const parsed=await csv('fecha,monto,saldo\n'+rows),result=resolveBankStatementBalances(parsed,20895.66,'2026-09-30');
+    assert.equal(result.lines.length,2);assert.equal(result.openingBalance,20895.66);assert.equal(result.closingBalance,23.67);
+    assert.equal(result.lines.filter(line=>line.amount===-2).length,1);
+  }
+});
+
+test('suma round6 por línea y redondea cierre decimal a dos con empates alejados de cero',async()=>{
+  for(const [text,expected]of[
+    ['1.005',1.01],['-1.005',-1.01],['2.675',2.68],['-2.675',-2.68]
+  ]){
+    const parsed=await csv(`fecha,monto\n2026-10-01,${text}\n`),result=resolveBankStatementBalances(parsed,0);
+    assert.equal(result.closingBalance,expected);
+    assert.equal(calculateBankStatementClosing(0,[{amount:Number(text)}]),expected);
+  }
+  const roundedLines=await csv('fecha,monto,saldo_inicial\n2026-10-01,0.0049996,0\n2026-10-02,0.0000006,\n');
+  assert.deepEqual(roundedLines.lines.map(line=>line.amount),[0.005,0.000001]);
+  assert.equal(resolveBankStatementBalances(roundedLines).closingBalance,0.01);
+  const closingOnly=await csv('fecha,monto,saldo_final\n2026-10-01,1.005,1.01\n');
+  assert.equal(closingOnly.fileOpeningBalance,null);
+  assert.equal(resolveBankStatementBalances(closingOnly,0).openingBalance,0);
+  assert.equal(resolveBankStatementBalances(closingOnly,0).closingBalance,1.01);
+  const exponent=await csv('fecha,monto\n2026-10-01,0.0000006\n');
+  assert.equal(exponent.lines[0].amount,0.000001);
+});
+
+test('no acepta una diferencia exacta de medio centavo ni importes sin precisión segura',async()=>{
+  const parsed=await csv('fecha,monto,saldo_inicial,saldo_final\n2026-10-01,1,0.005,1.01\n');
+  assert.throws(()=>resolveBankStatementBalances(parsed,0,'2026-09-30'),/saldo inicial.*diferencia: 0.005000/);
+  await assert.rejects(csv('fecha,monto,saldo_inicial\n2026-10-01,90071992547410,0\n'),/precisión segura/);
+  await assert.rejects(csv('fecha,monto\n2026-10-01,0.0000004\n'),/diferente de cero/);
+  assert.throws(()=>resolveBankStatementBalances({lines:[{date:'2026-10-01',amount:1e20}],openingBalance:0,closingBalance:null,balanceSource:null}),/precisión segura/);
+  const cent=await csv('fecha,monto\n2026-10-01,0.01\n');
+  assert.throws(()=>resolveBankStatementBalances(cent,90071992547409.9),/precisión segura/);
 });

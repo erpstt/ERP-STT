@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="/login-refresh.css">
   <link rel="stylesheet" href="/login-position.css">
   <link rel="stylesheet" href="/password-recovery.css?v=20261026">
-  <link rel="stylesheet" href="/dashboard.css?v=20261102-entity-bank-sections">
+  <link rel="stylesheet" href="/dashboard.css?v=20261107-bank-statement-list">
   <link rel="stylesheet" href="/modal-scroll.css?v=20260911-entity-fullscreen">
   <link rel="stylesheet" href="/company-selection.css">
   <link rel="stylesheet" href="/subsidiary-branding.css?v=20260814">
@@ -432,9 +432,14 @@
             <div v-if="!activeCatalog.auditRawRestricted" class="table-tools">
 <div class="search-box">
 <span>⌕</span>
-<input v-model="search" :placeholder="activeCatalog?.slug==='exchange-rates'?'Buscar moneda destino o fecha efectiva':'Buscar en el catálogo'" aria-label="Buscar registros">
+<input v-model="search" :placeholder="bankStatementCatalog?'Buscar fecha, cuenta o banco':activeCatalog?.slug==='exchange-rates'?'Buscar moneda destino o fecha efectiva':'Buscar en el catálogo'" aria-label="Buscar registros">
 </div>
 <span class="record-count">{{ filteredRows.length }} {{ filteredRows.length === 1 ? 'registro' : 'registros' }}</span>
+</div>
+<div v-if="bankStatementCatalog" class="bank-statement-filters" role="group" aria-label="Filtros de extractos bancarios">
+<label><span>Cuenta bancaria</span><select v-model="bankStatementFilters.account" :disabled="tableLoading" aria-label="Filtrar extractos por cuenta"><option value="">Todas las cuentas</option><option v-for="option in bankStatementAccountOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
+<label><span>Mes</span><select v-model="bankStatementFilters.month" :disabled="tableLoading" aria-label="Filtrar extractos por mes"><option value="">Todos los meses</option><option v-for="option in bankStatementMonthOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
+<button type="button" class="button-link" :disabled="!search&&!bankStatementFilters.account&&!bankStatementFilters.month" @click="search='';bankStatementFilters={account:'',month:''}">Limpiar filtros</button>
 </div>
 <p v-if="tableNotice" class="table-message form-success" role="status">{{ tableNotice }}</p>
 <p v-if="activeCatalog.auditRawRestricted&&canOpenAuditReport()" class="table-message"><button id="openScopedAuditReport" type="button" class="button-link" @click="navigateChild('Auditoría','Transacciones modificadas y eliminadas')">Abrir informe de transacciones modificadas y eliminadas</button></p>
@@ -457,13 +462,18 @@
 </tr>
 </thead>
 <tbody>
-<tr v-for="row in filteredRows" :key="row[activeCatalog.primaryKey]">
+<template v-for="group in catalogRowGroups" :key="group.key">
+<tr v-if="bankStatementCatalog&&group.label" class="bank-statement-account-group"><th :colspan="tableFields.length+2">{{ group.label }}</th></tr>
+<template v-for="month in group.months" :key="month.key">
+<tr v-if="bankStatementCatalog&&month.label" class="bank-statement-month-group"><th :colspan="tableFields.length+2"><span>{{ month.label }}</span><small>{{ month.rows.length }} {{ month.rows.length===1?'extracto':'extractos' }}</small></th></tr>
+<tr v-for="row in month.rows" :key="row[activeCatalog.primaryKey]" :data-record-id="bankStatementCatalog?row[activeCatalog.primaryKey]:null">
 <td>
 <span class="id-cell">#{{ row[activeCatalog.primaryKey] }}</span>
 </td>
 <td v-for="field in tableFields" :key="field.key" :class="'field-'+field.key" data-i18n-ignore>
 <strong v-if="field.key === 'name'" class="country-name">{{ displayValue(field,row[field.key]) }}</strong>
 <span v-else :class="{'bank-statement-amount':activeCatalog.slug==='bank-statements' &amp;&amp; field.numberFormat==='money','bank-statement-account':activeCatalog.slug==='bank-statements' &amp;&amp; field.key==='bank_account_id'}">{{ displayValue(field,row[field.key]) }}</span>
+<small v-if="bankStatementCatalog&&field.key==='opening_balance'" class="bank-statement-continuity" :class="'is-'+bankStatementContinuityFor(row).status"><strong>{{ bankStatementContinuityFor(row).label }}</strong><span>{{ bankStatementContinuityFor(row).detail }}</span></small>
 </td>
 <td class="row-actions">
 <button v-if="activeCatalog.slug==='journals'" class="icon-action" title="Ver comprobante" aria-label="Ver asiento" @click="viewJournal(row)">
@@ -503,6 +513,8 @@
 </button>
 </td>
 </tr>
+</template>
+</template>
 <tr v-if="!filteredRows.length">
 <td :colspan="tableFields.length + 2" class="empty-row">No se encontraron registros.</td>
 </tr>
@@ -720,7 +732,7 @@
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
 <script type="module" src="/i18n.js?v=20261107-auto-template-rates"></script>
-<script type="module" src="/app.js?v=20261105-banking-functional">
+<script type="module" src="/app.js?v=20261107-bank-statement-list">
 </script>
 <script src="/approval-notifications.js?v=20261101-c04-approval-inbox"></script></body>
 </html>

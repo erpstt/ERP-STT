@@ -13,6 +13,13 @@ export async function reconciliationRpc<T=unknown>(auth:string,name:string,input
  if(!r.ok){
   if(r.status===401)throw Object.assign(new Error('La sesión no es válida.'),{status:401});
   if(r.status===403||value?.code==='42501')throw Object.assign(new Error('No tiene permiso para operar esta conciliación o extracto.'),{status:403});
+  const continuityErrors:Record<string,string>={
+   PBC01:'El saldo inicial no coincide con el cierre del extracto anterior. Vuelva a validar el archivo.',
+   PBC02:'El saldo final no coincide con el saldo inicial más los movimientos. Revise el extracto.',
+   PBC03:'El extracto debe contener movimientos del mes seleccionado y hasta su fecha de corte.',
+   PBC04:'El cambio interrumpe la continuidad de un extracto posterior. Revise los períodos relacionados.'
+  };
+  if(typeof value?.code==='string'&&Object.hasOwn(continuityErrors,value.code))throw Object.assign(new Error(continuityErrors[value.code]),{status:value.code==='PBC04'?409:422});
   throw Object.assign(new Error(value?.code==='55000'?'La conciliación o el extracto está protegido por su estado o punteos existentes.':'Revise los datos de la conciliación o extracto.'),{status:value?.code==='55000'?409:422});
  }
  return value as T;

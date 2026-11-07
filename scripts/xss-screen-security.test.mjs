@@ -1,4 +1,5 @@
 import assert from'node:assert/strict';import{test}from'node:test';import{createServer}from'node:http';import{readFile}from'node:fs/promises';import{resolve,sep,extname}from'node:path';import{chromium}from'@playwright/test';import{salesContext,syntheticInvoice}from'./fixtures/sales-invoice-ui-context.mjs';
+import{buildSupplierInvoiceFormOptions}from'./lib/supplier-invoice-form-options-fixture.mjs';
 const attack='"><img src=x onerror="window.__xss=true;localStorage.setItem(\'nexo_token\',\'stolen\')"> & <b>texto</b>',attr='" autofocus onfocus="window.__xss=true';
 const poison=value=>{if(Array.isArray(value))return value.map(poison);if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([k,v])=>[k,['name','company_name','account_name','code_name','period_name','term_name','type_name','first_name','last_name','display_name'].includes(k)&&typeof v==='string'?attack:poison(v)]));return value;};
 const supports=[{support_id:1,journal_id:10,support_type:'Enlace',display_name:attack,support_url:'javascript:window.__xss=true'},{support_id:2,journal_id:10,support_type:'Archivo',display_name:attack,file_name:attack,file_data:'data:text/html;base64,PHNjcmlwdD4='},{support_id:3,journal_id:10,support_type:'Archivo',display_name:attack,file_name:'test.pdf',file_data:'data:application/pdf;base64,JVBERi0xLjQK'}];
@@ -16,6 +17,7 @@ const context=await browser.newContext();st.after(()=>context.close());await con
 await context.route('**/*',route=>new URL(route.request().url()).origin===new URL(base).origin?route.continue():route.abort());await context.route('**/api/**',async route=>{const path=new URL(route.request().url()).pathname;let json=fixture[path]??[];
 if(path==='/api/health'||path==='/api/audit/record-actor')json={};
 else if(path==='/api/purchasing/supplier-invoice-access'||path.startsWith('/api/purchasing/supplier-note-access/')||path==='/api/purchasing/supplier-payments/access')json={canView:true,canCreate:true,canEdit:true,canDelete:false};
+else if(path==='/api/purchasing/supplier-invoice-form-options')json=buildSupplierInvoiceFormOptions({...fixture,'/api/purchasing/supplier-invoices':[invoice],'/api/purchasing/supplier-invoice-lines':[line]},{subsidiaryId:1,invoiceId:1});
 else if(path==='/api/purchasing/supplier-invoices')json=[invoice];
 else if(path==='/api/purchasing/supplier-invoice-lines')json=[line];
 else if(path==='/api/accounting/journal-lines')json=[{...line,journal_id:1}];

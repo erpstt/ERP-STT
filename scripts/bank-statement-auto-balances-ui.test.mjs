@@ -79,6 +79,33 @@ async function cleared(page){
   await expect(page.locator('#statementClosing')).toHaveValue('');
 }
 
+test('identifica el cierre del extracto anterior como origen y admite saldo inicial cero',{timeout:30000},async()=>{
+ const app=await fixture();
+ try{
+  app.controls.preview=route=>route.fulfill({json:{result:{...parsed,openingBalance:0,closingBalance:774.5,openingBalanceSource:'PREVIOUS_STATEMENT',previousDate:'2026-09-30',previousStatement:{id:10,date:'2026-09-30',closingBalance:0}}}});
+  await app.page.locator('#statementFile').setInputFiles(file());
+  await populated(app.page,0,774.5);
+  await expect(app.page.locator('#statementFileStatus')).toContainText('cierre del extracto anterior (2026-09-30)');
+  await expect(app.page.locator('#statementFileStatus')).toContainText('saldo final calculado con los movimientos');
+  await expect(app.page.locator('#importStatement')).toBeEnabled();
+  assert.equal(app.imports.length,0);
+ }finally{await app.close();}
+});
+
+test('una diferencia de continuidad muestra la revisión necesaria y no permite importar',{timeout:30000},async()=>{
+ const app=await fixture();
+ try{
+  app.controls.preview=route=>route.fulfill({status:400,json:{error:{message:'El saldo final del archivo no coincide con la continuidad del extracto anterior (2026-09-30). Esperado: 25.67; archivo: 23.670000; diferencia: -2.000000. Revise los movimientos y saldos del archivo antes de importarlo.'}}});
+  await app.page.locator('#statementFile').setInputFiles(file());
+  await expect(app.page.locator('#statementFileStatus')).toHaveClass(/error/);
+  await expect(app.page.locator('#statementFileStatus')).toContainText('Esperado: 25.67');
+  await expect(app.page.locator('#statementFileStatus')).toContainText('archivo: 23.670000');
+  await expect(app.page.locator('#statementFileStatus')).toContainText('diferencia: -2.000000');
+  await cleared(app.page);await expect(app.page.locator('#importStatement')).toBeDisabled();
+  assert.equal(app.imports.length,0);
+ }finally{await app.close();}
+});
+
 test('completa ambos saldos desde la vista previa y usa esos valores al importar CSV y Excel',{timeout:30000},async()=>{
   const app=await fixture();
   try{

@@ -135,7 +135,7 @@ test('facturas de venta y saldos bancarios revalidan cada lectura; los demás ca
     invoice: 2,
     supplier_invoice: 1,
     bank_account: 2,
-    bank_statement: 1,
+    bank_statement: 2,
     asset: 1,
     asset_category: 1,
   });

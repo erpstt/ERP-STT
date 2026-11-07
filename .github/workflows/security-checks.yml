@@ -203,6 +203,9 @@ jobs:
             scripts/bank-statement-auto-balances-ui.test.mjs \
             scripts/bank-statement-import.test.mjs \
             scripts/bank-statement-preview.test.mjs \
+            scripts/bank-statement-continuity-api.test.mjs \
+            scripts/bank-statement-continuity-sql.test.mjs \
+            scripts/bank-statement-grouped-list-ui.test.mjs \
             scripts/bank-statement-professional-format-ui.test.mjs \
             scripts/bank-transfer-api-security.test.mjs \
             scripts/bank-transfer-sql-security.test.mjs \

@@ -13,6 +13,9 @@ export type ParsedBankStatement = {
   closingBalance: number | null;
   balanceSource: string | null;
   balanceDate?: string;
+  fileOpeningBalance?: number | null;
+  fileClosingBalance?: number | null;
+  openingBalanceSource?: string;
 };
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -55,38 +58,79 @@ function date(value: unknown) {
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === text ? text : '';
 }
 
-function rounded(value: number) {
+// Match NUMERIC(...,6) and PostgreSQL round(): decimal ties go away from zero.
+function micros(value: number): bigint {
   if (!Number.isFinite(value)) invalid('Los saldos del extracto deben ser numéricos y finitos.');
-  return Number(value.toFixed(6));
+  if (Math.abs(value) > Number.MAX_SAFE_INTEGER / 100) invalid('El importe del extracto supera la precisión segura en centavos.');
+  const negative = value < 0, [coefficient, exponent = '0'] = Math.abs(value).toString().toLowerCase().split('e');
+  const [integer, fraction = ''] = coefficient.split('.');
+  const digits = BigInt(integer + fraction), shift = 6 + Number(exponent) - fraction.length;
+  let units: bigint;
+  if (shift >= 0) units = digits * 10n ** BigInt(shift);
+  else {
+    const divisor = 10n ** BigInt(-shift);
+    units = digits / divisor + (digits % divisor * 2n >= divisor ? 1n : 0n);
+  }
+  return negative ? -units : units;
 }
 
-function agree(left: number, right: number) {
-  return Math.abs(left - right) < .005;
+function decimal(units: bigint) {
+  if (absolute(units) > BigInt(Number.MAX_SAFE_INTEGER) * 10_000n) invalid('El importe del extracto supera la precisión segura en centavos.');
+  const digits = absolute(units).toString().padStart(7, '0');
+  const value = Number(`${units < 0n ? '-' : ''}${digits.slice(0, -6)}.${digits.slice(-6)}`);
+  if (units % 10_000n === 0n && micros(value) !== units) invalid('El importe del extracto supera la precisión segura en centavos.');
+  return value;
 }
 
-function movementNet(lines: BankStatementLine[]) {
-  return rounded(lines.reduce((sum, line) => sum + line.amount, 0));
+function cents(units: bigint) {
+  const absolute = units < 0n ? -units : units;
+  const rounded = (absolute + 5_000n) / 10_000n * 10_000n;
+  return units < 0n ? -rounded : rounded;
+}
+
+function rounded(value: number) { return decimal(micros(value)); }
+function absolute(value: bigint) { return value < 0n ? -value : value; }
+function agree(left: number, right: number) { return absolute(micros(left) - micros(right)) < 5_000n; }
+function movementNet(lines: BankStatementLine[]) { return lines.reduce((sum, line) => sum + micros(line.amount), 0n); }
+
+export function calculateBankStatementClosing(opening: number, lines: Array<{amount: number}>): number {
+  return decimal(cents(micros(opening) + lines.reduce((sum, line) => sum + micros(line.amount), 0n)));
 }
 
 function finishBalances(parsed: ParsedBankStatement): ParsedBankStatement {
   const net = movementNet(parsed.lines);
+  const fileOpeningBalance = parsed.fileOpeningBalance === undefined ? parsed.openingBalance : parsed.fileOpeningBalance;
+  const fileClosingBalance = parsed.fileClosingBalance === undefined ? parsed.closingBalance : parsed.fileClosingBalance;
   let {openingBalance: opening, closingBalance: closing} = parsed;
   if (opening !== null) opening = rounded(opening);
   if (closing !== null) closing = rounded(closing);
-  if (opening !== null && closing !== null && !agree(opening + net, closing)) {
+  if (opening !== null && closing !== null && !agree(decimal(cents(micros(opening) + net)), closing)) {
     invalid('Los saldos del archivo no coinciden con la suma de sus movimientos. Revise el extracto.');
   }
-  if (opening !== null && closing === null) closing = rounded(opening + net);
-  if (closing !== null && opening === null) opening = rounded(closing - net);
-  return {...parsed, openingBalance: opening, closingBalance: closing};
+  if (opening !== null && closing === null) closing = decimal(cents(micros(opening) + net));
+  if (closing !== null && opening === null) opening = decimal(micros(closing) - net);
+  return {...parsed, fileOpeningBalance, fileClosingBalance, openingBalance: opening, closingBalance: closing};
 }
 
-export function resolveBankStatementBalances(parsed: ParsedBankStatement, previousClosing?: number | null): ParsedBankStatement {
-  if (parsed.openingBalance !== null || parsed.closingBalance !== null) return finishBalances(parsed);
-  if (previousClosing !== null && previousClosing !== undefined && Number.isFinite(previousClosing)) {
-    return finishBalances({...parsed, openingBalance: previousClosing, balanceSource: 'PREVIOUS_RECONCILIATION'});
+export function resolveBankStatementBalances(parsed: ParsedBankStatement, previousClosing?: number | null, previousDate?: string): ParsedBankStatement {
+  const finished = finishBalances(parsed), net = movementNet(finished.lines);
+  if (previousClosing !== null && previousClosing !== undefined) {
+    const opening = micros(previousClosing), closing = cents(opening + net);
+    for (const [label, observed, expected] of [
+      ['inicial', finished.fileOpeningBalance, opening],
+      ['final', finished.fileClosingBalance, closing]
+    ] as const) {
+      if (observed !== null && observed !== undefined && absolute(micros(observed) - expected) >= 5_000n) {
+        const difference = decimal(micros(observed) - expected);
+        invalid(`El saldo ${label} del archivo no coincide con la continuidad del extracto anterior${previousDate ? ` (${previousDate})` : ''}. Esperado: ${decimal(expected).toFixed(2)}; archivo: ${observed.toFixed(6)}; diferencia: ${difference.toFixed(6)}. Revise los movimientos y saldos del archivo antes de importarlo.`);
+      }
+    }
+    return {...finished, openingBalance: decimal(opening), closingBalance: decimal(closing), openingBalanceSource: 'PREVIOUS_STATEMENT', balanceSource: finished.balanceSource ?? 'PREVIOUS_STATEMENT'};
   }
-  return invalid('El archivo no incluye saldos y no existe un cierre conciliado del período anterior. Cargue un extracto con saldo inicial, saldo final o saldo acumulado.');
+  if (finished.openingBalance !== null) {
+    return {...finished, closingBalance: decimal(cents(micros(finished.openingBalance) + net)), openingBalanceSource: finished.fileOpeningBalance !== null ? 'FILE_BALANCES' : 'DERIVED_FROM_FILE_BALANCE'};
+  }
+  return invalid('El archivo no incluye saldos y no existe un extracto bancario del mes anterior. Cargue un extracto con saldo inicial, saldo final o saldo acumulado.');
 }
 
 function delimitedRows(text: string, separator: string) {
@@ -135,16 +179,16 @@ function runningBalances(lines: BankStatementLine[], balances: Array<number | nu
   const indices = lines.map((_, index) => index);
   for (const order of [indices, [...indices].reverse()]) {
     if (order.some((index, position) => position > 0 && lines[index].date < lines[order[position - 1]].date)) continue;
-    let total = 0, opening: number | null = null, valid = true;
+    let total = 0n, opening: number | null = null, valid = true;
     for (const index of order) {
-      total += lines[index].amount;
+      total += micros(lines[index].amount);
       if (balances[index] !== null) {
-        const candidate = rounded(balances[index]! - total);
+        const candidate = decimal(micros(balances[index]!) - total);
         if (opening !== null && !agree(opening, candidate)) { valid = false; break; }
         opening = candidate;
       }
     }
-    if (valid && opening !== null) return {opening, closing: rounded(opening + movementNet(lines))};
+    if (valid && opening !== null) return {opening, closing: decimal(micros(opening) + movementNet(lines))};
   }
   return invalid('Los saldos acumulados no coinciden con el orden y los importes de los movimientos del extracto.');
 }
@@ -174,11 +218,11 @@ function parseMatrix(rows: unknown[][]): ParsedBankStatement {
       && (openingIndex >= 0 || closingIndex >= 0)) continue;
     const movementDate = date(row[dateIndex]), movementAmount = amount(row[amountIndex]);
     if (!movementDate) invalid(`Fila ${rowIndex + 1}: la fecha debe usar AAAA-MM-DD o DD/MM/AAAA y ser válida.`);
-    if (movementAmount === null || movementAmount === 0) invalid(`Fila ${rowIndex + 1}: el monto debe ser numérico y diferente de cero.`);
+    if (movementAmount === null || rounded(movementAmount) === 0) invalid(`Fila ${rowIndex + 1}: el monto debe ser numérico y diferente de cero.`);
     const valueDate = valueIndex >= 0 && String(row[valueIndex] ?? '').trim() ? date(row[valueIndex]) : '';
     if (valueIndex >= 0 && String(row[valueIndex] ?? '').trim() && !valueDate) invalid(`Fila ${rowIndex + 1}: la fecha de valor no es válida.`);
     const text = (column: number) => column >= 0 ? String(row[column] ?? '') : '';
-    lines.push({date: movementDate, valueDate, reference: text(referenceIndex), description: text(descriptionIndex), beneficiary: text(beneficiaryIndex), amount: movementAmount});
+    lines.push({date: movementDate, valueDate, reference: text(referenceIndex), description: text(descriptionIndex), beneficiary: text(beneficiaryIndex), amount: rounded(movementAmount)});
     const running = runningIndex >= 0 ? row[runningIndex] : null;
     if (running !== null && running !== undefined && String(running).trim() !== '' && amount(running) === null) invalid(`Fila ${rowIndex + 1}: el saldo acumulado no es válido.`);
     balances.push(amount(running));
@@ -190,7 +234,7 @@ function parseMatrix(rows: unknown[][]): ParsedBankStatement {
       invalid('Los saldos inicial y final no coinciden con los saldos acumulados del archivo.');
     }
     const explicit = opening !== null || closing !== null;
-    return finishBalances({lines, openingBalance: opening ?? running.opening, closingBalance: closing ?? running.closing, balanceSource: explicit ? 'FILE_BALANCES' : 'RUNNING_BALANCES'});
+    return finishBalances({lines, openingBalance: opening ?? running.opening, closingBalance: closing ?? running.closing, fileOpeningBalance: opening, fileClosingBalance: closing ?? running.closing, balanceSource: explicit ? 'FILE_BALANCES' : 'RUNNING_BALANCES'});
   }
   return finishBalances({lines, openingBalance: opening, closingBalance: closing, balanceSource: opening !== null || closing !== null ? 'FILE_BALANCES' : null});
 }
@@ -211,8 +255,8 @@ function parseOfx(text: string): ParsedBankStatement {
   if (transactions.length !== (text.match(/<STMTTRN>/gi) ?? []).length) invalid('El archivo OFX contiene movimientos incompletos.');
   const lines = transactions.map(([, item], index) => {
     const movementDate = ofxDate(ofxValue(item, 'DTPOSTED')), movementAmount = amount(ofxValue(item, 'TRNAMT'));
-    if (!movementDate || movementAmount === null || movementAmount === 0) invalid(`Movimiento ${index + 1}: fecha o monto del extracto OFX no válido.`);
-    return {date: movementDate, valueDate: '', reference: ofxValue(item, 'FITID') || ofxValue(item, 'CHECKNUM'), description: ofxValue(item, 'MEMO'), beneficiary: ofxValue(item, 'NAME'), amount: movementAmount};
+    if (!movementDate || movementAmount === null || rounded(movementAmount) === 0) invalid(`Movimiento ${index + 1}: fecha o monto del extracto OFX no válido.`);
+    return {date: movementDate, valueDate: '', reference: ofxValue(item, 'FITID') || ofxValue(item, 'CHECKNUM'), description: ofxValue(item, 'MEMO'), beneficiary: ofxValue(item, 'NAME'), amount: rounded(movementAmount)};
   });
   if (!lines.length) invalid('El archivo no contiene movimientos reconocibles.');
   const ledger = text.match(/<LEDGERBAL>([\s\S]*?)<\/LEDGERBAL>/i)?.[1];

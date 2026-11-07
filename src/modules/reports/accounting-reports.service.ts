@@ -1,5 +1,6 @@
 import {requireReportAccess,fetchReportSupabase} from './report-access.service.js';
 import {previewBankStatement} from './bank-statement-preview.service.js';
+import {calculateBankStatementClosing} from './bank-statement-import.js';
 import{pendingInvoiceRpc,assertPendingSource,assertPendingInvoiceAccess}from'./pending-invoice-security.service.js';
 import {reconciliationRpc,requireReconciliationAccess} from '../banking-catalogs/bank-reconciliation-security.service.js';
 import { getSupabaseConfig } from '../../core/database/supabase.client.js';
@@ -89,7 +90,7 @@ export async function bankReconciliationAction(authorization:string,action:strin
  }else if(action==='import'){
   const lines=Array.isArray(input.p_lines)?input.p_lines as Record<string,unknown>[]:[],openingValue=input.p_opening_balance,opening=Number(openingValue);
   if(openingValue===null||openingValue===undefined||String(openingValue).trim()===''||!Number.isFinite(opening))throw Object.assign(new Error('El extracto debe incluir un saldo inicial válido.'),{status:400});
-  const closingValue=input.p_closing_balance,closing=closingValue===null||closingValue===undefined||closingValue===''?Math.round((opening+lines.reduce((sum,line)=>sum+Number(line.amount||0),0))*100)/100:Number(closingValue);
+  const closingValue=input.p_closing_balance,closing=closingValue===null||closingValue===undefined||closingValue===''?calculateBankStatementClosing(opening,lines.map(line=>({amount:Number(line.amount)}))):Number(closingValue);
   if(!Number.isFinite(closing))throw Object.assign(new Error('El saldo final debe ser finito.'),{status:400});
   payload={...input,p_opening_balance:opening,p_closing_balance:closing};
  }
