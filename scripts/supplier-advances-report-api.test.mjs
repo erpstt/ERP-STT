@@ -10,7 +10,7 @@ import {primeRoleAccessCache,invalidateRoleAccessCaches} from '../dist/modules/s
 const auth='Bearer synthetic-supplier-advances',origin='https://supplier-advances.example.invalid',key='synthetic-public';
 const original={fetch:globalThis.fetch,url:process.env.SUPABASE_URL,key:process.env.SUPABASE_ANON_KEY};
 const base={subsidiaryIds:[1],dateTo:'2026-10-31'},defaults={...base,bookId:null,supplierId:null,currencyId:null,onlyNonzero:true,page:1,pageSize:50};
-const report={rows:[{rowId:42,debitOriginal:100,creditOriginal:0,debitLocal:16000,creditLocal:0,currencyCode:'USD'}],total:1,page:1,pageSize:50,currencyTotals:[{currencyCode:'USD',balanceOriginal:100,balanceLocal:16000}],supplierTotals:[],summary:{controlBalanceLocal:16000},account:{number:'115004'},localCurrency:{id:1,code:'JMD'}};
+const report={reportMode:'UNAPPLIED_ADVANCES',rows:[{rowId:'JL:42:BOOK:1',sourceKey:'JL:42:BOOK:1',sourceLineId:42,advanceOriginal:100,appliedOriginal:30,pendingOriginal:70,advanceLocal:16000,appliedLocal:4800,pendingLocal:11200,currencyCode:'USD'}],total:1,page:1,pageSize:50,currencyTotals:[],supplierTotals:[],summary:{pendingLocal:11200},account:{number:'115004'},localCurrency:{id:1,code:'JMD'}};
 let calls;
 beforeEach(async()=>{
  process.env.SUPABASE_URL=origin;process.env.SUPABASE_ANON_KEY=key;calls=[];invalidateRoleAccessCaches();
@@ -26,10 +26,10 @@ test('supplier advances use their own guarded read RPC with one company, cutoff 
  assert.equal(isFinancialReportRoute('POST','/api/reports/accounting/supplier-advances'),true);assert.equal(isFinancialReportRoute('GET','/api/reports/accounting/supplier-advances'),false);
 });
 
-test('book, supplier, original currency, signed-balance selection and complete export pagination normalize without altering data',async()=>{
+test('book, supplier, currency and export pages normalize while legacy flags cannot include fully applied advances',async()=>{
  for(const onlyNonzero of[true,false]){
   const input={subsidiaryIds:['1'],dateTo:'2026-10-31',bookId:'2',supplierId:'3',currencyId:'4',onlyNonzero,page:2,pageSize:250},before=structuredClone(input);
-  assert.deepEqual(await runSupplierAdvancesReport(auth,input),report);assert.deepEqual(input,before);assert.deepEqual(JSON.parse(calls.at(-1).init.body),{p_filters:{...input,subsidiaryIds:[1],bookId:2,supplierId:3,currencyId:4}});
+  assert.deepEqual(await runSupplierAdvancesReport(auth,input),report);assert.deepEqual(input,before);assert.deepEqual(JSON.parse(calls.at(-1).init.body),{p_filters:{...input,subsidiaryIds:[1],bookId:2,supplierId:3,currencyId:4,onlyNonzero:true}});
  }
  await runSupplierAdvancesReport(auth,{...base,bookId:'',supplierId:null,currencyId:null});assert.deepEqual(JSON.parse(calls.at(-1).init.body),{p_filters:defaults});
 });
@@ -56,6 +56,7 @@ test('provider permission, validation and malformed-response failures expose onl
   await assert.rejects(runSupplierAdvancesReport(auth,base),error=>error.status===status&&!/PRIVATE|XX000|42501/.test(error.message));
  }
  for(const payload of['not JSON','null','[]']){globalThis.fetch=async()=>new Response(payload,{status:200});await assert.rejects(runSupplierAdvancesReport(auth,base),error=>error.status===502&&!error.message.includes(payload));}
+ for(const mode of[undefined,'LEDGER']){globalThis.fetch=async()=>Response.json({...report,reportMode:mode});await assert.rejects(runSupplierAdvancesReport(auth,base),error=>error.status===502);}
 });
 
 test('the real accounting HTTP route enforces view rights and forwards only the compact report filters',{timeout:30000},async t=>{

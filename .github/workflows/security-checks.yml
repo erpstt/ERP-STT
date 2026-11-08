@@ -165,6 +165,7 @@ jobs:
             scripts/accrued-payroll-payables-report-api.test.mjs \
             scripts/accrued-payroll-payables-report-sql.test.mjs \
             scripts/accrued-payroll-payables-report-ui.test.mjs \
+            scripts/supplier-advances-pending-sql.test.mjs \
             scripts/isolated-sales-pending-operator-guards.test.mjs \
             scripts/report-routing-operator-guards.test.mjs \
             scripts/i18n-message-origin-security.test.mjs \

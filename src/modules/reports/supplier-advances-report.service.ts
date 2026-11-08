@@ -19,7 +19,9 @@ function cleanFilters(value:unknown){
  const onlyNonzero=own('onlyNonzero');if(onlyNonzero!==undefined&&typeof onlyNonzero!=='boolean')return invalid();
  const page=own('page')===undefined?1:positiveId(own('page')),pageSize=own('pageSize')===undefined?50:positiveId(own('pageSize'));
  if(page>2_147_483_647||pageSize>250)return invalid();
- return{subsidiaryIds:[positiveId(subsidiaries[0])],dateTo:date,bookId:optionalId(own('bookId')),supplierId:optionalId(own('supplierId')),currencyId:optionalId(own('currencyId')),onlyNonzero:onlyNonzero??true,page,pageSize};
+ // Legacy clients may still send this boolean. The report always excludes
+ // fully applied sources; a caller cannot opt into settled advance history.
+ return{subsidiaryIds:[positiveId(subsidiaries[0])],dateTo:date,bookId:optionalId(own('bookId')),supplierId:optionalId(own('supplierId')),currencyId:optionalId(own('currencyId')),onlyNonzero:true,page,pageSize};
 }
 export async function runSupplierAdvancesReport(authorization:string,filters:unknown){
  await requireReportAccess(authorization);
@@ -27,6 +29,6 @@ export async function runSupplierAdvancesReport(authorization:string,filters:unk
  const response=await fetchReportSupabase(new URL('/rest/v1/rpc/run_supplier_advances_report',config.url),{method:'POST',headers:{apikey:config.anonKey,Authorization:authorization,'Content-Type':'application/json'},body:JSON.stringify({p_filters:cleaned})});
  let result:unknown;try{const raw=await response.text();result=raw?JSON.parse(raw):null;}catch{throw Object.assign(new Error('No fue posible leer el informe de adelantos a proveedores.'),{status:502});}
  if(!response.ok){const code=typeof result==='object'&&result&&!Array.isArray(result)&&'code'in result?String(result.code):'';const status=code==='42501'?403:['22023','22P02','22003','22007','22008'].includes(code)?400:500;throw Object.assign(new Error(status===403?'El rol activo no puede consultar estos adelantos.':status===400?'Revise la subsidiaria, la fecha de corte y los filtros del informe.':'No fue posible generar el informe de adelantos a proveedores.'),{status});}
- if(!result||typeof result!=='object'||Array.isArray(result))throw Object.assign(new Error('El informe de adelantos a proveedores está incompleto.'),{status:502});
+ if(!result||typeof result!=='object'||Array.isArray(result)||!('reportMode'in result)||result.reportMode!=='UNAPPLIED_ADVANCES')throw Object.assign(new Error('El informe de adelantos pendientes está incompleto. Vuelva a generarlo.'),{status:502});
  return result as Record<string,unknown>;
 }
