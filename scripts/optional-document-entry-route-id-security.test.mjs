@@ -6,7 +6,7 @@ import ts from 'typescript';
 import {assertIsolatedTestArgs} from './lib/migration-preview.mjs';
 import {buildSupplierInvoiceFormOptions} from './lib/supplier-invoice-form-options-fixture.mjs';
 assertIsolatedTestArgs();
-const purchasingVersion='20261105-purchasing-functional-review',invoiceEntryVersion='20261106-supplier-invoice-form-options',version='20261104-optional-document-route-id-guard',bankVersion='20261105-banking-functional';
+const purchasingVersion='20261105-purchasing-functional-review',invoiceEntryVersion='20261108-supplier-invoice-duplicate',version='20261104-optional-document-route-id-guard',bankVersion='20261105-banking-functional';
 const mains=['sales-invoice-entry','sales-note-entry','supplier-invoice-entry','supplier-note-entry'];
 const helpers=['sales-invoice-delivery-prefill','supplier-invoice-receipt-prefill'];
 const sources=new Map(await Promise.all([...mains,...helpers].map(async name=>[name,await readFile(new URL('../public/'+name+'.js',import.meta.url),'utf8')])));
@@ -177,7 +177,7 @@ for(const name of mains){
    const context=vm.createContext({$,document:{querySelectorAll(selector){assert.equal(selector,'#lines tr');return[row];}},
     editId:id,recordId:id,invoiceId:id,deliveryId:null,kind,supportItems:[],parse:Number,parseAmount:Number,money:String,pdfPreferenceSave:Promise.resolve(),defaultUnifiedPdfDescription:'Synthetic',
     viewMode:false,invoiceFormReady:true,invoiceContextInvalid:false,checkInvoiceContext:()=>true,invoiceSaving:false,invoiceUploading:0,savedInvoiceResult:null,noteSaving:false,noteUploading:0,savedNoteResult:null,invoiceSourceReady:()=>true,syncInvoiceControls(){},syncNoteControls(){},pendingSupports:()=>false,originalInvoicePayload:'{}',journalId:8,collectInvoicePayload:()=>({synthetic:'changed'}),hasPendingSupportChanges:()=>false,validateInvoicePayload(){},invoiceAmounts:()=>({gross:10}),
-    syncUnifiedPdfDescription(){},setSupportStatus(){},async syncSupports(){},showSuccess:value=>success.push(value),showSupplierSuccess:value=>success.push(value),
+    clearDuplicateInvoiceError(){},syncUnifiedPdfDescription(){},setSupportStatus(){},async syncSupports(){},showSuccess:value=>success.push(value),showSupplierSuccess:value=>success.push(value),
     async api(path,init){calls.push({path,method:init.method,body:JSON.parse(init.body)});return{journalId:8,transactionNumber:'SYNTHETIC',total:10};}});
    const action=vm.runInContext('('+saveAction(name)+')',context,{timeout:1000});await action();assert.equal(calls.length,1,$('error').textContent);
    const prefix=name==='sales-invoice-entry'?'/api/sales/invoice-entry':name==='supplier-invoice-entry'?'/api/purchasing/supplier-invoice-entry':name==='sales-note-entry'?'/api/sales/note-entry/'+kind:'/api/purchasing/supplier-note-entry/'+kind;

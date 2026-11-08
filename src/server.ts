@@ -57,6 +57,7 @@ import { fxRevaluation } from './modules/accounting-catalogs/fx-revaluation.serv
 import { importJournalCsv } from './modules/accounting-catalogs/journal-import.service.js';
 import { OpeningBalanceFilesValidationError, openingBalances } from './modules/accounting-catalogs/opening-balances.service.js';
 import { supplierInvoiceReceiptSource, saveSupplierInvoice, supplierInvoiceAccess, supplierInvoiceFormOptions } from './modules/purchasing-catalogs/supplier-invoice.service.js';
+import { SupplierInvoiceDuplicateError } from './modules/purchasing-catalogs/supplier-invoice-security.service.js';
 import { saveSupplierNote, supplierNoteAccess, supplierNoteOptions } from './modules/purchasing-catalogs/supplier-note.service.js';
 import{salesInvoiceRpc}from'./modules/sales-catalogs/sales-invoice-security.service.js';
 import { saveSalesInvoice, setSalesInvoicePdfLineUnification } from './modules/sales-catalogs/sales-invoice.service.js';
@@ -914,7 +915,9 @@ const server = createServer((request, response) => {
     if (cause instanceof UserProvisioningError && cause.retryAfterSeconds) response.setHeader('Retry-After', String(cause.retryAfterSeconds));
     const declaredStatus=(cause as {status?:number})?.status;
     const budgetFailure=cause instanceof Error&&/^Saldo presupuestario/.test(cause.message);
-    if(cause instanceof SessionAuthenticationError||declaredStatus||budgetFailure){
+    if(cause instanceof SupplierInvoiceDuplicateError){
+      json(response,cause.status,{error:{message:cause.message,code:cause.code,field:cause.field}});
+    }else if(cause instanceof SessionAuthenticationError||declaredStatus||budgetFailure){
       error(response,cause instanceof SessionAuthenticationError?401:declaredStatus||(budgetFailure?422:400),cause instanceof Error?cause.message:'No fue posible procesar la solicitud.');
     }else unknownRequestError(request,response,cause,400,requestId);
   }

@@ -10,7 +10,7 @@ assertIsolatedTestArgs();
 const version='20261104-support-write-validation';
 const bankEntryVersion='20261105-banking-functional';
 const supplierEntryVersion='20261105-purchasing-functional-review';
-const supplierInvoiceEntryVersion='20261106-supplier-invoice-form-options';
+const supplierInvoiceEntryVersion='20261108-supplier-invoice-duplicate';
 const journalEntryVersion='20261104-journal-payment-route-id-guard';
 const screens=[
  {name:'journal-entry'}, {name:'supplier-invoice-entry'}, {name:'supplier-note-entry'},

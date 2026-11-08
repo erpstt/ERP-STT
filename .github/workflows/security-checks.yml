@@ -154,6 +154,9 @@ jobs:
             scripts/session-renewal-ui.test.mjs \
             scripts/session-renewal-browser.test.mjs \
             scripts/optional-document-entry-route-id-security.test.mjs \
+            scripts/supplier-invoice-duplicate-api.test.mjs \
+            scripts/supplier-invoice-duplicate-sql.test.mjs \
+            scripts/supplier-invoice-duplicate-ui.test.mjs \
             scripts/isolated-sales-pending-operator-guards.test.mjs \
             scripts/report-routing-operator-guards.test.mjs \
             scripts/i18n-message-origin-security.test.mjs \
