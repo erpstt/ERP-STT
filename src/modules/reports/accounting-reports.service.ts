@@ -14,6 +14,7 @@ import { renderPdf } from '../../core/security/pdf-renderer.js';
 import { reverseManualJournal } from '../accounting-catalogs/journal-entry.service.js';
 import {supplierInvoiceRpc} from '../purchasing-catalogs/supplier-invoice-security.service.js';
 import {runSupplierAdvancesReport} from './supplier-advances-report.service.js';
+import {runAccruedPayrollPayablesReport} from './accrued-payroll-payables-report.service.js';
 
 const accountingOptionsCache=new ScopedReadCache<Record<string,unknown>>({defaultTtlMs:90_000,maxEntries:2_000});
 const accountingOptionsCacheNamespace=registerOperationalReadCacheNamespace('reports-accounting-options');
@@ -26,7 +27,7 @@ export function invalidateAccountingReportOptionsCache(authorization?:string){
   accountingOptionsCache.invalidate(accountingOptionsCacheNamespace,authorization?accountingOptionsScope(authorization):undefined);
 }
 
-const reports=new Set(['balance-sheet','income-statement','cash-flow','equity-changes','trial-balance','general-ledger','journal','pending-invoice-control','receivables-aging','payables-aging','supplier-advances','bank-reconciliation','bank-balances','sales-transactions','purchase-transactions','intercompany-loans','intercompany-commercial']);
+const reports=new Set(['balance-sheet','income-statement','cash-flow','equity-changes','trial-balance','general-ledger','journal','pending-invoice-control','receivables-aging','payables-aging','supplier-advances','accrued-payroll-payables','bank-reconciliation','bank-balances','sales-transactions','purchase-transactions','intercompany-loans','intercompany-commercial']);
 const payableInvoiceTypes=new Set(['ALL','STANDARD','EXPENSE','CARD','PETTY_CASH','FIXED_ASSET','OTHER']);
 async function rpc<T>(authorization:string,name:string,input:Record<string,unknown>={}){await requireReportAccess(authorization);
   const config=getSupabaseConfig();if(!config)throw new Error('Supabase no está configurado.');
@@ -61,6 +62,7 @@ async function runAgingReport(authorization:string,kind:'AR'|'AP',filters:Record
 export function runAccountingReport(authorization:string,report:string,filters:Record<string,unknown>){
   if(!reports.has(report))throw new Error('El reporte solicitado no existe.');
   if(report==='supplier-advances')return runSupplierAdvancesReport(authorization,filters);
+  if(report==='accrued-payroll-payables')return runAccruedPayrollPayablesReport(authorization,filters);
   const presentation=filters.presentationCurrency;
   if(presentation!==undefined&&presentation!=='LOCAL'&&presentation!=='USD')throw Object.assign(new Error('Seleccione una moneda de presentación válida: LOCAL o USD.'),{status:400});
   if(presentation==='USD'&&report!=='balance-sheet'&&report!=='income-statement')throw Object.assign(new Error('La presentación en USD está disponible para el estado de situación financiera y el estado de resultados.'),{status:400});

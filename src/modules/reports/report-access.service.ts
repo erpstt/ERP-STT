@@ -12,7 +12,7 @@ export async function requireReportAccess(auth:string){
   await assertRoleAccess(auth,'reports:accounting-reports','view');
 }
 
-const accounting=new Set(['options','balance-sheet','income-statement','cash-flow','equity-changes','trial-balance','general-ledger','journal','pending-invoice-control','receivables-aging','payables-aging','supplier-advances','bank-reconciliation','bank-balances','sales-transactions','purchase-transactions','intercompany-loans','intercompany-commercial']);
+const accounting=new Set(['options','balance-sheet','income-statement','cash-flow','equity-changes','trial-balance','general-ledger','journal','pending-invoice-control','receivables-aging','payables-aging','supplier-advances','accrued-payroll-payables','bank-reconciliation','bank-balances','sales-transactions','purchase-transactions','intercompany-loans','intercompany-commercial']);
 const families=new Set(['sales/settled-invoices','purchases/settled-invoices','treasury/payment-requests','tax/vat-declaration','accounting/eight-column-balance','accounting/intercompany-loans','accounting/intercompany-commercial']);
 export function isFinancialReportRoute(method:string,path:string){
  const url=path.split('?')[0]||'';
