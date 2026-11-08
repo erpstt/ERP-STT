@@ -26,6 +26,7 @@ export function invalidateAccountingReportOptionsCache(authorization?:string){
 }
 
 const reports=new Set(['balance-sheet','income-statement','cash-flow','equity-changes','trial-balance','general-ledger','journal','pending-invoice-control','receivables-aging','payables-aging','bank-reconciliation','bank-balances','sales-transactions','purchase-transactions','intercompany-loans','intercompany-commercial']);
+const payableInvoiceTypes=new Set(['ALL','STANDARD','EXPENSE','CARD','PETTY_CASH','FIXED_ASSET','OTHER']);
 async function rpc<T>(authorization:string,name:string,input:Record<string,unknown>={}){await requireReportAccess(authorization);
   const config=getSupabaseConfig();if(!config)throw new Error('Supabase no está configurado.');
   const response=await fetchReportSupabase(new URL(`/rest/v1/rpc/${name}`,config.url),{method:'POST',headers:{apikey:config.anonKey,Authorization:authorization,'Content-Type':'application/json'},body:JSON.stringify(input)});
@@ -43,6 +44,19 @@ export async function accountingReportOptions(authorization:string){
     loader:()=>rpc<Record<string,unknown>>(authorization,'accounting_report_options_bundle'),
   });
 }
+async function runAgingReport(authorization:string,kind:'AR'|'AP',filters:Record<string,unknown>){
+  await requireReportAccess(authorization);
+  const agingFilters:Record<string,unknown>={...filters};
+  if(kind==='AR')delete agingFilters.payableInvoiceType;
+  else if(Object.hasOwn(agingFilters,'payableInvoiceType')){
+    const value=agingFilters.payableInvoiceType;
+    if(value!==null&&value!==undefined&&typeof value!=='string')throw Object.assign(new Error('Seleccione un tipo de factura válido.'),{status:400});
+    const invoiceType=typeof value==='string'?value.trim().toUpperCase()||'ALL':'ALL';
+    if(!payableInvoiceTypes.has(invoiceType))throw Object.assign(new Error('Seleccione un tipo de factura válido.'),{status:400});
+    agingFilters.payableInvoiceType=invoiceType;
+  }
+  return rpc<Record<string,unknown>>(authorization,'run_aging_report',{p_kind:kind,p_filters:agingFilters});
+}
 export function runAccountingReport(authorization:string,report:string,filters:Record<string,unknown>){
   if(!reports.has(report))throw new Error('El reporte solicitado no existe.');
   const presentation=filters.presentationCurrency;
@@ -53,7 +67,7 @@ export function runAccountingReport(authorization:string,report:string,filters:R
   if(report==='income-statement'&&scopedFilters.columnView&&scopedFilters.columnView!=='TOTAL')return rpc<Record<string,unknown>>(authorization,'run_income_statement_matrix',{p_filters:scopedFilters});
   if(report==='pending-invoice-control')return pendingInvoiceRpc(authorization,'run_pending_invoice_control_report',{p_filters:scopedFilters},'report');
   if(report==='journal')return rpc<Record<string,unknown>>(authorization,'run_general_journal_report',{p_filters:scopedFilters});
-  if(report==='receivables-aging'||report==='payables-aging')return rpc<Record<string,unknown>>(authorization,'run_aging_report',{p_kind:report==='receivables-aging'?'AR':'AP',p_filters:scopedFilters});
+  if(report==='receivables-aging'||report==='payables-aging')return runAgingReport(authorization,report==='receivables-aging'?'AR':'AP',scopedFilters);
   if(report==='bank-reconciliation')return reconciliationRpc<Record<string,unknown>>(authorization,'run_bank_reconciliation_report',{p_filters:scopedFilters},'reports:accounting-reports','view');
   if(report==='bank-balances')return rpc<Record<string,unknown>>(authorization,'run_bank_balance_period_report',{p_filters:scopedFilters});
   if(report==='sales-transactions')return rpc<Record<string,unknown>>(authorization,'run_sales_transaction_report',{p_filters:scopedFilters});

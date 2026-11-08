@@ -245,6 +245,9 @@ jobs:
             scripts/financial-statement-presentation-sql.test.mjs \
             scripts/financial-statement-presentation-scheduled-sql.test.mjs \
             scripts/financial-statement-presentation-api.test.mjs \
+            scripts/payables-aging-invoice-type-api.test.mjs \
+            scripts/payables-aging-invoice-type-sql.test.mjs \
+            scripts/payables-aging-invoice-types-ui.test.mjs \
             scripts/financial-statement-presentation-exports.test.mjs \
             scripts/financial-statement-presentation-ui.test.mjs \
             scripts/general-ledger-original-currency-exports.test.mjs \
