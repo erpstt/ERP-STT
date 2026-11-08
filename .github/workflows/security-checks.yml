@@ -160,6 +160,8 @@ jobs:
             scripts/supplier-advances-report-api.test.mjs \
             scripts/supplier-advances-report-sql.test.mjs \
             scripts/supplier-advances-report-ui.test.mjs \
+            scripts/supplier-payment-advance-visibility-sql.test.mjs \
+            scripts/supplier-payment-advance-visibility-ui.test.mjs \
             scripts/isolated-sales-pending-operator-guards.test.mjs \
             scripts/report-routing-operator-guards.test.mjs \
             scripts/i18n-message-origin-security.test.mjs \
