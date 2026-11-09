@@ -191,6 +191,11 @@ jobs:
             scripts/chart-account-fx-override-api.test.mjs \
             scripts/chart-account-fx-override-sql.test.mjs \
             scripts/chart-account-fx-override-ui.test.mjs \
+            scripts/fx-execution-progress-api.test.mjs \
+            scripts/fx-execution-progress-sql.test.mjs \
+            scripts/fx-execution-progress-ui.test.mjs \
+            scripts/fx-revaluation-api-security.test.mjs \
+            scripts/fx-revaluation-ui-security.test.mjs \
             scripts/bank-account-api-security.test.mjs \
             scripts/bank-account-sql-security.test.mjs \
             scripts/bank-balances-report-ui.test.mjs \
