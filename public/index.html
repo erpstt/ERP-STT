@@ -605,7 +605,12 @@
 </section>
 <div v-show="activeCatalog.slug!=='subsidiaries' || subsidiaryFormTab!=='tax'" class="form-grid" :class="{'subsidiary-tab-grid':activeCatalog.slug==='subsidiaries','entity-section-grid':isEntitySectioned(),'entity-banking-shared':isEntitySectioned() && entityFormTab==='banking','bank-statement-form-grid':activeCatalog.slug==='bank-statements'}">
 <template v-for="field in formFields" :key="field.key"><div v-if="activeCatalog.slug==='customers' &amp;&amp; field.key==='envio_estado_cuenta_auto'" class="approver-section"><h3>Crédito y Cobro</h3></div>
-<label v-show="(activeCatalog.slug!=='subsidiaries' || subsidiaryFieldTab(field.key)===subsidiaryFormTab) &amp;&amp; (!isEntitySectioned() || entityFieldTab(field.key)===entityFormTab)" :data-field-key="field.key" :class="{'entity-field-wide':isEntitySectioned() && (field.wide || field.type==='textarea' || field.type==='multi-reference'),'toggle-field':field.type==='boolean','multi-field':field.type==='multi-reference','subsidiary-field-wide':activeCatalog.slug==='subsidiaries' && ['logo_url','address','secondary_currency_ids'].includes(field.key),'user-invitation-field':activeCatalog.slug==='users' && field.key==='notify_user'}">
+<div v-if="activeCatalog.slug==='chart-accounts' &amp;&amp; field.key==='pending_fx_revaluation'" v-show="fieldVisible(field)" data-field-key="pending_fx_revaluation">
+<label class="toggle-field" for="chartAccountFxRevaluation"><span>{{ field.label }}</span><span class="gentia-switch-control"><input id="chartAccountFxRevaluation" v-model="recordDialog.values.pending_fx_revaluation" class="gentia-switch-input" type="checkbox" role="switch" aria-describedby="chartAccountFxHelp" :disabled="dialogSaving" @change="changeChartAccountFx"><span class="gentia-switch-track" aria-hidden="true"></span></span></label>
+<small id="chartAccountFxHelp" class="field-help">{{ chartAccountFxHelp() }}</small>
+<div v-if="recordDialog.values.pending_fx_revaluation_override!==null"><button class="button-secondary" type="button" :disabled="dialogSaving || !chartAccountFxGroup()" @click="resetChartAccountFx">Usar valor del grupo</button></div>
+</div>
+<label v-else v-show="(activeCatalog.slug!=='subsidiaries' || subsidiaryFieldTab(field.key)===subsidiaryFormTab) &amp;&amp; (!isEntitySectioned() || entityFieldTab(field.key)===entityFormTab)" :data-field-key="field.key" :class="{'entity-field-wide':isEntitySectioned() && (field.wide || field.type==='textarea' || field.type==='multi-reference'),'toggle-field':field.type==='boolean','multi-field':field.type==='multi-reference','subsidiary-field-wide':activeCatalog.slug==='subsidiaries' && ['logo_url','address','secondary_currency_ids'].includes(field.key),'user-invitation-field':activeCatalog.slug==='users' && field.key==='notify_user'}">
 <span>{{ field.label }}<b v-if="field.required"> *</b>
 </span>
 <select v-if="field.options" v-model="recordDialog.values[field.key]" :required="fieldRequired(field)" @change="handleFieldChange(field)">
@@ -643,7 +648,7 @@
 <span class="gentia-switch-track" aria-hidden="true"></span>
 </span>
 <small v-if="activeCatalog.slug==='chart-accounts' &amp;&amp; field.key==='subsidiary_ids'" class="account-subsidiary-help">Las cuentas nuevas se habilitan inicialmente para todas las subsidiarias. Puede ajustar esta selección al editar la cuenta.</small>
-<small v-if="activeCatalog.slug==='chart-accounts' &amp;&amp; field.key==='pending_fx_revaluation'">Heredado del grupo de cuentas. Modifique esta opción en el grupo.</small>
+
 <small v-if="field.help" class="field-help">{{ field.help }}</small>
 <small v-if="activeCatalog.slug==='users' &amp;&amp; field.key==='notify_user' &amp;&amp; recordDialog.values.is_active &amp;&amp; !recordDialog.values.notify_user" class="user-invitation-warning">{{ recordDialog.id ? 'No se enviará ningún correo. El usuario también puede recuperar su acceso con «¿Olvidaste tu contraseña?».' : 'Sin correo automático: el usuario deberá utilizar «¿Olvidaste tu contraseña?» o recibir una invitación posteriormente.' }}</small>
 <small v-if="activeCatalog.slug==='users' &amp;&amp; field.key==='notify_user' &amp;&amp; !recordDialog.values.is_active" class="user-invitation-warning">Active el usuario antes de enviarle un enlace de recuperación.</small>
@@ -732,7 +737,7 @@
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
 <script type="module" src="/i18n.js?v=20261107-auto-template-rates"></script>
-<script type="module" src="/app.js?v=20261107-bank-statement-list">
+<script type="module" src="/app.js?v=20261109-chart-fx-override">
 </script>
 <script src="/approval-notifications.js?v=20261101-c04-approval-inbox"></script></body>
 </html>

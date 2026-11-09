@@ -188,6 +188,9 @@ jobs:
             scripts/tax-schedule-access-ui-security.test.mjs \
             scripts/bank-statement-account-scope.test.mjs \
             scripts/bank-fee-sql-security.test.mjs \
+            scripts/chart-account-fx-override-api.test.mjs \
+            scripts/chart-account-fx-override-sql.test.mjs \
+            scripts/chart-account-fx-override-ui.test.mjs \
             scripts/bank-account-api-security.test.mjs \
             scripts/bank-account-sql-security.test.mjs \
             scripts/bank-balances-report-ui.test.mjs \
