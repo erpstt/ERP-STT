@@ -14,6 +14,14 @@ export async function reconciliationRpc<T=unknown>(auth:string,name:string,input
   if(r.status===401)throw Object.assign(new Error('La sesión no es válida.'),{status:401});
   if(r.status===403||value?.code==='42501')throw Object.assign(new Error('No tiene permiso para operar esta conciliación o extracto.'),{status:403});
   if(value?.code==='PBU01')throw Object.assign(new Error('El punteo cambió o ya no está disponible para deshacer. Actualice los movimientos y revise nuevamente.'),{status:409});
+  const emptyMonthErrors:Record<string,string>={
+   PBN01:'No se pudo confirmar un saldo único del mes anterior. Registre o revise el extracto del período y la continuidad de sus saldos.',
+   PBN02:'Hay movimientos en el período. Importe y concilie el extracto de ese mes antes de finalizar.',
+   PBN03:'Seleccione el último día del mes y un período contable abierto para cerrar sin movimientos.',
+   PBN04:'Los saldos no coinciden. Revise las partidas en tránsito y el saldo del extracto antes de finalizar.',
+   PBN05:'El cierre sin movimientos no admite ajustes bancarios. Revise el extracto para registrar cualquier diferencia.'
+  };
+  if(name==='close_bank_reconciliation'&&typeof value?.code==='string'&&Object.hasOwn(emptyMonthErrors,value.code))throw Object.assign(new Error(emptyMonthErrors[value.code]),{status:422});
   const continuityErrors:Record<string,string>={
    PBC01:'El saldo inicial no coincide con el cierre del extracto anterior. Vuelva a validar el archivo.',
    PBC02:'El saldo final no coincide con el saldo inicial más los movimientos. Revise el extracto.',
