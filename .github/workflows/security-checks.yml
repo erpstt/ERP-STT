@@ -271,6 +271,12 @@ jobs:
             scripts/bank-operation-public-errors.test.mjs \
             scripts/general-ledger-opening-entities-sql.test.mjs \
             scripts/general-ledger-original-currency-sql.test.mjs \
+            scripts/general-ledger-export-sql.test.mjs \
+            scripts/general-ledger-export-data-api.test.mjs \
+            scripts/general-ledger-exports-http.test.mjs \
+            scripts/general-ledger-exports-renderer.test.mjs \
+            scripts/general-ledger-exports-ui.test.mjs \
+            scripts/general-ledger-original-currency-ui.test.mjs \
             scripts/financial-statement-presentation-sql.test.mjs \
             scripts/financial-statement-presentation-scheduled-sql.test.mjs \
             scripts/financial-statement-presentation-api.test.mjs \

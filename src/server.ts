@@ -122,6 +122,7 @@ import { iniciarProgramacionTipoCambioPE } from './modules/configuration-catalog
 import { accountingReportOptions, bankReconciliationAction, executePendingInvoiceReclassification, pendingInvoiceReversalOptions, previewPendingInvoiceReclassification, purchaseTransactionSupport, reverseJournalEntry, reversePendingInvoiceJournal, runAccountingReport } from './modules/reports/accounting-reports.service.js';
 import {previewBankStatement} from './modules/reports/bank-statement-preview.service.js';
 import { renderAccountingPdf } from './modules/reports/accounting-pdf.service.js';
+import { exportGeneralLedger } from './modules/reports/general-ledger-export.service.js';
 import { exportSettledInvoiceExcel, exportSettledInvoicePdf, runSettledInvoiceReport, settledInvoiceReportOptions } from './modules/reports/settled-invoices-report.service.js';
 import { exportSettledSupplierInvoiceExcel, exportSettledSupplierInvoicePdf, runSettledSupplierInvoiceReport, settledSupplierInvoiceReportOptions } from './modules/reports/settled-supplier-invoices-report.service.js';
 import { exportPaymentRequestReportExcel, exportPaymentRequestReportPdf, paymentRequestReportOptions, runPaymentRequestReport } from './modules/reports/payment-requests-report.service.js';
@@ -398,6 +399,14 @@ const server = createServer((request, response) => {
     if(request.method==='POST'&&request.url==='/api/auth/change-password'){const authorization=request.headers.authorization!;return json(response,200,await changePassword(authorization,await body(request)as{currentPassword?:string;newPassword?:string;confirmation?:string}));}
     if(isFinancialReportRoute(request.method??'',request.url??''))await requireReportAccess(request.headers.authorization!);
     if(request.method==='GET'&&request.url==='/api/reports/accounting/options'){return json(response,200,await accountingReportOptions(request.headers.authorization!));}
+    if(request.url?.split('?')[0]==='/api/reports/accounting/general-ledger/export'){
+      if(request.method!=='POST')return error(response,405,'Método no permitido.');
+      const file=await exportGeneralLedger(request.headers.authorization!,await body(request,64*1024));
+      if(request.aborted||response.destroyed)return;
+      response.setHeader('X-Report-Total-Rows',String(file.totalRows));
+      response.setHeader('X-Report-Snapshot-Fingerprint',file.snapshotFingerprint);
+      return download(response,file);
+    }
     if(request.method==='GET'&&request.url==='/api/v1/reports/sales/settled-invoices/options'){return json(response,200,await settledInvoiceReportOptions(request.headers.authorization!));}
     if(request.method==='POST'&&request.url==='/api/v1/reports/sales/settled-invoices'){return json(response,200,await runSettledInvoiceReport(request.headers.authorization!,await body(request)as Record<string,unknown>));}
     if(request.method==='POST'&&request.url==='/api/v1/reports/sales/settled-invoices/pdf'){return download(response,await exportSettledInvoicePdf(request.headers.authorization!,await body(request)as Record<string,unknown>));}

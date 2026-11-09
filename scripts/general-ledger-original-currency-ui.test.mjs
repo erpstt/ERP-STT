@@ -6,7 +6,8 @@ import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
 import { chromium } from '@playwright/test';
 import ExcelJS from 'exceljs';
-import { csvCell, reportWorkbook } from '../public/spreadsheet-safety.js';
+import { csvCell } from '../public/spreadsheet-safety.js';
+import { renderGeneralLedgerExport } from '../dist/modules/reports/general-ledger-export-renderer.js';
 
 const source = await readFile(new URL('../public/accounting-reports.js', import.meta.url), 'utf8');
 const css = await readFile(new URL('../public/accounting-reports.css', import.meta.url), 'utf8');
@@ -95,60 +96,56 @@ test('pantalla del Mayor mantiene columnas locales, añade cuatro originales y d
 });
 
 test('CSV y XLSX anexan cuatro campos numéricos sin redondeo de origen ni sumas de monedas mixtas', async () => {
-  const row = { ...baseRow, original_currency_code: 'USD' }, downloads = [];
+  const row = { ...baseRow, original_currency_code: 'USD' }, downloads = [],formats=[];
+  const rows=[row,{ ...row, original_currency_code: 'CRC', original_debit: 1000.123456, original_credit: 0 },{ ...row, original_currency_code: null, original_exchange_rate: null, original_debit: null, original_credit: null }].map((value,index)=>({...value,id:index+1,running_balance:(index+1)*500,account_debit_total:1500,account_credit_total:0,account_final_balance:1500}));
+  const snapshot={rows,total:3,summary:{debit:1500,credit:0},snapshotFingerprint:'a'.repeat(32),context:{subsidiary:{id:1,name:'Empresa sintética'},localCurrency:{id:1,code:'CRC',name:'Colón'},book:{id:1,name:'Principal'},bookId:1,dateFrom:'2026-11-04',dateTo:'2026-11-04',filters:{subsidiaryIds:[1],dateFrom:'2026-11-04',dateTo:'2026-11-04'},generatedAt:'2026-11-09T20:00:00Z'}};
   const script = declarations(['labels', 'moneyKeys', 'isFinancialPresentationReport', 'exportRows']) + `exportRows('csv').then(()=>exportRows('excel'))`;
   await runInNewContext(script, {
-    data: { rows: [row, { ...row, original_currency_code: 'CRC', original_debit: 1000.123456, original_credit: 0 }, { ...row, original_currency_code: null, original_exchange_rate: null, original_debit: null, original_credit: null }] },
+    data: { rows },
     current: ['operational', 'general-ledger', 'Libro Mayor'],
     $: id => ({ value: id === 'to' ? '2026-11-04' : '' }),
     exportContext: () => ({ currencyLabel: 'CRC', subsidiaryName: 'Empresa sintética' }),
     download: (blob, name) => downloads.push({ blob, name }), csvCell,
-    reportWorkbook: options => reportWorkbook(structuredClone(options)), Blob,
+    exportGeneralLedger:async format=>{formats.push(format);const file=await renderGeneralLedgerExport(snapshot,format,'ACCOUNT');downloads.push({blob:new Blob([file.buffer],{type:file.mimeType}),name:file.fileName});},Blob,
     alert: message => { throw Error(message); }
   });
+  assert.deepEqual(formats,['csv','xlsx']);
   const csv = await downloads[0].blob.text();
   assert.ok(csv.split('\r\n')[0].endsWith(originalHeaders.map(csvCell).join(',')));
   assert.ok(csv.includes('"USD","523.123456789012","1.234567","0"'));
   assert.ok(csv.includes('"CRC","523.123456789012","1000.123456","0"'));
-  assert.ok(csv.split('\r\n').at(-1).endsWith('"","","",""'));
+  assert.ok(csv.split('\r\n').filter(Boolean).at(-1).endsWith('"","","",""'));
   const book = new ExcelJS.Workbook();
   await book.xlsx.load(await downloads[1].blob.arrayBuffer());
-  const sheet = book.worksheets[0], header = sheet.getRow(6), columns = {};
+  const sheet = book.worksheets[0], header = sheet.getRow(8), columns = {},movements=[];
+  sheet.eachRow(value=>{if(value.getCell(1).value instanceof Date)movements.push(value);});
+  assert.equal(movements.length,3);
   header.eachCell((cell, column) => { columns[String(cell.value)] = column; });
   assert.deepEqual(header.values.slice(-4), originalHeaders);
   const debit = columns['Débito original'], credit = columns['Crédito original'], rate = columns['Tipo de cambio utilizado'];
-  assert.equal(sheet.getCell(7, debit).value, 1.234567);
-  assert.equal(sheet.getCell(8, debit).value, 1000.123456);
-  assert.equal(sheet.getCell(7, credit).value, 0);
-  assert.equal(sheet.getCell(7, rate).value, 523.123456789012);
-  assert.equal(sheet.getCell(7, rate).numFmt, '0.############');
-  assert.equal(sheet.getCell(7, debit).numFmt, '#,##0.00####;(#,##0.00####)');
-  assert.equal(sheet.getCell(9, debit).value, '');
-  for (const column of Object.values(columns).filter(column => column >= columns['Moneda original'])) assert.equal(sheet.getCell(10, column).value, null);
-  const localDebitColumn = sheet.getColumn(columns['Débito']).letter;
-  assert.equal(sheet.getCell(10, columns['Débito']).formula, `SUM(${localDebitColumn}7:${localDebitColumn}9)`);
+  assert.equal(movements[0].getCell(debit).value, 1.234567);
+  assert.equal(movements[1].getCell(debit).value, 1000.123456);
+  assert.equal(movements[0].getCell(credit).value, 0);
+  assert.equal(movements[0].getCell(rate).value, 523.123456789012);
+  assert.equal(movements[0].getCell(rate).numFmt, '0.############');
+  assert.equal(movements[0].getCell(debit).numFmt, '#,##0.00####;(#,##0.00####)');
+  assert.equal(movements[2].getCell(debit).value, null);
+  const footer=sheet.getRow(sheet.rowCount);
+  for (const column of Object.values(columns).filter(column => column >= columns['Moneda original'])) assert.equal(footer.getCell(column).value, null);
+  assert.equal(footer.getCell(columns['Débito local']).value,1500);
+  assert.equal(footer.getCell(columns['Débito local']).formula,undefined);
 });
 
-test('impresión del Mayor usa orientación horizontal y distingue moneda local de original', async () => {
+test('PDF del Mayor solicita descarga completa sin abrir impresión y distingue moneda local de original', async () => {
   const statement = sourceFile.statements.find(statement => ts.isExpressionStatement(statement) && statement.expression.getText(sourceFile).startsWith("$('pdf').onclick="));
   assert.ok(statement, 'PDF handler');
-  let printedStyle = '', afterPrint;
-  const document = {
-    head: { appendChild: style => style }, createElement: () => ({ textContent: '', remove() {} })
-  };
-  // Capture the exact handler from the shipped module, including its @page rule.
-  document.head.appendChild = style => {
-    Object.defineProperty(style, 'textContent', { set(value) { printedStyle = value; } });
-    return style;
-  };
-  const pdf = {}, logo = { hidden: true }, window = { addEventListener: (_name, callback) => { afterPrint = callback; }, print: () => {} };
+  const formats=[],pdf={},window={print(){throw Error('Libro Mayor no debe abrir impresión');}};
   await runInNewContext(statement.getText(sourceFile) + "$('pdf').onclick();", {
-    $: id => id === 'pdf' ? pdf : logo, current: ['operational', 'general-ledger'], document, window, exportContext() {}, isFinancialPresentationReport:()=>false
+    $:()=>pdf,current:['operational','general-ledger'],window,exportGeneralLedger:async format=>formats.push(format),isFinancialPresentationReport:()=>false
   });
-  assert.match(printedStyle, /A4 landscape/);
-  assert.equal(typeof afterPrint, 'function');
+  assert.deepEqual(formats,['pdf']);
   assert.match(declarations(['exportContext']), /Moneda local:.*moneda original/s);
   const html = await readFile(new URL('../public/accounting-reports.html', import.meta.url), 'utf8');
-  assert.match(html, /accounting-reports\.js\?v=20261104-financial-presentation-usd/);
-  assert.match(html, /accounting-reports\.css\?v=20261104-financial-presentation-usd/);
+  assert.match(html, /accounting-reports\.js\?v=20261109-general-ledger-exports/);
+  assert.match(html, /accounting-reports\.css\?v=20261109-general-ledger-exports/);
 });

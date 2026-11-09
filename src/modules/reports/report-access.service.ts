@@ -21,6 +21,7 @@ export function isFinancialReportRoute(method:string,path:string){
  const legacy=/^\/api\/reports\/accounting\/([^/]+)$/.exec(url);
  if(legacy&&accounting.has(legacy[1]!))return method===(legacy[1]==='options'?'GET':'POST');
  if(method==='POST'&&/^\/api\/reports\/income-forecast\/(options|generate|save|pdf)$/.test(url))return true;
+ if(method==='POST'&&url==='/api/reports/accounting/general-ledger/export')return true;
  if(method==='POST'&&/^\/api\/reports\/accounting\/(bank-reconciliation\/(pdf|close-report)|pending-invoice-control\/pdf)$/.test(url))return true;
  return method==='GET'&&/^\/api\/reports\/accounting\/purchase-transactions\/supports\/\d+$/.test(url);
 }
