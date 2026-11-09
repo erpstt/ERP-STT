@@ -200,6 +200,9 @@ jobs:
             scripts/bank-reconciliation-close-pdf-ui.test.mjs \
             scripts/bank-reconciliation-options-cache.test.mjs \
             scripts/bank-reconciliation-unmatch-api.test.mjs \
+            scripts/bank-reconciliation-draft-delete-api.test.mjs \
+            scripts/bank-reconciliation-draft-delete-sql.test.mjs \
+            scripts/bank-reconciliation-delete-draft-ui.test.mjs \
             scripts/bank-bulk-unmatch-api.test.mjs \
             scripts/bank-bulk-unmatch-ui.test.mjs \
             scripts/bank-classic-unmatch-ui.test.mjs \

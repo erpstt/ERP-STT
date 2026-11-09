@@ -15,6 +15,7 @@ import { reverseManualJournal } from '../accounting-catalogs/journal-entry.servi
 import {supplierInvoiceRpc} from '../purchasing-catalogs/supplier-invoice-security.service.js';
 import {runSupplierAdvancesReport} from './supplier-advances-report.service.js';
 import {runAccruedPayrollPayablesReport} from './accrued-payroll-payables-report.service.js';
+import {bankReconciliationDraftDeleteAction} from './bank-reconciliation-draft-delete.service.js';
 
 const accountingOptionsCache=new ScopedReadCache<Record<string,unknown>>({defaultTtlMs:90_000,maxEntries:2_000});
 const accountingOptionsCacheNamespace=registerOperationalReadCacheNamespace('reports-accounting-options');
@@ -97,6 +98,7 @@ export async function executePendingInvoiceReclassification(authorization:string
   await assertPendingInvoiceAccess(authorization,'execute');return pendingInvoiceRpc(authorization,'pending_invoice_reclassification_execute',{p_reclassification_date:assertAnnualPendingInvoiceReclassificationDate(reclassificationDate)},'execute');
 }
 export async function bankReconciliationAction(authorization:string,action:string,input:Record<string,unknown>){
+ if(action==='draft-delete-preview'||action==='draft-delete')return bankReconciliationDraftDeleteAction(authorization,action==='draft-delete'?'delete':'preview',input,()=>invalidateAccountingReportOptionsCache());
  const resource=action==='import'?'banking:bank-statements':action==='close-report'?'reports:accounting-reports':'banking:bank-reconciliations',permission=action==='import'?'create':action==='close-report'?'view':'edit';
  await requireReconciliationAccess(authorization,resource,permission);
  const names:Record<string,string>={import:'import_bank_statement',auto:'auto_match_bank_reconciliation',match:'match_bank_transaction',unmatch:'unmatch_bank_reconciliation','unmatch-all-preview':'preview_bank_reconciliation_unmatch_all','unmatch-all':'unmatch_all_bank_reconciliation',close:'close_bank_reconciliation','close-report':'bank_reconciliation_close_report'};

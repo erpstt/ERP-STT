@@ -66,3 +66,34 @@
 #bankCloseDialog .bank-close-check:has(input:checked) .bank-close-check-off{display:none}
 #bankCloseDialog .bank-close-check:has(input:checked) .bank-close-check-on{display:inline}
 @media(prefers-reduced-motion:reduce){#bankCloseDialog .bank-close-switch-track,#bankCloseDialog .bank-close-switch-track::after{transition:none}}
+#bankDeleteDraftDialog{max-height:calc(100dvh - 32px);box-sizing:border-box;overflow:auto}
+#bankDeleteDraftDialog .bank-close-heading>span{background:#b42332}
+#bankDeleteDraftDialog .bank-close-summary>div{min-width:0}
+#bankDeleteDraftDialog .bank-close-summary b{overflow-wrap:anywhere}
+#bankDeleteDraftDialog>p{line-height:1.5}
+#bankDeleteDraftDialog .bank-delete-draft-check{display:flex;flex-direction:row;align-items:center;gap:14px;box-sizing:border-box;min-height:76px;margin:4px 24px 12px;padding:14px;border:1px solid #e9d4a2;border-radius:10px;background:#fff8e8;color:#684c16;cursor:pointer;user-select:none}
+#bankDeleteDraftDialog .bank-delete-draft-switch-control{position:relative;display:block;flex:0 0 48px;width:48px;height:28px;margin:0;padding:0;line-height:0}
+#bankDeleteDraftDialog .bank-delete-draft-switch-control>input{position:absolute;inset:0;z-index:1;box-sizing:border-box;width:100%;height:100%;min-width:0;min-height:0;margin:0;padding:0;border:0;opacity:0;cursor:pointer}
+#bankDeleteDraftDialog .bank-delete-draft-switch-track{position:absolute;inset:0;display:block;box-sizing:border-box;width:48px;height:28px;margin:0;border:1px solid #64748b;border-radius:999px;background:#64748b;pointer-events:none;transition:background-color .18s ease,border-color .18s ease}
+#bankDeleteDraftDialog .bank-delete-draft-switch-track::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #10223d40;transition:transform .18s ease}
+#bankDeleteDraftDialog input:checked+.bank-delete-draft-switch-track{border-color:#b42332;background:#b42332}
+#bankDeleteDraftDialog input:checked+.bank-delete-draft-switch-track::after{transform:translateX(20px)}
+#bankDeleteDraftDialog input:focus-visible+.bank-delete-draft-switch-track,#bankDeleteDraftDialog button:focus-visible{outline:3px solid #b45309!important;outline-offset:4px}
+#bankDeleteDraftDialog input:disabled+.bank-delete-draft-switch-track{opacity:.5}
+#bankDeleteDraftDialog .bank-delete-draft-check-copy{display:grid;gap:5px;min-width:0;font-size:14px;font-weight:600;line-height:1.45;overflow-wrap:anywhere}
+#bankDeleteDraftDialog .bank-delete-draft-check-state{display:block;font-size:12px;font-weight:700}
+#bankDeleteDraftDialog .bank-delete-draft-check-on{display:none}
+#bankDeleteDraftDialog .bank-delete-draft-check:has(input:checked){border-color:#e8aeb6;background:#fff1f2;color:#8d1d2b}
+#bankDeleteDraftDialog .bank-delete-draft-check:has(input:checked) .bank-delete-draft-check-off{display:none}
+#bankDeleteDraftDialog .bank-delete-draft-check:has(input:checked) .bank-delete-draft-check-on{display:inline}
+#bankDeleteDraftDialog .bank-action-message{margin:12px 24px;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+#bankDeleteDraftDialog footer{flex-wrap:wrap}
+#bankDeleteDraftDialog footer button{min-height:44px;padding:10px 16px;border:1px solid #b9c9da;border-radius:8px;font-weight:700}
+#bankDeleteDraftDialog #confirmBankDeleteDraft{border-color:#b42332;background:#b42332!important;color:#fff!important}
+#bankDeleteDraftDialog #confirmBankDeleteDraft:disabled{border-color:#94a3b8;background:#94a3b8!important;cursor:not-allowed}
+.bank-history-draft-actions{display:flex;flex-wrap:wrap;gap:8px;min-width:170px}
+.bank-history-draft-actions button{min-height:40px}
+.bank-history-draft-actions [data-delete-bank-draft]{padding:8px 10px;border:1px solid #d49ba2;border-radius:7px;background:#fff!important;color:#9c2635!important;font-weight:700}
+@media(max-width:540px){#bankDeleteDraftDialog .bank-close-heading{padding:18px}#bankDeleteDraftDialog .bank-close-heading h2{font-size:21px}#bankDeleteDraftDialog>p{padding-right:18px;padding-left:18px}#bankDeleteDraftDialog .bank-close-summary{padding-right:18px;padding-left:18px}#bankDeleteDraftDialog .bank-delete-draft-check,#bankDeleteDraftDialog .bank-action-message{margin-right:18px;margin-left:18px}#bankDeleteDraftDialog footer{padding:16px 18px;flex-direction:column-reverse}#bankDeleteDraftDialog footer button{width:100%}}
+@media(prefers-reduced-motion:reduce){#bankDeleteDraftDialog .bank-delete-draft-switch-track,#bankDeleteDraftDialog .bank-delete-draft-switch-track::after{transition:none}}
+@media(max-width:540px){#bankControls{grid-template-columns:minmax(0,1fr)}}
