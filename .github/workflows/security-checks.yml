@@ -41,6 +41,36 @@ jobs:
       - name: Install Chromium for isolated report browser tests
         run: node node_modules/playwright/cli.js install --with-deps chromium
 
+      - name: Configure exact Chromium sandbox
+        shell: bash
+        run: |
+          set -euo pipefail
+          chrome="$(node --input-type=module -e 'import {chromium} from "@playwright/test"; import {realpathSync} from "node:fs"; process.stdout.write(realpathSync(chromium.executablePath()));')"
+          chrome_ci_home="$(realpath -e -- "$HOME")"
+          chrome_ci_cache="$(realpath -e -- "$HOME/.cache/ms-playwright")"
+          if [[ "$chrome_ci_cache" != "$chrome_ci_home/.cache/ms-playwright" || ! "$chrome" =~ ^/[A-Za-z0-9_./-]+$ ]]; then
+            printf '%s\n' 'Unexpected Chromium cache or executable path.' >&2
+            exit 1
+          fi
+          chrome_relative="${chrome#"$chrome_ci_cache"/}"
+          if [[ "$chrome" != "$chrome_ci_cache/$chrome_relative" || ! "$chrome_relative" =~ ^chromium-[0-9]+/chrome-linux64/chrome$ || ! -f "$chrome" || ! -x "$chrome" ]]; then
+            printf '%s\n' 'Expected the installed full Chromium executable inside its real cache directory.' >&2
+            exit 1
+          fi
+          chrome_ci_profile="$(mktemp)"
+          trap 'rm -f -- "$chrome_ci_profile"' EXIT
+          test ! -e /etc/apparmor.d/gentia-pdf-ci
+          printf 'abi <abi/4.0>,\ninclude <tunables/global>\nprofile gentia-pdf-ci "%s" flags=(unconfined) {\n  userns,\n}\n' "$chrome" > "$chrome_ci_profile"
+          sudo install -o root -g root -m 0644 -- "$chrome_ci_profile" /etc/apparmor.d/gentia-pdf-ci
+          sudo apparmor_parser -r /etc/apparmor.d/gentia-pdf-ci
+          printf 'CHROME_PATH=%s\n' "$chrome" >> "$GITHUB_ENV"
+
+      - name: Verify real PDF before full suite
+        env:
+          NODE_ENV: test
+          PDF_RENDER_DIAGNOSTICS: "true"
+        run: node --test --test-concurrency=1 --test-name-pattern='real secure PDF rendering' scripts/general-ledger-exports-renderer.test.mjs
+
       - name: Run explicit isolated security tests
         env:
           NODE_ENV: test
