@@ -199,6 +199,9 @@ jobs:
             scripts/bank-fee-api-security.test.mjs \
             scripts/bank-reconciliation-close-pdf-ui.test.mjs \
             scripts/bank-reconciliation-options-cache.test.mjs \
+            scripts/bank-reconciliation-options-bundle-api.test.mjs \
+            scripts/bank-reconciliation-options-bundle-sql.test.mjs \
+            scripts/bank-reconciliation-options-bundle-ui.test.mjs \
             scripts/bank-reconciliation-unmatch-api.test.mjs \
             scripts/bank-reconciliation-draft-delete-api.test.mjs \
             scripts/bank-reconciliation-empty-month-close-api.test.mjs \
