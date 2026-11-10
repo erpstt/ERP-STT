@@ -1,1 +1,78 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Configuración de flujos de aprobación</title><link rel="stylesheet" href="/approval-engine.css"></head><body><main><header><div><span class="eyebrow">WORKFLOW · CONFIGURACIÓN</span><h1>Flujos de aprobación</h1><p class="muted">Reglas multinivel reutilizables por subsidiaria y tipo de documento.</p></div><div class="actions"><a class="button" href="/approval-inbox.html">Mis aprobaciones</a><button id="new" class="primary">+ Nuevo flujo</button></div></header><p id="message" class="message"></p><section class="card"><div class="card-head"><h2>Flujos configurados</h2></div><div id="list" class="content list"></div></section><section id="editor" class="card" hidden><div class="card-head between"><h2 id="formTitle">Nuevo flujo</h2><button id="close">Cerrar</button></div><form id="form" class="content"><div class="grid"><label>Nombre<input id="name" required></label><label>Entidad destino<select id="entity" required></select></label><label>Estado<select id="active"><option value="true">Activo</option><option value="false">Inactivo</option></select></label><label class="wide">Descripción<textarea id="description"></textarea></label></div><p id="paymentRequestRouteNotice" class="muted" role="note" hidden>Al enviar nuevas solicitudes de Pago de CxP, GENTIA utiliza el Aprobador Administrativo de la subsidiaria. Las reglas de esta pantalla no sustituyen esa configuración. Los flujos ya iniciados conservan su ruta e historial.</p><div class="between" style="margin-top:22px"><div><h2>Secuencia de aprobación</h2><p class="muted">Los niveles se ejecutan en el orden mostrado.</p></div><button id="addRule" type="button">+ Agregar nivel</button></div><div id="rules"></div><div class="actions" style="justify-content:flex-end;margin-top:20px"><button id="cancel" type="button">Cancelar</button><button class="primary">Guardar flujo</button></div></form></section></main><script type="module" src="/approval-workflows.js?v=20261107-cxp-administrative-route"></script></body></html>
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>Flujos e inventario de aprobaciones</title>
+  <link rel="stylesheet" href="/approval-engine.css">
+  <link rel="stylesheet" href="/approval-workflows.css?v=20261110-approval-inventory">
+</head>
+<body>
+<main class="workflow-page">
+  <header>
+    <div>
+      <span class="eyebrow">WORKFLOW · CONFIGURACIÓN</span>
+      <h1>Flujos de aprobación</h1>
+      <p class="muted">Inventario de aprobaciones, rutas automáticas y flujos por subsidiaria.</p>
+    </div>
+    <div class="actions">
+      <a class="button" href="/approval-inbox.html">Mis aprobaciones</a>
+      <button id="new" class="primary" hidden disabled>+ Nuevo flujo</button>
+    </div>
+  </header>
+  <p id="message" class="message" role="status"></p>
+  <section id="inventoryPanel" class="card" aria-labelledby="inventoryTitle" hidden>
+    <div class="card-head inventory-heading">
+      <div>
+        <h2 id="inventoryTitle">Inventario de aprobaciones</h2>
+        <p class="muted">Consulta qué se aprueba, cómo funciona la ruta y dónde se gestiona.</p>
+      </div>
+      <div class="inventory-company"><span>Subsidiaria activa</span><strong id="inventoryCompany"></strong></div>
+    </div>
+    <div id="inventorySummary" class="inventory-summary"></div>
+    <div class="inventory-table-wrap">
+      <table class="inventory-table" aria-labelledby="inventoryTitle">
+        <thead><tr><th scope="col">Transacción o proceso</th><th scope="col">Cómo se aprueba</th><th scope="col">Estado o ruta</th><th scope="col">Dónde se gestiona</th></tr></thead>
+        <tbody id="inventory"></tbody>
+      </table>
+    </div>
+    <details class="inventory-scope">
+      <summary>Operaciones sin aprobación independiente</summary>
+      <ul>
+        <li>Recepciones, despachos y lotes de pago dependen de órdenes o solicitudes previamente aprobadas.</li>
+        <li>Asientos, facturas y notas se registran o contabilizan con los permisos de su módulo.</li>
+        <li>Activos fijos, capitalizaciones, depreciaciones, transferencias y bajas se procesan dentro de Activos Fijos.</li>
+        <li>Solicitudes y cotizaciones de compra, y cotizaciones de venta, permiten seleccionar su estado al guardar.</li>
+        <li>Los ajustes y transferencias de inventario se presentan como consultas protegidas.</li>
+      </ul>
+    </details>
+  </section>
+  <section class="card" aria-labelledby="configuredTitle">
+    <div class="card-head configured-heading">
+      <h2 id="configuredTitle">Flujos configurados</h2>
+      <p class="muted">Definiciones guardadas para la subsidiaria activa. Las rutas automáticas se describen en el inventario.</p>
+    </div>
+    <div id="list" class="content list"></div>
+  </section>
+  <section id="editor" class="card" hidden>
+    <div class="card-head between"><h2 id="formTitle">Nuevo flujo</h2><button id="close">Cerrar</button></div>
+    <form id="form" class="content">
+      <div class="grid">
+        <label>Nombre<input id="name" required></label>
+        <label>Entidad destino<select id="entity" required></select></label>
+        <label>Estado<select id="active"><option value="true">Activo</option><option value="false">Inactivo</option></select></label>
+        <label class="wide">Descripción<textarea id="description"></textarea></label>
+      </div>
+      <p id="paymentRequestRouteNotice" class="muted" role="note" hidden>Al enviar nuevas solicitudes de Pago de CxP, GENTIA utiliza el Aprobador Administrativo de la subsidiaria. Las reglas de esta pantalla no sustituyen esa configuración. Los flujos ya iniciados conservan su ruta e historial.</p>
+      <div class="between" style="margin-top:22px">
+        <div><h2>Secuencia de aprobación</h2><p class="muted">Los niveles se ejecutan en el orden mostrado.</p></div>
+        <button id="addRule" type="button">+ Agregar nivel</button>
+      </div>
+      <div id="rules"></div>
+      <div class="actions" style="justify-content:flex-end;margin-top:20px"><button id="cancel" type="button">Cancelar</button><button class="primary">Guardar flujo</button></div>
+    </form>
+  </section>
+</main>
+<script type="module" src="/approval-workflows.js?v=20261110-approval-inventory"></script>
+</body>
+</html>
