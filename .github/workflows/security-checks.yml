@@ -163,6 +163,10 @@ jobs:
             scripts/payment-request-administrative-route-ui.test.mjs \
             scripts/approval-inventory-ui.test.mjs \
             scripts/workspace-shell-layout-ui.test.mjs \
+            scripts/collect-catalog-pages.test.mjs \
+            scripts/catalog-pagination-api.test.mjs \
+            scripts/catalog-pagination-ui.test.mjs \
+            scripts/list-pagination-ui.test.mjs \
             scripts/workspace-embedded-layout-ui.test.mjs \
             scripts/test-workspace-navigation.test.mjs \
             scripts/other-payment-up-administrative-approval-sql.test.mjs \

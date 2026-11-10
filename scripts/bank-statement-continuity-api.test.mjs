@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {catalogPageResponse} from './lib/catalog-page-fixture.mjs';
 import {test} from 'node:test';
 import {getBankingCatalog,listBankingRows} from '../dist/modules/banking-catalogs/banking-catalogs.module.js';
 import {reconciliationRpc} from '../dist/modules/banking-catalogs/bank-reconciliation-security.service.js';
@@ -22,7 +23,7 @@ test('los encabezados del extracto reflejan cambios de otro proceso sin caché d
   assert.equal(url.origin,origin);assert.equal(url.pathname,'/rest/v1/bank_statement');
   assert.equal(headers.get('Authorization'),auth);assert.equal(headers.get('apikey'),'public-continuity-fixture');
   assert.equal(init.method??'GET','GET');calls.push(url.search);
-  return Response.json([{statement_id:39,bank_account_id:6,statement_date:'2026-10-31',opening_balance:20895.66,closing_balance:closing}]);
+  return catalogPageResponse([{statement_id:39,bank_account_id:6,statement_date:'2026-10-31',opening_balance:20895.66,closing_balance:closing}]);
  };
  const catalog=getBankingCatalog('bank-statements');
  assert.equal((await listBankingRows(catalog,auth))[0].closing_balance,23.67);

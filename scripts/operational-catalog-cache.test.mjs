@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {catalogPageResponse} from './lib/catalog-page-fixture.mjs';
 import test from 'node:test';
 import {
   deleteEntityRow,
@@ -117,9 +118,9 @@ test('facturas de venta y saldos bancarios revalidan cada lectura; los demás ca
   const reads = new Map();
   globalThis.fetch = async (input, init = {}) => {
     assert.equal(init.method ?? 'GET', 'GET');
-    const table = new URL(String(input)).pathname.split('/').pop();
+    const url=new URL(String(input)),table=url.pathname.split('/').pop(),key=url.searchParams.get('order').split('.')[0];
     reads.set(table, (reads.get(table) ?? 0) + 1);
-    return Response.json([{ id: 1 }]);
+    return catalogPageResponse([{[key]:1}]);
   };
 
   const operations = [
@@ -149,7 +150,7 @@ test('el saldo bancario refleja movimientos de otros procesos sin invalidación 
   globalThis.fetch = async input => {
     assert.equal(new URL(String(input)).pathname, '/rest/v1/bank_account');
     reads++;
-    return Response.json([{ bank_account_id: 1, account_number: 'SYN-BANK', balance }]);
+    return catalogPageResponse([{ bank_account_id: 1, account_number: 'SYN-BANK', balance }]);
   };
   const catalog = banking.getBankingCatalog('bank-accounts');
   assert.equal((await banking.listBankingRows(catalog, firstAuthorization))[0].balance, 1000);
@@ -174,7 +175,7 @@ test('guardar facturas, activos y categorías invalida sus listados especializad
       return Response.json({ id: 1 });
     }
     reads.set(resource, (reads.get(resource) ?? 0) + 1);
-    return Response.json([{ id: 1 }]);
+    const key=url.searchParams.get('order').split('.')[0];return catalogPageResponse([{[key]:1}]);
   };
 
   const cases = [

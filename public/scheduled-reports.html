@@ -2,11 +2,11 @@
 <header><div><p class="eyebrow">INFORMES · AUTOMATIZACIÓN</p><h1>Envíos programados</h1><p id="company" class="help"></p></div><button id="new" type="button">Nueva programación</button></header>
 <p class="intro">Programa cualquiera de los reportes del catálogo de Informes. Elige el reporte, su período, los destinatarios y un envío semanal o mensual.</p>
 <div id="transport" class="transport" role="status"></div><p id="message" role="status"></p>
-<div class="section-heading"><h2>Programaciones</h2><button id="refresh" type="button">Actualizar</button></div>
+<div class="section-heading"><h2>Programaciones</h2><button id="refresh" type="button" data-list-pagination-filter="schedules,history">Actualizar</button></div>
 <div id="empty" class="empty" hidden>No hay envíos programados para esta sociedad. Crea una programación para comenzar.</div>
-<div class="table-scroll" id="listWrap"><table><thead><tr><th>Nombre / Reporte</th><th>Frecuencia · Costa Rica</th><th>Destinatarios</th><th>Próximo envío</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="schedules"></tbody></table></div>
+<div class="table-scroll" id="listWrap"><table><thead><tr><th>Nombre / Reporte</th><th>Frecuencia · Costa Rica</th><th>Destinatarios</th><th>Próximo envío</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="schedules" data-list-pagination data-pagination-label="Envíos programados"></tbody></table></div>
 <h2>Historial de envíos</h2><p class="help">Últimos 100 registros de esta sociedad. «Enviado» indica aceptación por el servidor de correo. Cada destinatario recibe un mensaje individual.</p>
-<div class="table-scroll"><table><thead><tr><th>Programación</th><th>Fecha programada / Corte</th><th>Destinatario</th><th>Resultado</th><th>Detalle</th></tr></thead><tbody id="history"></tbody></table></div>
+<div class="table-scroll"><table><thead><tr><th>Programación</th><th>Fecha programada / Corte</th><th>Destinatario</th><th>Resultado</th><th>Detalle</th></tr></thead><tbody id="history" data-list-pagination data-pagination-label="Historial de envíos"></tbody></table></div>
 </main>
 <dialog id="editor" aria-labelledby="editorTitle"><form id="form"><div class="editor-heading"><p class="eyebrow">CONFIGURACIÓN DE ENVÍO</p><h2 id="editorTitle">Nueva programación</h2></div>
 <label>Nombre<input id="name" maxlength="100" placeholder="Ej. CxC semanal para Finanzas" required></label>

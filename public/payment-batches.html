@@ -42,7 +42,7 @@
   <div id="message" class="page-message" role="status" aria-live="polite"></div>
 
   <section id="generatorView" class="view-panel">
-    <form id="candidateFilters" class="card filter-card">
+    <form id="candidateFilters" class="card filter-card" data-list-pagination-filter="candidateRows">
       <div class="section-heading compact-heading">
         <div class="heading-copy">
           <span class="step-badge">1</span>
@@ -101,7 +101,7 @@
               <th class="num">Monto</th>
             </tr>
           </thead>
-          <tbody id="candidateRows">
+          <tbody id="candidateRows" data-list-pagination data-pagination-label="Solicitudes para lote de pago" data-pagination-selection="all">
             <tr><td colspan="8"><div class="empty-state"><span>⌕</span><b>Consulte las solicitudes aprobadas</b><small>Seleccione una cuenta pagadora y una fecha de vencimiento.</small></div></td></tr>
           </tbody>
         </table>
@@ -132,7 +132,7 @@
   </section>
 
   <section id="historyView" class="view-panel" hidden>
-    <form id="historyFilters" class="card filter-card">
+    <form id="historyFilters" class="card filter-card" data-list-pagination-filter="historyRows">
       <div class="section-heading compact-heading">
         <div class="heading-copy">
           <span class="step-badge">2</span>
@@ -174,7 +174,7 @@
       <div class="table-scroll history-table-wrap">
         <table class="history-table">
           <thead><tr><th>Lote</th><th>Ejecución</th><th>Banco / Cuenta</th><th>Moneda</th><th class="num">Solicitudes</th><th class="num">Total</th><th>Estado</th><th>Creado por</th><th>Acciones</th></tr></thead>
-          <tbody id="historyRows"><tr><td colspan="9"><div class="empty-state"><span>≡</span><b>Aún no se ha consultado el historial</b><small>Use los filtros para cargar los lotes.</small></div></td></tr></tbody>
+          <tbody id="historyRows" data-list-pagination data-pagination-label="Historial de lotes"><tr><td colspan="9"><div class="empty-state"><span>≡</span><b>Aún no se ha consultado el historial</b><small>Use los filtros para cargar los lotes.</small></div></td></tr></tbody>
         </table>
       </div>
     </section>

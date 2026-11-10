@@ -36,7 +36,7 @@
           <p>Las subsidiarias utilizarán únicamente las obligaciones configuradas para su país.</p>
         </div>
         <label>País
-          <select id="countryFilter" aria-describedby="countryHelp"></select>
+          <select id="countryFilter" aria-describedby="countryHelp" data-list-pagination-filter="obligationRows"></select>
           <small id="countryHelp">Cambiar el país actualiza el catálogo y sus plantillas.</small>
         </label>
       </section>
@@ -70,7 +70,7 @@
                 <th>Acciones</th>
               </tr>
             </thead>
-            <tbody id="obligationRows"></tbody>
+            <tbody id="obligationRows" data-list-pagination data-pagination-label="Obligaciones tributarias"></tbody>
           </table>
         </div>
         <div id="catalogEmpty" class="empty-state compact" hidden>

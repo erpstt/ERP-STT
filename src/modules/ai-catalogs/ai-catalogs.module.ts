@@ -1,3 +1,4 @@
+import {collectCatalogPages,type CatalogResponseObserver} from '../../core/database/collect-catalog-pages.js';
 import{ fetchSupabase,getSupabaseConfig}from'../../core/database/supabase.client.js';type T='text'|'number'|'boolean'|'date'|'datetime-local';export interface AiField{key:string;label:string;type:T;required?:boolean;reference?:string;}export interface AiCatalog{slug:string;table:string;title:string;description:string;primaryKey:string;fields:AiField[];}
 export const aiCatalogs:AiCatalog[]=[
 {slug:'ai-agents',table:'ai_agents',title:'Agentes de IA',description:'Agentes de IA del ERP',primaryKey:'agent_id',fields:[{key:'agent_name',label:'Agente',type:'text',required:true},{key:'system_prompt',label:'Prompt del sistema',type:'text',required:true},{key:'model_version',label:'Versión del modelo',type:'text',required:true},{key:'is_active',label:'Activo',type:'boolean'}]},
@@ -31,15 +32,15 @@ function aiDbError(status:number,payload:unknown):never{
  const message=responseStatus===401?'Debe iniciar sesión.':denied?'El rol activo no tiene acceso al catálogo de IA o a sus registros.':responseStatus===400?'Los datos del catálogo de IA no son válidos.':'No fue posible completar la operación de IA.';
  throw Object.assign(Error(message),{status:responseStatus});
 }
-async function request<R>(c:AiCatalog,t:string,q='',i:RequestInit={}):Promise<R>{
+async function request<R>(c:AiCatalog,t:string,q='',i:RequestInit={},onResponse?:CatalogResponseObserver):Promise<R>{
  const g=getSupabaseConfig();if(!g)throw new Error('Supabase no está configurado.');
- const r=await fetchSupabase(new URL(`/rest/v1/${c.table}${q}`,g.url),{...i,headers:{apikey:g.anonKey,Authorization:t,'Content-Type':'application/json',...(i.headers??{})}});
+ const r=await fetchSupabase(new URL(`/rest/v1/${c.table}${q}`,g.url),{...i,headers:{apikey:g.anonKey,Authorization:t,'Content-Type':'application/json',...(i.headers??{})}});onResponse?.(r);
  const x=r.status===204?'':await r.text();let p:unknown=null;
  try{p=x?JSON.parse(x):null;}catch{aiDbError(r.status,null);}
  if(!r.ok)aiDbError(r.status,p);
  return p as R;
 }
-export async function listAiRows(c:AiCatalog,t:string){c=await requireAiAccess(c,t,'view');return request<Record<string,unknown>[]>(c,t,`?select=*&order=${c.primaryKey}.asc`);}
+export async function listAiRows(c:AiCatalog,t:string){c=await requireAiAccess(c,t,'view');return collectCatalogPages(c.primaryKey,`?select=*&order=${c.primaryKey}.asc`,(page,init,onResponse)=>request<Record<string,unknown>[]>(c,t,page,init,onResponse));}
 export async function createAiRow(c:AiCatalog,t:string,i:Record<string,unknown>){c=await requireAiAccess(c,t,'create');const r=await request<Record<string,unknown>[]>(c,t,'',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(sanitize(c,i))});return r[0];}
 export async function updateAiRow(c:AiCatalog,t:string,id:number,i:Record<string,unknown>){c=await requireAiAccess(c,t,'edit');const r=await request<Record<string,unknown>[]>(c,t,`?${c.primaryKey}=eq.${id}`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(sanitize(c,i))});return r[0];}
 export async function deleteAiRow(c:AiCatalog,t:string,id:number){c=await requireAiAccess(c,t,'delete');return request<null>(c,t,`?${c.primaryKey}=eq.${id}`,{method:'DELETE'});}

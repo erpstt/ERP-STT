@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {sendCatalogPageFixture,catalogPageResponse} from './lib/catalog-page-fixture.mjs';
 import {test} from 'node:test';
 import {createServer} from 'node:http';
 import {spawn} from 'node:child_process';
@@ -36,9 +37,9 @@ test('explicit non-admin IA CRUD retains user JWT/public key, canonical catalogs
  process.env.SUPABASE_URL='https://synthetic.invalid';process.env.SUPABASE_ANON_KEY='synthetic-public';
  t.after(()=>{globalThis.fetch=original;for(const [key,value]of Object.entries(env)){if(value===undefined)delete process.env[key];else process.env[key]=value;}invalidateRoleAccessCaches();});
  const auth='Bearer p79-explicit-non-admin';await primeRoleAccessCache(auth,{isAdmin:false,grants:grants()});
- const calls=[];globalThis.fetch=async(url,init={})=>{calls.push({path:new URL(url).pathname,method:init.method||'GET',auth:new Headers(init.headers).get('authorization'),key:new Headers(init.headers).get('apikey'),body:init.body});return new Response(init.method==='DELETE'?null:JSON.stringify([{synthetic:true}]),{status:init.method==='DELETE'?204:200,headers:{'Content-Type':'application/json'}});};
+ const calls=[];globalThis.fetch=async(url,init={})=>{calls.push({path:new URL(url).pathname,method:init.method||'GET',auth:new Headers(init.headers).get('authorization'),key:new Headers(init.headers).get('apikey'),body:init.body});if((init.method||'GET')==='GET'){const key=new URL(url).searchParams.get('order').split('.')[0];return catalogPageResponse([{[key]:1,synthetic:true}]);}return new Response(init.method==='DELETE'?null:JSON.stringify([{synthetic:true}]),{status:init.method==='DELETE'?204:200,headers:{'Content-Type':'application/json'}});};
  for(const c of aiCatalogs){
-  assert.deepEqual(await listAiRows(c,auth),[{synthetic:true}]);
+  assert.deepEqual(await listAiRows(c,auth),[{[c.primaryKey]:1,synthetic:true}]);
   assert.deepEqual(await createAiRow(c,auth,{...payloads[c.slug],user_id:999,private_injected:'must drop'}),{synthetic:true});
   assert.deepEqual(await updateAiRow(c,auth,1,{...payloads[c.slug],user_id:999}),{synthetic:true});
   assert.equal(await deleteAiRow(c,auth,1),null);
@@ -68,7 +69,7 @@ test('HTTP IA action matrix gates all five catalogs and masks SQL denial without
   calls.push({path:req.url,method:req.method,auth:req.headers.authorization,key:req.headers.apikey,body:Buffer.concat(chunks).toString()});
   if(role==='sqlDenied'){res.writeHead(403);return res.end(JSON.stringify({code:'42501',message:'PRIVATE_SQL_DETAILS'}));}
   if(req.method==='DELETE'){res.writeHead(204);return res.end();}
-  return res.end(JSON.stringify([{synthetic:true}]));
+  if(sendCatalogPageFixture(req,res))return;return res.end(JSON.stringify([{synthetic:true}]));
  });
  await new Promise(r=>upstream.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>{upstream.closeAllConnections();upstream.close(r);}));
  const probe=createServer();await new Promise(r=>probe.listen(0,'127.0.0.1',r));const port=probe.address().port;await new Promise(r=>probe.close(r));

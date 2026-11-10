@@ -43,33 +43,43 @@ const _hoisted_18 = ["onClick"]
 const _hoisted_19 = ["onClick"]
 const _hoisted_20 = { class: "matrix-scroll" }
 const _hoisted_21 = {
+  "data-list-pagination": "",
+  "data-pagination-label": "Permisos por rol",
+  "data-pagination-selection": "preserve"
+}
+const _hoisted_22 = {
   key: 0,
   class: "not-applicable"
 }
-const _hoisted_22 = ["disabled", "checked", "onChange"]
-const _hoisted_23 = {
+const _hoisted_23 = ["disabled", "checked", "onChange"]
+const _hoisted_24 = {
   key: 5,
   class: "special-access"
 }
-const _hoisted_24 = {
+const _hoisted_25 = {
   key: 0,
   class: "state"
 }
-const _hoisted_25 = { class: "module-title static" }
-const _hoisted_26 = {
+const _hoisted_26 = { class: "module-title static" }
+const _hoisted_27 = {
   key: 0,
   class: "module-actions"
 }
-const _hoisted_27 = ["onClick"]
 const _hoisted_28 = ["onClick"]
-const _hoisted_29 = { class: "matrix-scroll" }
-const _hoisted_30 = { class: "special-table" }
-const _hoisted_31 = ["disabled", "checked", "onChange"]
+const _hoisted_29 = ["onClick"]
+const _hoisted_30 = { class: "matrix-scroll" }
+const _hoisted_31 = { class: "special-table" }
 const _hoisted_32 = {
+  "data-list-pagination": "",
+  "data-pagination-label": "Permisos por rol",
+  "data-pagination-selection": "preserve"
+}
+const _hoisted_33 = ["disabled", "checked", "onChange"]
+const _hoisted_34 = {
   key: 6,
   class: "sticky-save"
 }
-const _hoisted_33 = ["disabled"]
+const _hoisted_35 = ["disabled"]
 
 export function render(_ctx, _cache) {
   return (_openBlock(), _createElementBlock(_Fragment, null, [
@@ -92,7 +102,8 @@ export function render(_ctx, _cache) {
         _withDirectives(_createElementVNode("select", {
           "onUpdate:modelValue": _cache[1] || (_cache[1] = $event => ((_ctx.selectedRoleId) = $event)),
           disabled: _ctx.loading||_ctx.saving,
-          onChange: _cache[2] || (_cache[2] = (...args) => (_ctx.loadRole && _ctx.loadRole(...args)))
+          onChange: _cache[2] || (_cache[2] = (...args) => (_ctx.loadRole && _ctx.loadRole(...args))),
+          "data-list-pagination-filter": "*"
         }, [
           (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.roles, (role) => {
             return (_openBlock(), _createElementBlock("option", {
@@ -150,7 +161,8 @@ export function render(_ctx, _cache) {
         _withDirectives(_createElementVNode("input", {
           "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => ((_ctx.search) = $event)),
           placeholder: _ctx.activeTab==='standard'?'Buscar módulo u opción':'Buscar permiso, módulo o código',
-          "aria-label": "Buscar permisos"
+          "aria-label": "Buscar permisos",
+          "data-list-pagination-filter": "*"
         }, null, 8 /* PROPS */, _hoisted_12), [
           [_vModelText, _ctx.search]
         ])
@@ -220,7 +232,7 @@ export function render(_ctx, _cache) {
                           _createElementVNode("th", null, "Eliminar")
                         ])
                       ], -1 /* CACHED */)),
-                      _createElementVNode("tbody", null, [
+                      _createElementVNode("tbody", _hoisted_21, [
                         (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(module.resources, (resource) => {
                           return (_openBlock(), _createElementBlock("tr", {
                             key: resource.key
@@ -234,7 +246,7 @@ export function render(_ctx, _cache) {
                                 key: action.key
                               }, [
                                 (!resource.actions.includes(action.key))
-                                  ? (_openBlock(), _createElementBlock("span", _hoisted_21, [...(_cache[14] || (_cache[14] = [
+                                  ? (_openBlock(), _createElementBlock("span", _hoisted_22, [...(_cache[14] || (_cache[14] = [
                                       _createTextVNode("—", -1 /* CACHED */),
                                       _createElementVNode("small", null, "No aplica", -1 /* CACHED */)
                                     ]))]))
@@ -247,7 +259,7 @@ export function render(_ctx, _cache) {
                                         disabled: _ctx.administratorRole,
                                         checked: _ctx.allowed(resource,action.key),
                                         onChange: $event => (_ctx.changePermission(resource,action.key,$event.target.checked))
-                                      }, null, 40 /* PROPS, NEED_HYDRATION */, _hoisted_22),
+                                      }, null, 40 /* PROPS, NEED_HYDRATION */, _hoisted_23),
                                       _cache[15] || (_cache[15] = _createElementVNode("span", {
                                         class: "switch",
                                         "aria-hidden": "true"
@@ -266,7 +278,7 @@ export function render(_ctx, _cache) {
                 ]))
               }), 128 /* KEYED_FRAGMENT */))
             ]))
-          : (_openBlock(), _createElementBlock("section", _hoisted_23, [
+          : (_openBlock(), _createElementBlock("section", _hoisted_24, [
               _cache[19] || (_cache[19] = _createElementVNode("div", { class: "special-explanation" }, [
                 _createElementVNode("div", { class: "special-icon" }, "⚙"),
                 _createElementVNode("div", null, [
@@ -275,7 +287,7 @@ export function render(_ctx, _cache) {
                 ])
               ], -1 /* CACHED */)),
               (!_ctx.filteredSpecialModules.length)
-                ? (_openBlock(), _createElementBlock("p", _hoisted_24, "No hay permisos especiales que coincidan con la búsqueda."))
+                ? (_openBlock(), _createElementBlock("p", _hoisted_25, "No hay permisos especiales que coincidan con la búsqueda."))
                 : _createCommentVNode("v-if", true),
               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.filteredSpecialModules, (module) => {
                 return (_openBlock(), _createElementBlock("article", {
@@ -283,27 +295,27 @@ export function render(_ctx, _cache) {
                   class: "module-card special-card"
                 }, [
                   _createElementVNode("header", null, [
-                    _createElementVNode("div", _hoisted_25, [
+                    _createElementVNode("div", _hoisted_26, [
                       _createElementVNode("span", null, [
                         _createElementVNode("strong", null, _toDisplayString(module.name), 1 /* TEXT */),
                         _createElementVNode("small", null, _toDisplayString(module.permissions.length) + " permisos especializados", 1 /* TEXT */)
                       ])
                     ]),
                     (!_ctx.administratorRole)
-                      ? (_openBlock(), _createElementBlock("div", _hoisted_26, [
+                      ? (_openBlock(), _createElementBlock("div", _hoisted_27, [
                           _createElementVNode("button", {
                             type: "button",
                             onClick: $event => (_ctx.setSpecialModule(module,true))
-                          }, "Permitir todos", 8 /* PROPS */, _hoisted_27),
+                          }, "Permitir todos", 8 /* PROPS */, _hoisted_28),
                           _createElementVNode("button", {
                             type: "button",
                             onClick: $event => (_ctx.setSpecialModule(module,false))
-                          }, "Quitar todos", 8 /* PROPS */, _hoisted_28)
+                          }, "Quitar todos", 8 /* PROPS */, _hoisted_29)
                         ]))
                       : _createCommentVNode("v-if", true)
                   ]),
-                  _createElementVNode("div", _hoisted_29, [
-                    _createElementVNode("table", _hoisted_30, [
+                  _createElementVNode("div", _hoisted_30, [
+                    _createElementVNode("table", _hoisted_31, [
                       _cache[18] || (_cache[18] = _createElementVNode("thead", null, [
                         _createElementVNode("tr", null, [
                           _createElementVNode("th", null, "Permiso especial"),
@@ -311,7 +323,7 @@ export function render(_ctx, _cache) {
                           _createElementVNode("th", null, "Asignado")
                         ])
                       ], -1 /* CACHED */)),
-                      _createElementVNode("tbody", null, [
+                      _createElementVNode("tbody", _hoisted_32, [
                         (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(module.permissions, (permission) => {
                           return (_openBlock(), _createElementBlock("tr", {
                             key: permission.permissionId
@@ -332,7 +344,7 @@ export function render(_ctx, _cache) {
                                   disabled: _ctx.administratorRole,
                                   checked: _ctx.administratorRole||permission.enabled,
                                   onChange: $event => (_ctx.toggleSpecial(permission,$event.target.checked))
-                                }, null, 40 /* PROPS, NEED_HYDRATION */, _hoisted_31),
+                                }, null, 40 /* PROPS, NEED_HYDRATION */, _hoisted_33),
                                 _cache[17] || (_cache[17] = _createElementVNode("span", { class: "switch" }, null, -1 /* CACHED */)),
                                 _createElementVNode("b", null, _toDisplayString(_ctx.administratorRole||permission.enabled?'Sí':'No'), 1 /* TEXT */)
                               ], 2 /* CLASS */)
@@ -346,7 +358,7 @@ export function render(_ctx, _cache) {
               }), 128 /* KEYED_FRAGMENT */))
             ])),
     (_ctx.dirty&&!_ctx.administratorRole)
-      ? (_openBlock(), _createElementBlock("footer", _hoisted_32, [
+      ? (_openBlock(), _createElementBlock("footer", _hoisted_34, [
           _cache[20] || (_cache[20] = _createElementVNode("span", null, [
             _createElementVNode("b", null, "Cambios sin guardar"),
             _createElementVNode("small", null, "Guarda la matriz para aplicarla al rol.")
@@ -356,7 +368,7 @@ export function render(_ctx, _cache) {
             type: "button",
             disabled: _ctx.saving,
             onClick: _cache[6] || (_cache[6] = (...args) => (_ctx.save && _ctx.save(...args)))
-          }, _toDisplayString(_ctx.saving?'Guardando…':'Guardar permisos'), 9 /* TEXT, PROPS */, _hoisted_33)
+          }, _toDisplayString(_ctx.saving?'Guardando…':'Guardar permisos'), 9 /* TEXT, PROPS */, _hoisted_35)
         ]))
       : _createCommentVNode("v-if", true)
   ], 64 /* STABLE_FRAGMENT */))

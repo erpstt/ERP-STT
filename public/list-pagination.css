@@ -1,0 +1,26 @@
+.list-pagination{box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 16px;width:100%;min-width:0;margin:12px 0;padding:12px 14px;border:1px solid #d8e2ef;border-radius:9px;background:#fff;color:#17385f;font:12px/1.5 "Segoe UI",sans-serif}
+.list-pagination-info{flex:1 1 180px;min-width:0;margin:0;color:#5b7089;overflow-wrap:anywhere}
+.list-pagination[hidden]{display:none!important}
+.matrix-scroll>.list-pagination{position:sticky;left:0;z-index:1}
+.list-pagination-size{display:inline-flex;align-items:center;gap:8px;min-width:0;font-size:12px;font-weight:600;color:#425b77}
+.list-pagination-size select{box-sizing:border-box;width:auto;min-width:70px;min-height:40px;padding:7px 10px;border:1px solid #c7d5e7;border-radius:7px;background:#fff;color:#17385f;font:inherit;cursor:pointer}
+.list-pagination-controls{display:flex;align-items:center;justify-content:flex-end;gap:5px;min-width:0}
+.list-pagination-controls>button{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;min-width:40px;min-height:40px;margin:0;padding:7px 10px;border:1px solid #c7d5e7;border-radius:7px;background:#fff;color:#0c3976;font:700 15px/1 "Segoe UI",sans-serif;cursor:pointer;box-shadow:none}
+.list-pagination-controls>button:hover:not(:disabled){background:#edf4ff;border-color:#92b4e4}
+.list-pagination-controls>button:disabled{opacity:.4;cursor:default}
+.list-pagination-controls>button:focus-visible,.list-pagination-size select:focus-visible{outline:3px solid #90b8ed;outline-offset:2px}
+.list-pagination-caption{min-width:86px;padding:0 5px;color:#425b77;font-size:12px;text-align:center;white-space:nowrap}
+.list-pagination-selection{flex:1 1 100%;margin:0;padding-top:2px;color:#5b7089;font-size:11px;line-height:1.5}
+[data-list-pagination]>[data-pagination-hidden="true"]{display:none!important}
+@media(max-width:640px){
+ .list-pagination{gap:9px;padding:10px 11px}
+ .list-pagination-info{flex-basis:100%;font-size:11px}
+ .list-pagination-size{flex:1 1 auto;font-size:11px}
+ .list-pagination-controls{flex:1 1 100%;justify-content:center}
+ .list-pagination-caption{flex:1 1 auto;min-width:80px}
+}
+@media print{
+ .list-pagination{display:none!important}
+ tbody[data-list-pagination]>tr[data-pagination-hidden="true"]:not([hidden]){display:table-row!important}
+ [data-list-pagination][data-pagination-item]>[data-pagination-hidden="true"]:not([hidden]){display:flex!important}
+}

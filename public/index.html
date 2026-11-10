@@ -26,6 +26,7 @@
   <link rel="stylesheet" href="/gentia-theme.css?v=20261029-exchange-rate-menu">
   <link rel="stylesheet" href="/security-user-invitation.css?v=20261027-partial-notification">
   <link rel="stylesheet" href="/workspace-shell.css?v=20261110-workspace-layout-focus">
+  <link rel="stylesheet" href="/list-pagination.css?v=20261110-list-pagination">
 </head>
 <body>
 <div id="app">
@@ -445,13 +446,24 @@
 <label><span>Mes</span><select v-model="bankStatementFilters.month" :disabled="tableLoading" aria-label="Filtrar extractos por mes"><option value="">Todos los meses</option><option v-for="option in bankStatementMonthOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
 <button type="button" class="button-link" :disabled="!search&&!bankStatementFilters.account&&!bankStatementFilters.month" @click="search='';bankStatementFilters={account:'',month:''}">Limpiar filtros</button>
 </div>
+<nav v-if="!activeCatalog.auditRawRestricted &amp;&amp; (rows.length>10 || catalogPageSize!==10)" id="catalogPagination" class="list-pagination" aria-label="Paginación de registros">
+<p id="catalogPageRange" class="list-pagination-info" role="status" aria-live="polite" aria-atomic="true">{{ catalogPagination.from }}–{{ catalogPagination.to }} de {{ catalogPagination.total }} registros</p>
+<label class="list-pagination-size">Registros por página<select id="catalogPageSize" v-model.number="catalogPageSize" :disabled="tableLoading || !!tableError" aria-label="Registros por página"><option :value="10">10</option><option :value="25">25</option><option :value="50">50</option><option :value="100">100</option></select></label>
+<div class="list-pagination-controls">
+<button type="button" data-pagination-action="first" aria-label="Primera página" title="Primera página" :disabled="tableLoading || !!tableError || catalogPagination.page<=1" @click="setCatalogPage(1)">«</button>
+<button type="button" data-pagination-action="previous" aria-label="Página anterior" title="Página anterior" :disabled="tableLoading || !!tableError || catalogPagination.page<=1" @click="setCatalogPage(catalogPagination.page-1)">‹</button>
+<span id="catalogPageCaption" class="list-pagination-caption">Página {{ catalogPagination.page }} de {{ catalogPagination.pageCount }}</span>
+<button type="button" data-pagination-action="next" aria-label="Página siguiente" title="Página siguiente" :disabled="tableLoading || !!tableError || catalogPagination.page>=catalogPagination.pageCount" @click="setCatalogPage(catalogPagination.page+1)">›</button>
+<button type="button" data-pagination-action="last" aria-label="Última página" title="Última página" :disabled="tableLoading || !!tableError || catalogPagination.page>=catalogPagination.pageCount" @click="setCatalogPage(catalogPagination.pageCount)">»</button>
+</div>
+</nav>
 <p v-if="tableNotice" class="table-message form-success" role="status">{{ tableNotice }}</p>
 <p v-if="activeCatalog.auditRawRestricted&&canOpenAuditReport()" class="table-message"><button id="openScopedAuditReport" type="button" class="button-link" @click="navigateChild('Auditoría','Transacciones modificadas y eliminadas')">Abrir informe de transacciones modificadas y eliminadas</button></p>
 <p v-if="tableWarning" class="table-message form-warning" role="alert">{{ tableWarning }}</p>
             <p v-if="tableLoading" class="table-message">Cargando registros…</p>
 <p v-else-if="tableError" class="table-message form-error" role="alert">{{ tableError }} <button v-if="activeCatalog.rateCatalog" id="retryRateCatalog" type="button" class="button-link" data-i18n="common.retry" @click="loadCatalog()">Reintentar</button></p>
             <div v-else-if="!activeCatalog.auditRawRestricted" class="table-scroll">
-<table :class="{'wide-table':tableFields.length >= 6}" :style="{minWidth: Math.max(700,(tableFields.length + 2) * 125) + 'px'}">
+<table id="catalogRecords" :class="{'wide-table':tableFields.length >= 6}" :style="{minWidth: Math.max(700,(tableFields.length + 2) * 125) + 'px'}">
 <thead>
 <tr>
 <th :aria-sort="invoiceCatalogSortingEnabled ? catalogSortAria(activeCatalog.primaryKey) : null">
@@ -469,7 +481,7 @@
 <template v-for="group in catalogRowGroups" :key="group.key">
 <tr v-if="bankStatementCatalog&&group.label" class="bank-statement-account-group"><th :colspan="tableFields.length+2">{{ group.label }}</th></tr>
 <template v-for="month in group.months" :key="month.key">
-<tr v-if="bankStatementCatalog&&month.label" class="bank-statement-month-group"><th :colspan="tableFields.length+2"><span>{{ month.label }}</span><small>{{ month.rows.length }} {{ month.rows.length===1?'extracto':'extractos' }}</small></th></tr>
+<tr v-if="bankStatementCatalog&&month.label" class="bank-statement-month-group"><th :colspan="tableFields.length+2"><span>{{ month.label }}</span><small>{{ month.rows.length }} {{ month.rows.length===1?'extracto':'extractos' }}{{ catalogPagination.pageCount>1?' en esta página':'' }}</small></th></tr>
 <tr v-for="row in month.rows" :key="row[activeCatalog.primaryKey]" :data-record-id="bankStatementCatalog?row[activeCatalog.primaryKey]:null">
 <td>
 <span class="id-cell">#{{ row[activeCatalog.primaryKey] }}</span>
@@ -769,7 +781,7 @@
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
 <script type="module" src="/i18n.js?v=20261107-auto-template-rates"></script>
-<script type="module" src="/app.js?v=20261110-workspace-layout">
+<script type="module" src="/app.js?v=20261110-list-pagination">
 </script>
 <script src="/approval-notifications.js?v=20261101-c04-approval-inbox"></script></body>
 </html>

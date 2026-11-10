@@ -40,7 +40,7 @@
         <article class="metric filed"><span>Presentadas</span><strong id="metricFiled">0</strong><small>Con respaldo</small></article>
       </section>
 
-      <form id="filters" class="card filters" aria-label="Filtros del calendario tributario">
+      <form id="filters" class="card filters" aria-label="Filtros del calendario tributario" data-list-pagination-filter="eventRows">
         <label>Subsidiaria
           <select id="filterSubsidiary"><option value="">Todas las autorizadas</option></select>
         </label>
@@ -118,7 +118,7 @@
                   <th>Acciones</th>
                 </tr>
               </thead>
-              <tbody id="eventRows"></tbody>
+              <tbody id="eventRows" data-list-pagination data-pagination-label="Calendario tributario"></tbody>
             </table>
           </div>
         </section>

@@ -1,4 +1,4 @@
-import {render} from '/generated/role-access-matrix-render.js?v=20261102-a03-csp';
+import {render} from '/generated/role-access-matrix-render.js?v=20261110-list-pagination';
 import {createApp} from "/assets/vue.js?v=20261102-a03-csp";
 
 const actionField={view:'canView',create:'canCreate',edit:'canEdit',delete:'canDelete'};

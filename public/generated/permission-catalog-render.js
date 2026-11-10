@@ -20,14 +20,18 @@ const _hoisted_9 = {
   class: "table-card"
 }
 const _hoisted_10 = { class: "table-scroll" }
-const _hoisted_11 = { class: "module-badge" }
-const _hoisted_12 = { class: "action-badge" }
-const _hoisted_13 = ["title"]
-const _hoisted_14 = {
+const _hoisted_11 = {
+  "data-list-pagination": "",
+  "data-pagination-label": "Catálogo de permisos"
+}
+const _hoisted_12 = { class: "module-badge" }
+const _hoisted_13 = { class: "action-badge" }
+const _hoisted_14 = ["title"]
+const _hoisted_15 = {
   key: 1,
   class: "muted"
 }
-const _hoisted_15 = { key: 0 }
+const _hoisted_16 = { key: 0 }
 
 export function render(_ctx, _cache) {
   return (_openBlock(), _createElementBlock(_Fragment, null, [
@@ -80,7 +84,8 @@ export function render(_ctx, _cache) {
         _cache[11] || (_cache[11] = _createElementVNode("span", null, "⌕", -1 /* CACHED */)),
         _withDirectives(_createElementVNode("input", {
           "onUpdate:modelValue": _cache[1] || (_cache[1] = $event => ((_ctx.search) = $event)),
-          placeholder: "Buscar por descripción, módulo o código"
+          placeholder: "Buscar por descripción, módulo o código",
+          "data-list-pagination-filter": "*"
         }, null, 512 /* NEED_PATCH */), [
           [_vModelText, _ctx.search]
         ])
@@ -88,7 +93,8 @@ export function render(_ctx, _cache) {
       _createElementVNode("label", null, [
         _cache[13] || (_cache[13] = _createElementVNode("span", null, "Módulo", -1 /* CACHED */)),
         _withDirectives(_createElementVNode("select", {
-          "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => ((_ctx.moduleFilter) = $event))
+          "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => ((_ctx.moduleFilter) = $event)),
+          "data-list-pagination-filter": "*"
         }, [
           _cache[12] || (_cache[12] = _createElementVNode("option", { value: "" }, "Todos los módulos", -1 /* CACHED */)),
           (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.modules, (module) => {
@@ -101,7 +107,8 @@ export function render(_ctx, _cache) {
       _createElementVNode("label", null, [
         _cache[15] || (_cache[15] = _createElementVNode("span", null, "Estado", -1 /* CACHED */)),
         _withDirectives(_createElementVNode("select", {
-          "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((_ctx.statusFilter) = $event))
+          "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((_ctx.statusFilter) = $event)),
+          "data-list-pagination-filter": "*"
         }, [...(_cache[14] || (_cache[14] = [
           _createElementVNode("option", { value: "" }, "Todos", -1 /* CACHED */),
           _createElementVNode("option", { value: "operational" }, "Operativos", -1 /* CACHED */),
@@ -129,19 +136,19 @@ export function render(_ctx, _cache) {
                     _createElementVNode("th", null, "Código técnico")
                   ])
                 ], -1 /* CACHED */)),
-                _createElementVNode("tbody", null, [
+                _createElementVNode("tbody", _hoisted_11, [
                   (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.filtered, (permission) => {
                     return (_openBlock(), _createElementBlock("tr", {
                       key: permission.permission_id
                     }, [
                       _createElementVNode("td", null, [
-                        _createElementVNode("span", _hoisted_11, _toDisplayString(permission.module), 1 /* TEXT */)
+                        _createElementVNode("span", _hoisted_12, _toDisplayString(permission.module), 1 /* TEXT */)
                       ]),
                       _createElementVNode("td", null, [
                         _createElementVNode("strong", null, _toDisplayString(permission.description||'Sin descripción'), 1 /* TEXT */)
                       ]),
                       _createElementVNode("td", null, [
-                        _createElementVNode("span", _hoisted_12, _toDisplayString(_ctx.permissionType(permission.code)), 1 /* TEXT */)
+                        _createElementVNode("span", _hoisted_13, _toDisplayString(_ctx.permissionType(permission.code)), 1 /* TEXT */)
                       ]),
                       _createElementVNode("td", null, [
                         _createElementVNode("span", {
@@ -154,8 +161,8 @@ export function render(_ctx, _cache) {
                               key: 0,
                               class: "roles",
                               title: permission.roleNames.join(', ')
-                            }, _toDisplayString(permission.roleNames.length) + " " + _toDisplayString(permission.roleNames.length===1?'rol':'roles'), 9 /* TEXT, PROPS */, _hoisted_13))
-                          : (_openBlock(), _createElementBlock("span", _hoisted_14, "Sin asignaciones"))
+                            }, _toDisplayString(permission.roleNames.length) + " " + _toDisplayString(permission.roleNames.length===1?'rol':'roles'), 9 /* TEXT, PROPS */, _hoisted_14))
+                          : (_openBlock(), _createElementBlock("span", _hoisted_15, "Sin asignaciones"))
                       ]),
                       _createElementVNode("td", null, [
                         _createElementVNode("code", null, _toDisplayString(permission.code), 1 /* TEXT */)
@@ -163,7 +170,7 @@ export function render(_ctx, _cache) {
                     ]))
                   }), 128 /* KEYED_FRAGMENT */)),
                   (!_ctx.filtered.length)
-                    ? (_openBlock(), _createElementBlock("tr", _hoisted_15, [...(_cache[16] || (_cache[16] = [
+                    ? (_openBlock(), _createElementBlock("tr", _hoisted_16, [...(_cache[16] || (_cache[16] = [
                         _createElementVNode("td", {
                           colspan: "6",
                           class: "empty"

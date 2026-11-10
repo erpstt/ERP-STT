@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {sendCatalogPageFixture,catalogPageResponse} from './lib/catalog-page-fixture.mjs';
 import {test} from 'node:test';
 import {createServer} from 'node:http';
 import {spawn} from 'node:child_process';
@@ -28,8 +29,8 @@ test('legacy purchase reads keep caller JWT/public key, canonical catalog and sa
  process.env.SUPABASE_URL='https://synthetic.invalid';process.env.SUPABASE_ANON_KEY='synthetic-public';process.env.SUPABASE_PUBLISHABLE_KEY='synthetic-public';
  t.after(()=>{globalThis.fetch=original;for(const [k,v]of Object.entries(env)){if(v===undefined)delete process.env[k];else process.env[k]=v;}invalidateRoleAccessCaches();});
  const calls=[],auth='Bearer p80-reader';await primeRoleAccessCache(auth,{isAdmin:false,grants:catalogs.flatMap(c=>grants('purchasing:'+c.slug))});
- globalThis.fetch=async(url,init={})=>{calls.push({url:new URL(url),auth:new Headers(init.headers).get('authorization'),key:new Headers(init.headers).get('apikey'),method:init.method||'GET'});return new Response(JSON.stringify([{synthetic:true}]),{status:200});};
- for(const c of catalogs){assert.deepEqual(await listPurchasingRows({...c,table:'users',primaryKey:'user_id'},auth),[{synthetic:true}]);assert.equal(calls.at(-1).url.pathname,'/rest/v1/'+c.table);assert.equal(calls.at(-1).url.searchParams.get('order'),c.primaryKey+'.asc');}
+ globalThis.fetch=async(url,init={})=>{calls.push({url:new URL(url),auth:new Headers(init.headers).get('authorization'),key:new Headers(init.headers).get('apikey'),method:init.method||'GET'});const key=new URL(url).searchParams.get('order').split('.')[0];return catalogPageResponse([{[key]:1,synthetic:true}]);};
+ for(const c of catalogs){assert.deepEqual(await listPurchasingRows({...c,table:'users',primaryKey:'user_id'},auth),[{[c.primaryKey]:1,synthetic:true}]);assert.equal(calls.at(-1).url.pathname,'/rest/v1/'+c.table);assert.equal(calls.at(-1).url.searchParams.get('order'),c.primaryKey+'.asc');}
  assert.ok(calls.every(c=>c.auth===auth&&c.key==='synthetic-public'&&c.method==='GET'));
  for(const [status,code,expected]of [[403,'42501',403],[400,'42501',403],[401,'PGRST301',401],[400,'23503',400],[400,'23514',400],[500,'XX000',500]]){
   globalThis.fetch=async()=>new Response(JSON.stringify({code,message:'PRIVATE_SQL_DETAILS',details:'PRIVATE_SCHEMA'}),{status});
@@ -56,7 +57,7 @@ test('HTTP legacy purchases allow only explicit reads and preserve the caller id
  const calls=[];const upstream=createServer(async(req,res)=>{
   res.setHeader('Content-Type','application/json');const role=req.headers.authorization?.replace('Bearer p80-http-','')||'denied';
   if(req.url==='/rest/v1/rpc/assert_request_access')return res.end(JSON.stringify({allowed:true,roleAccess:{isAdmin:role==='admin',grants:role==='denied'?[]:[{resourceKey:role==='quote'?'purchasing:quotes':role==='unrelated'?'inventory:products':'purchasing:requisitions',canView:role!=='blind',canCreate:true,canEdit:true,canDelete:true}]}}));
-  calls.push({path:req.url,key:req.headers.apikey,auth:req.headers.authorization,method:req.method});if(role==='sqlDenied'){res.writeHead(403);return res.end(JSON.stringify({code:'42501',message:'PRIVATE_SQL_DETAILS'}));}res.end(JSON.stringify([{synthetic:true}]));
+  calls.push({path:req.url,key:req.headers.apikey,auth:req.headers.authorization,method:req.method});if(role==='sqlDenied'){res.writeHead(403);return res.end(JSON.stringify({code:'42501',message:'PRIVATE_SQL_DETAILS'}));}if(sendCatalogPageFixture(req,res))return;res.end(JSON.stringify([{synthetic:true}]));
  });
  await new Promise(r=>upstream.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>{upstream.closeAllConnections();upstream.close(r);}));
  const probe=createServer();await new Promise(r=>probe.listen(0,'127.0.0.1',r));const port=probe.address().port;await new Promise(r=>probe.close(r));

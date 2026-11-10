@@ -14,7 +14,7 @@
         <h1 data-i18n="admin.security.upApprovers">Mantenimiento de Aprobadores UP</h1>
         <p>Consulte y reasigne de forma controlada los aprobadores de centros de costos clasificados como CLIENTE.</p>
       </div>
-      <button id="refresh" class="button secondary refresh-button" type="button" aria-label="Actualizar información">
+      <button id="refresh" class="button secondary refresh-button" type="button" aria-label="Actualizar información" data-list-pagination-filter="centerRows">
         <span aria-hidden="true">↻</span> Actualizar
       </button>
     </header>
@@ -54,7 +54,7 @@
               <option value="">Seleccione un aprobador</option>
             </select>
           </label>
-          <button id="consult" class="button primary" type="button" disabled>Consultar centros</button>
+          <button id="consult" class="button primary" type="button" disabled data-list-pagination-filter="centerRows">Consultar centros</button>
         </div>
       </section>
 
@@ -74,7 +74,7 @@
           <label class="search-field" for="centerSearch">
             <span class="visually-hidden">Buscar centros de costos</span>
             <span class="search-icon" aria-hidden="true">⌕</span>
-            <input id="centerSearch" type="search" autocomplete="off" placeholder="Buscar por código, nombre o subsidiaria" disabled>
+            <input id="centerSearch" type="search" autocomplete="off" placeholder="Buscar por código, nombre o subsidiaria" disabled data-list-pagination-filter="centerRows">
           </label>
           <div class="selection-indicator" aria-live="polite">
             <span id="selectedCount">0</span>
@@ -102,7 +102,7 @@
                 <th>Estado</th>
               </tr>
             </thead>
-            <tbody id="centerRows"></tbody>
+            <tbody id="centerRows" data-list-pagination data-pagination-label="Centros de costos" data-pagination-selection="all"></tbody>
           </table>
         </div>
 

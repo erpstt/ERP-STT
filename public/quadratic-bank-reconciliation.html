@@ -30,11 +30,11 @@
     </div>
     <div class="control-grid">
       <label>Empresa activa<input id="subsidiary" readonly></label>
-      <label>Cuenta bancaria<select id="bankAccount" required><option value="">Seleccione una cuenta</option></select></label>
-      <label>Año<select id="periodYear"></select></label>
-      <label>Mes<select id="periodMonth"></select></label>
+      <label>Cuenta bancaria<select id="bankAccount" required data-list-pagination-filter="historyRows"><option value="">Seleccione una cuenta</option></select></label>
+      <label>Año<select id="periodYear" data-list-pagination-filter="historyRows"></select></label>
+      <label>Mes<select id="periodMonth" data-list-pagination-filter="historyRows"></select></label>
       <label>Tolerancia de fecha para punteo<input id="toleranceDays" type="number" min="0" max="31" step="1" value="3"><small>± días para la conciliación automática.</small></label>
-      <button id="openPeriod" class="button secondary" type="button">Abrir período</button>
+      <button id="openPeriod" class="button secondary" type="button" data-list-pagination-filter="historyRows">Abrir período</button>
     </div>
     <div id="continuityNotice" class="continuity-notice" hidden></div>
   </section>
@@ -110,7 +110,7 @@
 
     <section id="historyPanel" class="card workspace-panel" hidden>
       <div class="section-heading"><div><p class="section-kicker">TRAZABILIDAD</p><h2>Conciliaciones de la cuenta</h2><p>Consulte borradores, revisiones, aprobaciones y períodos cerrados.</p></div></div>
-      <div class="table-scroll"><table><thead><tr><th>Período</th><th>Cuenta</th><th>Estado</th><th>Preparado por</th><th>Aprobado por</th><th>Actualizado</th><th></th></tr></thead><tbody id="historyRows"></tbody></table></div>
+      <div class="table-scroll"><table><thead><tr><th>Período</th><th>Cuenta</th><th>Estado</th><th>Preparado por</th><th>Aprobado por</th><th>Actualizado</th><th></th></tr></thead><tbody id="historyRows" data-list-pagination data-pagination-label="Historial de pruebas de efectivo"></tbody></table></div>
     </section>
   </section>
 

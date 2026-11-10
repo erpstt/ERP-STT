@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {sendCatalogPageFixture} from './lib/catalog-page-fixture.mjs';
 import {test} from 'node:test';
 import {createServer} from 'node:http';
 import {spawn} from 'node:child_process';
@@ -16,7 +17,7 @@ test('direct document/support service calls reject before data, including global
 test('HTTP action matrix and safe DB errors preserve user JWT and public key across all seven catalogs',{timeout:90000},async t=>{
  const calls=[];let resource='documents:folders';const upstream=createServer(async(req,res)=>{res.setHeader('Content-Type','application/json');const role=req.headers.authorization?.replace('Bearer p75-','')||'denied';
   if(req.url==='/rest/v1/rpc/assert_request_access')return res.end(JSON.stringify({allowed:true,roleAccess:{isAdmin:role==='admin',grants:role==='denied'?[]:[{resourceKey:role==='unrelated'?'inventory:products':resource,canView:true,canCreate:role==='creator',canEdit:role==='editor',canDelete:role==='deleter'}]}}));
-  const chunks=[];for await(const c of req)chunks.push(c);calls.push({path:req.url,method:req.method,auth:req.headers.authorization,key:req.headers.apikey,body:Buffer.concat(chunks).toString()});if(role==='sql-denied'){res.writeHead(403);return res.end(JSON.stringify({code:'42501',message:'PRIVATE_SQL_DETAILS'}));}if(req.method==='DELETE'){res.writeHead(204);return res.end();}return res.end(JSON.stringify([{synthetic:true}]));
+  const chunks=[];for await(const c of req)chunks.push(c);calls.push({path:req.url,method:req.method,auth:req.headers.authorization,key:req.headers.apikey,body:Buffer.concat(chunks).toString()});if(role==='sql-denied'){res.writeHead(403);return res.end(JSON.stringify({code:'42501',message:'PRIVATE_SQL_DETAILS'}));}if(req.method==='DELETE'){res.writeHead(204);return res.end();}if(sendCatalogPageFixture(req,res))return;return res.end(JSON.stringify([{synthetic:true}]));
  });await new Promise(r=>upstream.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>{upstream.closeAllConnections();upstream.close(r);}));
  const probe=createServer();await new Promise(r=>probe.listen(0,'127.0.0.1',r));const port=probe.address().port;await new Promise(r=>probe.close(r));const child=spawn(process.execPath,['dist/server.js'],{env:{...process.env,PORT:String(port),SUPABASE_URL:`http://127.0.0.1:${upstream.address().port}`,SUPABASE_PUBLISHABLE_KEY:'synthetic-public',SUPABASE_ANON_KEY:'synthetic-public',DISABLE_BACKGROUND_JOBS:'true',AUTH_REQUEST_ACCESS_CACHE_TTL_MS:'0'},stdio:'ignore'});t.after(()=>child.kill());const base=`http://127.0.0.1:${port}`;let ready=false;for(let n=0;n<100;n++){try{if((await fetch(base+'/api/health')).ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,100));}assert.ok(ready);
  for(const slug of Object.keys(payloads)){
