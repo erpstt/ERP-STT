@@ -88,7 +88,10 @@ test('en móvil el menú superpuesto cierra con Escape, fondo y navegación sin 
   await page.setViewportSize({width:1440,height:900});await sidebarState(page,true);
   await toggle(page).click();await sidebarState(page,false);
   await page.setViewportSize({width:390,height:740});await sidebarState(page,false);
+  await expect(page.locator('#moduleSidebar')).toHaveCSS('visibility','hidden');
+  await page.screenshot({animations:'disabled'}); // Exercise a settled hidden menu before opening it.
   await toggle(page).click();await sidebarState(page,true);
+  await expect(page.locator('#moduleSidebar .sidebar-close')).toBeFocused();
   await page.keyboard.press('Escape');await sidebarState(page,false);
   await page.setViewportSize({width:1440,height:900});await sidebarState(page,false);
 });
