@@ -3,10 +3,12 @@ import {isolatedRoleTemplateDatabase,assumeSecurityUser,assumeSqlRole,deniedSql,
 import {functionsIn} from './setup-audit-raw-security.mjs';
 export {assumeSecurityUser,assumeSqlRole,deniedSql,authId};
 export const migration='20261110015758_configure_active_role_fiscal_closure_permission.sql';
+export const hardeningMigration='20261110031615_isolate_fiscal_closure_permission_authority.sql';
 const source=async name=>(await readFile(new URL('../../supabase/migrations/'+name,import.meta.url),'utf8')).replaceAll('\r\n','\n');
 async function functions(db,file,names){const all=functionsIn(await source(file));for(const name of names){const matches=all.filter(f=>f.name===name);if(matches.length!==1)throw Error('Expected one published function '+name);await db.exec(matches[0].sql);}}
 export async function applyFiscalClosurePermission(db){await db.exec(await source(migration));}
-export async function setupFiscalClosurePermission({apply=true,permission=true}={}){
+export async function applyFiscalClosurePermissionHardening(db){await db.exec(await source(hardeningMigration));}
+export async function setupFiscalClosurePermission({apply=true,permission=true,hardened=true}={}){
  const db=await isolatedRoleTemplateDatabase();
  try{
   // These published identity bodies predate the abbreviated schema fixture.
@@ -25,7 +27,7 @@ export async function setupFiscalClosurePermission({apply=true,permission=true}=
   await db.exec("revoke all on audit_log,change_log,event_log,activity_log,deleted_records from public,anon,authenticated;revoke all on function resolve_audit_actor(),stamp_actor_audit(),capture_row_audit(),install_actor_audit(regclass) from public,anon,authenticated,service_role");
   if(permission)await db.exec("insert into permissions(code,module,description,is_operational)values('CONF_PERIODOS_FISCALES_CERRAR','Synthetic configuration','Synthetic fiscal closure',false)");
   await db.exec("insert into role_permissions(role_id,permission_id)select 1,permission_id from permissions where code='SYNTHETIC_OPERATION_1';insert into role_permissions(role_id,permission_id)select 3,permission_id from permissions where code='SYNTHETIC_OPERATION_2';insert into role_access_matrix(role_id,resource_key,can_view,can_create,can_edit,can_delete)values(1,'organization:accounting-periods',true,false,true,false)on conflict(role_id,resource_key)do nothing");
-  const before=await fiscalPermissionState(db);if(apply)await applyFiscalClosurePermission(db);const after=await fiscalPermissionState(db);
+  const before=await fiscalPermissionState(db);if(apply){await applyFiscalClosurePermission(db);if(hardened)await applyFiscalClosurePermissionHardening(db);}const after=await fiscalPermissionState(db);
   await assumeSecurityUser(db);return{db,before,after};
  }catch(error){await db.close();delete error.query;throw error;}
 }
