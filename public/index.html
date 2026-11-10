@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="/login-refresh.css">
   <link rel="stylesheet" href="/login-position.css">
   <link rel="stylesheet" href="/password-recovery.css?v=20261026">
-  <link rel="stylesheet" href="/dashboard.css?v=20261107-bank-statement-list">
+  <link rel="stylesheet" href="/dashboard.css?v=20261110-fiscal-period-controls">
   <link rel="stylesheet" href="/modal-scroll.css?v=20260911-entity-fullscreen">
   <link rel="stylesheet" href="/company-selection.css">
   <link rel="stylesheet" href="/subsidiary-branding.css?v=20260814">
@@ -423,12 +423,13 @@
 <a v-if="canCurrentAction('create')&&activeCatalog.slug==='invoices'&&currentModule==='Ventas'" class="new-record" href="/sales-invoice-entry.html"><span>＋</span> Crear factura</a>
 <a v-if="canCurrentAction('create')&&activeCatalog.slug==='supplier-debit-notes'" class="new-record" href="/supplier-note-entry.html?kind=DEBIT"><span>＋</span> Crear nota de débito</a>
 <a v-if="canCurrentAction('create')&&activeCatalog.slug==='debit-notes'" class="new-record" href="/sales-note-entry.html?kind=DEBIT"><span>＋</span> Crear nota de débito</a>
+<button v-if="canConfigureFiscalClosurePermission()" id="configureFiscalClosurePermission" class="button-secondary fiscal-permission-button" type="button" @click="openFiscalPermissionDialog">Configurar permiso de cierre para mi rol</button>
 <button v-if="activeCatalog.slug==='user-subsidiaries' && canCurrentAction('edit') && activeCatalog.allowEdit === true" class="new-record" @click="openRecordForm()"><span>＋</span> Asignar empresas</button>
 <button v-if="canCurrentAction('create')&&activeCatalog.allowCreate !== false && activeCatalog.slug!=='user-subsidiaries' && !['credit-notes','debit-notes','supplier-credit-notes','supplier-debit-notes','invoices'].includes(activeCatalog.slug)" class="new-record" @click="openRecordForm()">
 <span>＋</span> Crear {{ activeCatalog.singular }}</button>
 </div>
 </div>
-          <div class="table-card" :class="{'bank-statement-table-card':activeCatalog.slug==='bank-statements'}">
+          <div class="table-card" :class="{'bank-statement-table-card':activeCatalog.slug==='bank-statements','fiscal-period-table-card':activeCatalog.slug==='accounting-periods'}">
             <div v-if="!activeCatalog.auditRawRestricted" class="table-tools">
 <div class="search-box">
 <span>⌕</span>
@@ -472,6 +473,7 @@
 </td>
 <td v-for="field in tableFields" :key="field.key" :class="'field-'+field.key" data-i18n-ignore>
 <strong v-if="field.key === 'name'" class="country-name">{{ displayValue(field,row[field.key]) }}</strong>
+<span v-else-if="fiscalPeriodControl(field)" class="fiscal-period-state" :class="{'is-on':row[field.key]}" :title="field.help">{{ fiscalPeriodState(field,row[field.key]) }}</span>
 <span v-else :class="{'bank-statement-amount':activeCatalog.slug==='bank-statements' &amp;&amp; field.numberFormat==='money','bank-statement-account':activeCatalog.slug==='bank-statements' &amp;&amp; field.key==='bank_account_id'}">{{ displayValue(field,row[field.key]) }}</span>
 <small v-if="bankStatementCatalog&&field.key==='opening_balance'" class="bank-statement-continuity" :class="'is-'+bankStatementContinuityFor(row).status"><strong>{{ bankStatementContinuityFor(row).label }}</strong><span>{{ bankStatementContinuityFor(row).detail }}</span></small>
 </td>
@@ -511,6 +513,7 @@
 <span>⌫</span>
 <b>{{ ['sessions','devices'].includes(activeCatalog.slug) ? 'Revocar' : 'Eliminar' }}</b>
 </button>
+<span v-if="activeCatalog.slug==='accounting-periods' &amp;&amp; row._actions?.canDelete!==true" class="fiscal-period-delete-reason" :title="fiscalPeriodDeleteHelp(row)">{{ fiscalPeriodDeleteReason(row) }}</span>
 </td>
 </tr>
 </template>
@@ -530,6 +533,20 @@
       </div>
     </section>
 
+    <dialog v-if="fiscalPermissionDialog.open" id="fiscalClosurePermissionDialog" class="modal fiscal-closure-permission-modal" aria-labelledby="fiscalClosurePermissionTitle" aria-describedby="fiscalPermissionImpact" @cancel.prevent="closeFiscalPermissionDialog()">
+<div class="modal-head"><div><div><p>CONFIGURACIÓN DEL ROL ACTIVO</p><h2 id="fiscalClosurePermissionTitle">Configurar permiso de cierre para mi rol</h2></div></div><button class="modal-close" type="button" aria-label="Cerrar configuración de permiso" :disabled="fiscalPermissionDialog.saving" @click="closeFiscalPermissionDialog()">×</button></div>
+<form @submit.prevent="saveFiscalPermissionDialog" class="fiscal-permission-form">
+<p v-if="fiscalPermissionDialog.loading" role="status">Consultando el permiso actual…</p>
+<template v-if="fiscalPermissionDialog.role">
+<dl class="fiscal-permission-role"><dt>Rol activo</dt><dd>{{ fiscalPermissionDialog.role.name }}</dd></dl>
+<label class="fiscal-period-toggle-row" for="fiscalPermissionEnabled"><span class="fiscal-period-toggle-copy"><strong id="fiscalPermissionEnabledLabel">Permitir cerrar y reabrir períodos</strong><small>{{ fiscalPermissionDialog.enabled?'Permiso activado':'Permiso desactivado' }}</small></span><span class="gentia-switch-control"><input id="fiscalPermissionEnabled" v-model="fiscalPermissionDialog.enabled" class="gentia-switch-input" type="checkbox" role="switch" aria-labelledby="fiscalPermissionEnabledLabel" aria-describedby="fiscalPermissionImpact" :disabled="fiscalPermissionDialog.loading || fiscalPermissionDialog.saving"><span class="gentia-switch-track" aria-hidden="true"></span></span></label>
+<p id="fiscalPermissionImpact">Este permiso permite gestionar los bloqueos y el cierre de períodos. El cambio afecta a todos los usuarios que tengan este rol. Guardarlo no cambia el estado de ningún período.</p>
+</template>
+<p v-if="fiscalPermissionDialog.error" class="dialog-error" role="alert">{{ fiscalPermissionDialog.error }}</p>
+<button v-if="fiscalPermissionDialog.needsRefresh" class="button-secondary" type="button" :disabled="fiscalPermissionDialog.loading || fiscalPermissionDialog.saving" @click="refreshFiscalPermissionDialog">Consultar estado del permiso</button>
+<div class="modal-actions"><button class="button-secondary" type="button" :disabled="fiscalPermissionDialog.saving" @click="closeFiscalPermissionDialog()">Cancelar</button><button class="button-primary" type="submit" :disabled="fiscalPermissionDialog.loading || fiscalPermissionDialog.saving || fiscalPermissionDialog.needsRefresh || !fiscalPermissionDialog.role || fiscalPermissionDialog.enabled===fiscalPermissionDialog.initialEnabled">{{ fiscalPermissionDialog.saving?'Guardando permiso…':'Guardar permiso' }}</button></div>
+</form>
+</dialog>
     <div v-if="passwordDialog.open" class="modal-backdrop" @click.self="passwordDialog.open=false">
 <section class="modal" role="dialog" aria-modal="true">
 <div class="modal-head">
@@ -568,7 +585,7 @@
 </div>
 
     <div v-if="recordDialog.open&&!activeCatalog?.auditRawRestricted" class="modal-backdrop" @click.self="closeRecordDialog">
-      <section class="modal" :class="{'entity-master-modal':['customers','suppliers'].includes(activeCatalog.slug),'entity-section-modal':isEntitySectioned(),'other-names-modal':activeCatalog.slug==='other-names','subsidiary-master-modal':activeCatalog.slug==='subsidiaries','account-master-modal':activeCatalog.slug==='chart-accounts','user-company-access-modal':activeCatalog.slug==='user-subsidiaries','bank-statement-modal':activeCatalog.slug==='bank-statements'}" role="dialog" aria-modal="true" aria-labelledby="country-modal-title">
+      <section class="modal" :class="{'entity-master-modal':['customers','suppliers'].includes(activeCatalog.slug),'entity-section-modal':isEntitySectioned(),'other-names-modal':activeCatalog.slug==='other-names','subsidiary-master-modal':activeCatalog.slug==='subsidiaries','account-master-modal':activeCatalog.slug==='chart-accounts','user-company-access-modal':activeCatalog.slug==='user-subsidiaries','bank-statement-modal':activeCatalog.slug==='bank-statements','fiscal-period-modal':activeCatalog.slug==='accounting-periods'}" role="dialog" aria-modal="true" aria-labelledby="country-modal-title">
         <div class="modal-head">
 <div>
 <span class="modal-icon">{{ recordDialog.mode === 'audit' ? '◉' : recordDialog.mode === 'delete' ? '!' : (recordDialog.mode === 'view' ? '◉' : (recordDialog.id ? '✎' : '+')) }}</span>
@@ -605,7 +622,19 @@
 </section>
 <div v-show="activeCatalog.slug!=='subsidiaries' || subsidiaryFormTab!=='tax'" class="form-grid" :class="{'subsidiary-tab-grid':activeCatalog.slug==='subsidiaries','entity-section-grid':isEntitySectioned(),'entity-banking-shared':isEntitySectioned() && entityFormTab==='banking','bank-statement-form-grid':activeCatalog.slug==='bank-statements'}">
 <template v-for="field in formFields" :key="field.key"><div v-if="activeCatalog.slug==='customers' &amp;&amp; field.key==='envio_estado_cuenta_auto'" class="approver-section"><h3>Crédito y Cobro</h3></div>
-<div v-if="activeCatalog.slug==='chart-accounts' &amp;&amp; field.key==='pending_fx_revaluation'" v-show="fieldVisible(field)" data-field-key="pending_fx_revaluation">
+<div v-if="activeCatalog.slug==='accounting-periods' &amp;&amp; field.key==='checklist_completed'" class="fiscal-period-controls-intro">
+<h3>Bloqueos y cierre del período</h3>
+<p id="fiscalPeriodControlsHelp">Cambiar un interruptor prepara el cambio. Pulse Guardar cambios para aplicarlo.</p>
+<p id="fiscalPeriodPermissionHelp" :class="{'is-restricted':field.readOnly}">{{ fiscalPeriodPermissionHelp() }}</p>
+</div>
+<div v-if="fiscalPeriodControl(field)" class="fiscal-period-control-card" :class="{'is-wide':field.key==='checklist_completed'||field.key==='is_inactive','is-readonly':field.readOnly}" :data-field-key="field.key">
+<label class="fiscal-period-toggle-row" :for="'fiscalPeriodInput-'+field.key">
+<span class="fiscal-period-toggle-copy"><strong :id="'fiscalPeriodLabel-'+field.key">{{ field.label }}</strong><small>{{ fiscalPeriodState(field,recordDialog.values[field.key]) }}</small></span>
+<span class="gentia-switch-control"><input :id="'fiscalPeriodInput-'+field.key" v-model="recordDialog.values[field.key]" class="gentia-switch-input" type="checkbox" role="switch" :aria-labelledby="'fiscalPeriodLabel-'+field.key" :aria-describedby="'fiscalPeriodHelp-'+field.key+' fiscalPeriodPermissionHelp fiscalPeriodControlsHelp'" :disabled="field.readOnly || dialogSaving"><span class="gentia-switch-track" aria-hidden="true"></span></span>
+</label>
+<p :id="'fiscalPeriodHelp-'+field.key" class="fiscal-period-field-help">{{ field.help }}</p>
+</div>
+<div v-else-if="activeCatalog.slug==='chart-accounts' &amp;&amp; field.key==='pending_fx_revaluation'" v-show="fieldVisible(field)" data-field-key="pending_fx_revaluation">
 <label class="toggle-field" for="chartAccountFxRevaluation"><span>{{ field.label }}</span><span class="gentia-switch-control"><input id="chartAccountFxRevaluation" v-model="recordDialog.values.pending_fx_revaluation" class="gentia-switch-input" type="checkbox" role="switch" aria-describedby="chartAccountFxHelp" :disabled="dialogSaving" @change="changeChartAccountFx"><span class="gentia-switch-track" aria-hidden="true"></span></span></label>
 <small id="chartAccountFxHelp" class="field-help">{{ chartAccountFxHelp() }}</small>
 <div v-if="recordDialog.values.pending_fx_revaluation_override!==null"><button class="button-secondary" type="button" :disabled="dialogSaving || !chartAccountFxGroup()" @click="resetChartAccountFx">Usar valor del grupo</button></div>
@@ -737,7 +766,7 @@
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
 <script type="module" src="/i18n.js?v=20261107-auto-template-rates"></script>
-<script type="module" src="/app.js?v=20261109-chart-fx-override">
+<script type="module" src="/app.js?v=20261110-fiscal-period-controls">
 </script>
 <script src="/approval-notifications.js?v=20261101-c04-approval-inbox"></script></body>
 </html>

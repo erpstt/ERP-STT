@@ -214,6 +214,14 @@ jobs:
             scripts/repair-configuration-operator-guards.test.mjs \
             scripts/configured-report-operator-guards.test.mjs \
             scripts/remaining-configuration-operator-guards.test.mjs \
+            scripts/fiscal-structure-api-security.test.mjs \
+            scripts/fiscal-structure-sql-security.test.mjs \
+            scripts/fiscal-structure-ui-security.test.mjs \
+            scripts/accounting-period-controls-api.test.mjs \
+            scripts/accounting-period-controls-sql.test.mjs \
+            scripts/fiscal-closure-permission-api.test.mjs \
+            scripts/fiscal-closure-permission-sql.test.mjs \
+            scripts/fiscal-periods-controls-ui.test.mjs \
             scripts/tax-schedule-access-api-security.test.mjs \
             scripts/tax-schedule-access-ui-security.test.mjs \
             scripts/bank-statement-account-scope.test.mjs \

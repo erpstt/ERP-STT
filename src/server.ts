@@ -6,6 +6,7 @@ import { genericRouteAction } from './core/security/generic-route-action.js';
 import{withDeviceContext}from'./core/security/device-context.js';
 import{accessAdminRpc}from'./modules/security-catalogs/access-admin.service.js';
 import{organizationMasters,organizationMasterRpc}from'./modules/organization-catalogs/organization-master.service.js';
+import{fiscalClosurePermissionOptions,setFiscalClosurePermission}from'./modules/organization-catalogs/fiscal-closure-permission.service.js';
 import{entityMasters,entityMasterRpc}from'./modules/entity-catalogs/entity-master.service.js';
 import{taxCatalogs,taxCatalogRpc}from'./modules/configuration-catalogs/tax-catalog.service.js';
 import{inventoryGlobalRpc}from'./modules/inventory-catalogs/inventory-global.service.js';
@@ -635,6 +636,12 @@ const server = createServer((request, response) => {
       if(!authorization?.startsWith('Bearer '))return error(response,401,'Debe iniciar sesión para descargar catálogos de Organización.');
       await assertRoleAccess(authorization,`organization:${organizationExportRoute[1]}`,'view');
       return download(response,await exportOrganizationCatalog(authorization,organizationExportRoute[1],upApproverUrl.searchParams.get('format')||'',upApproverUrl.searchParams.get('search')||''));
+    }
+    if(upApproverUrl.pathname==='/api/organization/fiscal-closure-permission'){
+      if(upApproverUrl.search)return error(response,400,'Esta configuración no admite parámetros de consulta.');
+      if(request.method==='GET')return json(response,200,await fiscalClosurePermissionOptions(request.headers.authorization!));
+      if(request.method==='POST')return json(response,200,await setFiscalClosurePermission(request.headers.authorization!,await body(request)));
+      return error(response,405,'Método no permitido.');
     }
     if(request.method==='GET'&&upApproverUrl.pathname==='/api/organization/master/options')return json(response,200,await organizationMasterRpc(request.headers.authorization!,upApproverUrl.searchParams.get('catalog')||'','options'));
     const organizationRoute = upApproverUrl.pathname.match(/^\/api\/organization\/([a-z-]+)(?:\/(\d+))?$/);
