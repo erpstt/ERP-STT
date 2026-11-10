@@ -160,6 +160,8 @@ jobs:
             scripts/payment-request-administrative-routing-api.test.mjs \
             scripts/payment-request-administrative-route-ui.test.mjs \
             scripts/approval-inventory-ui.test.mjs \
+            scripts/other-payment-up-administrative-approval-sql.test.mjs \
+            scripts/other-payment-up-administrative-approval-ui.test.mjs \
             scripts/tax-calendar-attachment-preauth.test.mjs \
             scripts/bounded-rate-limit-state.test.mjs \
             scripts/auth-flow-rate-limit-state.test.mjs \

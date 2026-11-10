@@ -63,7 +63,7 @@
         <label>Estado<select id="active"><option value="true">Activo</option><option value="false">Inactivo</option></select></label>
         <label class="wide">Descripción<textarea id="description"></textarea></label>
       </div>
-      <p id="paymentRequestRouteNotice" class="muted" role="note" hidden>Al enviar nuevas solicitudes de Pago de CxP, GENTIA utiliza el Aprobador Administrativo de la subsidiaria. Las reglas de esta pantalla no sustituyen esa configuración. Los flujos ya iniciados conservan su ruta e historial.</p>
+      <p id="paymentRequestRouteNotice" class="muted" role="note" hidden>Al enviar nuevas solicitudes de Pago de CxP, GENTIA utiliza el Aprobador Administrativo de la subsidiaria. Las reglas de esta pantalla no sustituyen esa configuración. En CxP, los flujos ya iniciados conservan su ruta e historial. Las solicitudes de Otros pagos pendientes de UP incorporan un nivel de aprobación administrativa posterior y conservan las decisiones registradas.</p>
       <div class="between" style="margin-top:22px">
         <div><h2>Secuencia de aprobación</h2><p class="muted">Los niveles se ejecutan en el orden mostrado.</p></div>
         <button id="addRule" type="button">+ Agregar nivel</button>
@@ -73,6 +73,6 @@
     </form>
   </section>
 </main>
-<script type="module" src="/approval-workflows.js?v=20261110-approval-inventory"></script>
+<script type="module" src="/approval-workflows.js?v=20261110-up-administrative-sequence"></script>
 </body>
 </html>

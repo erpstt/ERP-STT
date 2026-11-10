@@ -29,8 +29,8 @@ export function approvalInventory(options = {}, workflows = []) {
     },
     {
       id: 'PAYMENT_REQUEST_OTROS', name: 'Otros pagos', module: 'Solicitudes de pago', mode: 'Ruta automática', state: 'automatic', label: 'Ruta según solicitud',
-      detail: 'Según las líneas, utiliza el UP del centro de costos o de la subsidiaria, el Aprobador Administrativo o el Supervisor tributario. Puede combinar niveles y recurrir a un administrador autorizado según la ruta.',
-      statusDetail: 'Los responsables se resuelven al enviar.', location: 'Subsidiarias y centros de costos → Aprobadores'
+      detail: 'Cuando requiere aprobación UP, primero aprueban los responsables UP del centro de costos o de la subsidiaria y después, obligatoriamente, el Aprobador Administrativo de la subsidiaria. Las solicitudes tributarias siguen la ruta del Supervisor tributario; las demás utilizan la ruta administrativa o su respaldo autorizado, según sus líneas.',
+      statusDetail: 'Con aprobación UP, permanece pendiente hasta completar ambos pasos.', location: 'Subsidiarias y centros de costos → Aprobadores'
     },
     ...configured,
     {
