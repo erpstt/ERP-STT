@@ -1,0 +1,196 @@
+/* Embedded ERP screens share the available workspace. Printing keeps each
+   document's original paper layout and wide tables keep their own scroll. */
+@media screen {
+  html.inside-erp-workspace body > main {
+    min-width: 0;
+    min-height: 0 !important;
+  }
+
+  html.inside-erp-workspace body > main > .message:empty {
+    display: none;
+  }
+
+  html.inside-erp-workspace body > .invoice-supports-card {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+  }
+
+  html.inside-erp-workspace :is(.table-wrap, .table-scroll, .document-table-scroll) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  html.inside-erp-workspace .document-table-scroll {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  html.inside-erp-workspace #statement > section:has(> table) {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  html.inside-erp-workspace #permissionCatalog > .filters {
+    grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  }
+
+  html.inside-erp-workspace #permissionCatalog > .filters > *,
+  html.inside-erp-workspace #matrixApp .role-panel > * {
+    min-width: 0;
+  }
+
+  html.inside-erp-workspace #permissionCatalog .summary > article {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  html.inside-erp-workspace #matrixApp .switch-control {
+    position: relative;
+  }
+
+  html.inside-erp-workspace #matrixApp .role-summary {
+    overflow-wrap: anywhere;
+  }
+
+  html.inside-erp-workspace #matrixApp :is(.special-access, .module-list) {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html.inside-erp-workspace #matrixApp :is(.module-card, .matrix-scroll) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  html.inside-erp-workspace #matrixApp .sticky-save {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* Banking filters must adapt to the iframe width, including the sidebar. */
+  html.inside-erp-workspace:has(link[href^="/bank-transfers.css"]) body > main > .filters {
+    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  }
+
+  html.inside-erp-workspace:has(link[href^="/bank-transfers.css"]) .filters > * {
+    min-width: 0;
+  }
+
+  html.inside-erp-workspace:has(link[href^="/approval-engine.css"]) main > header,
+  html.inside-erp-workspace:has(link[href^="/approval-engine.css"]) main > header > .actions {
+    flex-wrap: wrap;
+  }
+
+  html.inside-erp-workspace:has(link[href^="/approval-engine.css"]) main > header > * {
+    min-width: 0;
+  }
+
+  html.inside-erp-workspace:has(link[href^="/purchase-documents.css"]) main > .filters {
+    flex-wrap: wrap;
+  }
+
+  html.inside-erp-workspace:has(link[href^="/purchase-documents.css"]) main > .filters > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  html.inside-erp-workspace:has(link[href^="/purchase-documents.css"]) main > .filters > label {
+    flex: 1 1 150px;
+  }
+
+  html.inside-erp-workspace:has(link[href^="/purchase-documents.css"]) .order-status-tabs {
+    flex-wrap: wrap;
+  }
+
+  html.inside-erp-workspace:has(link[href^="/purchase-documents.css"]) .order-status-tabs button {
+    min-width: min(190px, 100%);
+    max-width: 100%;
+  }
+
+  /* A grid's automatic minimum must not expand to the width of its tables. */
+  html.inside-erp-workspace:has(link[href^="/intercompany-"]) .results {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html.inside-erp-workspace:has(link[href^="/intercompany-"]) .results > section,
+  html.inside-erp-workspace:has(link[href^="/intercompany-"]) .section-heading > div {
+    min-width: 0;
+  }
+
+  html.inside-erp-workspace:has(link[href^="/intercompany-"]) .section-heading {
+    flex-wrap: wrap;
+  }
+
+  /* The designer scrolls the actual paper inside its canvas. Its controls
+     remain reachable when the workspace or browser becomes narrower. */
+  html.inside-erp-workspace body.builder {
+    display: flex;
+    height: 100dvh;
+    min-height: 0 !important;
+    flex-direction: column;
+  }
+
+  html.inside-erp-workspace .builder-bar {
+    height: auto;
+    min-height: 62px;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    color: #fff;
+  }
+
+  html.inside-erp-workspace .builder-bar > * {
+    max-width: 100%;
+  }
+
+  html.inside-erp-workspace .builder-bar #name {
+    min-width: min(220px, 100%);
+    flex: 1 1 220px;
+  }
+
+  html.inside-erp-workspace .builder-grid {
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 0;
+    grid-template-columns: 245px minmax(0, 1fr) 285px;
+  }
+
+  html.inside-erp-workspace .builder-grid > * {
+    min-width: 0;
+    min-height: 0;
+  }
+}
+
+@media screen and (max-width: 1000px) {
+  html.inside-erp-workspace .builder-grid {
+    grid-template-columns: 200px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(130px, 30%);
+  }
+
+  html.inside-erp-workspace .builder-grid > .inspector {
+    position: static;
+    width: auto;
+    height: auto;
+    grid-column: 1 / -1;
+  }
+}
+
+@media screen and (max-width: 640px) {
+  html.inside-erp-workspace body.builder {
+    height: auto;
+    min-height: 100dvh !important;
+    overflow: auto;
+  }
+
+  html.inside-erp-workspace .builder-grid {
+    flex: none;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(400px, 65dvh) auto;
+  }
+
+  html.inside-erp-workspace .builder-grid > .palette {
+    max-height: 220px;
+  }
+}

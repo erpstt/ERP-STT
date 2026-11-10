@@ -1,0 +1,62 @@
+/* The shell owns the viewport; catalogs and embedded pages scroll in their
+   own available area. The header height follows its actual wrapped content. */
+@media screen {
+  .workspace{height:100vh;height:100dvh;min-height:0;min-width:0;display:grid;grid-template-columns:290px minmax(0,1fr);overflow:hidden}
+  .workspace>.sidebar{height:100%;min-height:0;min-width:0;position:relative;top:auto;overflow:hidden;padding:20px 15px 14px}
+  .workspace>.sidebar>.brand,.workspace>.sidebar>.sidebar-bottom{flex:0 0 auto}
+  .workspace>.sidebar nav{flex:1 1 0;min-height:0;min-width:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}
+  .workspace>.dashboard{height:100%;min-height:0;min-width:0;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden}
+  .workspace .dashboard-header{position:relative;z-index:10;height:auto;min-height:64px;min-width:0;padding:10px 20px;gap:12px;flex-wrap:wrap}
+  .workspace .crumb{flex:1 1 150px;min-width:0;font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+  .workspace .header-identity{min-width:0;max-width:100%;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+  .workspace .header-identity .role-copy strong{display:block;overflow:hidden;text-overflow:ellipsis}
+  .workspace .header-identity .company-menu,.workspace .header-identity .role-menu{max-height:min(520px,calc(100dvh - 160px));overflow-y:auto;overscroll-behavior:contain}
+  .workspace .menu-button{display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;gap:8px;min-width:40px;min-height:40px;padding:7px 10px;border:1px solid #d5dfed;border-radius:8px;background:#fff;color:#123c76;font:inherit;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer}
+  .workspace .menu-button>span:first-child{font-size:19px;line-height:1}
+  .workspace .menu-button:hover{background:#eef3fb;border-color:#9db5d7}
+  .workspace .menu-button:focus-visible,.workspace .sidebar-close:focus-visible{outline:3px solid #86b5ff;outline-offset:2px}
+  .workspace .sidebar-close{display:none}
+  .workspace>.dashboard>.dashboard-content{width:100%;max-width:none;min-width:0;min-height:0;padding:24px;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+  .workspace .records-view{width:100%;min-width:0}
+  .workspace .records-head{gap:16px;flex-wrap:wrap;margin-bottom:20px}
+  .workspace .records-head>div:first-child{min-width:0}
+  .workspace .records-head h1{overflow-wrap:anywhere}
+  .workspace .records-head .eyebrow{margin-bottom:8px}
+  .workspace .records-head .dashboard-copy{margin:6px 0 0}
+  .workspace .table-card,.workspace .table-scroll{min-width:0;max-width:100%}
+  .workspace .table-tools{gap:12px;flex-wrap:wrap}
+  .workspace .search-box{max-width:100%;min-width:0}
+  .workspace .search-box input{width:min(210px,100%);min-width:0}
+  .workspace>.dashboard>.embedded-workspace{height:auto;min-height:0;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+  .workspace .embedded-toolbar{height:auto;min-height:42px;min-width:0;flex:0 0 auto;padding:7px 12px;gap:10px}
+  .workspace .embedded-toolbar strong{min-width:0;line-height:1.4;overflow-wrap:anywhere}
+  .workspace .embedded-toolbar button{flex:0 0 auto}
+  .workspace .embedded-workspace iframe{display:block;flex:1 1 0;width:100%;height:0;min-height:0;min-width:0;border:0}
+}
+@media screen and (min-width:801px){
+  .workspace.sidebar-collapsed{grid-template-columns:minmax(0,1fr)}
+  .workspace.sidebar-collapsed>.sidebar{display:none}
+}
+@media screen and (max-width:1200px){.workspace .menu-toggle-label{display:none}}
+@media screen and (max-width:1100px){
+  .workspace .header-identity .company-selector,.workspace .header-identity .role-selector{position:static}
+  .workspace .header-identity .company-menu,.workspace .header-identity .role-menu{position:absolute;top:calc(100% + 8px);right:12px;left:12px;width:auto}
+}
+@media screen and (max-width:800px){
+  .workspace{display:block;position:relative}
+  .workspace>.sidebar{position:fixed;inset:0 auto 0 0;z-index:10001;width:min(290px,calc(100vw - 40px));height:100vh;height:100dvh;transform:translateX(-100%);visibility:hidden;pointer-events:none;transition:transform .18s ease,visibility .18s}
+  .workspace>.sidebar.open{transform:translateX(0);visibility:visible;pointer-events:auto}
+  .workspace .sidebar-close{position:absolute;top:14px;right:12px;display:grid;place-items:center;width:32px;height:32px;border:1px solid #ffffff50;border-radius:7px;background:transparent;color:#fff;font-size:24px;line-height:1;cursor:pointer}
+  .workspace>.sidebar>.brand{padding-right:35px}
+  .workspace .sidebar-backdrop{position:fixed;inset:0;z-index:10000;border:0;border-radius:0;background:#0c1e3b66;cursor:pointer}
+  .workspace .dashboard-header{padding:8px 12px;gap:8px}
+  .workspace .crumb{flex-basis:130px;font-size:10px}
+  .workspace .crumb b{margin:0 5px}
+  .workspace .header-identity{gap:6px}
+  .workspace .header-identity .company-selector summary,.workspace .header-identity .company-switch-single,.workspace .header-identity .role-selector summary,.workspace .header-identity .role-switch-single,.workspace .header-identity .language-selector summary{width:40px;min-width:40px;height:40px;padding:4px}
+  .workspace .header-identity .role-copy,.workspace .header-identity .role-chevron{display:none!important}
+  .workspace>.dashboard>.dashboard-content{padding:18px 14px}
+  .workspace .embedded-toolbar{padding:6px 8px;gap:8px}
+  .workspace .embedded-toolbar button{padding:6px 8px;font-size:10px}
+}
+@media screen and (prefers-reduced-motion:reduce){.workspace>.sidebar{transition:none}}

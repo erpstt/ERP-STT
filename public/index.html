@@ -25,6 +25,7 @@
   <link rel="stylesheet" href="/exchange-rate.css?v=20260814">
   <link rel="stylesheet" href="/gentia-theme.css?v=20261029-exchange-rate-menu">
   <link rel="stylesheet" href="/security-user-invitation.css?v=20261027-partial-notification">
+  <link rel="stylesheet" href="/workspace-shell.css?v=20261110-workspace-layout">
 </head>
 <body>
 <div id="app">
@@ -235,12 +236,14 @@
     </section>
   </main>
 
-  <main v-else class="workspace">
-    <aside class="sidebar" :class="{open: sidebarOpen}">
+  <main v-else class="workspace" :class="{'sidebar-collapsed':sidebarDesktopCollapsed,'sidebar-mobile-open':sidebarOpen}">
+    <button v-if="sidebarIsMobile && sidebarOpen" type="button" class="sidebar-backdrop" aria-label="Cerrar menú de módulos" tabindex="-1" @click="closeMobileSidebar"></button>
+    <aside id="moduleSidebar" ref="moduleSidebar" class="sidebar" :class="{open: sidebarOpen}" :aria-hidden="!sidebarExpanded" :inert="!sidebarExpanded" tabindex="-1" aria-label="Menú de módulos">
       <span class="brand gentia-brand gentia-brand-sidebar">
 <img src="/gentia-wordmark-reversed.svg" width="380" height="124" alt="GENTIA">
 </span>
-      <nav>
+      <button type="button" class="sidebar-close" aria-label="Cerrar menú de módulos" @click="closeMobileSidebar">×</button>
+      <nav aria-label="Módulos del ERP">
         <p>MÓDULOS</p>
         <template v-for="module in visibleModules" :key="module.name">
           <a class="nav-link" :class="{active: currentModule===module.name}" href="#" @click.prevent="selectModule(module)">
@@ -257,16 +260,16 @@
         </template>
       </nav>
       <div class="sidebar-bottom">
-<button @click="openPasswordDialog">
+<button @click="closeMobileSidebar(); openPasswordDialog()">
 <span>⚿</span>Cambiar contraseña</button>
 <button @click="logout">
 <span>↪</span>Cerrar sesión</button>
 </div>
     </aside>
 
-    <section class="dashboard">
+    <section class="dashboard" :inert="sidebarIsMobile && sidebarOpen">
       <header class="dashboard-header">
-<button class="menu-button" @click="sidebarOpen=!sidebarOpen">☰</button>
+<button id="sidebarToggle" type="button" class="menu-button" aria-controls="moduleSidebar" :aria-expanded="sidebarExpanded" :aria-label="sidebarExpanded?'Ocultar menú de módulos':'Mostrar menú de módulos'" :title="sidebarExpanded?'Ocultar menú de módulos':'Mostrar menú de módulos'" @click="toggleSidebar"><span aria-hidden="true">☰</span><span class="menu-toggle-label">{{ sidebarExpanded?'Ocultar menú':'Mostrar menú' }}</span></button>
 <div class="crumb">
 <span>Espacio de trabajo</span>
 <b>/</b>
@@ -766,7 +769,7 @@
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
 <script type="module" src="/i18n.js?v=20261107-auto-template-rates"></script>
-<script type="module" src="/app.js?v=20261110-fiscal-period-controls">
+<script type="module" src="/app.js?v=20261110-workspace-layout">
 </script>
 <script src="/approval-notifications.js?v=20261101-c04-approval-inbox"></script></body>
 </html>
