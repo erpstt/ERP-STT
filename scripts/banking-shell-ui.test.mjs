@@ -8,7 +8,7 @@ function setup(){
  const values=new Map([['nexo_token','synthetic-old'],['nexo_company','1'],['nexo_role','2'],['nexo_device_token','synthetic-device']]),storage={getItem:key=>values.get(key)??null},state={generation:'synthetic-generation'};
  const context={console,AbortController,window:{NexoSessionRenewal:{current:()=>state}},localStorage:storage,sessionStorage:{getItem:()=>null},alphabeticalCollator:new Intl.Collator('es'),cancelRateCatalogLoad(){},loadSubsidiaryApprovers:async()=>[],Error};
  vm.createContext(context);vm.runInContext(shared.replace(/^export /gm,''),context);
- const helpers=source.slice(source.indexOf('const bankCatalogLoads='),source.indexOf('function cancelRateCatalogLoad'));vm.runInContext(helpers,context);
+ const helpers=source.slice(source.indexOf('const fiscalCatalogLoads='),source.indexOf('function cancelRateCatalogLoad'));vm.runInContext(helpers,context);
  const extract=(from,to)=>source.slice(source.indexOf(from),source.indexOf(to,source.indexOf(from)+from.length));
  const methods=extract('async loadBankingCatalog(catalog)','async loadCatalog()')+extract('async loadCatalog()','selectModule(module)');
  const ui=vm.runInContext(`({${methods}})`,context),catalog={slug:'bank-accounts',apiRoot:'banking',fields:[{key:'currency_id',reference:'core/currencies'},{key:'account_id',reference:'accounting/chart-accounts'}]};
