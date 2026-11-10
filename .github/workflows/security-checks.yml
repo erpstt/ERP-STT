@@ -154,6 +154,8 @@ jobs:
             scripts/payment-request-approval-reminder-sql.test.mjs \
             scripts/payment-request-approval-reminder-ui.test.mjs \
             scripts/payment-request-ui-security.test.mjs \
+            scripts/payment-request-approval-trace-api.test.mjs \
+            scripts/payment-request-approval-trace-ui.test.mjs \
             scripts/payment-request-beneficiary-banks-ui.test.mjs \
             scripts/payment-request-search-ui.test.mjs \
             scripts/cxp-subsidiary-approval-sql.test.mjs \

@@ -4,12 +4,15 @@ import {test} from 'node:test';
 import vm from 'node:vm';
 import {assertIsolatedTestArgs} from './lib/migration-preview.mjs';
 assertIsolatedTestArgs();
-const versions={'journal-entry':'20261104-journal-payment-route-id-guard','payment-requests':'20261105-payment-request-search'};
+const versions={'journal-entry':'20261104-journal-payment-route-id-guard','payment-requests':'20261110-approval-trace'};
 const validator=(await readFile(new URL('../public/route-id.js',import.meta.url),'utf8')).replace(/^export /gm,'');
 const safety=(await readFile(new URL('../public/html-safety.js',import.meta.url),'utf8')).replace(/^export /gm,'');
 const searchSpecifier='./payment-request-search.js?v=20261105-payment-request-search';
 const searchSource=(await readFile(new URL('../public/payment-request-search.js',import.meta.url),'utf8')).replace(/^export /gm,'');
 const searchModule=new vm.Script('(function(){\n'+searchSource+'\nreturn{enhancePaymentRequestSelect};\n})()',{filename:'payment-request-search.js'});
+const traceSpecifier='./payment-request-approval-trace.js?v=20261110-approval-trace';
+const traceSource=(await readFile(new URL('../public/payment-request-approval-trace.js',import.meta.url),'utf8')).replace(/^export /gm,'');
+const traceModule=new vm.Script('(function(){\n'+traceSource+'\nreturn{renderPaymentRequestApprovalTrace};\n})()',{filename:'payment-request-approval-trace.js'});
 const screens=await Promise.all(['journal-entry','payment-requests'].map(async name=>({name,source:await readFile(new URL('../public/'+name+'.js',import.meta.url),'utf8'),html:await readFile(new URL('../public/'+name+'.html',import.meta.url),'utf8')})));
 const voidTags=new Set(['input','meta','link','br','hr','img','source','wbr']);
 class Element{
@@ -57,7 +60,7 @@ const header={transactionTypes:[{name:'Asiento diario',abbreviation:'ASI_DIA'}],
 const journalLines={accounts:[{account_id:7,account_number:'101',account_name:'Synthetic',subsidiary_id:1,accepts_entries:true}],taxes:[],taxTypes:[],departments:[],classes:[],costs:[],creditors:[],related:[],customers:[],suppliers:[],employees:[],countries:[]};
 const options={company:'Synthetic company',currencies:[{id:1,name:'CRC'}],users:[{id:1,name:'Synthetic'}],suppliers:[],customers:[],employees:[],otherNames:[],taxAgencies:[],departments:[],costCenters:[],classes:[],accounts:[],banks:[],rates:[],beneficiaryBankAccounts:[],baseCurrencyId:1,userId:1};
 async function execute(screen,search='',{handoff=null,activeCompany='1',deny=false,noView=false}={}){
- const document=new Document(screen.html),calls=[],reads=[],writes=[],removes=[],timers=[],navigation=[],observers=[],actors=[],moduleImports=[];
+ const document=new Document(screen.html),calls=[],reads=[],writes=[],removes=[],timers=[],navigation=[],observers=[],actors=[],moduleImports=[],traceRenders=[];
  const values=new Map(handoff===null?[]:[['nexo_edit_journal',handoff]]),params=new URLSearchParams(search),id=params.get('id')??handoff;
  const storage=area=>({getItem(key){reads.push({area,key});return values.has(key)?values.get(key):key==='nexo_token'?'synthetic-p135-token':key==='nexo_device_token'?'synthetic-p135-device':key==='nexo_company'?activeCompany:null;},setItem(key,value){writes.push({area,key,value});values.set(key,String(value));},removeItem(key){removes.push({area,key});values.delete(key);}});
  class Option extends Element{constructor(text,value){super(document,'option',{value:String(value)});this.textContent=text;}}
@@ -88,16 +91,22 @@ async function execute(screen,search='',{handoff=null,activeCompany='1',deny=fal
    return{ok:true,async json(){return payload;}};
   }};
  sandbox.window=sandbox;
- const imports=[...screen.source.matchAll(/^import[^\r\n]*from\s*'([^']+)';/gm)].map(match=>match[1]);assert.ok(imports.every(path=>/^\.\/(html-safety|route-id)\.js\?v=/.test(path)));
+ const imports=[...screen.source.matchAll(/^import[^\r\n]*from\s*'([^']+)';/gm)].map(match=>match[1]);
+ const staticImports=['./route-id.js?v=20261103-route-id-guard',screen.name==='payment-requests'?'./html-safety.js?v=20261102-a03-media':'./html-safety.js?v=20261101-a03-1',...(screen.name==='payment-requests'?[traceSpecifier]:[])];
+ assert.deepEqual(imports.sort(),staticImports.sort(),'Only the explicitly reviewed static helpers may load');
  const dynamicImports=[...screen.source.matchAll(/\bimport\(\s*'([^']+)'\s*\)/g)].map(match=>match[1]);
  assert.deepEqual(dynamicImports,screen.name==='payment-requests'?[searchSpecifier]:[],'Only the reviewed pure search helper may load dynamically');
  const code=screen.source.replace(/^import[^\r\n]*\r?\n/gm,'').replaceAll("import('"+searchSpecifier+"')","importPaymentSearch('"+searchSpecifier+"')"),context=vm.createContext(sandbox);let error,searchNamespace;
+ if(screen.name==='payment-requests'){
+  const {renderPaymentRequestApprovalTrace}=traceModule.runInContext(context,{timeout:1000});
+  sandbox.renderPaymentRequestApprovalTrace=payload=>{traceRenders.push(payload);return renderPaymentRequestApprovalTrace(payload);};
+ }
  sandbox.importPaymentSearch=async specifier=>{assert.equal(specifier,searchSpecifier);moduleImports.push(specifier);return searchNamespace??=searchModule.runInContext(context,{timeout:1000});};
  try{await vm.runInContext('(async()=>{"use strict";\n'+validator+'\n'+safety+'\n'+code+'\n})()',context,{timeout:1500,filename:screen.name+'.js'});}catch(cause){error=cause;}
  for(let turn=0;turn<30;turn++)await Promise.resolve();
- return{document,calls,reads,writes,removes,timers,navigation,observers,actors,moduleImports,values,error};
+ return{document,calls,reads,writes,removes,timers,navigation,observers,actors,moduleImports,traceRenders,values,error};
 }
-function closed(screen,f){assert.equal(f.calls.length,0);assert.equal(f.moduleImports.length,0);assert.equal(f.timers.length,0);assert.equal(f.observers.length,0);assert.equal(f.actors.length,0);assert.equal(f.navigation.length,0);assert.equal(f.error,undefined);assert.match(f.document.getElementById(screen.name==='journal-entry'?'error':'message').textContent,/identificador.*no es válido/);for(const control of f.document.querySelectorAll('input,select,textarea,button')){assert.equal(control.disabled,true);assert.equal(control.listeners.length,0);for(const event of['onclick','onchange','onsubmit'])assert.notEqual(typeof control[event],'function');}}
+function closed(screen,f){assert.equal(f.calls.length,0);assert.equal(f.moduleImports.length,0);assert.equal(f.traceRenders.length,0);assert.equal(f.timers.length,0);assert.equal(f.observers.length,0);assert.equal(f.actors.length,0);assert.equal(f.navigation.length,0);assert.equal(f.error,undefined);assert.match(f.document.getElementById(screen.name==='journal-entry'?'error':'message').textContent,/identificador.*no es válido/);for(const control of f.document.querySelectorAll('input,select,textarea,button')){assert.equal(control.disabled,true);assert.equal(control.listeners.length,0);for(const event of['onclick','onchange','onsubmit'])assert.notEqual(typeof control[event],'function');}}
 for(const screen of screens){
  test(screen.name+' invalid present IDs reject before session, credentials, APIs, listeners and fallback',async()=>{
   for(const search of invalid){const f=await execute(screen,search,{handoff:'42'});closed(screen,f);assert.equal(f.reads.length,0);assert.equal(f.writes.length,0);assert.equal(f.removes.length,0);}
@@ -105,12 +114,12 @@ for(const screen of screens){
  test(screen.name+' absent ID preserves normal initialization and existing permission contracts',async()=>{
   const f=await execute(screen);assert.equal(f.error,undefined,f.error?.stack);assert.ok(f.calls.length>0);assert.deepEqual(f.moduleImports,screen.name==='payment-requests'?[searchSpecifier]:[]);
   if(screen.name==='journal-entry'){assert.equal(f.document.getElementById('save').disabled,false,f.document.getElementById('journalLoadMessage').textContent);assert.equal(f.document.getElementById('lines').rows.length,2);assert.ok(f.calls.every(call=>!call.path.includes('&id=')));}
-  else assert.deepEqual(f.calls.map(call=>call.path),['/api/treasury/payment-requests/access','/api/treasury/payment-requests/options','/api/treasury/payment-requests/report']);
+  else{assert.deepEqual(f.calls.map(call=>call.path),['/api/treasury/payment-requests/access','/api/treasury/payment-requests/options','/api/treasury/payment-requests/report']);assert.equal(f.traceRenders.length,0);}
  });
  test(screen.name+' valid direct IDs retain canonical string identity and detail loading',async()=>{
   for(const queryId of['42','%34%32','9007199254740991']){const id=decodeURIComponent(queryId),f=await execute(screen,'?id='+queryId,{handoff:'INVALID-UNREAD'});assert.equal(f.error,undefined,f.error?.stack);assert.deepEqual(f.moduleImports,screen.name==="payment-requests"?[searchSpecifier]:[]);assert.equal(f.reads.some(read=>read.key==='nexo_edit_journal'),false);
    if(screen.name==='journal-entry'){assert.ok(f.calls.some(call=>call.path==='/api/accounting/journal-entry/'+id));assert.equal(f.values.get('nexo_edit_journal'),id);assert.equal(f.document.getElementById('save').disabled,false);}
-   else{assert.deepEqual(f.calls.filter(call=>call.path.endsWith('/detail')).map(call=>call.body),[{id}]);assert.equal(f.document.getElementById('title').textContent,'SYN-REQUEST · BORRADOR');}
+   else{assert.deepEqual(f.calls.filter(call=>call.path.endsWith('/detail')).map(call=>call.body),[{id}]);assert.equal(f.document.getElementById('title').textContent,'SYN-REQUEST · BORRADOR');assert.equal(f.traceRenders.length,1);assert.equal(f.traceRenders[0].header.id,id);assert.equal(f.traceRenders[0].trace,undefined);}
   }
  });
 }
@@ -130,12 +139,12 @@ test('request company aliases reject invalid, duplicated or conflicting values b
 });
 test('valid company aliases preserve active-company restriction before tokens and authenticated bootstrap',async()=>{
  for(const suffix of['company=1','subsidiaryId=1','company=1&subsidiaryId=1']){const f=await execute(screens[1],'?id=42&'+suffix);assert.equal(f.error,undefined);assert.equal(f.reads[0].key,'nexo_company');assert.ok(f.calls.some(call=>call.path.endsWith('/detail')));}
- const wrong=await execute(screens[1],'?id=42&company=2');assert.equal(wrong.calls.length,0);assert.equal(wrong.moduleImports.length,0);assert.deepEqual(wrong.reads,[{area:'local',key:'nexo_company'}]);assert.match(wrong.document.getElementById('message').textContent,/empresa indicada no está activa/);assert.equal(wrong.document.getElementById('new').hidden,true);
+ const wrong=await execute(screens[1],'?id=42&company=2');assert.equal(wrong.calls.length,0);assert.equal(wrong.moduleImports.length,0);assert.equal(wrong.traceRenders.length,0);assert.deepEqual(wrong.reads,[{area:'local',key:'nexo_company'}]);assert.match(wrong.document.getElementById('message').textContent,/empresa indicada no está activa/);assert.equal(wrong.document.getElementById('new').hidden,true);
 });
 test('original permission denials stop journal readiness and payment request detail access',async()=>{
  const journal=await execute(screens[0],'?id=42',{deny:true});assert.equal(journal.document.getElementById('save').disabled,true);assert.ok(journal.calls.every(call=>call.method==='GET'));
- const request=await execute(screens[1],'?id=42',{deny:true});assert.deepEqual(request.calls.map(call=>call.path),['/api/treasury/payment-requests/access']);
- const noView=await execute(screens[1],'?id=42',{noView:true});assert.equal(noView.calls.some(call=>call.path.endsWith('/detail')||call.path.endsWith('/supports')),false);
+ const request=await execute(screens[1],'?id=42',{deny:true});assert.deepEqual(request.calls.map(call=>call.path),['/api/treasury/payment-requests/access']);assert.equal(request.traceRenders.length,0);
+ const noView=await execute(screens[1],'?id=42',{noView:true});assert.equal(noView.calls.some(call=>call.path.endsWith('/detail')||call.path.endsWith('/supports')),false);assert.equal(noView.traceRenders.length,0);
 });
 test('own HTML cache references are fresh while P94 validator imports and P118 attachment handlers remain present',()=>{
  for(const screen of screens){assert.ok(screen.html.includes('/'+screen.name+'.js?v='+versions[screen.name]));assert.ok(screen.source.includes("from './route-id.js?v=20261103-route-id-guard'"));}
