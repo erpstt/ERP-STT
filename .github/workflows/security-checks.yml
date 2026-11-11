@@ -316,6 +316,8 @@ jobs:
             scripts/up-approvers-public-errors.test.mjs \
             scripts/user-provisioning-public-errors.test.mjs \
             scripts/test-vat-declaration-report-http.mjs \
+            scripts/vat-treatment.test.mjs \
+            scripts/vat-treatment-browser.test.mjs \
             scripts/check-costa-rica-rate.mjs \
             scripts/generic-route-method-security.test.mjs \
             scripts/bank-fee-access-catalog.test.mjs \

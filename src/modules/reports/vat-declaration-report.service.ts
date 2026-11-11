@@ -23,6 +23,10 @@ type TaxRow = {
   exchangeRate: number;
   taxableBase: number;
   exemptAmount: number;
+  nonSubjectAmount: number;
+  zeroRateAmount: number;
+  unclassifiedAmount: number;
+  classification: string;
   taxAmount: number;
   grossAmount: number;
   originalBase: number;
@@ -68,10 +72,16 @@ type NormalizedReport = {
     purchaseDocumentCount: number;
     salesTaxableBase: number;
     salesExemptBase: number;
+    salesNonSubjectBase: number;
+    salesZeroRateBase: number;
+    salesUnclassifiedBase: number;
     salesGrossAmount: number;
     outputTax: number;
     purchaseTaxableBase: number;
     purchaseExemptBase: number;
+    purchaseNonSubjectBase: number;
+    purchaseZeroRateBase: number;
+    purchaseUnclassifiedBase: number;
     purchaseGrossAmount: number;
     inputTax: number;
     debitAdjustments: number;
@@ -202,9 +212,13 @@ function normalizeRow(source: Json, side: 'SALES' | 'PURCHASES', header: Normali
   const rawBase = number(source, 'taxableBaseLocal', 'taxable_base_local', 'baseAmountLocal', 'base_amount_local', 'localTaxableBase', 'local_taxable_base', 'taxableBase', 'taxable_base', 'baseAmount', 'base_amount', 'netAmount', 'net_amount', 'base');
   const tax = number(source, 'taxAmountLocal', 'tax_amount_local', 'localTaxAmount', 'local_tax_amount', 'taxAmount', 'tax_amount', 'vatAmount', 'vat_amount', 'gctAmount', 'gct_amount', 'impuesto');
   const rate = number(source, 'taxRate', 'tax_rate', 'ratePercentage', 'rate_percentage', 'rate', 'tasa');
-  const explicitExempt = number(source, 'exemptAmountLocal', 'exempt_amount_local', 'localExemptAmount', 'local_exempt_amount', 'exemptAmount', 'exempt_amount', 'zeroRatedAmount', 'zero_rated_amount', 'montoExento');
-  const exempt = explicitExempt || (rate === 0 && tax === 0 ? rawBase : 0), base = exempt && !explicitExempt ? 0 : rawBase;
-  const total = number(source, 'grossAmountLocal', 'gross_amount_local', 'localGrossAmount', 'local_gross_amount', 'grossAmount', 'gross_amount', 'totalAmount', 'total_amount', 'total') || base + exempt + tax;
+  const classification = string(source, 'classification', 'taxClassification', 'tax_classification') || (rate === 0 ? 'UNCLASSIFIED' : 'DOMESTIC');
+  const exempt = classification === 'EXEMPT' ? rawBase : 0;
+  const nonSubject = classification === 'NON_SUBJECT' ? rawBase : 0;
+  const zeroRate = classification === 'ZERO_RATE' ? rawBase : 0;
+  const unclassified = !['EXEMPT','NON_SUBJECT','ZERO_RATE'].includes(classification) && (rate === 0 || first(source, 'taxReportable', 'tax_reportable') === false) ? rawBase : 0;
+  const base = ['EXEMPT','NON_SUBJECT','ZERO_RATE'].includes(classification) || rate === 0 || first(source, 'taxReportable', 'tax_reportable') === false ? 0 : rawBase;
+  const total = number(source, 'grossAmountLocal', 'gross_amount_local', 'localGrossAmount', 'local_gross_amount', 'grossAmount', 'gross_amount', 'totalAmount', 'total_amount', 'total') || rawBase + tax;
   const hasLocalBase = has(source, 'taxableBaseLocal', 'taxable_base_local', 'baseAmountLocal', 'base_amount_local', 'localTaxableBase', 'local_taxable_base');
   const hasLocalTax = has(source, 'taxAmountLocal', 'tax_amount_local', 'localTaxAmount', 'local_tax_amount');
   return {
@@ -215,7 +229,7 @@ function normalizeRow(source: Json, side: 'SALES' | 'PURCHASES', header: Normali
     date: string(source, 'documentDate', 'document_date', 'invoiceDate', 'invoice_date', 'noteDate', 'note_date', 'date', 'fecha'),
     partyName: string(source, 'partyName', 'party_name', side === 'SALES' ? 'customerName' : 'supplierName', side === 'SALES' ? 'customer_name' : 'supplier_name', 'thirdParty', 'third_party', 'tercero'),
     partyTaxId: string(source, 'partyTaxId', 'party_tax_id', side === 'SALES' ? 'customerTaxId' : 'supplierTaxId', side === 'SALES' ? 'customer_tax_id' : 'supplier_tax_id', 'taxId', 'tax_id', 'identification'),
-    taxCode: string(source, 'taxCode', 'tax_code', 'taxCodeName', 'tax_code_name', 'codeName', 'code_name', 'codigoImpuesto', 'codigo_impuesto') || (tax === 0 ? 'Exento / 0%' : 'Impuesto'),
+    taxCode: string(source, 'taxCode', 'tax_code', 'taxCodeName', 'tax_code_name', 'codeName', 'code_name', 'codigoImpuesto', 'codigo_impuesto') || (rate === 0 ? 'Sin clasificar' : 'Impuesto'),
     taxDescription: string(source, 'taxDescription', 'tax_description', 'description', 'descripcion'),
     taxRate: rate,
     currency: string(source, 'currencyCode', 'currency_code') || string(currencyObject, 'code', 'currencyCode', 'currency_code') || header.currency,
@@ -223,6 +237,10 @@ function normalizeRow(source: Json, side: 'SALES' | 'PURCHASES', header: Normali
     exchangeRate: number(source, 'exchangeRate', 'exchange_rate', 'rateOfExchange', 'rate_of_exchange', 'tipoCambio', 'tipo_cambio') || 1,
     taxableBase: base,
     exemptAmount: exempt,
+    nonSubjectAmount: nonSubject,
+    zeroRateAmount: zeroRate,
+    unclassifiedAmount: unclassified,
+    classification,
     taxAmount: tax,
     grossAmount: total,
     originalBase: number(source, 'originalBase', 'original_base', 'taxableBaseOriginal', 'taxable_base_original', 'originalTaxableBase', 'original_taxable_base', 'foreignTaxableBase', 'foreign_taxable_base') || (hasLocalBase ? number(source, 'taxableBase', 'taxable_base', 'baseAmount', 'base_amount', 'netAmount', 'net_amount', 'base') : rawBase),
@@ -237,6 +255,12 @@ function normalizeRow(source: Json, side: 'SALES' | 'PURCHASES', header: Normali
     note: string(source, 'description', 'concept', 'concepto', 'note', 'nota', 'memo')
   };
 }
+
+function treatmentLabel(classification: string) {
+  return ({EXEMPT:'Exento',NON_SUBJECT:'No sujeto',ZERO_RATE:'Tasa cero',UNCLASSIFIED:'Sin clasificar',NO_CODE:'Sin código fiscal',INVALID_COUNTRY:'País no válido',NON_INDIRECT:'Fuera de IVA/GCT',NOT_APPLICABLE:'No aplicable',NON_CREDITABLE:'No acreditable',IMPORT:'Importación',DOMESTIC:'Gravado'} as Record<string,string>)[classification] || 'Sin clasificar';
+}
+
+function operationBase(row: TaxRow) { return row.taxableBase + row.exemptAmount + row.nonSubjectAmount + row.zeroRateAmount + row.unclassifiedAmount; }
 
 function uniqueDocuments(rows: TaxRow[]) {
   return new Set(rows.map(row => `${row.documentType}\u0000${row.documentNumber}`).filter(value => value !== '\u0000')).size;
@@ -271,8 +295,8 @@ function rateSummaries(summary: Json, sales: TaxRow[], purchases: TaxRow[], payl
   const grouped = new Map<string, RateSummary>();
   for (const row of [...sales, ...purchases]) {
     const key = `${row.taxCode}\u0000${row.taxRate}`, current = grouped.get(key) ?? { label: row.taxCode, rate: row.taxRate, salesBase: 0, outputTax: 0, purchaseBase: 0, inputTax: 0, balance: 0 };
-    if (row.side === 'SALES') { current.salesBase += row.taxableBase; current.outputTax += row.taxAmount; }
-    else { current.purchaseBase += row.taxableBase; current.inputTax += row.taxAmount; }
+    if (row.side === 'SALES') { current.salesBase += operationBase(row); current.outputTax += row.taxAmount; }
+    else { current.purchaseBase += operationBase(row); current.inputTax += row.taxAmount; }
     current.balance = current.outputTax - current.inputTax; grouped.set(key, current);
   }
   return [...grouped.values()].sort((left, right) => right.rate - left.rate || left.label.localeCompare(right.label, 'es'));
@@ -329,9 +353,15 @@ function normalizeReport(payload: Json): NormalizedReport {
   const summary: NormalizedReport['summary'] = {
     salesDocumentCount: number(sourceSummary, 'salesDocumentCount', 'sales_document_count', 'salesCount', 'sales_count') || uniqueDocuments(sales),
     purchaseDocumentCount: number(sourceSummary, 'purchaseDocumentCount', 'purchase_document_count', 'purchaseCount', 'purchase_count') || uniqueDocuments(purchases),
-    salesTaxableBase, salesExemptBase,
+salesTaxableBase, salesExemptBase,
+    salesNonSubjectBase: sales.length ? sales.reduce((sum,row)=>sum+row.nonSubjectAmount,0) : number(sourceSummary,'salesNonSubjectBase'),
+    salesZeroRateBase: sales.length ? sales.reduce((sum,row)=>sum+row.zeroRateAmount,0) : number(sourceSummary,'salesZeroRateBase'),
+    salesUnclassifiedBase: sales.length ? sales.reduce((sum,row)=>sum+row.unclassifiedAmount,0) : number(sourceSummary,'salesUnclassifiedBase'),
     salesGrossAmount: has(sourceSummary, 'salesGross', 'sales_gross', 'salesGrossAmount', 'sales_gross_amount', 'grossSales', 'gross_sales') ? number(sourceSummary, 'salesGross', 'sales_gross', 'salesGrossAmount', 'sales_gross_amount', 'grossSales', 'gross_sales') : sales.reduce((sum, row) => sum + row.grossAmount, 0),
-    outputTax, purchaseTaxableBase, purchaseExemptBase,
+outputTax, purchaseTaxableBase, purchaseExemptBase,
+    purchaseNonSubjectBase: purchases.length ? purchases.reduce((sum,row)=>sum+row.nonSubjectAmount,0) : number(sourceSummary,'purchaseNonSubjectBase'),
+    purchaseZeroRateBase: purchases.length ? purchases.reduce((sum,row)=>sum+row.zeroRateAmount,0) : number(sourceSummary,'purchaseZeroRateBase'),
+    purchaseUnclassifiedBase: purchases.length ? purchases.reduce((sum,row)=>sum+row.unclassifiedAmount,0) : number(sourceSummary,'purchaseUnclassifiedBase'),
     purchaseGrossAmount: has(sourceSummary, 'purchaseGross', 'purchase_gross', 'purchaseGrossAmount', 'purchase_gross_amount', 'grossPurchases', 'gross_purchases') ? number(sourceSummary, 'purchaseGross', 'purchase_gross', 'purchaseGrossAmount', 'purchase_gross_amount', 'grossPurchases', 'gross_purchases') : purchases.reduce((sum, row) => sum + row.grossAmount, 0),
     inputTax, debitAdjustments, creditAdjustments, grossTax, vatWithheldSuffered, vatWithheldPracticed, priorPeriodCredit, netTax,
     position: string(sourceSummary, 'position', 'positionCode', 'position_code'), taxPayable, taxCreditBalance,
@@ -369,7 +399,7 @@ function safeDatePart(value: string) {
 }
 
 function pdfRows(rows: TaxRow[], header: NormalizedReport['header']) {
-  return rows.map(row => `<tr><td>${esc(date(row.date))}</td><td><b>${esc(row.documentNumber || '—')}</b><small>${esc(row.documentType)}</small></td><td><b>${esc(row.partyName || '—')}</b><small>${esc(row.partyTaxId)}</small></td><td>${esc(row.taxCode)}<small>${row.taxRate.toLocaleString('es-CR',{maximumFractionDigits:4})}%</small></td><td class="num">${esc(money(row.taxableBase,header))}</td><td class="num">${esc(money(row.exemptAmount,header))}</td><td class="num tax">${esc(money(row.taxAmount,header))}</td><td class="num">${esc(money(row.grossAmount,header))}</td></tr>`).join('');
+  return rows.map(row => `<tr><td>${esc(date(row.date))}</td><td><b>${esc(row.documentNumber || '—')}</b><small>${esc(row.documentType)}</small></td><td><b>${esc(row.partyName || '—')}</b><small>${esc(row.partyTaxId)}</small></td><td>${esc(row.taxCode)}<small>${row.taxRate.toLocaleString('es-CR',{maximumFractionDigits:4})}%</small></td><td class="num">${esc(money(operationBase(row),header))}</td><td class="num">${esc(treatmentLabel(row.classification))}</td><td class="num tax">${esc(money(row.taxAmount,header))}</td><td class="num">${esc(money(row.grossAmount,header))}</td></tr>`).join('');
 }
 
 function pdfHtml(report: NormalizedReport) {
@@ -380,11 +410,11 @@ function pdfHtml(report: NormalizedReport) {
   </style></head><body><header><div><div class="brand">GENTIA</div><div class="company"><b>${esc(h.legalName || h.subsidiary)}</b><br>Identificación fiscal: ${esc(h.taxId || 'No registrada')}</div></div><div class="title"><h1>DECLARACIÓN ${esc(h.taxName)}</h1><p><b>${esc(h.periodLabel || `${date(h.dateFrom)} al ${date(h.dateTo)}`)}</b></p><p>Valores en ${esc(h.currency)}</p></div></header>
   <section class="meta"><div><small>Sociedad</small><b>${esc(h.subsidiary)}</b></div><div><small>Jurisdicción</small><b>${esc(h.country || 'No especificada')}</b></div><div><small>Período</small><b>${esc(date(h.dateFrom))} al ${esc(date(h.dateTo))}</b></div><div><small>Documentos</small><b>${esc(h.documentStatuses || 'Aprobados')} · ${h.includeAdjustments?'con':'sin'} ajustes</b></div></section>
   <section class="summary"><div class="metric"><small>Documentos de venta</small><b>${s.salesDocumentCount}</b></div><div class="metric output"><small>Base gravada ventas</small><b>${esc(money(s.salesTaxableBase,h))}</b></div><div class="metric output"><small>Débito fiscal</small><b>${esc(money(s.outputTax,h))}</b></div><div class="metric"><small>Documentos de compra</small><b>${s.purchaseDocumentCount}</b></div><div class="metric input"><small>Base gravada compras</small><b>${esc(money(s.purchaseTaxableBase,h))}</b></div><div class="metric input"><small>Crédito fiscal</small><b>${esc(money(s.inputTax,h))}</b></div></section>
-  <section class="reconciliation"><div><h3>IVA/GCT generado en ventas</h3><p><span>Base gravada</span><b>${esc(money(s.salesTaxableBase,h))}</b></p><p><span>Operaciones exentas / 0%</span><b>${esc(money(s.salesExemptBase,h))}</b></p><p class="total"><span>Débito fiscal</span><b>${esc(money(s.outputTax,h))}</b></p></div><div><h3>IVA/GCT acreditable en compras</h3><p><span>Base gravada</span><b>${esc(money(s.purchaseTaxableBase,h))}</b></p><p><span>Compras exentas / 0%</span><b>${esc(money(s.purchaseExemptBase,h))}</b></p><p class="total"><span>Crédito fiscal</span><b>${esc(money(s.inputTax,h))}</b></p></div><div><h3>Liquidación del período</h3><p><span>Impuesto bruto</span><b>${esc(money(s.grossTax,h))}</b></p><p><span>Retenido sufrido (−)</span><b>${esc(money(s.vatWithheldSuffered,h))}</b></p><p><span>Retenido practicado (−)</span><b>${esc(money(s.vatWithheldPracticed,h))}</b></p><p><span>Crédito período anterior (−)</span><b>${esc(money(s.priorPeriodCredit,h))}</b></p><p class="total net"><span>${net>0?'Impuesto por pagar':net<0?'Saldo a favor':'Posición neta'}</span><b>${esc(money(Math.abs(net),h))}</b></p></div></section>
+  <section class="reconciliation"><div><h3>IVA/GCT generado en ventas</h3><p><span>Base gravada</span><b>${esc(money(s.salesTaxableBase,h))}</b></p><p><span>Operaciones exentas</span><b>${esc(money(s.salesExemptBase,h))}</b></p><p><span>Operaciones no sujetas</span><b>${esc(money(s.salesNonSubjectBase,h))}</b></p><p><span>Operaciones a tasa cero</span><b>${esc(money(s.salesZeroRateBase,h))}</b></p><p><span>Operaciones sin clasificar / excluidas</span><b>${esc(money(s.salesUnclassifiedBase,h))}</b></p><p class="total"><span>Débito fiscal</span><b>${esc(money(s.outputTax,h))}</b></p></div><div><h3>IVA/GCT acreditable en compras</h3><p><span>Base gravada</span><b>${esc(money(s.purchaseTaxableBase,h))}</b></p><p><span>Compras exentas</span><b>${esc(money(s.purchaseExemptBase,h))}</b></p><p><span>Compras no sujetas</span><b>${esc(money(s.purchaseNonSubjectBase,h))}</b></p><p><span>Compras a tasa cero</span><b>${esc(money(s.purchaseZeroRateBase,h))}</b></p><p><span>Compras sin clasificar / excluidas</span><b>${esc(money(s.purchaseUnclassifiedBase,h))}</b></p><p class="total"><span>Crédito fiscal</span><b>${esc(money(s.inputTax,h))}</b></p></div><div><h3>Liquidación del período</h3><p><span>Impuesto bruto</span><b>${esc(money(s.grossTax,h))}</b></p><p><span>Retenido sufrido (−)</span><b>${esc(money(s.vatWithheldSuffered,h))}</b></p><p><span>Retenido practicado (−)</span><b>${esc(money(s.vatWithheldPracticed,h))}</b></p><p><span>Crédito período anterior (−)</span><b>${esc(money(s.priorPeriodCredit,h))}</b></p><p class="total net"><span>${net>0?'Impuesto por pagar':net<0?'Saldo a favor':'Posición neta'}</span><b>${esc(money(Math.abs(net),h))}</b></p></div></section>
   ${s.warnings.length?`<div class="warnings"><b>Advertencias de control</b>${s.warnings.map(item=>`<div>• ${esc(item)}</div>`).join('')}</div>`:''}
   <h2>Resumen por código y tarifa</h2><table><thead><tr><th>Código / tarifa</th><th class="num">Base ventas</th><th class="num">Débito fiscal</th><th class="num">Base compras</th><th class="num">Crédito fiscal</th><th class="num">Saldo</th></tr></thead><tbody>${rateRows || '<tr><td colspan="6" class="empty">No hay movimientos tributarios en el período.</td></tr>'}</tbody></table>
-  <h2>Detalle de ventas</h2><table><colgroup><col style="width:8%"><col style="width:12%"><col style="width:16%"><col style="width:11%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:14%"></colgroup><thead><tr><th>Fecha</th><th>Documento</th><th>Cliente</th><th>Código / tarifa</th><th class="num">Base gravada</th><th class="num">Exento / 0%</th><th class="num">Impuesto</th><th class="num">Total</th></tr></thead><tbody>${pdfRows(report.sales,h) || '<tr><td colspan="8" class="empty">No hay ventas con incidencia tributaria.</td></tr>'}</tbody></table>
-  <h2>Detalle de compras</h2><table><colgroup><col style="width:8%"><col style="width:12%"><col style="width:16%"><col style="width:11%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:14%"></colgroup><thead><tr><th>Fecha</th><th>Documento</th><th>Proveedor</th><th>Código / tarifa</th><th class="num">Base gravada</th><th class="num">Exento / 0%</th><th class="num">Impuesto</th><th class="num">Total</th></tr></thead><tbody>${pdfRows(report.purchases,h) || '<tr><td colspan="8" class="empty">No hay compras con incidencia tributaria.</td></tr>'}</tbody></table>
+  <h2>Detalle de ventas</h2><table><colgroup><col style="width:8%"><col style="width:12%"><col style="width:16%"><col style="width:11%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:14%"></colgroup><thead><tr><th>Fecha</th><th>Documento</th><th>Cliente</th><th>Código / tarifa</th><th class="num">Base operación</th><th>Tratamiento</th><th class="num">Impuesto</th><th class="num">Total</th></tr></thead><tbody>${pdfRows(report.sales,h) || '<tr><td colspan="8" class="empty">No hay ventas con incidencia tributaria.</td></tr>'}</tbody></table>
+  <h2>Detalle de compras</h2><table><colgroup><col style="width:8%"><col style="width:12%"><col style="width:16%"><col style="width:11%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:14%"></colgroup><thead><tr><th>Fecha</th><th>Documento</th><th>Proveedor</th><th>Código / tarifa</th><th class="num">Base operación</th><th>Tratamiento</th><th class="num">Impuesto</th><th class="num">Total</th></tr></thead><tbody>${pdfRows(report.purchases,h) || '<tr><td colspan="8" class="empty">No hay compras con incidencia tributaria.</td></tr>'}</tbody></table>
   <p class="note">Este reporte se genera a partir de los documentos y códigos tributarios registrados en GENTIA. Revise los movimientos sin código, exentos y los ajustes antes de presentar la declaración ante la autoridad fiscal.</p><div class="footer"><span>GENTIA · Fiscal y cumplimiento</span><span>Soporte de declaración ${esc(h.taxName)}</span></div></body></html>`;
 }
 
@@ -416,21 +446,21 @@ function headerRow(row: ExcelJS.Row, color = 'FF063B79') {
 function detailSheet(workbook: ExcelJS.Workbook, name: string, rows: TaxRow[], header: NormalizedReport['header'], partyLabel: string) {
   const sheet = workbook.addWorksheet(name, { views: [{ state: 'frozen', ySplit: 3 }], pageSetup: { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: .2, right: .2, top: .45, bottom: .45, header: .2, footer: .2 } } });
   sheet.properties.tabColor = { argb: name.includes('Ventas') ? 'FFF26A3D' : 'FF0D9272' };
-  sheet.columns = [{width:14},{width:19},{width:18},{width:27},{width:20},{width:18},{width:12},{width:12},{width:14},{width:18},{width:18},{width:18},{width:18},{width:18},{width:18},{width:24},{width:22},{width:22},{width:18},{width:30}];
-  title(sheet, `GENTIA · ${name.toUpperCase()} · ${header.taxName}`, 'T');
+  sheet.columns = [{width:14},{width:19},{width:18},{width:27},{width:20},{width:18},{width:12},{width:12},{width:14},{width:18},{width:18},{width:18},{width:18},{width:18},{width:18},{width:24},{width:22},{width:22},{width:18},{width:30},{width:22},{width:18},{width:18},{width:18},{width:18}];
+  title(sheet, `GENTIA · ${name.toUpperCase()} · ${header.taxName}`, 'Y');
   sheet.mergeCells('A2:L2'); sheet.getCell('A2').value = header.legalName || header.subsidiary; sheet.getCell('A2').font = { bold: true, size: 12, color: { argb: 'FF14233B' } };
-  sheet.mergeCells('M2:T2'); sheet.getCell('M2').value = `${date(header.dateFrom)} al ${date(header.dateTo)} · Presentación ${header.currency}`; sheet.getCell('M2').alignment = { horizontal: 'right' }; sheet.getCell('M2').font = { bold: true, color: { argb: 'FF063B79' } };
-  const columns = ['Fecha','Tipo documento','N.º documento',partyLabel,'Identificación fiscal','Código impuesto','Descripción fiscal','Tarifa %','Moneda origen','Tipo de cambio','Base origen','Impuesto origen','Total origen','Base local','Impuesto local','Total local','ID línea origen','ID asiento','Estado','Nota / concepto'];
+  sheet.mergeCells('M2:Y2'); sheet.getCell('M2').value = `${date(header.dateFrom)} al ${date(header.dateTo)} · Presentación ${header.currency}`; sheet.getCell('M2').alignment = { horizontal: 'right' }; sheet.getCell('M2').font = { bold: true, color: { argb: 'FF063B79' } };
+  const columns = ['Fecha','Tipo documento','N.º documento',partyLabel,'Identificación fiscal','Código impuesto','Descripción fiscal','Tarifa %','Moneda origen','Tipo de cambio','Base origen','Impuesto origen','Total origen','Base local','Impuesto local','Total local','ID línea origen','ID asiento','Estado','Nota / concepto','Tratamiento fiscal','Base exenta','Base no sujeta','Base tasa cero','Base sin clasificar / excluida'];
   headerRow(sheet.addRow(columns));
   for (const item of rows) {
-    const record = sheet.addRow([excelDate(item.date),item.documentType,item.documentNumber,item.partyName,item.partyTaxId,item.taxCode,item.taxDescription,item.taxRate,item.currency,item.exchangeRate,item.originalBase,item.originalTax,item.originalGross,item.taxableBase+item.exemptAmount,item.taxAmount,item.grossAmount,item.sourceLineId,item.journalId,item.status,item.note]);
+    const record = sheet.addRow([excelDate(item.date),item.documentType,item.documentNumber,item.partyName,item.partyTaxId,item.taxCode,item.taxDescription,item.taxRate,item.currency,item.exchangeRate,item.originalBase,item.originalTax,item.originalGross,operationBase(item),item.taxAmount,item.grossAmount,item.sourceLineId,item.journalId,item.status,item.note,treatmentLabel(item.classification),item.exemptAmount,item.nonSubjectAmount,item.zeroRateAmount,item.unclassifiedAmount]);
     record.eachCell(cell => { cell.border = border(); cell.alignment = { vertical: 'top', wrapText: true }; }); record.getCell(1).numFmt = 'dd/mm/yyyy'; record.getCell(8).numFmt = '0.0000'; record.getCell(10).numFmt = '#,##0.000000';
     for (let column = 11; column <= 13; column++) record.getCell(column).numFmt = '#,##0.00;[Red](#,##0.00)';
-    for (let column = 14; column <= 16; column++) record.getCell(column).numFmt = `"${header.symbol || header.currency}" #,##0.00;[Red]("${header.symbol || header.currency}" #,##0.00)`;
+    for (const column of [14,15,16,22,23,24,25]) record.getCell(column).numFmt = `"${header.symbol || header.currency}" #,##0.00;[Red]("${header.symbol || header.currency}" #,##0.00)`;
     if (Math.abs(item.taxAmount) > .005) { record.getCell(15).font = { bold: true, color: { argb: 'FF8A4A0D' } }; record.getCell(15).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF4E8' } }; }
   }
-  if (!rows.length) { sheet.mergeCells('A5:T6'); const empty = sheet.getCell('A5'); empty.value = `No hay movimientos en ${name.toLowerCase()} para el período seleccionado.`; empty.alignment = { horizontal: 'center', vertical: 'middle' }; empty.font = { italic: true, color: { argb: 'FF64748B' } }; }
-  sheet.autoFilter = 'A3:T3'; sheet.headerFooter.oddFooter = `GENTIA · ${name}                                      Página &P de &N`;
+  if (!rows.length) { sheet.mergeCells('A5:Y6'); const empty = sheet.getCell('A5'); empty.value = `No hay movimientos en ${name.toLowerCase()} para el período seleccionado.`; empty.alignment = { horizontal: 'center', vertical: 'middle' }; empty.font = { italic: true, color: { argb: 'FF64748B' } }; }
+  sheet.autoFilter = 'A3:Y3'; sheet.headerFooter.oddFooter = `GENTIA · ${name}                                      Página &P de &N`;
   return sheet;
 }
 
@@ -449,6 +479,14 @@ export async function exportVatDeclarationReportExcel(authorization: string, fil
   const positionRows=[
     summary.addRow(['Ventas / débito fiscal',s.salesTaxableBase,s.outputTax,s.outputTax]),
     summary.addRow(['Compras / crédito fiscal',s.purchaseTaxableBase,s.inputTax,-s.inputTax]),
+    summary.addRow(['Ventas exentas',s.salesExemptBase,0,0]),
+    summary.addRow(['Ventas no sujetas',s.salesNonSubjectBase,0,0]),
+    summary.addRow(['Ventas tasa cero',s.salesZeroRateBase,0,0]),
+    summary.addRow(['Ventas sin clasificar / excluidas',s.salesUnclassifiedBase,0,0]),
+    summary.addRow(['Compras exentas',s.purchaseExemptBase,0,0]),
+    summary.addRow(['Compras no sujetas',s.purchaseNonSubjectBase,0,0]),
+    summary.addRow(['Compras tasa cero',s.purchaseZeroRateBase,0,0]),
+    summary.addRow(['Compras sin clasificar / excluidas',s.purchaseUnclassifiedBase,0,0]),
     summary.addRow(['Impuesto bruto',null,s.grossTax,s.grossTax]),
     summary.addRow(['Retenido sufrido',null,s.vatWithheldSuffered,-s.vatWithheldSuffered]),
     summary.addRow(['Retenido practicado',null,s.vatWithheldPracticed,-s.vatWithheldPracticed]),
