@@ -1,3 +1,4 @@
+import {downloadPagePdf} from './document-pdf-download.js?v=20261111-export-review';
 import {escapeHtml,configureImage} from './html-safety.js?v=20261102-a03-media';
 import {readRouteId} from './route-id.js?v=20261103-route-id-guard';
 const routeId=readRouteId(location.search);
@@ -78,7 +79,7 @@ try {
   $('edit').hidden=!data.access?.canEdit;
   $('edit').href = `/sales-note-entry.html?kind=${kind}&id=${encodeURIComponent(id)}`;
   $('invoice').hidden = false;
-  $('print').onclick = () => print();
+  $('print').onclick = () => downloadPagePdf();
   $('back').onclick = () => history.back();
 } catch (error) {
   $('error').textContent = error.message;

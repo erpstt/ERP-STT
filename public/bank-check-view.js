@@ -1,3 +1,4 @@
+import {downloadPagePdf} from './document-pdf-download.js?v=20261111-export-review';
 import {readRouteId} from './route-id.js?v=20261103-route-id-guard';
 const routeId=readRouteId(location.search);
 if(routeId===null){
@@ -7,7 +8,7 @@ if(routeId===null){
  document.getElementById('print').disabled=true;
  document.getElementById('back').disabled=true;
 }else{
-const initialParams=new URLSearchParams(location.search),shouldPrint=initialParams.get('print')==='1';if(shouldPrint){initialParams.delete('print');history.replaceState(null,'',`${location.pathname}?${initialParams}`)}await import('./bank-check-view-main.js?v=20261104-remaining-view-route-id-guard');if(shouldPrint)setTimeout(()=>print(),2000);
+const initialParams=new URLSearchParams(location.search),shouldPrint=initialParams.get('print')==='1';if(shouldPrint){initialParams.delete('print');history.replaceState(null,'',`${location.pathname}?${initialParams}`)}await import('./bank-check-view-main.js?v=20261111-export-review');if(shouldPrint)await downloadPagePdf();
 const id=routeId,token=localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo_token'),device=localStorage.getItem('nexo_device_token')||sessionStorage.getItem('nexo_device_token'),headers={Authorization:`Bearer ${token}`,'X-Device-Token':device||''},api=async path=>{const response=await fetch(path,{headers}),payload=await response.json();if(!response.ok)throw Error(payload?.error?.message||payload?.message);return payload},safe=path=>api(path).catch(()=>[]),esc=value=>String(value??'—').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char])),money=value=>Number(value||0).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2});
 try{const[detail,accounts,customers,suppliers,employees,departments,costs,classes,creditors,related]=await Promise.all([api(`/api/banking/checks/${encodeURIComponent(id)}`),safe('/api/accounting/chart-accounts'),safe('/api/entities/customers'),safe('/api/entities/suppliers'),safe('/api/entities/employees'),safe('/api/organization/departments'),safe('/api/organization/cost-centers'),safe('/api/organization/classes'),safe('/api/organization/financial-creditors'),safe('/api/organization/related-companies')]);
 const otherNames=detail.lines.some(line=>line.other_name_id!=null)?await safe('/api/entities/other-names'):[];

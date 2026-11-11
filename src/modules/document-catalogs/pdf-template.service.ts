@@ -86,3 +86,10 @@ export async function pdfTemplates(auth:string,action:string,p:Record<string,unk
  }
  return result;
 }
+
+export async function downloadPdfTemplatePreview(auth:string,input:Record<string,unknown>){
+ const result=await pdfTemplates(auth,'render',input);
+ const {renderPdf}=await import('../../core/security/pdf-renderer.js');
+ const buffer=await renderPdf(result.html);
+ return{base64:buffer.toString('base64'),fileName:'vista-previa-plantilla.pdf'};
+}

@@ -1,3 +1,4 @@
+import {downloadPagePdf} from './document-pdf-download.js?v=20261111-export-review';
 import {escapeHtml,safeAttachmentUrl,configureAttachmentLink} from './html-safety.js?v=20261101-a03-1';
 import {readRouteId} from './route-id.js?v=20261103-route-id-guard';
 const routeId=readRouteId(location.search);
@@ -27,6 +28,6 @@ if(journal.reversed_from_journal_id&&journal.journal_type==='Reversión de Pendi
 $('generated').textContent=new Date().toLocaleString('es-CR');
 $('footerSubsidiary').textContent=name(find(data.subsidiaries,'subsidiary_id',journal.subsidiary_id))||'Subsidiaria no identificada';
 $('edit').onclick=()=>location.href=`/journal-entry.html?id=${encodeURIComponent(id)}`;
-$('pdf').onclick=()=>window.print();if(new URLSearchParams(location.search).get('print')==='1')setTimeout(()=>window.print(),350)}catch(error){$('error').textContent=error.message;
+$('pdf').onclick=()=>downloadPagePdf();if(new URLSearchParams(location.search).get('print')==='1')setTimeout(()=>downloadPagePdf(),350)}catch(error){$('error').textContent=error.message;
 $('document').hidden=true}
 }

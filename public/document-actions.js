@@ -1,6 +1,6 @@
 // Fixed actions only. No evaluation of attributes or document-provided code.
 const documentActions = {
-  print: () => window.print(),
+  print: () => import('./document-pdf-download.js?v=20261111-export-review').then(module=>module.downloadPagePdf()),
   close: () => window.close(),
   'back-to-erp': () => window.location.assign('/'),
   'back-to-payments': () => window.history.length > 1
