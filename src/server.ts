@@ -1,3 +1,4 @@
+import {downloadCustomerFeesPdf} from './modules/sales-catalogs/customer-payment-fees-pdf.service.js';
 import {isFinancialReportRoute,requireReportAccess} from './modules/reports/report-access.service.js';
 import {contentSecurityPolicy} from './core/security/content-security-policy.js';
 import{rateCatalogs,rateRpc}from'./modules/configuration-catalogs/rate-security.service.js';
@@ -812,6 +813,7 @@ const server = createServer((request, response) => {
       if(rawPaymentId!==null&&(!Number.isSafeInteger(paymentId)||Number(paymentId)<=0))return error(response,400,'El cobro indicado no es válido.');
       return json(response,200,await customerPaymentOptions(request.headers.authorization!,paymentId));
     }
+    if(request.method==='POST'&&request.url==='/api/sales/customer-payments/fees/pdf')return json(response,200,await downloadCustomerFeesPdf(request.headers.authorization!,await body(request,16384) as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/sales/customer-payments/report')return json(response,200,await customerPaymentReport(request.headers.authorization!,await body(request)as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/sales/customer-payments/save')return json(response,201,await saveCustomerPayment(request.headers.authorization!,await body(request)as Record<string,unknown>));
     const customerPaymentPdfRoute=request.url?.split('?')[0].match(/^\/api\/sales\/customer-payments\/(\d+)\/pdf$/);
