@@ -79,7 +79,7 @@ try{
   $('bankReference').textContent=header.bank_reference||'—';
   $('bankAccount').textContent=[header.bank,header.account].filter(Boolean).join(' · ')||'—';
   $('currencyRate').textContent=`${currency||'—'} · Tasa ${formatRate(header.exchange_rate)}`;
-  $('applicationTotal').textContent=money(applicationTotal);$('applicationTableTotal').textContent=money(applicationTotal);
+  const receivedAdvance=impact.filter(row=>String(row.accountNumber)==='218001').reduce((sum,row)=>sum+numeric(row.credit),0);if(receivedAdvance>0&&applications.length===0){$('applicationTotal').previousElementSibling.textContent='Anticipo recibido';$('applicationTotal').nextElementSibling.textContent='Disponible para futuras facturas';}$('applicationTotal').textContent=money(receivedAdvance>0&&applications.length===0?receivedAdvance:applicationTotal);$('applicationTableTotal').textContent=money(applicationTotal);
   $('withholdingTotal').textContent=money(withholdingTotal);$('withholdingCard').hidden=withholdingTotal<=0;
   $('advanceTotal').textContent=money(advanceTotal);$('advanceCard').hidden=advanceTotal<=0;
   $('bankFeeTotal').textContent=money(bankFeeTotal);$('feeCard').hidden=bankFeeTotal<=0;

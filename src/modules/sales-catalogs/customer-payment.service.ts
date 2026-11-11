@@ -8,3 +8,5 @@ export const customerPaymentDetail=(auth:string,id:number)=>customerPaymentRpc(a
 export const saveCustomerPayment=(auth:string,payload:Record<string,unknown>,id?:number)=>customerPaymentRpc(auth,'save_customer_payment_with_advances',{p_payload:payload,p_payment_id:id??null},id===undefined?'create':'edit');
 export const deleteCustomerPayment=(auth:string,id:number)=>customerPaymentRpc(auth,'delete_customer_payment',{p_payment_id:id},'delete');
 export function denyCustomerPaymentCatalogWrite(){throw Object.assign(new Error('Utilice el proceso protegido de cobros; no se permite CRUD directo.'),{status:403});}
+
+export const registerCustomerAdvance=(auth:string,payload:Record<string,unknown>)=>customerPaymentRpc(auth,'register_customer_advance',{p_payload:payload},'create');

@@ -65,7 +65,7 @@ import { saveSupplierNote, supplierNoteAccess, supplierNoteOptions } from './mod
 import{salesInvoiceRpc}from'./modules/sales-catalogs/sales-invoice-security.service.js';
 import { saveSalesInvoice, setSalesInvoicePdfLineUnification } from './modules/sales-catalogs/sales-invoice.service.js';
 import { salesWorkflowOptions, salesDocuments, salesDocumentDetail, salesDocumentEditContext, salesDocumentSource, salesDeliveryInvoiceSource, saveSalesInvoiceFromDelivery, saveSalesDocument, deleteSalesDocument } from './modules/sales-catalogs/sales-workflow.service.js';
-import { customerPaymentOptions, customerPaymentReport, customerPaymentDetail, saveCustomerPayment, deleteCustomerPayment } from './modules/sales-catalogs/customer-payment.service.js';
+import { registerCustomerAdvance, customerPaymentOptions, customerPaymentReport, customerPaymentDetail, saveCustomerPayment, deleteCustomerPayment } from './modules/sales-catalogs/customer-payment.service.js';
 import { downloadCustomerPaymentPdf } from './modules/sales-catalogs/customer-payment-pdf.service.js';
 import { saveSalesNote, salesNoteRpc } from './modules/sales-catalogs/sales-note.service.js';
 import { createBankingRow, deleteBankingRow, getBankingCatalog, listBankingRows, listBankStatementAccountOptions, updateBankingRow } from './modules/banking-catalogs/banking-catalogs.module.js';
@@ -817,6 +817,7 @@ const server = createServer((request, response) => {
     if(request.method==='POST'&&request.url==='/api/documents/export-pdf')return json(response,200,await downloadDocumentSnapshot(request.headers.authorization!,await body(request,3000000)));
     if(request.method==='POST'&&request.url==='/api/sales/customer-payments/fees/pdf')return json(response,200,await downloadCustomerFeesPdf(request.headers.authorization!,await body(request,16384) as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/sales/customer-payments/report')return json(response,200,await customerPaymentReport(request.headers.authorization!,await body(request)as Record<string,unknown>));
+    if(request.method==='POST'&&request.url==='/api/sales/customer-payments/advance')return json(response,201,await registerCustomerAdvance(request.headers.authorization!,await body(request) as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/sales/customer-payments/save')return json(response,201,await saveCustomerPayment(request.headers.authorization!,await body(request)as Record<string,unknown>));
     const customerPaymentPdfRoute=request.url?.split('?')[0].match(/^\/api\/sales\/customer-payments\/(\d+)\/pdf$/);
     if(customerPaymentPdfRoute){
