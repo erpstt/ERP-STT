@@ -1,5 +1,6 @@
+import {readFile} from 'node:fs/promises';
 import assert from'node:assert/strict';import{test,before,after}from'node:test';import{PGlite}from'@electric-sql/pglite';import{setupEntityMasterSecurity}from'./fixtures/setup-entity-master-security.mjs';
-const db=new PGlite();before(()=>setupEntityMasterSecurity(db));after(()=>db.close());
+const db=new PGlite();before(async()=>{await setupEntityMasterSecurity(db);await db.exec(await readFile('supabase/migrations/20261112144158_customer_multiple_email_recipients.sql','utf8'));await db.exec(await readFile('supabase/migrations/20261112145357_preserve_customer_existing_assignments_on_edit.sql','utf8'));});after(()=>db.close());
 async function tx(t){await db.exec('reset role;begin');t.after(()=>db.exec('rollback;reset role'));}
 async function assume(user=1,role=1,sid=1){await db.exec('reset role');await db.query("insert into user_role_sessions values('fixture',$1,$2)on conflict(session_id)do update set user_id=$1,role_id=$2",[user,role]);await db.query("insert into user_company_sessions values('fixture',$1,$2)on conflict(session_id)do update set user_id=$1,subsidiary_id=$2",[user,sid]);await db.query("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({sub:`00000000-0000-0000-0000-${String(user).padStart(12,'0')}`,session_id:'fixture'})]);await db.exec('set role authenticated');}
 const q=async(sql,p=[])=>(await db.query(sql,p)).rows[0]?.d;
