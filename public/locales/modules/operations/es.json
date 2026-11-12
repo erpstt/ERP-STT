@@ -44,7 +44,7 @@
       "createAnotherInvoice": "Crear otra factura"
     },
     "paymentRequests": {
-      "beneficiaryIdentification": "Identificaci?n",
+      "beneficiaryIdentification": "Identificaci\u00f3n",
       "recordAudit": "Auditoría del registro",
       "showAudit": "Ver información",
       "hideAudit": "Ocultar información",
