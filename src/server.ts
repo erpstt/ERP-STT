@@ -151,10 +151,10 @@ try { loadEnvFile?.('.env'); } catch { /* Las variables también pueden venir de
 
 accountingCatalogs.find(c=>c.slug==='chart-accounts')?.fields.splice(8,0,{key:'cash_flow_activity',label:'Tipo de actividad de flujo',type:'text',required:true,options:['OPERACION','INVERSION','FINANCIACION','EFECTIVO_EQUIVALENTE','NO_APLICA']});
 const publicDir = join(process.cwd(), 'public');
-const mime: Record<string, string> = { '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.mp4': 'video/mp4', '.csv': 'text/csv', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+const mime: Record<string, string> = { '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript', '.mjs': 'application/javascript', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.mp4': 'video/mp4', '.csv': 'text/csv', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
 type StaticCacheEntry = { mtimeMs:number; size:number; content:Buffer; etag:string; gzip?:Buffer };
 const staticCache = new Map<string, StaticCacheEntry>();
-const compressible = new Set(['.html','.css','.js','.json','.svg','.csv']);
+const compressible = new Set(['.html','.css','.js','.mjs','.json','.svg','.csv']);
 const PUBLIC_AUTH_JSON_MAX_BYTES = 16 * 1024;
 const publicAuthJsonRoutes = new Set([
   '/api/auth/login',
@@ -232,7 +232,7 @@ async function serveFile(pathname: string, request: IncomingMessage, response: S
   if (file !== publicDir && !file.startsWith(`${publicDir}${sep}`)) return error(response, 403, 'Acceso denegado.');
   try {
     const metadata=await stat(file),extension=extname(file).toLowerCase();
-    const contentType=`${mime[extension] ?? 'application/octet-stream'}${['.html','.css','.js','.json','.csv'].includes(extension) ? '; charset=utf-8' : ''}`;
+    const contentType=`${mime[extension] ?? 'application/octet-stream'}${['.html','.css','.js','.mjs','.json','.csv'].includes(extension) ? '; charset=utf-8' : ''}`;
     const sourceEtag=`W/\"${metadata.size.toString(16)}-${Math.trunc(metadata.mtimeMs).toString(16)}\"`;
     const versionedAsset=new URL(request.url??'/', 'http://localhost').searchParams.has('v');
     const cacheControl=extension==='.html'?'no-cache, must-revalidate':versionedAsset||['.mp4','.webp','.png','.jpg','.jpeg','.svg','.woff2'].includes(extension)?'public, max-age=604800, immutable':'no-cache, must-revalidate';

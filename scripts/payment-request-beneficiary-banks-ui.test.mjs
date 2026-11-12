@@ -4,7 +4,15 @@ import { createServer } from 'node:http';
 import { readFile, mkdir } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
 import { chromium } from '@playwright/test';
+import {contentSecurityPolicy} from '../dist/core/security/content-security-policy.js';
 
+function samplePdf(){
+ const objects=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R 6 0 R] /Count 2 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 500 650] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
+ const stream='BT /F1 22 Tf 50 570 Td (Synthetic payment support) Tj ET';objects.push(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);objects.push(objects[2]);
+ let pdf='%PDF-1.4\n',offsets=[0];for(const [i,object] of objects.entries()){offsets.push(pdf.length);pdf+=`${i+1} 0 obj\n${object}\nendobj\n`;}const xref=pdf.length;pdf+=`xref\n0 ${offsets.length}\n0000000000 65535 f \n`+offsets.slice(1).map(n=>`${String(n).padStart(10,'0')} 00000 n \n`).join('')+`trailer\n<< /Size ${offsets.length} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;return Buffer.from(pdf);
+}
+const support=(name,type,data)=>({id:name,type:'Archivo',displayName:name,fileName:name,mimeType:type,fileSize:data.length,fileData:`data:${type};base64,${data.toString('base64')}`});
+const pdfBytes=samplePdf(),attachments=[support('factura.pdf','application/pdf',pdfBytes),support('imagen.png','image/png',Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aL1EAAAAASUVORK5CYII=','base64')),support('notas.txt','text/plain',Buffer.from('<img src=x onerror="window.attachmentXss=true">')),support('archivo.zip','application/zip',Buffer.from('PK fixture')),support('falso.pdf','application/pdf',Buffer.from('<script>window.attachmentXss=true</script>'))];
 const hostileBank = '<img src=x onerror="window.bankXss=true">';
 const supplierAccounts = [
   { slot: 'primary', bankId: 11, bankName: hostileBank, iban: 'CR05015202001026284066', accountNumber: '00001234', currencyId: 1, currencyCode: 'CRC' },
@@ -57,8 +65,9 @@ test('solicitudes muestran cuentas actuales del beneficiario y auditoría plegad
   const server = createServer(async (request, response) => {
     try {
       const pathname = new URL(request.url, 'http://localhost').pathname, file = resolve(root, '.' + pathname);
+      response.setHeader('Content-Security-Policy',contentSecurityPolicy(pathname));
       if (!file.startsWith(root + sep)) throw Error('Invalid path');
-      response.setHeader('Content-Type', ({ '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html' })[extname(file)] || 'application/octet-stream');
+      response.setHeader('Content-Type', ({ '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.mjs':'text/javascript' })[extname(file)] || 'application/octet-stream');
       let body = await readFile(file);
       // Production injects this common component when serving business pages.
       if (pathname === '/payment-requests.html') body = body.toString('utf8').replace('</head>', '<script src="/record-audit.js"></script></head>');
@@ -105,7 +114,7 @@ test('solicitudes muestran cuentas actuales del beneficiario y auditoría plegad
           if (refreshedAccount) json.beneficiaryBankAccounts = json.beneficiaryBankAccounts.map(party => ({ ...party, accounts: party.accounts.map(account => account.slot === 'primary' ? { ...account, accountNumber: refreshedAccount } : account) }));
         }
       }
-      else if (action === 'supports') json = [];
+      else if (action === 'supports') json = Number(payload.id)===1?attachments:[];
       else if (action === 'invoices') json = [{ id: 9, number: 'SYN-INV-9', date: '2026-10-31', dueDate: '2026-11-02', total: 100, balance: 100, reserved: 0, available: 100 }];
       else { unknown.push(url.pathname); return route.fulfill({ status: 400, json: { error: { message: 'Unexpected fixture mutation' } } }); }
     }
@@ -158,6 +167,29 @@ test('solicitudes muestran cuentas actuales del beneficiario y auditoría plegad
   const noMutations = () => assert.ok(!calls.some(call => /\/(save|execute|transition|support-save|support-delete)$/.test(call.path)), JSON.stringify(calls));
 
   await open(1);
+  const downloads=[];page.on('download',d=>downloads.push(d));
+  const view=async name=>{await page.locator('.support-item').filter({has:page.locator('strong',{hasText:name})}).getByRole('button',{name:'Ver',exact:true}).click();await page.locator('#supportViewer[open]').waitFor();};
+  await view('factura.pdf');
+  await page.locator('#supportViewerBody canvas').waitFor();
+  await page.waitForFunction(()=>document.querySelector('.support-pdf-toolbar select')?.disabled===false);
+  assert.equal(downloads.length,0);
+  assert.ok(await page.locator('#supportViewerBody canvas').evaluate(c=>c.width>0&&c.height>0));
+  await page.screenshot({path:'.local-tools/payment-request-pdf-viewer.png'});
+  await page.getByRole('button',{name:'Siguiente',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('.support-pdf-toolbar span')?.textContent==='2 / 2'&&document.querySelector('.support-pdf-toolbar select')?.disabled===false);
+  await page.getByRole('button',{name:'Anterior',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('.support-pdf-toolbar span')?.textContent==='1 / 2'&&document.querySelector('.support-pdf-toolbar select')?.disabled===false);
+  const canvasWidth=await page.locator('#supportViewerBody canvas').evaluate(c=>c.width);
+  await page.selectOption('.support-pdf-toolbar select','2');
+  await page.waitForFunction(()=>document.querySelector('.support-pdf-toolbar select')?.disabled===false);
+  assert.ok(await page.locator('#supportViewerBody canvas').evaluate(c=>c.width)>canvasWidth);
+  const downloadReady=page.waitForEvent('download');await page.locator('#supportViewerDownload').click();const downloaded=await downloadReady;assert.equal(downloaded.suggestedFilename(),'factura.pdf');assert.deepEqual(await readFile(await downloaded.path()),pdfBytes);
+  await page.locator('#supportViewerClose').click();
+  await page.locator('#supportViewerBody canvas').waitFor({state:'detached'});
+  await view('imagen.png');await page.waitForFunction(()=>document.querySelector('#supportViewerBody img')?.naturalWidth===1);await page.keyboard.press('Escape');
+  await view('notas.txt');await page.locator('#supportViewerBody pre').waitFor();assert.match(await page.locator('#supportViewerBody pre').innerText(),/<img/);assert.equal(await page.locator('#supportViewerBody img, #supportViewerBody script').count(),0);await page.locator('#supportViewerClose').click();
+  for(const name of ['archivo.zip','falso.pdf']){await view(name);await page.locator('#supportViewerBody .support-viewer-notice').filter({hasText:'no tiene vista previa'}).waitFor();assert.equal(await page.locator('#supportViewerDownload').isVisible(),true);assert.equal(await page.locator('#supportViewerBody canvas').count(),0);await page.locator('#supportViewerClose').click();}
+  assert.equal(await page.evaluate(()=>window.attachmentXss),undefined);assert.equal(downloads.length,1);
   assert.equal(await page.locator('#requestForm').isHidden(), true);
   assert.equal(await page.locator('#save').isHidden(), true);
   assert.equal(await panel.locator('.beneficiary-bank-party').count(), 1);
@@ -273,6 +305,12 @@ test('solicitudes muestran cuentas actuales del beneficiario y auditoría plegad
   const bounds = await panel.evaluate(element => { const rect = element.getBoundingClientRect(); return { left: rect.left, right: rect.right, width: innerWidth, scroll: element.scrollWidth, client: element.clientWidth }; });
   assert.ok(bounds.left >= -1 && bounds.right <= bounds.width + 1 && bounds.scroll <= bounds.client + 1, JSON.stringify(bounds));
   await page.screenshot({ path: screenshots + '/payment-request-banks-mobile.png', fullPage: true });
+
+  await view('factura.pdf');
+  await page.waitForFunction(()=>document.querySelector('.support-pdf-toolbar select')?.disabled===false);
+  const viewerBounds=await page.locator('#supportViewer').evaluate(el=>({width:el.getBoundingClientRect().width,viewport:innerWidth}));assert.ok(viewerBounds.width<=viewerBounds.viewport);
+  await page.screenshot({path:'.local-tools/payment-request-pdf-viewer-mobile.png'});
+  await page.locator('#supportViewerClose').click();
 
   // Shared record-audit remains expanded when embedded without this page's wrapper.
   await page.evaluate(() => { const host = document.createElement('div'); host.id = 'unaffected-audit'; document.body.append(host); window.NexoRecordAudit.show('suppliers', 10, host); });
