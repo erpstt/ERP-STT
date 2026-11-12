@@ -4,6 +4,7 @@
       "activeSubsidiary": "ACTIVE SUBSIDIARY", "loading": "Loading…", "back": "Back", "cancel": "Cancel", "saveAndPost": "Save and post", "currency": "Currency", "date": "Date", "status": "Status", "type": "Type", "supplier": "Supplier", "customer": "Customer", "account": "Account", "department": "Department", "costCenter": "Cost center", "class": "Class", "memo": "Note", "exchangeRate": "Exchange rate", "supportFiles": "Supporting files", "accountingImpact": "Accounting impact", "apply": "Apply", "invoice": "Invoice", "dueDate": "Due date", "available": "Available", "amount": "Amount", "actions": "Actions", "subtotal": "Subtotal", "taxes": "Taxes", "withholdings": "Withholdings", "invoiceTotal": "Invoice total", "invoiceLines": "Invoice lines", "addLine": "+ Add line", "automaticCalculation": "AUTOMATIC CALCULATION", "code": "Code", "rate": "Rate", "total": "Totals", "registeredCorrectly": "Invoice registered successfully", "documentPosted": "The document and its journal entry were registered.", "invoiceNumber": "Invoice number", "registeredTotal": "Registered total", "backToInvoices": "Back to invoices", "createAnotherInvoice": "Create another invoice"
     },
     "paymentRequests": {
+      "beneficiaryIdentification": "Identification",
       "recordAudit": "Record audit",
       "showAudit": "Show information",
       "hideAudit": "Hide information",

@@ -4,6 +4,7 @@
       "activeSubsidiary": "SUBSIDIÁRIA ATIVA", "loading": "Carregando…", "back": "Voltar", "cancel": "Cancelar", "saveAndPost": "Salvar e contabilizar", "currency": "Moeda", "date": "Data", "status": "Status", "type": "Tipo", "supplier": "Fornecedor", "customer": "Cliente", "account": "Conta", "department": "Departamento", "costCenter": "Centro de custos", "class": "Classe", "memo": "Nota", "exchangeRate": "Taxa de câmbio", "supportFiles": "Arquivos de suporte", "accountingImpact": "Impacto contábil", "apply": "Aplicar", "invoice": "Fatura", "dueDate": "Vencimento", "available": "Disponível", "amount": "Valor", "actions": "Ações", "subtotal": "Subtotal", "taxes": "Impostos", "withholdings": "Retenções", "invoiceTotal": "Total da fatura", "invoiceLines": "Linhas da fatura", "addLine": "+ Adicionar linha", "automaticCalculation": "CÁLCULO AUTOMÁTICO", "code": "Código", "rate": "Alíquota", "total": "Totais", "registeredCorrectly": "Fatura registrada com sucesso", "documentPosted": "O documento e seu lançamento contábil foram registrados.", "invoiceNumber": "Número da fatura", "registeredTotal": "Total registrado", "backToInvoices": "Voltar para faturas", "createAnotherInvoice": "Criar outra fatura"
     },
     "paymentRequests": {
+      "beneficiaryIdentification": "Identifica??o",
       "recordAudit": "Auditoria do registro",
       "showAudit": "Ver informações",
       "hideAudit": "Ocultar informações",

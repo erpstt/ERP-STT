@@ -145,11 +145,11 @@ export class GentiaI18n extends EventTarget {
   async load(locale) {
     const code = normalizeGentiaLocale(locale, this.defaultLocale);
     if (this.messages.has(code)) return this.messages.get(code);
-    const response = await fetch(`${this.baseUrl}/${code}.json?v=20261107-auto-template-rates`, { headers: { Accept: 'application/json' } });
+    const response = await fetch(`${this.baseUrl}/${code}.json?v=20261112-beneficiary-identification`, { headers: { Accept: 'application/json' } });
     if (!response.ok) throw new Error(`No fue posible cargar el idioma ${code}.`);
     const messages = await response.json();
     const fragments = await Promise.allSettled(GENTIA_TRANSLATION_BUNDLES.map(async bundle => {
-      const fragmentResponse = await fetch(`${this.baseUrl}/modules/${bundle}/${code}.json?v=20261107-auto-template-rates`, { headers: { Accept: 'application/json' } });
+      const fragmentResponse = await fetch(`${this.baseUrl}/modules/${bundle}/${code}.json?v=20261112-beneficiary-identification`, { headers: { Accept: 'application/json' } });
       if (!fragmentResponse.ok) throw new Error(`No fue posible cargar el fragmento ${bundle}/${code}.`);
       return fragmentResponse.json();
     }));

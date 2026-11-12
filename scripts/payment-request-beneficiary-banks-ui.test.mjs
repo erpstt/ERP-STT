@@ -10,11 +10,11 @@ const supplierAccounts = [
   { slot: 'primary', bankId: 11, bankName: hostileBank, iban: 'CR05015202001026284066', accountNumber: '00001234', currencyId: 1, currencyCode: 'CRC' },
   { slot: 'secondary', bankId: 12, bankName: 'Synthetic secondary bank', iban: 'GB82WEST12345698765432', accountNumber: '00009876', currencyId: 2, currencyCode: 'USD' },
 ];
-const supplier = { entityType: 'Proveedor', entityId: 10, name: 'Synthetic supplier', beneficiaryName: '<script>window.bankXss=true</script>', isActive: true, accounts: supplierAccounts };
-const employee = { entityType: 'Empleado', entityId: 20, name: 'Synthetic employee', beneficiaryName: 'Synthetic employee beneficiary', isActive: true, accounts: [
+const supplier = { identification:'001-SUP-10', entityType: 'Proveedor', entityId: 10, name: 'Synthetic supplier', beneficiaryName: '<script>window.bankXss=true</script>', isActive: true, accounts: supplierAccounts };
+const employee = { identification:'002-EMP-20', entityType: 'Empleado', entityId: 20, name: 'Synthetic employee', beneficiaryName: 'Synthetic employee beneficiary', isActive: true, accounts: [
   { slot: 'primary', bankId: 13, bankName: 'Synthetic employee bank', iban: '', accountNumber: '00002020', currencyId: null, currencyCode: null },
 ] };
-const otherName = { entityType: 'Otro Nombre', entityId: 31, name: 'ON-000031 · Synthetic other name', beneficiaryName: 'Synthetic other beneficiary', isActive: true, accounts: [
+const otherName = { identification:'003-ON-31', entityType: 'Otro Nombre', entityId: 31, name: 'ON-000031 · Synthetic other name', beneficiaryName: 'Synthetic other beneficiary', isActive: true, accounts: [
   { slot: 'primary', bankId: 14, bankName: 'Synthetic other primary bank', iban: 'GB82WEST12345698765432', accountNumber: '00003131', currencyId: 1, currencyCode: 'CRC' },
   { slot: 'secondary', bankId: 15, bankName: 'Synthetic other secondary bank', iban: '', accountNumber: '00003132', currencyId: 1, currencyCode: 'CRC' },
 ] };
@@ -130,6 +130,7 @@ test('solicitudes muestran cuentas actuales del beneficiario y auditoría plegad
   assert.equal(await page.locator('#requestForm').isHidden(), true);
   assert.equal(await page.locator('#save').isHidden(), true);
   assert.equal(await panel.locator('.beneficiary-bank-party').count(), 1);
+  assert.equal((await panel.locator('.beneficiary-bank-identification strong').innerText()).trim(),'001-SUP-10');
   assert.equal(await panel.locator('.beneficiary-bank-account').count(), 2);
   assert.match(await account('primary').innerText(), /00001111/);
   assert.doesNotMatch(await panel.innerText(), /00001234/); // The authorized detail, rather than stale options, is authoritative.

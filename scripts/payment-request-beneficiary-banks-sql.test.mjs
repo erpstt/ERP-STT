@@ -1,3 +1,4 @@
+import {readFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {test,before,after} from 'node:test';
 import {PGlite} from '@electric-sql/pglite';
@@ -5,7 +6,7 @@ import {setupPaymentRequestBeneficiaryBanks} from './fixtures/setup-payment-requ
 
 const db=new PGlite();
 let installation;
-before(async()=>{installation=await setupPaymentRequestBeneficiaryBanks(db);});
+before(async()=>{installation=await setupPaymentRequestBeneficiaryBanks(db);await db.exec(await readFile('supabase/migrations/20261112011417_payment_beneficiary_identification.sql','utf8'));});
 after(()=>db.close());
 async function tx(t){await db.exec('reset role;begin');t.after(()=>db.exec('rollback;reset role'));}
 async function assume(user=1,role=1,sid=1){
@@ -39,7 +40,7 @@ test('options projects both current bank accounts for all three beneficiary kind
     assert.ok(party);assert.equal(party.isActive,true);assert.deepEqual(party.accounts.map(x=>x.slot),['primary','secondary']);
     assert.equal(party.accounts[0].bankName,'Synthetic beneficiary bank');
     assert.equal(party.accounts[1].currencyCode,'CRC');
-    assert.deepEqual(Object.keys(party).sort(),['accounts','beneficiaryName','entityId','entityType','isActive','name']);
+    assert.deepEqual(Object.keys(party).sort(),['accounts','beneficiaryName','entityId','entityType','identification','isActive','name']);
   }
   assert.equal(parties.find(x=>x.entityType==='Proveedor'&&x.entityId===10).accounts[0].accountNumber,'00001001');
   const employee=parties.find(x=>x.entityType==='Empleado'&&x.entityId===901);
@@ -193,3 +194,5 @@ test('CXP with the production supplier/customer schema resolves its supplier and
   assert.equal((await db.query('select count(*) n from bank_check')).rows[0].n,0);
   assert.equal(Number((await db.query('select balance from bank_account where bank_account_id=1')).rows[0].balance),950);
 });
+
+test('identificacion corresponde al tipo de tercero y conserva ceros iniciales',async t=>{await tx(t);await db.exec("update suppliers set tax_id='001-SUP-10' where supplier_id=10;update employees set identification='002-EMP-901' where employee_id=901;update other_names set identification='003-ON-801' where other_name_id=801");await assume(1,2);const parties=(await options()).beneficiaryBankAccounts;for(const[kind,id,value]of[['Proveedor',10,'001-SUP-10'],['Empleado',901,'002-EMP-901'],['Otro Nombre',801,'003-ON-801']])assert.equal(parties.find(p=>p.entityType===kind&&p.entityId===id).identification,value);});
