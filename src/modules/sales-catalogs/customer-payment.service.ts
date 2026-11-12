@@ -5,7 +5,7 @@ export async function customerPaymentRpc(auth:string,name:string,p:Record<string
 export function customerPaymentOptions(auth:string,id?:number){if(id!==undefined&&(!Number.isSafeInteger(id)||id<=0))throw Object.assign(new Error('Cobro inválido.'),{status:400});return customerPaymentRpc(auth,id===undefined?'customer_payment_options':'customer_payment_edit_options',id===undefined?{}:{p_payment_id:id},id===undefined?'context':'edit');}
 export async function customerPaymentReport(auth:string,filters:Record<string,unknown>){const r=await customerPaymentRpc(auth,'customer_payment_report',{p_filters:filters});return{...r,rows:(r.rows||[]).map((x:Record<string,unknown>)=>({...x,cashNet:Math.max(Number(x.amount||0)-Number(x.advanceTotal||0)-Number(x.bankFeeTotal||0),0)}))};}
 export const customerPaymentDetail=(auth:string,id:number)=>customerPaymentRpc(auth,'customer_payment_detail',{p_payment_id:id});
-export const saveCustomerPayment=(auth:string,payload:Record<string,unknown>,id?:number)=>customerPaymentRpc(auth,'save_customer_payment_with_advances',{p_payload:payload,p_payment_id:id??null},id===undefined?'create':'edit');
+export const saveCustomerPayment=(auth:string,payload:Record<string,unknown>,id?:number)=>customerPaymentRpc(auth,Number(payload.new_advance_amount||0)!==0?'save_customer_payment_with_new_advance':'save_customer_payment_with_advances',{p_payload:payload,p_payment_id:id??null},id===undefined?'create':'edit');
 export const deleteCustomerPayment=(auth:string,id:number)=>customerPaymentRpc(auth,'delete_customer_payment',{p_payment_id:id},'delete');
 export function denyCustomerPaymentCatalogWrite(){throw Object.assign(new Error('Utilice el proceso protegido de cobros; no se permite CRUD directo.'),{status:403});}
 

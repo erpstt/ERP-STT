@@ -66,7 +66,7 @@ try{
   if(!token)throw Error('Debe iniciar sesión para consultar el cobro.');
   const detail=await api(`/api/sales/customer-payments/${encodeURIComponent(paymentId)}`),header=detail.header||{},applications=Array.isArray(detail.applications)?detail.applications:[],advances=Array.isArray(detail.advances)?detail.advances:[],impact=Array.isArray(detail.impact)?detail.impact:[],bankFee=detail.bankFee||{};
   const currency=String(header.currency||'').trim(),money=value=>`${currency?`${currency} `:''}${numeric(value).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-  const applicationTotal=applications.reduce((sum,row)=>sum+numeric(row.amount),0),advanceTotal=advances.reduce((sum,row)=>sum+numeric(row.amount),0),bankFeeTotal=numeric(bankFee.amount??bankFee.bank_fee_amount),withholdingTotal=Math.max(applicationTotal-numeric(header.amount_received),0),bankNet=Math.max(numeric(header.amount_received)-advanceTotal-bankFeeTotal,0);
+  const applicationTotal=applications.reduce((sum,row)=>sum+numeric(row.amount),0),advanceTotal=advances.reduce((sum,row)=>sum+numeric(row.amount),0),bankFeeTotal=numeric(bankFee.amount??bankFee.bank_fee_amount),withholdingTotal=Math.max(applicationTotal+impact.filter(row=>String(row.accountNumber)==='218001').reduce((sum,row)=>sum+numeric(row.credit),0)-numeric(header.amount_received),0),bankNet=Math.max(numeric(header.amount_received)-advanceTotal-bankFeeTotal,0);
   let totalDebit=0,totalCredit=0;
 
   $('toolbarNumber').textContent=header.payment_number||'Comprobante de cobro';
@@ -79,7 +79,7 @@ try{
   $('bankReference').textContent=header.bank_reference||'—';
   $('bankAccount').textContent=[header.bank,header.account].filter(Boolean).join(' · ')||'—';
   $('currencyRate').textContent=`${currency||'—'} · Tasa ${formatRate(header.exchange_rate)}`;
-  const receivedAdvance=impact.filter(row=>String(row.accountNumber)==='218001').reduce((sum,row)=>sum+numeric(row.credit),0);if(receivedAdvance>0&&applications.length===0){$('applicationTotal').previousElementSibling.textContent='Anticipo recibido';$('applicationTotal').nextElementSibling.textContent='Disponible para futuras facturas';}$('applicationTotal').textContent=money(receivedAdvance>0&&applications.length===0?receivedAdvance:applicationTotal);$('applicationTableTotal').textContent=money(applicationTotal);
+  const receivedAdvance=impact.filter(row=>String(row.accountNumber)==='218001').reduce((sum,row)=>sum+numeric(row.credit),0);if(receivedAdvance>0&&applications.length>0){const card=document.createElement('div');card.className='summary-card';const label=document.createElement('small'),amount=document.createElement('strong');label.textContent='Anticipo recibido';amount.textContent=money(receivedAdvance);card.append(label,amount);$('applicationTotal').parentElement.parentElement.append(card);}if(receivedAdvance>0&&applications.length===0){$('applicationTotal').previousElementSibling.textContent='Anticipo recibido';$('applicationTotal').nextElementSibling.textContent='Disponible para futuras facturas';}$('applicationTotal').textContent=money(receivedAdvance>0&&applications.length===0?receivedAdvance:applicationTotal);$('applicationTableTotal').textContent=money(applicationTotal);
   $('withholdingTotal').textContent=money(withholdingTotal);$('withholdingCard').hidden=withholdingTotal<=0;
   $('advanceTotal').textContent=money(advanceTotal);$('advanceCard').hidden=advanceTotal<=0;
   $('bankFeeTotal').textContent=money(bankFeeTotal);$('feeCard').hidden=bankFeeTotal<=0;
