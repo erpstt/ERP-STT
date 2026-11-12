@@ -35,7 +35,7 @@ const options = {
 const header = (id, patch = {}) => ({
   id, numero: `SOL-SYN-${id}`, estado: 'APROBADO', id_solicitante: 1, tipo_solicitud: 'OTROS', id_moneda: 1,
   fecha_solicitud: '2026-10-31', fecha_pago_programada: '2026-11-02', concepto: 'Historical approved request', total: 50,
-  version: 7, solicitante: 'Synthetic requester', moneda: 'CRC', ...patch,
+  terceros:[{entityType:'Empleado',entityId:20,name:'Synthetic employee'}], version: 7, solicitante: 'Synthetic requester', moneda: 'CRC', ...patch,
 });
 const directLine = (entityType, entityId, party) => ({
   id_cuenta_contable: 203, tipo_tercero: entityType,
@@ -97,7 +97,7 @@ test('solicitudes muestran cuentas actuales del beneficiario y auditoría plegad
       const action = url.pathname.split('/').at(-1);
       if (action === 'access') json = { canView: true, canCreate: true, canEdit: true, canDelete: false };
       else if (action === 'options') json = options;
-      else if (action === 'report') json = [header(1), header(2), header(3, { tipo_solicitud: 'CXP', id_proveedor: 10 }), header(4, { moneda:'USD', id_moneda:2 }),header(5,{moneda:'USD',estado:'APLICADO'}),header(6,{moneda:'CRC',estado:'ANULADO'})];
+      else if (action === 'report') json = [header(1), header(2), header(3, { tipo_solicitud: 'CXP', id_proveedor: 10, terceros:[{entityType:'Proveedor',entityId:10,name:'Synthetic supplier'}] }), header(4, { moneda:'USD', id_moneda:2, terceros:[{entityType:'Otro Nombre',entityId:31,name:'Synthetic employee'}] }),header(5,{moneda:'USD',estado:'APLICADO'}),header(6,{moneda:'CRC',estado:'ANULADO'})];
       else if (action === 'detail') {
         json = detail(Number(payload.id));
         if (Number(payload.id) === 1) {
@@ -128,6 +128,22 @@ test('solicitudes muestran cuentas actuales del beneficiario y auditoría plegad
   await page.locator('[data-open="1"]').waitFor();
   assert.equal(await page.locator('#rows [data-open]').count(),4);
   await page.screenshot({path:'.local-tools/payment-request-currency-filter.png',fullPage:true});
+  assert.deepEqual(await page.locator('#rows tr').first().locator('td').allTextContents().then(c=>c.slice(1,3)),['Synthetic employeeEmpleado','Synthetic requester']);
+  await page.selectOption('#filterSupplier','Otro Nombre:31');
+  await page.waitForFunction(()=>document.querySelector('#pendingCount').textContent==='1');
+  assert.deepEqual(await page.locator('#rows [data-open]').evaluateAll(nodes=>nodes.map(n=>n.dataset.open)),['4']);
+  await page.selectOption('#filterCurrency','CRC');
+  await page.waitForFunction(()=>document.querySelector('#pendingCount').textContent==='0');
+  assert.equal(await page.locator('#rows td').getAttribute('colspan'),'10');
+  await page.selectOption('#filterCurrency','');
+  await page.locator('[data-open="4"]').waitFor();
+  await page.selectOption('#filterSupplier','Proveedor:10');
+  await page.locator('[data-open="3"]').waitFor();
+  assert.equal(await page.locator('#rows [data-open]').count(),1);
+  await page.selectOption('#filterSupplier','');
+  await page.locator('[data-open="1"]').waitFor();
+  assert.ok(calls.filter(c=>c.path.endsWith('/report')).every(c=>!c.payload.supplierId));
+  await page.screenshot({path:'.local-tools/payment-request-parties.png',fullPage:true});
   const panel = page.locator('#beneficiaryBanking'), payPanel = page.locator('#payBeneficiaryBanking');
   const account = (slot, scope = panel) => scope.locator(`.beneficiary-bank-account[data-slot="${slot}"]`);
   const audit = page.locator('#requestRecordAudit'), auditSummary = audit.locator(':scope > summary');

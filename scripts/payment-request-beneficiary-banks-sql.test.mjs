@@ -6,7 +6,7 @@ import {setupPaymentRequestBeneficiaryBanks} from './fixtures/setup-payment-requ
 
 const db=new PGlite();
 let installation;
-before(async()=>{installation=await setupPaymentRequestBeneficiaryBanks(db);await db.exec(await readFile('supabase/migrations/20261112011417_payment_beneficiary_identification.sql','utf8'));});
+before(async()=>{installation=await setupPaymentRequestBeneficiaryBanks(db);await db.exec(await readFile('supabase/migrations/20261112011417_payment_beneficiary_identification.sql','utf8'));await db.exec(await readFile('supabase/migrations/20261112013509_payment_request_list_parties.sql','utf8'));});
 after(()=>db.close());
 async function tx(t){await db.exec('reset role;begin');t.after(()=>db.exec('rollback;reset role'));}
 async function assume(user=1,role=1,sid=1){
@@ -196,3 +196,14 @@ test('CXP with the production supplier/customer schema resolves its supplier and
 });
 
 test('identificacion corresponde al tipo de tercero y conserva ceros iniciales',async t=>{await tx(t);await db.exec("update suppliers set tax_id='001-SUP-10' where supplier_id=10;update employees set identification='002-EMP-901' where employee_id=901;update other_names set identification='003-ON-801' where other_name_id=801");await assume(1,2);const parties=(await options()).beneficiaryBankAccounts;for(const[kind,id,value]of[['Proveedor',10,'001-SUP-10'],['Empleado',901,'002-EMP-901'],['Otro Nombre',801,'003-ON-801']])assert.equal(parties.find(p=>p.entityType===kind&&p.entityId===id).identification,value);});
+
+test('list includes distinct payees and supplier filtering covers direct payments',async t=>{
+ await tx(t);await assume();const created=await save({...draft,lines:[draft.lines[0],{...draft.lines[0],entityType:'Empleado',entityId:901},{...draft.lines[0],amount:25}]});
+ const rows=(await db.query("select pr_report('{}') data")).rows[0].data;
+ const row=rows.find(r=>r.id===created.id);assert.ok(row);assert.equal(row.terceros.length,2);
+ assert.ok(row.terceros.some(p=>p.entityType==='Otro Nombre'&&p.entityId===801&&p.name==='Synthetic other name'));
+ assert.ok(row.terceros.some(p=>p.entityType==='Empleado'&&p.entityId===901));
+ const filtered=(await db.query('select pr_report($1) data',[{supplierId:10}])).rows[0].data;
+ assert.ok(filtered.some(r=>r.numero==='SYN-HISTORICAL-APPROVED'));assert.ok(!filtered.some(r=>r.id===created.id));
+ await assume(1,1,2);const foreign=(await db.query("select pr_report('{}') data")).rows[0].data;assert.ok(!foreign.some(r=>r.id===created.id));
+});
