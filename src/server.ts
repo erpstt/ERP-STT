@@ -2,6 +2,7 @@ import {journalViewDetail} from './modules/accounting-catalogs/journal-entry.ser
 import {downloadDocumentSnapshot} from './modules/reports/document-snapshot-pdf.service.js';
 import {downloadCustomerFeesPdf} from './modules/sales-catalogs/customer-payment-fees-pdf.service.js';
 import {isFinancialReportRoute,requireReportAccess} from './modules/reports/report-access.service.js';
+import {runClassifiedReceivables,setReceivableDiscount,exportClassifiedReceivables,currencyGroups} from './modules/reports/classified-receivables.service.js';
 import {contentSecurityPolicy} from './core/security/content-security-policy.js';
 import{rateCatalogs,rateRpc}from'./modules/configuration-catalogs/rate-security.service.js';
 import{canonicalRequestTarget}from'./core/security/request-path.js';
@@ -547,6 +548,16 @@ const server = createServer((request, response) => {
      }
      const purchaseTransactionSupportRoute=request.url?.match(/^\/api\/reports\/accounting\/purchase-transactions\/supports\/(\d+)$/);
      if(request.method==='GET'&&purchaseTransactionSupportRoute){return json(response,200,await purchaseTransactionSupport(request.headers.authorization!,Number(purchaseTransactionSupportRoute[1])));}
+    const classifiedRoute=request.url?.match(/^\/api\/reports\/accounting\/classified-receivables\/(run|mark|pdf|excel)$/);
+    if(classifiedRoute){
+      if(request.method!=='POST')return error(response,405,'Método no permitido.');
+      const auth=request.headers.authorization||'';await requireReportAccess(auth);
+      const input=await body(request,128*1024) as Record<string,unknown>;
+      if(classifiedRoute[1]==='mark')return json(response,200,await setReceivableDiscount(auth,input));
+      const options=await accountingReportOptions(auth);
+      if(classifiedRoute[1]==='run'){const result=await runClassifiedReceivables(auth,input);return json(response,200,{...result,blocks:currencyGroups(result,input,options)});}
+      return json(response,200,await exportClassifiedReceivables(auth,input,classifiedRoute[1] as 'pdf'|'excel',options));
+    }
     const accountingReportRoute=request.url?.match(/^\/api\/reports\/accounting\/([a-z-]+)$/);
     if(request.method==='POST'&&accountingReportRoute){return json(response,200,await runAccountingReport(request.headers.authorization!,accountingReportRoute[1],await body(request) as Record<string,unknown>));}
     const userPasswordLinkRoute=request.url?.match(/^\/api\/security\/users\/(\d+)\/send-password-link$/);
