@@ -440,7 +440,7 @@ function populatePostConfirmation(){
  $('postConfirmTitle').textContent=auxiliaryMode?'Cargar auxiliares validados':'Contabilizar saldos iniciales';
  $('postConfirmDescription').textContent=auxiliaryMode?'Confirme la carga complementaria sobre la apertura ya contabilizada.':'Revise el lote validado antes de generar el asiento de apertura.';
  $('postConfirmOperation').textContent=auxiliaryMode?'CARGA COMPLEMENTARIA':'APERTURA CONTABLE';
- $('postConfirmOperationText').textContent=auxiliaryMode?'Solo se crearán los auxiliares nuevos incluidos en esta validación.':'El lote está cuadrado, conciliado y listo para contabilizar.';
+ $('postConfirmOperationText').textContent=auxiliaryMode?'Solo se crearán los auxiliares nuevos incluidos en esta validación.':'El lote está cuadrado y conciliado. Al contabilizar se verificarán el período y los controles de apertura.';
  $('postConfirmCompany').textContent=$('company').textContent||'—';
  $('postConfirmDate').textContent=localizedOpeningDate($('date').value);
  $('postConfirmLoadType').textContent=$('type').selectedOptions?.[0]?.textContent||'—';

@@ -534,6 +534,7 @@ class OpeningBalanceProcessingTimeoutError extends Error{
 function openingRpcFailure(name:string,result:OpeningRpcFailure|null){
  const code=String(result?.code??''),message=String(result?.message??'');
  if(code==='57014'||/canceling statement due to statement timeout/i.test(message))return new OpeningBalanceProcessingTimeoutError(name);
+ if(code==='55000'&&message==='El per\u00edodo de apertura est\u00e1 cerrado o no est\u00e1 disponible.')return Object.assign(Error('No existe un per\u00edodo contable abierto y habilitado para la fecha de apertura. Revise los per\u00edodos de la empresa antes de contabilizar.'),{status:409});
  const status=code==='42501'?403:['55000','P0001','23503','23505'].includes(code)?409:['22023','22P02','22003','22007','22008','23514'].includes(code)?400:500;
  return Object.assign(Error(status===403?'El rol activo no puede realizar esta operación.':status===409?'Revise el estado, origen y conciliación de la apertura.':status===400?'Revise los datos y archivos de la apertura.':'No fue posible procesar la apertura.'),{status,openingValidationMessage:name==='opening_balance_validate'&&['P0001','22023',''].includes(code)?message:undefined});
 }
