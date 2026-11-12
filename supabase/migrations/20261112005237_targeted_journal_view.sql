@@ -1,0 +1,34 @@
+create schema if not exists journal_entry_private;
+create function journal_entry_private.view_detail(p_journal_id bigint) returns jsonb language plpgsql stable security definer set search_path=pg_catalog,public,pg_temp as $$
+declare sid bigint;j public.journal;result jsonb;
+begin
+ sid:=asset_posting_private.access('accounting:journals','view');
+ if p_journal_id is null or p_journal_id<=0 then raise exception using errcode='22023',message='Seleccione un asiento válido.';end if;
+ select * into j from public.journal where journal_id=p_journal_id and subsidiary_id=sid;
+ if not found then raise exception using errcode='42501',message='Asiento no disponible en la empresa activa.';end if;
+ result:=jsonb_build_object('journals',jsonb_build_array(to_jsonb(j)),
+ 'access',jsonb_build_object('canEdit',asset_posting_private.allowed('accounting:journals','edit') and exists(select 1 from public.transaction_types t where t.name=j.journal_type and t.abbreviation in('ASI_DIA','ASI_PEN','ASI_NOM','ASI_LIQ'))),
+ 'lines',(select coalesce(jsonb_agg(to_jsonb(l) order by l.journal_line_id),'[]') from public.journal_line l where l.journal_id=j.journal_id),
+ 'impacts',(select coalesce(jsonb_agg(jsonb_build_object('transaction_id',g.transaction_id,'account_id',g.account_id,'debit_amount',g.debit_amount,'credit_amount',g.credit_amount,'posting_date',g.posting_date) order by g.gl_impact_id),'[]') from public.gl_impact g where g.transaction_id=j.transaction_id and g.subsidiary_id=sid));
+ result:=result||jsonb_build_object('accounts',(select coalesce(jsonb_agg(jsonb_build_object('account_id',t.account_id,'account_number',t.account_number,'account_name',t.account_name) order by t.account_id),'[]') from public.chart_accounts t where t.account_id in(select account_id from public.journal_line where journal_id=j.journal_id union select account_id from public.gl_impact where transaction_id=j.transaction_id and subsidiary_id=sid)));
+ result:=result||jsonb_build_object('currencies',(select coalesce(jsonb_agg(jsonb_build_object('currency_id',t.currency_id,'name',t.currency_code) order by t.currency_id),'[]') from public.currencies t where t.currency_id=j.currency_id));
+ result:=result||jsonb_build_object('periods',(select coalesce(jsonb_agg(jsonb_build_object('fiscal_period_id',t.fiscal_period_id,'period_name',t.period_name) order by t.fiscal_period_id),'[]') from public.fiscal_periods t where t.fiscal_period_id=j.fiscal_period_id));
+ result:=result||jsonb_build_object('subsidiaries',(select coalesce(jsonb_agg(jsonb_build_object('subsidiary_id',t.subsidiary_id,'name',t.name) order by t.subsidiary_id),'[]') from public.subsidiaries t where t.subsidiary_id=sid));
+ result:=result||jsonb_build_object('locations',(select coalesce(jsonb_agg(jsonb_build_object('location_id',t.location_id,'name',t.name) order by t.location_id),'[]') from public.locations t where t.location_id=j.location_id));
+ result:=result||jsonb_build_object('departments',(select coalesce(jsonb_agg(jsonb_build_object('department_id',t.department_id,'name',t.name) order by t.department_id),'[]') from public.departments t where exists(select 1 from public.journal_line l where l.journal_id=j.journal_id and l.department_id=t.department_id)));
+ result:=result||jsonb_build_object('classes',(select coalesce(jsonb_agg(jsonb_build_object('class_id',t.class_id,'name',t.name) order by t.class_id),'[]') from public.classes t where exists(select 1 from public.journal_line l where l.journal_id=j.journal_id and l.class_id=t.class_id)));
+ result:=result||jsonb_build_object('costs',(select coalesce(jsonb_agg(jsonb_build_object('cost_center_id',t.cost_center_id,'name',t.name) order by t.cost_center_id),'[]') from public.cost_centers t where exists(select 1 from public.journal_line l where l.journal_id=j.journal_id and l.cost_center_id=t.cost_center_id)));
+ result:=result||jsonb_build_object('taxes',(select coalesce(jsonb_agg(jsonb_build_object('tax_code_id',t.tax_code_id,'code_name',t.code_name) order by t.tax_code_id),'[]') from public.tax_codes t where exists(select 1 from public.journal_line l where l.journal_id=j.journal_id and l.tax_code_id=t.tax_code_id)));
+ result:=result||jsonb_build_object('countries',(select coalesce(jsonb_agg(jsonb_build_object('country_id',t.country_id,'name',coalesce(to_jsonb(t)->>'name',to_jsonb(t)->>'country_name')) order by t.country_id),'[]') from public.countries t where exists(select 1 from public.journal_line l where l.journal_id=j.journal_id and l.service_country_id=t.country_id)));
+ result:=result||jsonb_build_object('customers',(select coalesce(jsonb_agg(jsonb_build_object('customer_id',t.customer_id,'company_name',t.company_name) order by t.customer_id),'[]') from public.customers t where exists(select 1 from public.journal_line l where l.journal_id=j.journal_id and l.customer_id=t.customer_id)));
+ result:=result||jsonb_build_object('suppliers',(select coalesce(jsonb_agg(jsonb_build_object('supplier_id',t.supplier_id,'company_name',t.company_name) order by t.supplier_id),'[]') from public.suppliers t where exists(select 1 from public.journal_line l where l.journal_id=j.journal_id and l.supplier_id=t.supplier_id)));
+ result:=result||jsonb_build_object('employees',(select coalesce(jsonb_agg(jsonb_build_object('employee_id',t.employee_id,'first_name',t.first_name,'last_name',t.last_name) order by t.employee_id),'[]') from public.employees t where exists(select 1 from public.journal_line l where l.journal_id=j.journal_id and l.employee_id=t.employee_id)));
+ result:=result||jsonb_build_object('otherNames',(select coalesce(jsonb_agg(jsonb_build_object('other_name_id',t.other_name_id,'name',coalesce(to_jsonb(t)->>'name',to_jsonb(t)->>'company_name')) order by t.other_name_id),'[]') from public.other_names t where exists(select 1 from public.journal_line l where l.journal_id=j.journal_id and l.other_name_id=t.other_name_id)));
+ if asset_posting_private.allowed('accounting:journal-supports','view') then result:=result||jsonb_build_object('supports',(select coalesce(jsonb_agg(to_jsonb(s) order by s.support_id),'[]') from public.journal_support s where s.journal_id=j.journal_id));else result:=result||jsonb_build_object('supports','[]'::jsonb);end if;
+ return result;
+end$$;
+create function public.journal_view_detail(p_journal_id bigint) returns jsonb language sql stable security invoker set search_path=pg_catalog,public,pg_temp as $$select journal_entry_private.view_detail(p_journal_id)$$;
+grant usage on schema journal_entry_private to authenticated;
+revoke all on function journal_entry_private.view_detail(bigint) from public,anon,authenticated,service_role;grant execute on function journal_entry_private.view_detail(bigint) to authenticated;
+revoke all on function public.journal_view_detail(bigint) from public,anon,authenticated,service_role;grant execute on function public.journal_view_detail(bigint) to authenticated;
+notify pgrst,'reload schema';

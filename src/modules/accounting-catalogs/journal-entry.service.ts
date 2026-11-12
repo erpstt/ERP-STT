@@ -50,3 +50,5 @@ export async function reverseManualJournal(authorization:string,journalId:number
  if(!Number.isSafeInteger(journalId)||journalId<=0)throw Object.assign(new Error('Seleccione un asiento válido.'),{status:400});
  return (await call(authorization,'reverse_journal_entry',{target_journal_id:journalId})).journalId;
 }
+
+export async function journalViewDetail(authorization:string,journalId:number){await assertJournalAccess(authorization,'view');formJournalId(journalId);try{return await readJournalRpc(authorization,'journal_view_detail',{p_journal_id:journalId});}catch(error){if([401,403].includes(Number((error as {status?:number}).status)))throw error;throw Object.assign(new Error('No fue posible cargar el asiento solicitado. Intente nuevamente.'),{status:503});}}

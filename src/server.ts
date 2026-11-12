@@ -1,3 +1,4 @@
+import {journalViewDetail} from './modules/accounting-catalogs/journal-entry.service.js';
 import {downloadDocumentSnapshot} from './modules/reports/document-snapshot-pdf.service.js';
 import {downloadCustomerFeesPdf} from './modules/sales-catalogs/customer-payment-fees-pdf.service.js';
 import {isFinancialReportRoute,requireReportAccess} from './modules/reports/report-access.service.js';
@@ -693,6 +694,7 @@ const server = createServer((request, response) => {
     const fxRoute=request.url?.match(/^\/api\/accounting\/fx-revaluation\/(options|settings|preview|execute|cancel|report)$/);
     if(fxRoute&&((fxRoute[1]==='options'&&request.method==='GET')||(fxRoute[1]!=='options'&&request.method==='POST')))return json(response,200,await fxRevaluation(request.headers.authorization!,fxRoute[1],fxRoute[1]==='options'?{}:await body(request) as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/accounting/journals/import'){return json(response,200,await importJournalCsv(request.headers.authorization!,await body(request)as Record<string,unknown>));}
+    const journalViewRoute=request.url?.match(/^\/api\/accounting\/journal-view\/(\d+)$/);if(request.method==='GET'&&journalViewRoute)return json(response,200,await journalViewDetail(request.headers.authorization!,Number(journalViewRoute[1])));
     const journalEntryUrl=new URL(request.url??'/','http://localhost');
     if(request.method==='GET'&&journalEntryUrl.pathname==='/api/accounting/journal-entry/options')return json(response,200,await journalEntryOptions(request.headers.authorization!,journalEntryUrl.searchParams.get('section')??'header',journalEntryUrl.searchParams.has('id')?Number(journalEntryUrl.searchParams.get('id')):null));
     const journalEntryRead=journalEntryUrl.pathname.match(/^\/api\/accounting\/journal-entry\/(\d+)(\/supports)?$/);
