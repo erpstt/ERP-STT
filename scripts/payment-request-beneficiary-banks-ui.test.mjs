@@ -97,7 +97,7 @@ test('solicitudes muestran cuentas actuales del beneficiario y auditoría plegad
       const action = url.pathname.split('/').at(-1);
       if (action === 'access') json = { canView: true, canCreate: true, canEdit: true, canDelete: false };
       else if (action === 'options') json = options;
-      else if (action === 'report') json = [header(1), header(2), header(3, { tipo_solicitud: 'CXP', id_proveedor: 10 }), header(4)];
+      else if (action === 'report') json = [header(1), header(2), header(3, { tipo_solicitud: 'CXP', id_proveedor: 10 }), header(4, { moneda:'USD', id_moneda:2 }),header(5,{moneda:'USD',estado:'APLICADO'}),header(6,{moneda:'CRC',estado:'ANULADO'})];
       else if (action === 'detail') {
         json = detail(Number(payload.id));
         if (Number(payload.id) === 1) {
@@ -113,6 +113,21 @@ test('solicitudes muestran cuentas actuales del beneficiario y auditoría plegad
   });
   await page.goto(origin + '/payment-requests.html');
   await page.locator('[data-open="1"]').waitFor();
+  assert.deepEqual(await page.locator('#filterCurrency option').allTextContents(),['Todas','CRC','USD']);
+  await page.selectOption('#filterCurrency','USD');
+  await page.waitForFunction(()=>document.querySelector('#pendingCount').textContent==='1');
+  assert.deepEqual(await page.locator('#rows [data-open]').evaluateAll(nodes=>nodes.map(n=>n.dataset.open)),['4']);
+  assert.equal(await page.locator('#appliedCount').textContent(),'1');
+  assert.equal(await page.locator('#cancelledCount').textContent(),'0');
+  await page.click('#appliedTab');
+  await page.locator('[data-open="5"]').waitFor();
+  assert.equal(await page.locator('#filterCurrency').inputValue(),'USD');
+  await page.click('#pendingTab');
+  await page.locator('[data-open="4"]').waitFor();
+  await page.selectOption('#filterCurrency','');
+  await page.locator('[data-open="1"]').waitFor();
+  assert.equal(await page.locator('#rows [data-open]').count(),4);
+  await page.screenshot({path:'.local-tools/payment-request-currency-filter.png',fullPage:true});
   const panel = page.locator('#beneficiaryBanking'), payPanel = page.locator('#payBeneficiaryBanking');
   const account = (slot, scope = panel) => scope.locator(`.beneficiary-bank-account[data-slot="${slot}"]`);
   const audit = page.locator('#requestRecordAudit'), auditSummary = audit.locator(':scope > summary');
