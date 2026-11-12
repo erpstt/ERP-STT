@@ -1,3 +1,4 @@
+import {parseCustomerEmailRecipients} from './customer-email-recipients.js?v=20261112-customer-multi-email';
 import {escapeHtml as htmlText,configureImage,configureAttachmentLink} from './html-safety.js?v=20261102-a03-media';
 import { createIndexedLookup } from './frontend-performance.js?v=20261023-second-pass-v3';
 import {readRouteId} from './route-id.js?v=20261103-route-id-guard';
@@ -144,7 +145,8 @@ try{
   $('back').onclick=()=>history.length>1?history.back():window.location.assign('/');
   $('print').onclick=()=>downloadInvoicePdf(invoice.invoice_number);
 
-  const validEmail=context.access?.canEdit===true&&/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(String(customer.email||''));
+  let recipients=[];try{recipients=parseCustomerEmailRecipients(customer.email);}catch{}
+  const validEmail=context.access?.canEdit===true&&recipients.length>0;
   const fileCount=invoiceSupports.filter(item=>item.support_type==='Archivo').length,linkCount=invoiceSupports.filter(item=>item.support_type==='Enlace').length;
   $('emailCustomer').textContent=customer.company_name||customer.name||'el cliente';
   $('emailRecipient').textContent=validEmail?customer.email:'No hay un correo válido registrado';
@@ -160,7 +162,7 @@ try{
       button.disabled=true;button.textContent='Enviando…';$('emailDialogError').textContent='';
       const result=await api(`/api/sales/invoices/${encodeURIComponent(invoiceId)}/email`,{method:'POST',body:'{}'});
       $('emailDialog').close();
-      showAction(`Factura enviada correctamente a ${result.recipient||customer.email}.`);
+      showAction(result.status==='PARCIAL'?`Env\u00edo parcial. El servidor solo acept\u00f3 algunos destinatarios de ${result.recipient||customer.email}. Verifique el env\u00edo antes de reenviar.`:`Factura enviada correctamente a ${result.recipient||customer.email}.`,result.status==='PARCIAL'?'error':'success');
     }catch(error){$('emailDialogError').textContent=error.message}
     finally{button.disabled=!validEmail;button.textContent=label}
   };

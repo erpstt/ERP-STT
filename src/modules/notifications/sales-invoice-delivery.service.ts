@@ -1,3 +1,4 @@
+import {parseCustomerEmailRecipients} from '../../../public/customer-email-recipients.js';
 import{assertSalesInvoiceAccess,salesInvoiceRpc}from'../sales-catalogs/sales-invoice-security.service.js';
 import nodemailer from 'nodemailer';
 import { renderBankReconciliationPdf } from '../reports/accounting-reports.service.js';
@@ -58,7 +59,6 @@ type MailAttachment = {filename:string; content:Buffer; contentType:string; cont
 type RenderedFile = {fileName:string; mimeType:string; base64:string};
 type TemplateSettings = {template?:{asunto_template?:string;cuerpo_template?:string;activo?:boolean}|null};
 
-const emailPattern=/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/;
 const esc=(value:unknown)=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]!));
 const date=(value:unknown)=>{const raw=String(value??'').slice(0,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(raw))return '—';return new Intl.DateTimeFormat('es-CR',{day:'2-digit',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(`${raw}T12:00:00Z`));};
 const safeFileName=(value:unknown,fallback='archivo')=>String(value??fallback).replace(/[\\/\r\n\0<>:"|?*]/g,'_').trim().slice(0,160)||fallback;
@@ -277,16 +277,16 @@ export async function deliverSalesInvoiceEmail(
   send:(message:Record<string,unknown>)=>Promise<{accepted?:unknown[];messageId?:string}>,
   pdf:(document:SalesInvoiceDocument)=>Promise<RenderedFile>=renderSalesInvoicePdf
 ){
-  if(!emailPattern.test(document.customer.email))throw Error('El cliente no tiene un correo electrónico válido registrado.');
+  let recipients:string[];try{recipients=parseCustomerEmailRecipients(document.customer.email);if(!recipients.length)throw Error();}catch{throw Error('El cliente no tiene un correo electrónico válido registrado.');}
   const rendered=renderSalesInvoiceEmail(template.subject,template.body,{empresa_nombre:document.company.name,empresa_logo_url:document.company.logo,cliente_nombre:document.customer.name,numero_factura:document.number,fecha_factura:document.issueDate,fecha_vencimiento:document.dueDate,total_factura:document.total,moneda:document.currency.code});
   const links=supportLinks(document.supports),linkHtml=links.length?`<div style="margin:22px 0;padding:16px;background:#f8fafc;border-left:4px solid #f26938"><strong>Enlaces de respaldo</strong><ul>${links.map(item=>`<li><a href="${esc(item.url)}">${esc(item.name)}</a></li>`).join('')}</ul></div>`:'',linkText=links.length?`\n\nEnlaces de respaldo:\n${links.map(item=>`${item.name}: ${item.url}`).join('\n')}`:'';
   const message={...rendered,html:rendered.html.replace('<!--support-links-->',linkHtml),text:`${rendered.text}${linkText}`};
   const invoicePdf=await pdf(document),attachments:MailAttachment[]=[{filename:safeFileName(invoicePdf.fileName,'factura.pdf'),content:Buffer.from(invoicePdf.base64,'base64'),contentType:'application/pdf',contentDisposition:'attachment'},...supportAttachments(document.supports)];
   let result;
-  try{result=await send({from:process.env.SMTP_FROM,to:document.customer.email,...message,attachments,disableFileAccess:true,disableUrlAccess:true});}
+  try{result=await send({from:process.env.SMTP_FROM,to:recipients.length===1?recipients[0]:recipients,...message,attachments,disableFileAccess:true,disableUrlAccess:true});}
   catch(cause){const smtp=cause as{responseCode?:number;code?:string;command?:string};const detail=smtp.responseCode||smtp.code||smtp.command;throw Error(detail?`El servidor de correo rechazó el envío (${detail}).`:'No fue posible confirmar el envío con el servidor de correo.');}
   if(!result.accepted?.length)throw Error('El servidor de correo no aceptó al destinatario.');
-  return{status:'ENVIADO',recipient:document.customer.email,messageId:result.messageId??null,attachments:attachments.map(item=>item.filename),links:links.length};
+  return{status:result.accepted.length<recipients.length?'PARCIAL':'ENVIADO',recipient:recipients.join(', '),acceptedRecipients:result.accepted,messageId:result.messageId??null,attachments:attachments.map(item=>item.filename),links:links.length};
 }
 
 export async function downloadSalesInvoicePdf(authorization:string,invoiceId:number){return renderSalesInvoicePdf(await loadSalesInvoiceDocument(authorization,invoiceId));}

@@ -524,7 +524,7 @@ const _hoisted_260 = {
 }
 const _hoisted_261 = ["onUpdate:modelValue", "required", "readonly", "onBlur"]
 const _hoisted_262 = ["onUpdate:modelValue", "required", "readonly"]
-const _hoisted_263 = ["onUpdate:modelValue", "type", "required", "readonly", "placeholder"]
+const _hoisted_263 = ["onUpdate:modelValue", "type", "required", "readonly", "placeholder", "inputmode"]
 const _hoisted_264 = {
   key: 6,
   class: "gentia-switch-control"
@@ -2600,7 +2600,8 @@ export function render(_ctx, _cache) {
                                                         type: field.type,
                                                         required: _ctx.fieldRequired(field),
                                                         readonly: field.readOnly,
-                                                        placeholder: field.readOnly && !_ctx.recordDialog.id ? 'Se asignará automáticamente' : ''
+                                                        placeholder: field.readOnly && !_ctx.recordDialog.id ? 'Se asignará automáticamente' : '',
+                                                        inputmode: _ctx.activeCatalog.slug==='customers' && field.key==='email' ? 'email' : null
                                                       }, null, 8 /* PROPS */, _hoisted_263)), [
                                                         [_vModelDynamic, _ctx.recordDialog.values[field.key]]
                                                       ])

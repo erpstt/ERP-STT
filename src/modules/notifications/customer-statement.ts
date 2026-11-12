@@ -1,3 +1,4 @@
+import {parseCustomerEmailRecipients} from '../../../public/customer-email-recipients.js';
 import {requireCustomerStatementAccess,requireStatementSettingsAccess,customerStatementCapabilities,statementRpc} from './statement-access.service.js';
 import { readFile } from 'node:fs/promises';
 import nodemailer from 'nodemailer';
@@ -68,12 +69,12 @@ export async function customerStatement(authorization:string,id:number,action:st
  return {...data,transport:smtpStatus(),access:await customerStatementCapabilities(authorization)};
 }
 export async function deliverStatement(job:any,send:(message:any)=>Promise<any>,finish:(status:string,message:string|null,error:string|null)=>Promise<unknown>,pdf=statementPdf){
- let message,attachment;
- try{if(!/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(job.destinatario))throw Error();message=renderStatementEmail(job.asunto_template,job.cuerpo_template,job.payload);attachment=await pdf(job.payload);}catch{await finish('ERROR',null,'No fue posible preparar el correo o generar el PDF.');return;}
+ let message,attachment,recipients:string[];
+ try{recipients=parseCustomerEmailRecipients(job.destinatario);if(!recipients.length)throw Error();message=renderStatementEmail(job.asunto_template,job.cuerpo_template,job.payload);attachment=await pdf(job.payload);}catch{await finish('ERROR',null,'No fue posible preparar el correo o generar el PDF.');return;}
  let result;
- try{result=await send({from:process.env.SMTP_FROM,to:job.destinatario,...message,attachments:[{filename:attachment.fileName,content:Buffer.from(attachment.base64,'base64'),contentType:'application/pdf'}],disableFileAccess:true,disableUrlAccess:true});}
+ try{result=await send({from:process.env.SMTP_FROM,to:recipients.length===1?recipients[0]:recipients,...message,attachments:[{filename:attachment.fileName,content:Buffer.from(attachment.base64,'base64'),contentType:'application/pdf'}],disableFileAccess:true,disableUrlAccess:true});}
  catch(cause){const e=cause as {responseCode?:number;command?:string};const rejected=!!e.responseCode||['CONN','AUTH','EHLO','HELO','STARTTLS','MAIL FROM','RCPT TO'].includes(e.command||'');await finish(rejected?'ERROR':'INCIERTO',null,rejected?'El servidor SMTP rechazó el envío.':'Resultado SMTP sin confirmar. Verifique el servidor antes de reenviar.');return;}
- await finish(result.accepted?.length?'ENVIADO':'ERROR',result.messageId||null,result.accepted?.length?null:'El servidor no aceptó el destinatario.');
+ await finish(result.accepted?.length===recipients.length?'ENVIADO':result.accepted?.length?'INCIERTO':'ERROR',result.messageId||null,result.accepted?.length===recipients.length?null:result.accepted?.length?'Env\u00edo parcial: verifique los destinatarios aceptados en el servidor antes de reenviar.':'El servidor no acept\u00f3 los destinatarios.');
 }
 export function startStatementNotifications(){
  if(!smtpStatus().enabled)return;

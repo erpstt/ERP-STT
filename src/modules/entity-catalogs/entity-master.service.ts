@@ -1,3 +1,4 @@
+import {parseCustomerEmailRecipients} from '../../../public/customer-email-recipients.js';
 import{fetchSupabase,getSupabaseConfig}from'../../core/database/supabase.client.js';
 export const entityMasters=new Set(['customers','suppliers','employees','other-names']);type Action='view'|'create'|'edit'|'delete';
 export function denyEntityRelationWrite():never{throw Object.assign(Error('Las asignaciones se mantienen desde el cliente o proveedor.'),{status:403});}
@@ -10,6 +11,7 @@ export async function entityMasterRpc(auth:string,k:string,a:Action|'options',p:
  const name=otherNames
   ?a==='options'?'other_name_options':a==='view'?'other_name_list':a==='delete'?'delete_other_name':'save_other_name'
   :a==='options'?'entity_master_options':a==='view'?'entity_master_list':a==='delete'?'delete_entity_master':'save_entity_master';
+ if(k==='customers'&&(a==='create'||a==='edit'))p={...p,email:parseCustomerEmailRecipients(p.email).join(', ')||null};
  const payload={...(otherNames?{}:{p_catalog:k}),...(a==='options'||a==='view'?{}:a==='delete'?{p_id:id,p_revision:p._revision??null}:{p_payload:p,p_id:id??null})};
  const r=await fetchSupabase(new URL('/rest/v1/rpc/'+name,c.url),{method:'POST',headers:{apikey:c.anonKey,Authorization:auth,'Content-Type':'application/json'},body:JSON.stringify(payload)});
  const text=await r.text(),d=text?JSON.parse(text):null;
