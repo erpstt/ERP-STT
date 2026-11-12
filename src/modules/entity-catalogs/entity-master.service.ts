@@ -16,6 +16,7 @@ export async function entityMasterRpc(auth:string,k:string,a:Action|'options',p:
  const r=await fetchSupabase(new URL('/rest/v1/rpc/'+name,c.url),{method:'POST',headers:{apikey:c.anonKey,Authorization:auth,'Content-Type':'application/json'},body:JSON.stringify(payload)});
  const text=await r.text(),d=text?JSON.parse(text):null;
  if(!r.ok){
+  if(k==='customers'&&d?.code==='23514'&&/customers_email_format|customer_statement_email_required/.test(String(d?.message)))throw Object.assign(Error('Revise los correos del cliente: use direcciones v\u00e1lidas separadas por coma o punto y coma. El env\u00edo autom\u00e1tico de estados de cuenta requiere al menos un correo.'),{status:400});
   const referenceErrors=new Set(['Las monedas deben estar disponibles para las subsidiarias seleccionadas.','Departamento de cliente no disponible.','Representante de ventas no disponible.']);
   if(!otherNames&&d?.code==='42501'&&referenceErrors.has(d?.message))throw Object.assign(Error(d.message),{status:400});
   const status=r.status===401?401:r.status===403||d?.code==='42501'?403:['55000','23503','23505','P0001'].includes(d?.code)?409:['22023','22P02','22003','22001','23502','23514'].includes(d?.code)?400:500;

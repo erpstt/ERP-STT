@@ -1,6 +1,10 @@
 import{readFile}from'node:fs/promises';import{setupTaxCatalogSecurity}from'./setup-tax-catalog-security.mjs';
 export const migration='20261101150451_secure_entity_masters.sql';
 export async function setupEntityMasterSecurity(db){await setupTaxCatalogSecurity(db);const read=p=>readFile(new URL(p,import.meta.url),'utf8');await db.exec(await read('./entity-master-tables.sql'));
+ // Reproduce the actual storage checks; function-only validation is insufficient for email regressions.
+ await db.exec(`alter table customers drop constraint if exists customers_email_format,drop constraint if exists customer_statement_email_required,
+ add constraint customers_email_format check(email is null or email ~* '^[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+$'),
+ add constraint customer_statement_email_required check(not envio_estado_cuenta_auto or (email is not null and email ~ '^[^[:space:]@,;<>]+@[^[:space:]@,;<>]+[.][^[:space:]@,;<>]+$'))`);
  await db.exec(`create table if not exists department_subsidiaries(department_id bigint,subsidiary_id bigint);alter table employees add column if not exists is_sales_representative boolean default false,add column if not exists first_name text default 'Synthetic',add column if not exists last_name text default 'Employee';
  create sequence fixture_customer_number_seq start 5000;create sequence fixture_supplier_number_seq start 5000;
  alter table customers alter column customer_number set default 'CLI-SYN-'||nextval('fixture_customer_number_seq');alter table suppliers alter column supplier_number set default 'PROV-SYN-'||nextval('fixture_supplier_number_seq');
