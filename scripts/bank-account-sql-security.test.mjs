@@ -9,6 +9,9 @@ before(async()=>{
  await db.exec('begin');await db.exec(await read('../supabase/migrations/20261031015835_secure_bank_transfers.sql'));await db.exec('commit');
  await db.exec(await read('./fixtures/bank-account-security.sql'));
  await db.exec('begin');await db.exec(await read('../supabase/migrations/20261031031441_secure_bank_account_writes.sql'));await db.exec('commit');
+ await db.exec(`create table opening_balance_runs(id bigint primary key,status text,journal_id bigint);
+ create table opening_bank_accounts(id bigint primary key,run_id bigint references opening_balance_runs,bank_account_id bigint references bank_account,is_active boolean default false,activated_at timestamptz,opening_reversed_at timestamptz);`);
+ await db.exec(await read('../supabase/migrations/20261113182503_bank_ledger_correction_before_opening_post.sql'));
 });
 after(()=>db.close());
 async function tx(t){await db.exec('reset role;begin');t.after(()=>db.exec('rollback;reset role'));}
@@ -26,6 +29,20 @@ async function denied(sql,params=[],code='42501'){
 const payload={account_number:'SYNTHETIC-NEW',bank_id:1,subsidiary_id:1,currency_id:1,account_id:101,country_id:1,is_credit_card:false};
 const create=async p=>(await db.query('select create_bank_account($1) data',[p||payload])).rows[0].data;
 const rpcs=["create_bank_account('{}')","update_bank_account(1,'{}')",'delete_bank_account(1)'];
+
+async function stagedBank(){await assume();const row=await create();await db.exec('reset role');await db.query("insert into opening_balance_runs values(20,'VALIDATED',null)");await db.query('insert into opening_bank_accounts(id,run_id,bank_account_id)values(20,20,$1)',[row.bank_account_id]);await assume();return row;}
+test('corrige solo cuenta contable con apertura sin contabilizar y exige revalidar sin borrar auxiliares',async t=>{
+ await tx(t);const row=await stagedBank();await denied('select delete_bank_account($1)',[row.bank_account_id],'55000');
+ await denied('select update_bank_account($1,$2)',[row.bank_account_id,{account_id:102,is_credit_card:true}],'55000');
+ const updated=(await db.query('select update_bank_account($1,$2)data',[row.bank_account_id,{account_id:102}])).rows[0].data;assert.equal(updated.account_id,102);assert.equal(Number(updated.balance),0);
+ await db.exec('reset role');assert.equal((await db.query('select status from opening_balance_runs where id=20')).rows[0].status,'DRAFT');assert.equal((await db.query('select count(*)::int n from opening_bank_accounts')).rows[0].n,1);
+});
+test('apertura activada, revertida o contabilizada y documentos reales conservan el bloqueo',async t=>{
+ await tx(t);const row=await stagedBank();
+ for(const state of ["update opening_bank_accounts set is_active=true","update opening_bank_accounts set activated_at=now()","update opening_bank_accounts set opening_reversed_at=now()","update opening_balance_runs set status='POSTED'","update opening_balance_runs set journal_id=100","insert into synthetic_opening_account values(99,"+row.bank_account_id+")"]){
+  await db.exec('reset role;savepoint protected_case');await db.exec(state);await assume();await denied('select update_bank_account($1,$2)',[row.bank_account_id,{account_id:102}],'55000');await db.exec('reset role;rollback to savepoint protected_case;release savepoint protected_case');
+ }
+});
 
 test('anon/service_role no ejecutan RPC y cuerpos privados no son API de clientes',async t=>{
  await tx(t);for(const role of ['anon','service_role']){await db.exec(`reset role;set role ${role}`);for(const rpc of rpcs)await denied('select '+rpc);}
