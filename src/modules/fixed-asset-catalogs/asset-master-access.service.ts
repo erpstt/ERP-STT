@@ -12,6 +12,7 @@ export async function assetMasterRpc(authorization:string,resource:string,action
  const raw=await response.text(),result=raw?JSON.parse(raw):null;
  if(!response.ok){
   const status=response.status===401?401:response.status===403||result?.code==='42501'?403:['55000','23503','23505'].includes(result?.code)?409:['22023','22P02','22007','22008','23514','23502'].includes(result?.code)?400:500;
+  if(name==='fixed_asset_disposal_accounting'&&['55000','22023'].includes(result?.code)&&typeof result.message==='string')throw Object.assign(new Error(result.message.slice(0,400)),{status});
   throw Object.assign(new Error(status===401?'La sesión no es válida.':status===403?'El rol activo no puede realizar esta operación.':status===409?'El registro tiene historial o dependencias que impiden el cambio.':status===400?'Revise los datos del activo o categoría.':'No fue posible procesar el maestro de activos.'),{status});
  }
  return result;

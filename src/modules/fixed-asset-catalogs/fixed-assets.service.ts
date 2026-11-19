@@ -67,3 +67,5 @@ export const fixedAssetOperationOptions=(authorization:string)=>rpc(authorizatio
 export const fixedAssetOperationReport=(authorization:string,filters:Record<string,unknown>)=>rpc(authorization,'fixed_asset_operation_report',{p_filters:filters});
 export const saveFixedAssetOperation=(authorization:string,payload:Record<string,unknown>,id?:number)=>rpc(authorization,'save_fixed_asset_operation',{p_payload:payload,p_operation_id:id??null});
 export const deleteFixedAssetOperation=(authorization:string,type:string,id:number)=>rpc(authorization,'delete_fixed_asset_operation',{p_type:type,p_operation_id:id});
+
+export const fixedAssetDisposalAccounting=(authorization:string,action:string,payload:Record<string,unknown>)=>assetOperationRpc(authorization,'fixed_asset_disposal_accounting',{p_action:action,p_payload:{...payload,type:'DISPOSAL'}});

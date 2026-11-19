@@ -1,0 +1,1 @@
+﻿do $$declare definition text;begin definition:=pg_get_functiondef('public.fixed_asset_operation_options()'::regprocedure);if position('not p.is_inactive and' in definition)=0 then raise exception 'Unexpected options definition';end if;execute replace(definition,'not p.is_inactive and','');end$$;notify pgrst,'reload schema';

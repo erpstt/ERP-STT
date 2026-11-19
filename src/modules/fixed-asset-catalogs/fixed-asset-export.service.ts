@@ -239,7 +239,7 @@ export async function loadFixedAssetExportData(authorization: string, input: Rec
     department: text(row.department) || (row.departmentId == null ? '' : departmentMap.get(String(row.departmentId)) || `#${row.departmentId}`),
     costCenter: text(row.costCenter) || (row.costCenterId == null ? '' : costMap.get(String(row.costCenterId)) || `#${row.costCenterId}`),
     className: text(row.className) || (row.classId == null ? '' : classMap.get(String(row.classId)) || `#${row.classId}`),
-    currency: text(row.currency), cost: amount(row.cost), accumulated: amount(row.accumulated), bookValue: amount(row.bookValue), status: text(row.status),
+    currency: text(row.currency), cost: amount(row.cost), accumulated: amount(row.accumulated), bookValue: amount(row.bookValue), status: row.status==='BAJA'?`BAJA - ${text(row.exitType)||'Baja'}`:text(row.status),
   }));
   const totals = rows.reduce((result, row) => ({
     count: result.count + 1,

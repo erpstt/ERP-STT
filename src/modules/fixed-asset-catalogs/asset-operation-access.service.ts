@@ -9,6 +9,6 @@ export async function assetOperationRpc(a:string,name:string,p:Record<string,unk
   throw Object.assign(new Error('El rol activo no puede consultar operaciones de activos.'),{status:403});
  }
  const payload=(p.p_payload??p.p_filters) as Record<string,unknown>|undefined,resource=assetOperationResource(p.p_type??payload?.type);
- const action=name==='save_fixed_asset_operation'?(p.p_operation_id===null?'create':'edit'):name==='delete_fixed_asset_operation'?'delete':'view';
+ const action=name==='fixed_asset_disposal_accounting'?(p.p_action==='REVERSE'?'delete':['POST','CUT'].includes(String(p.p_action))?'create':'view'):name==='save_fixed_asset_operation'?(p.p_operation_id===null?'create':'edit'):name==='delete_fixed_asset_operation'?'delete':'view';
  return assetMasterRpc(a,resource,action,name,p);
 }
