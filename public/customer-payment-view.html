@@ -74,13 +74,13 @@
 
       <section class="content-section accounting-section">
         <div class="section-heading"><div><p class="section-label">TRAZABILIDAD</p><h3>Impacto contable</h3><p id="impactCurrency" class="section-label"></p></div><span id="balanceStatus" class="balance-pill"></span></div>
-        <div class="table-wrap"><table><thead><tr><th>Cuenta</th><th>Nombre</th><th class="num">Débito</th><th class="num">Crédito</th></tr></thead><tbody id="impact"></tbody><tfoot><tr><td colspan="2">Totales del asiento</td><td id="impactDebit" class="num"></td><td id="impactCredit" class="num"></td></tr></tfoot></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Cuenta</th><th>Nombre</th><th class="num">Débito</th><th class="num">Crédito</th><th id="originalDebitHeading" class="num" hidden></th><th id="originalCreditHeading" class="num" hidden></th></tr></thead><tbody id="impact"></tbody><tfoot><tr><td colspan="2">Totales del asiento</td><td id="impactDebit" class="num"></td><td id="impactCredit" class="num"></td><td id="originalDebitTotal" class="num" hidden></td><td id="originalCreditTotal" class="num" hidden></td></tr></tfoot></table></div>
       </section>
 
       <section class="note-card"><div><p class="section-label">NOTA DEL COBRO</p><p id="memo"></p></div><div class="verification"><span aria-hidden="true">✓</span><p><b>Registro contabilizado</b><small>Documento generado desde GENTIA ERP.</small></p></div></section>
       <footer class="document-footer"><span id="footerCompany"></span><span id="generatedAt"></span></footer>
     </article>
   </main>
-  <script type="module" src="/customer-payment-view.js?v=20261119-functional-impact"></script>
+  <script type="module" src="/customer-payment-view.js?v=20261119-dual-currency-impact"></script>
 </body>
 </html>
