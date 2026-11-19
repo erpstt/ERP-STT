@@ -106,17 +106,26 @@ function amount(context, value, source) {
   return html(money(context, value, source));
 }
 
+export function agingLocalReconciliation(data){
+ const summary=data.summary||{},valuation=data.localRevaluation;
+ if(data.consolidated||!valuation||valuation.source!=='POSTED_GL_REVALUATION')return null;
+ const historical=Number(summary.netBalance||0),revaluation=Number(valuation.amount||0),adjusted=historical+revaluation;
+ return {historical,revaluation,adjusted,control:Number(summary.controlBalance||0),difference:adjusted-Number(summary.controlBalance||0)};
+}
+
 function renderSummary(context, receivables) {
   const summaryElement = context.elements.summary;
   if (!originalMode(context)) {
     const summary = context.data.summary || {};
-    const difference = Number(summary.difference || 0);
+    const valuation=receivables?agingLocalReconciliation(context.data):null;
+    const difference = valuation?valuation.difference:Number(summary.difference || 0);
     const available=receivables||first(summary,'reconciliationAvailable','reconciliation_available')!==false;
     const matched = available&&Math.abs(difference) < .005;
     const unavailableMessage=first(summary,'reconciliationReason','reconciliation_reason')==='INVOICE_TYPE_FILTER'?'Seleccione Todos los tipos para comparar con el Mayor.':'Conciliación no disponible con estos filtros.';
     summaryElement.innerHTML = `<div class="metric"><small>Auxiliar ${receivables ? 'clientes' : 'proveedores'}</small><b>${htmlText(context.financial(summary.subledger))}</b></div>
       <div class="metric"><small>Anticipos / saldos sin aplicar</small><b>${htmlText(context.financial(summary.advances))}</b></div>
-      <div class="metric"><small>Saldo neto</small><b>${htmlText(context.financial(summary.netBalance))}</b></div>
+      <div class="metric"><small>${valuation?'Saldo neto histórico':'Saldo neto'}</small><b>${htmlText(context.financial(summary.netBalance))}</b></div>
+      ${valuation?`<div class="metric"><small>Revaluación contabilizada al corte</small><b>${htmlText(context.financial(valuation.revaluation))}</b></div><div class="metric"><small>Saldo neto revaluado</small><b>${htmlText(context.financial(valuation.adjusted))}</b></div>`:''}
       <div class="metric"><small>Cuenta de control del Mayor</small><b>${available?htmlText(context.financial(summary.controlBalance)):'No disponible con este filtro'}</b></div>
       <div class="metric ${!available?'unavailable':matched?'reconciled':'unreconciled'}"><small>Conciliación</small><b>${!available?unavailableMessage:matched ? 'Coincide al centavo' : `Advertencia: diferencia de ${htmlText(context.financial(difference))} entre el auxiliar y el Mayor General.`}</b></div>`;
     return;
@@ -289,8 +298,13 @@ export async function buildAgingExport(context,type){
   return{blob:await reportWorkbook({headers,rows,context:context.exportContext,title:context.reportTitle,extraSheets}),name:name+'.xlsx'};
  }
  const receivables=context.reportKey==='receivables-aging',headers=['Identificaci\u00f3n',receivables?'Cliente':'Proveedor',receivables?'Vendedor / Gestor':'Categor\u00eda','Documento','Emisi\u00f3n','Vencimiento','D\u00edas de mora','Moneda','Monto original','Monto aplicado','Saldo pendiente','Antig\u00fcedad'],rows=exportRows(context),name=context.reportKey+'-'+context.cutoff;
+ const valuation=receivables&&!originalMode(context)?agingLocalReconciliation(context.data):null;
+ const valuationRows=valuation?[['Saldo neto histórico',valuation.historical],['Revaluación contabilizada al corte',valuation.revaluation],['Saldo neto revaluado',valuation.adjusted],['Mayor',valuation.control],['Diferencia conciliada',valuation.difference]]:[];
+ if(type==='csv'&&valuation)for(const [label,value]of valuationRows){const row=Array(headers.length).fill('');row[0]='Conciliación local';row[1]=label;row[8]=context.currencyCode||'';row[11]=value;rows.push(row);}
+
  if(type==='csv')return{blob:new Blob(['\ufeff'+[headers,...rows].map(row=>row.map(value=>csvCell(value)).join(',')).join('\r\n')],{type:'text/csv'}),name:name+'.csv'};
  const breakdown=agingCurrencyBreakdown(context),extraSheets=originalMode(context)?[{headers:['Moneda','Auxiliar','Anticipos / sin aplicar','Saldo neto','Mayor','Diferencia'],rows:breakdown.map(item=>[currencyLabel(context,item.source),item.subledger,item.advances,item.netBalance,item.reconciliationAvailable?item.controlBalance:'No disponible',item.reconciliationAvailable?item.difference:'Filtro anal\u00edtico'])}]:[];
+ if(valuation)extraSheets.push({headers:['Conciliación en moneda local','Importe'],rows:valuationRows});
  return{blob:await reportWorkbook({headers,rows,context:context.exportContext,title:context.reportTitle,extraSheets}),name:name+'.xlsx'};
 }
 

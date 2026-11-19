@@ -7,7 +7,7 @@ import {createAccruedPayrollPayablesReport} from './accounting-accrued-payroll-p
 import {createSupplierAdvancesReport} from './accounting-supplier-advances.js?v=20261111-export-review';
 import { renderIncomeStatementMatrix } from './accounting-income-statement-matrix.js?v=20261104-financial-presentation-usd';
 import { pendingReversalLimit } from './pending-reversal-limit.js?v=20261019';
-import { agingPresentationLabel, buildAgingExport, renderCurrencyAwareAgingReport, payableInvoiceTypes } from './accounting-aging-report.js?v=20261108-ap-invoice-types';
+import { agingPresentationLabel, buildAgingExport, renderCurrencyAwareAgingReport, payableInvoiceTypes } from './accounting-aging-report.js?v=20261119-ar-revaluation';
 import { createLatestRequest, indexBy, mapWithConcurrency, sameRequestParameters } from './frontend-performance.js?v=20261023-second-pass-v3';
 import {bankMovementGroups,bankMovementPage,completeBankMovementReport} from './bank-reconciliation-movements.js?v=20261103-bank-pending-views';
 
