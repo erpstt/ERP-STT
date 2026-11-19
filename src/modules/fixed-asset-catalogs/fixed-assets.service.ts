@@ -3,6 +3,7 @@ import { invalidateFixedAssetCatalogCache } from './fixed-asset-catalogs.module.
 import { assertRoleAccess } from '../security-catalogs/role-access-matrix.module.js';
 import { assetMasterRpc, assertAssetMasterAccess } from './asset-master-access.service.js';
 import { assetOperationRpc } from './asset-operation-access.service.js';
+import { invalidateSalesCatalogCache } from '../sales-catalogs/sales-catalogs.module.js';
 
 async function rpc(authorization:string,name:string,parameters:Record<string,unknown>={}) {
   if(['fixed_asset_operation_options','fixed_asset_operation_report','save_fixed_asset_operation','delete_fixed_asset_operation'].includes(name))return assetOperationRpc(authorization,name,parameters);
@@ -68,4 +69,8 @@ export const fixedAssetOperationReport=(authorization:string,filters:Record<stri
 export const saveFixedAssetOperation=(authorization:string,payload:Record<string,unknown>,id?:number)=>rpc(authorization,'save_fixed_asset_operation',{p_payload:payload,p_operation_id:id??null});
 export const deleteFixedAssetOperation=(authorization:string,type:string,id:number)=>rpc(authorization,'delete_fixed_asset_operation',{p_type:type,p_operation_id:id});
 
-export const fixedAssetDisposalAccounting=(authorization:string,action:string,payload:Record<string,unknown>)=>assetOperationRpc(authorization,'fixed_asset_disposal_accounting',{p_action:action,p_payload:{...payload,type:'DISPOSAL'}});
+export async function fixedAssetDisposalAccounting(authorization:string,action:string,payload:Record<string,unknown>){
+ const result=await assetOperationRpc(authorization,'fixed_asset_disposal_accounting',{p_action:action,p_payload:{...payload,type:'DISPOSAL'}});
+ if(['POST','REVERSE'].includes(action)){invalidateSalesCatalogCache('invoices');invalidateSalesCatalogCache('credit-notes');}
+ return result;
+}
