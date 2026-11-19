@@ -66,6 +66,7 @@ try{
   if(!token)throw Error('Debe iniciar sesión para consultar el cobro.');
   const detail=await api(`/api/sales/customer-payments/${encodeURIComponent(paymentId)}`),header=detail.header||{},applications=Array.isArray(detail.applications)?detail.applications:[],advances=Array.isArray(detail.advances)?detail.advances:[],impact=Array.isArray(detail.impact)?detail.impact:[],bankFee=detail.bankFee||{};
   const currency=String(header.currency||'').trim(),money=value=>`${currency?`${currency} `:''}${numeric(value).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+  const impactCurrency=String(header.impact_currency||currency),impactMoney=value=>`${impactCurrency} ${numeric(value).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
   const applicationTotal=applications.reduce((sum,row)=>sum+numeric(row.amount),0),advanceTotal=advances.reduce((sum,row)=>sum+numeric(row.amount),0),bankFeeTotal=numeric(bankFee.amount??bankFee.bank_fee_amount),withholdingTotal=Math.max(applicationTotal+impact.filter(row=>String(row.accountNumber)==='218001').reduce((sum,row)=>sum+numeric(row.credit),0)-numeric(header.amount_received),0),bankNet=Math.max(numeric(header.amount_received)-advanceTotal-bankFeeTotal,0);
   let totalDebit=0,totalCredit=0;
 
@@ -89,9 +90,10 @@ try{
   $('applicationCount').textContent=`${applications.length} factura${applications.length===1?'':'s'}`;
   $('applications').innerHTML=applications.map(row=>`<tr><td><b>${esc(row.invoiceNumber??row.invoice_number)}</b></td><td class="num">${esc(money(row.invoiceTotal??row.invoice_total))}</td><td class="num"><b>${esc(money(row.amount))}</b></td></tr>`).join('')||'<tr><td colspan="3">No existen facturas aplicadas.</td></tr>';
   if(advances.length){$('advanceSection').hidden=false;$('advanceCount').textContent=`${advances.length} registro${advances.length===1?'':'s'}`;$('advances').innerHTML=advances.map(row=>`<tr><td><b>${esc(row.number??row.journal_number)}</b></td><td>${esc(formatDate(row.date??row.journal_date))}</td><td>${esc(row.account??row.account_number)}</td><td class="num"><b>${esc(money(row.amount))}</b></td></tr>`).join('');}
-  $('impact').innerHTML=impact.map(row=>{const debit=numeric(row.debit),credit=numeric(row.credit);totalDebit+=debit;totalCredit+=credit;return`<tr><td><b>${esc(row.accountNumber??row.account_number)}</b></td><td>${esc(row.accountName??row.account_name)}</td><td class="num">${esc(money(debit))}</td><td class="num">${esc(money(credit))}</td></tr>`}).join('')||'<tr><td colspan="4">No existe impacto contable registrado.</td></tr>';
-  $('impactDebit').textContent=money(totalDebit);$('impactCredit').textContent=money(totalCredit);
-  const balanced=Math.abs(totalDebit-totalCredit)<.005;$('balanceStatus').textContent=balanced?'ASIENTO CUADRADO':`DIFERENCIA ${money(totalDebit-totalCredit)}`;$('balanceStatus').classList.add(balanced?'balanced':'unbalanced');
+  $('impactCurrency').textContent=`Moneda funcional: ${impactCurrency}`;
+  $('impact').innerHTML=impact.map(row=>{const debit=numeric(row.localDebit??row.debit),credit=numeric(row.localCredit??row.credit);totalDebit+=debit;totalCredit+=credit;return`<tr><td><b>${esc(row.accountNumber??row.account_number)}</b></td><td>${esc(row.accountName??row.account_name)}</td><td class="num">${esc(impactMoney(debit))}</td><td class="num">${esc(impactMoney(credit))}</td></tr>`}).join('')||'<tr><td colspan="4">No existe impacto contable registrado.</td></tr>';
+  $('impactDebit').textContent=impactMoney(totalDebit);$('impactCredit').textContent=impactMoney(totalCredit);
+  const balanced=Math.abs(totalDebit-totalCredit)<.005;$('balanceStatus').textContent=balanced?'ASIENTO CUADRADO':`DIFERENCIA ${impactMoney(totalDebit-totalCredit)}`;$('balanceStatus').classList.add(balanced?'balanced':'unbalanced');
   $('memo').textContent=header.memo||'Sin notas adicionales.';$('footerCompany').textContent=`${header.subsidiary||'Subsidiaria activa'} · ${header.payment_number||''}`;$('generatedAt').textContent=`Consultado el ${new Intl.DateTimeFormat('es-CR',{dateStyle:'medium',timeStyle:'short'}).format(new Date())}`;
   document.title=`Cobro ${header.payment_number||paymentId} · GENTIA`;
   $('downloadPdf').onclick=()=>downloadPdf(header.payment_number||paymentId);
