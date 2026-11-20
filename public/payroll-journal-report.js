@@ -1,0 +1,35 @@
+import {escapeHtml as esc} from './html-safety.js?v=20261101-a03-1';
+import {csvCell,reportWorkbook} from './spreadsheet-safety.js?v=20261104-ledger-original-currency';
+import {downloadDocumentPdf} from './document-pdf-download.js?v=20261111-export-review';
+import {bankContext,watchBankContext} from './bank-ui.js?v=20261105-banking-functional';
+const $=id=>document.getElementById(id),money=n=>Number(n||0).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:6});
+let result=null,revision=0;
+const now=new Date(),date=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+$('from').value=date(new Date(now.getFullYear(),now.getMonth(),1));$('to').value=date(now);
+function invalidate(){result=null;for(const id of['csv','excel','pdf'])$(id).disabled=true;}
+watchBankContext(()=>{revision++;invalidate();$('account').innerHTML='<option value="">Todas las cuentas</option>';$('report').innerHTML='<p>La empresa o el rol cambió. Genere nuevamente el reporte.</p>';});
+$('filters').oninput=()=>{revision++;invalidate();$('report').innerHTML='<p>Los filtros cambiaron. Genere nuevamente el reporte.</p>';};
+const td=(v,number=false)=>`<td class="${number?'num':''}">${esc(number?money(v):v??'')}</td>`;
+function render(data){
+ const groups=new Map();for(const row of data.rows){if(!groups.has(row.accountId))groups.set(row.accountId,{first:row,notes:new Map(),total:0});const group=groups.get(row.accountId);if(!group.notes.has(row.note))group.notes.set(row.note,[]);group.notes.get(row.note).push(row);group.total+=Number(row.net);}
+ $('report').innerHTML=`<h2>Asientos de Nóminas</h2><p><b>${esc(data.subsidiary.name)}</b> · ${esc(data.filters.dateFrom)} a ${esc(data.filters.dateTo)} · ${esc(data.filters.transactionType||'ALL')}</p><p>Agrupación: ${data.filters.noteMode==='HEADER'?'Nota general del asiento':'Nota de la línea contable'}</p><p>Grupo 223 · Moneda funcional: ${esc(data.subsidiary.currency)} · Neto total: <b>${esc(money(data.total))}</b></p>`;
+ for(const group of groups.values()){
+  const block=document.createElement('section');block.className='payroll-block';const sections=[];block.innerHTML=`<h2>${esc(group.first.accountNumber)} · ${esc(group.first.accountName)}</h2>`;
+  for(const[note,rows]of group.notes){const total=rows.reduce((s,r)=>s+Number(r.net),0);sections.push(`<h3 class="note">${esc(note)}</h3><div class="table-wrap"><table><thead><tr>${['Fecha','Asiento','Tipo','Departamento','Debe local','Haber local','Neto local','Moneda original','Neto original'].map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${td(r.date)}<td><a href="/journal-view.html?id=${encodeURIComponent(r.journalId)}" target="_blank" rel="noopener">${esc(r.journalNumber)}</a></td>${td(r.type)}${td(r.department)}${td(r.debit,true)}${td(r.credit,true)}${td(r.net,true)}${td(r.currency)}${td(r.netOriginal,true)}</tr>`).join('')}</tbody><tfoot><tr><td colspan="6">Subtotal de la nota (${esc(data.subsidiary.currency)})</td>${td(total,true)}<td colspan="2"></td></tr></tfoot></table></div>`);}
+  block.insertAdjacentHTML('beforeend',sections.join(''));
+  const journals=new Map();for(const rows of group.notes.values())for(const row of rows){const entry=journals.get(row.journalId)||{number:row.journalNumber,net:0};entry.net+=Number(row.net);journals.set(row.journalId,entry);}
+  block.innerHTML+=`<h3>Neto por asiento en esta cuenta</h3><ul>${[...journals.values()].map(j=>`<li>${esc(j.number)}: ${esc(data.subsidiary.currency)} ${esc(money(j.net))}</li>`).join('')}</ul><p><b>Total cuenta ${esc(group.first.accountNumber)}: ${esc(data.subsidiary.currency)} ${esc(money(group.total))}</b></p>`;$('report').append(block);
+ }
+ if(!data.rows.length)$('report').insertAdjacentHTML('beforeend','<p>No hay asientos contabilizados que coincidan con los filtros.</p>');
+}
+$('filters').onsubmit=async e=>{e.preventDefault();const selected={dateFrom:$('from').value,dateTo:$('to').value,transactionType:$('type').value,accountId:$('account').value||null,noteMode:$('noteMode').value};invalidate();const current=++revision,context=bankContext();$('message').textContent='';
+ if(selected.dateFrom>selected.dateTo||selected.dateFrom.slice(0,7)!==selected.dateTo.slice(0,7)){$('message').textContent='Seleccione fechas ordenadas dentro del mismo mes.';return;}
+ $('run').disabled=true;try{const token=localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo_token'),device=localStorage.getItem('nexo_device_token')||sessionStorage.getItem('nexo_device_token');const response=await fetch('/api/reports/accounting/payroll-journals',{method:'POST',headers:{Authorization:`Bearer ${token}`,'X-Device-Token':device||'','Content-Type':'application/json'},body:JSON.stringify(selected)});const data=await response.json();if(!response.ok)throw Error(data?.error?.message||'No fue posible generar el reporte.');if(current!==revision)return;
+  if(context!==bankContext())return;if(!Array.isArray(data.rows)||!Array.isArray(data.accounts)||!data.subsidiary)throw Error('El reporte está incompleto.');result=data;render(data);$('account').innerHTML='<option value="">Todas las cuentas</option>'+data.accounts.map(a=>`<option value="${esc(a.id)}">${esc(a.number)} · ${esc(a.name)}</option>`).join('');$('account').value=selected.accountId||'';for(const id of['csv','excel','pdf'])$(id).disabled=false;
+ }catch(error){if(current===revision){$('message').textContent=error.message;$('report').innerHTML='<p>No fue posible cargar el reporte.</p>';}}finally{$('run').disabled=false;}};
+const headers=['Cuenta','Nombre de cuenta','Nota de agrupacion','Fecha','Asiento','Tipo','Departamento','Debe local','Haber local','Neto local','Moneda original','Neto original'];
+const exportRows=()=>result.rows.map(r=>[r.accountNumber,r.accountName,r.note,r.date,r.journalNumber,r.type,r.department,Number(r.debit),Number(r.credit),Number(r.net),r.currency,Number(r.netOriginal)]);
+function download(blob,name){const link=document.createElement('a'),url=URL.createObjectURL(blob);link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+$('csv').onclick=()=>{if(result)download(new Blob(['\uFEFF'+[headers,...exportRows()].map(r=>r.map(csvCell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),'asientos-nominas.csv');};
+$('excel').onclick=async()=>{if(!result)return;try{const data=result;const blob=await reportWorkbook({headers,rows:exportRows(),title:'Asientos de Nóminas',context:{subsidiaryName:data.subsidiary.name,currencyLabel:data.subsidiary.currency,periodLabel:`${data.filters.dateFrom} - ${data.filters.dateTo}`}});download(blob,'asientos-nominas.xlsx');}catch(e){$('message').textContent=e.message;}};
+$('pdf').onclick=()=>{if(result)downloadDocumentPdf({roots:[$('report')],scope:'accounting',title:'Asientos de Nóminas',company:result.subsidiary.name,period:`${result.filters.dateFrom} - ${result.filters.dateTo}`,currency:result.subsidiary.currency}).catch(e=>$('message').textContent=e.message);};
