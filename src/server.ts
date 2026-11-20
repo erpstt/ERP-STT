@@ -62,6 +62,8 @@ import { fxRevaluation } from './modules/accounting-catalogs/fx-revaluation.serv
 import { importJournalCsv } from './modules/accounting-catalogs/journal-import.service.js';
 import { OpeningBalanceFilesValidationError, openingBalances } from './modules/accounting-catalogs/opening-balances.service.js';
 import { supplierInvoiceReceiptSource, saveSupplierInvoice, supplierInvoiceAccess, supplierInvoiceFormOptions } from './modules/purchasing-catalogs/supplier-invoice.service.js';
+import { importSupplierInvoices } from './modules/purchasing-catalogs/supplier-invoice-bulk.service.js';
+
 import { SupplierInvoiceDuplicateError } from './modules/purchasing-catalogs/supplier-invoice-security.service.js';
 import { saveSupplierNote, supplierNoteAccess, supplierNoteOptions } from './modules/purchasing-catalogs/supplier-note.service.js';
 import{salesInvoiceRpc}from'./modules/sales-catalogs/sales-invoice-security.service.js';
@@ -721,6 +723,7 @@ const server = createServer((request, response) => {
       return json(response,200,await supplierInvoiceFormOptions(request.headers.authorization!,rawId===undefined?null:Number(rawId)));
     }
     if(request.method==='GET'&&request.url==='/api/purchasing/supplier-invoice-access')return json(response,200,await supplierInvoiceAccess(request.headers.authorization!));
+    if(request.method==='POST'&&request.url==='/api/purchasing/supplier-invoice-bulk')return json(response,200,await importSupplierInvoices(request.headers.authorization!,await body(request,2*1024*1024) as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/purchasing/supplier-invoice-entry'){const authorization=request.headers.authorization!;return json(response,201,await saveSupplierInvoice(authorization,await body(request)as Record<string,unknown>));}
     const purchaseUrl=new URL(request.url??'/','http://localhost');
     if(request.method==='GET'&&purchaseUrl.pathname==='/api/purchasing/workflow/access')return json(response,200,await purchaseDocumentAccess(request.headers.authorization!,purchaseUrl.searchParams.get('type')||''));

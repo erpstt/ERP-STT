@@ -424,6 +424,7 @@
 <button v-if="activeCatalog.slug==='journals'" type="button" class="new-record" @click="openWorkspace('/journal-import.html')">Importar CSV</button>
 <a v-if="canCurrentAction('create')&&activeCatalog.slug==='supplier-credit-notes'" class="new-record" href="/supplier-note-entry.html?kind=CREDIT"><span>＋</span> Crear nota de crédito</a>
 <a v-if="canCurrentAction('create')&&activeCatalog.slug==='credit-notes'" class="new-record" href="/sales-note-entry.html?kind=CREDIT"><span>＋</span> Crear nota de crédito</a>
+<a v-if="canCurrentAction('create')&&activeCatalog.slug==='supplier-invoices'" class="new-record" href="/supplier-invoice-bulk.html"><span>↑</span> Carga masiva · Excel</a>
 <a v-if="canCurrentAction('create')&&activeCatalog.slug==='invoices'&&currentModule==='Ventas'" class="new-record" href="/sales-invoice-entry.html"><span>＋</span> Crear factura</a>
 <a v-if="canCurrentAction('create')&&activeCatalog.slug==='supplier-debit-notes'" class="new-record" href="/supplier-note-entry.html?kind=DEBIT"><span>＋</span> Crear nota de débito</a>
 <a v-if="canCurrentAction('create')&&activeCatalog.slug==='debit-notes'" class="new-record" href="/sales-note-entry.html?kind=DEBIT"><span>＋</span> Crear nota de débito</a>

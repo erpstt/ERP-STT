@@ -8,6 +8,7 @@
     "build": "node scripts/build-vue-templates.mjs && tsc",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
+    "test:supplier-invoice-bulk": "npm run build && node --test --test-concurrency=1 scripts/supplier-invoice-bulk.test.mjs scripts/supplier-invoice-bulk-ui.test.mjs scripts/supplier-invoice-bulk-api.test.mjs",
     "test:payroll-journal-report": "npm run build && node --test scripts/payroll-report-presentation.test.mjs scripts/payroll-journal-report.test.mjs scripts/payroll-journal-report-ui.test.mjs scripts/payroll-journal-report-api.test.mjs",
     "test:asset-disposal-accounting": "npm run build && node --test --test-concurrency=1 scripts/asset-native-invoice.test.mjs scripts/asset-disposal-accounting.test.mjs scripts/asset-disposal-accounting-ui.test.mjs scripts/asset-operation-api-security.test.mjs scripts/asset-operation-sql-security.test.mjs scripts/asset-operation-ui-security.test.mjs",
     "test:banking-csv-check-rates": "npm run build && node --test --test-concurrency=1 scripts/banking-csv-api.test.mjs scripts/banking-csv-http.test.mjs scripts/banking-csv-service-sql-integration.test.mjs scripts/banking-csv-automatic-rate-sql.test.mjs scripts/bank-csv-automatic-rates-ui.test.mjs",
