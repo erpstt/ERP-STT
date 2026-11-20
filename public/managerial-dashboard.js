@@ -1,0 +1,62 @@
+import {escapeHtml as esc} from './html-safety.js?v=20261101-a03-1';
+import {bankContext,watchBankContext} from './bank-ui.js?v=20261105-banking-functional';
+const $=id=>document.getElementById(id),keys=['sales','purchases','manual','automatic','collections','payments','transfers','other'];
+const colors=['#245ab4','#178c7b','#6d60ad','#8a73b2','#209f79','#bc854c','#3a87af','#8b9caf'];
+let data=null,focus=null,controller=null,sequence=0,context=bankContext();
+const number=n=>Number(n||0).toLocaleString('es-CR'),amount=n=>Number(n||0).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const monthLabel=value=>new Date(value+'-02T12:00:00').toLocaleDateString('es-CR',{month:'long',year:'numeric'});
+const delta=(value,previous,current)=>previous===0&&current>0?'Nuevo':`${value>0?'+':''}${number(value)}%`;
+function clear(){data=null;$('dashboard').hidden=true;$('updated').textContent='';$('company').value='Sociedad activa';}
+function userOptions(selected=''){const role=Number($('role').value);$('user').innerHTML='<option value="">Todos los usuarios</option>'+data.users.filter(u=>!role||u.roleIds.includes(role)).map(u=>`<option value="${Number(u.id)}">${esc(u.name)}${u.active?'':' · Histórico'}</option>`).join('');$('user').value=[...$('user').options].some(o=>o.value===selected)?selected:'';}
+async function load(){
+ const request=++sequence;controller?.abort();controller=new AbortController();const scope=bankContext(),previousUser=$('user').value;
+ $('refresh').disabled=true;$('message').className='';$('message').textContent='Consultando actividad…';$('dashboard').hidden=true;
+ try{
+  const token=localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo_token'),device=localStorage.getItem('nexo_device_token')||sessionStorage.getItem('nexo_device_token');
+  const filters={month:$('month').value,roleId:Number($('role').value)||null,userId:Number(previousUser)||null};
+  const response=await fetch('/api/dashboard/managerial',{method:'POST',headers:{Authorization:`Bearer ${token}`,'X-Device-Token':device||'','Content-Type':'application/json'},body:JSON.stringify(filters),signal:controller.signal});
+  const result=await response.json();if(request!==sequence||scope!==bankContext())return;
+  if(!response.ok)throw Error(result.error?.message||'No fue posible consultar el Dashboard.');
+  data=result;context=scope;$('company').value=data.company.name;
+  $('role').innerHTML='<option value="">Todos los roles</option>'+data.roles.map(r=>`<option value="${Number(r.id)}">${esc(r.name)}</option>`).join('');$('role').value=String(filters.roleId||'');userOptions(previousUser);
+  render();$('message').textContent='';$('dashboard').hidden=false;$('updated').textContent='Actualizado '+new Date(data.generatedAt).toLocaleTimeString('es-CR',{hour:'2-digit',minute:'2-digit'});
+ }catch(error){if(error.name==='AbortError'||request!==sequence||scope!==bankContext())return;clear();$('message').className='error';$('message').textContent=error.message;}
+ finally{if(request===sequence)$('refresh').disabled=false;}
+}
+function render(){
+ $('periodTitle').textContent=monthLabel(data.month);$('total').textContent=number(data.total);
+ const change=data.previousTotal?((data.total-data.previousTotal)*100/data.previousTotal):0;
+ $('comparison').textContent=`· ${delta(Math.round(change*100)/100,data.previousTotal,data.total)} frente a ${monthLabel(data.previousMonth)}`;
+ $('kpis').innerHTML=data.kpis.map((k,i)=>`<article class="kpi" style="--color:${colors[i]};--tint:${colors[i]}12"><div class="kpi-top"><span class="kpi-icon" aria-hidden="true">${esc(k.icon)}</span><span>${esc(k.label)}</span></div><strong>${number(k.count)}</strong><span class="delta ${k.count>=k.previous?'up':'down'}"><b>${esc(delta(k.variation,k.previous,k.count))}</b> frente al mes anterior (${number(k.previous)})</span><div class="amounts">${k.amounts.length?k.amounts.map(a=>`<span>${esc(a.currency)} <b>${amount(a.total)}</b></span>`).join(''):'Cantidad de documentos'}</div></article>`).join('');
+ $('distribution').innerHTML=data.kpis.map((k,i)=>{const percent=data.total?k.count*100/data.total:0;return`<button class="dist-row" type="button" data-kind="${esc(k.key)}" aria-pressed="${focus===k.key}" style="--color:${colors[i]}" title="${esc(k.label)}: ${number(k.count)} (${percent.toFixed(1)}%)"><span class="dist-label"><span>${esc(k.label)}</span><b>${number(k.count)} · ${percent.toFixed(1)}%</b></span><span class="bar-track"><span class="bar" style="width:${percent}%"></span></span></button>`;}).join('');
+ $('distribution').querySelectorAll('[data-kind]').forEach(button=>button.onclick=()=>{focus=focus===button.dataset.kind?null:button.dataset.kind;render();});drawDaily();renderActivity();
+ $('auditCoverage').textContent=`Este período: ${number(data.historicalRoleCount)} documentos sin rol registrado al crearse; ${number(data.unidentifiedCount)} sin usuario identificado; ${number(data.openingCount)} documentos de apertura.`;
+}
+function drawDaily(){
+ const selected=data.kpis.find(k=>k.key===focus);$('dailyTitle').textContent=selected?`Evolución · ${selected.label}`:'Evolución diaria';$('allTypes').hidden=!focus;
+ const points=data.daily.map(d=>({day:d.date,value:focus?Number(d.values[focus]||0):Number(d.total)})),max=Math.max(1,...points.map(p=>p.value)),w=innerWidth<650?360:600,h=285,left=36,top=20,bottom=246,right=w-15;
+ const x=i=>left+i*(right-left)/Math.max(1,points.length-1),y=v=>bottom-v*(bottom-top)/max;
+ const path=points.map((p,i)=>`${i?'L':'M'}${x(i).toFixed(2)},${y(p.value).toFixed(2)}`).join(' ');
+ const grid=Array.from({length:5},(_,i)=>{const v=max*i/4,py=y(v);return`<line x1="${left}" y1="${py}" x2="${right}" y2="${py}" stroke="#e7edf5" stroke-dasharray="3 4"/><text x="${left-10}" y="${py+4}" text-anchor="end">${Number.isInteger(v)?v:v.toFixed(1)}</text>`;}).join('');
+ const labels=points.map((p,i)=>i%5===0||i===points.length-1?`<text x="${x(i)}" y="269" text-anchor="middle">${Number(p.day.slice(-2))}</text>`:'').join('');
+ const dots=points.map((p,i)=>`<circle cx="${x(i)}" cy="${y(p.value)}" r="3.5" fill="#3467b5" tabindex="0" aria-label="${esc(p.day)}: ${p.value} documentos"><title>${esc(p.day)} · ${p.value} documentos</title></circle>`).join('');
+ $('daily').innerHTML=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Registros por día de ${esc(monthLabel(data.month))}"><defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3f77c7" stop-opacity=".19"/><stop offset="100%" stop-color="#3f77c7" stop-opacity=".01"/></linearGradient></defs>${grid}<path d="${path} L${right},${bottom} L${left},${bottom} Z" fill="url(#area)"/><path d="${path}" fill="none" stroke="#3467b5" stroke-width="2.5" stroke-linejoin="round"/>${dots}${labels}</svg>`;
+}
+function visibleActivity(){const q=$('search').value.trim().toLocaleLowerCase();return data.activity.filter(row=>`${row.name} ${row.roles}`.toLocaleLowerCase().includes(q));}
+function renderActivity(){const rows=visibleActivity();$('activity').innerHTML=rows.length?rows.map(row=>`<tr><td><strong>${esc(row.name)}</strong><small>${esc(row.roles)}${row.historical?' · Rol histórico no registrado':''}</small></td>${keys.map(k=>`<td>${number(row[k])}</td>`).join('')}<td>${number(row.total)}</td></tr>`).join(''):'<tr><td class="empty" colspan="10">No hay actividad para los filtros seleccionados.</td></tr>';
+ $('activityTotals').innerHTML=`<tr><td>Total visible</td>${[...keys,'total'].map(k=>`<td>${number(rows.reduce((n,r)=>n+Number(r[k]||0),0))}</td>`).join('')}</tr>`;$('tableCount').textContent=`${number(rows.length)} usuarios o autores · ${number(rows.reduce((n,r)=>n+r.total,0))} documentos`;
+}
+function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);}
+async function exportActivity(format){
+ if(!data||context!==bankContext())return;const snapshot=data,rows=visibleActivity(),headers=['Usuario','Rol','Facturas de venta','Facturas de proveedor','Diarios manuales','Asientos automáticos','Cobros','Pagos','Transferencias','Otros','Total'],values=rows.map(row=>[row.name,row.roles,...keys.map(k=>Number(row[k]||0)),Number(row.total)]);
+ if(format==='csv'){const csvCell=v=>{let s=String(v??'');if(typeof v==='string'&&/^[\s\u0000-\u001f]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};download(new Blob(['\uFEFF'+[headers,...values].map(row=>row.map(csvCell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),`dashboard-${data.month}.csv`);return;}
+ $('excel').disabled=true;
+ try{await import('./vendor/exceljs-4.4.0.min.js');const wb=new window.ExcelJS.Workbook();wb.creator='GENTIA ERP';const sheet=wb.addWorksheet('Actividad');sheet.mergeCells('A1:K1');sheet.getCell('A1').value=snapshot.company.name;sheet.getCell('A1').font={bold:true,size:19,color:{argb:'FF163052'}};sheet.getRow(1).height=33;sheet.mergeCells('A2:K2');sheet.getCell('A2').value=`Dashboard gerencial · ${monthLabel(snapshot.month)}`;sheet.mergeCells('A3:K3');sheet.getCell('A3').value=`Rol: ${snapshot.roles.find(r=>r.id===snapshot.filters.roleId)?.name||'Todos'} · Usuario: ${snapshot.users.find(u=>u.id===snapshot.filters.userId)?.name||'Todos'}`;sheet.addRow([]);sheet.addRow(headers);values.forEach(row=>sheet.addRow(row));const totalRow=sheet.addRow(['TOTAL VISIBLE','',...Array(9).fill(0)]);for(let col=3;col<=11;col++){const letter=sheet.getColumn(col).letter;totalRow.getCell(col).value=values.length?{formula:`SUM(${letter}6:${letter}${5+values.length})`,result:values.reduce((n,r)=>n+r[col-1],0)}:0;}sheet.views=[{state:'frozen',ySplit:5,xSplit:2}];sheet.autoFilter={from:'A5',to:'K'+Math.max(5,5+values.length)};sheet.columns.forEach((c,i)=>{c.width=i===0?32:i===1?48:19;});sheet.getRow(5).font={bold:true,color:{argb:'FFFFFFFF'}};sheet.getRow(5).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF163052'}};totalRow.font={bold:true};totalRow.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFEAF1FA'}};sheet.pageSetup={orientation:'landscape',paperSize:9,fitToPage:true,fitToWidth:1,fitToHeight:0};const notes=wb.addWorksheet('Criterios');[snapshot.company.name,monthLabel(snapshot.month),'Fecha contable; documentos únicos por operación. Importes no agregados entre monedas.','Rol registrado al crear cuando existe; históricos según asignación actual.','Los asientos asociados a facturas y pagos no se suman nuevamente.','Registros históricos sin rol registrado: '+snapshot.historicalRoleCount,'Documentos de apertura: '+snapshot.openingCount].forEach(n=>notes.addRow([n]));notes.getColumn(1).width=110;if(context!==bankContext()||data!==snapshot)return;download(new Blob([await wb.xlsx.writeBuffer()],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),`dashboard-${snapshot.month}.xlsx`);
+ }catch(error){$('message').className='error';$('message').textContent='No fue posible exportar el resumen. '+error.message;}finally{$('excel').disabled=false;}
+}
+const now=new Date();$('month').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+$('filters').onsubmit=e=>{e.preventDefault();focus=null;load();};$('month').onchange=()=>{focus=null;load();};$('role').onchange=()=>{if(data)userOptions($('user').value);focus=null;load();};$('user').onchange=()=>{focus=null;load();};$('search').oninput=()=>{if(data)renderActivity();};$('allTypes').onclick=()=>{focus=null;if(data)render();};$('csv').onclick=()=>exportActivity('csv');$('excel').onclick=()=>exportActivity('xlsx');
+watchBankContext(()=>{context=bankContext();sequence++;controller?.abort();clear();$('role').value=$('user').value='';load();});
+load();
+
+addEventListener('resize',()=>{if(data)drawDaily();});

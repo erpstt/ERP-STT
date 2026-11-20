@@ -8,6 +8,7 @@
     "build": "node scripts/build-vue-templates.mjs && tsc",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
+    "test:managerial-dashboard": "npm run build && node --test --test-concurrency=1 scripts/managerial-dashboard-sql.test.mjs scripts/managerial-dashboard-ui.test.mjs scripts/managerial-dashboard-api.test.mjs",
     "test:supplier-invoice-view": "npm run build && node --test --test-concurrency=1 scripts/supplier-invoice-view-sql.test.mjs scripts/supplier-invoice-view-ui.test.mjs scripts/supplier-invoice-api-security.test.mjs",
     "test:supplier-invoice-bulk": "npm run build && node --test --test-concurrency=1 scripts/supplier-invoice-bulk.test.mjs scripts/supplier-invoice-bulk-ui.test.mjs scripts/supplier-invoice-bulk-api.test.mjs",
     "test:payroll-journal-report": "npm run build && node --test scripts/payroll-report-presentation.test.mjs scripts/payroll-journal-report.test.mjs scripts/payroll-journal-report-ui.test.mjs scripts/payroll-journal-report-api.test.mjs",

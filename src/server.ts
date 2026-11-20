@@ -64,6 +64,7 @@ import { OpeningBalanceFilesValidationError, openingBalances } from './modules/a
 import { supplierInvoiceReceiptSource, saveSupplierInvoice, supplierInvoiceAccess, supplierInvoiceFormOptions } from './modules/purchasing-catalogs/supplier-invoice.service.js';
 import { importSupplierInvoices } from './modules/purchasing-catalogs/supplier-invoice-bulk.service.js';
 import {supplierInvoiceView} from './modules/purchasing-catalogs/supplier-invoice-view.service.js';
+import {runManagerialDashboard} from './modules/reports/managerial-dashboard.service.js';
 
 import { SupplierInvoiceDuplicateError } from './modules/purchasing-catalogs/supplier-invoice-security.service.js';
 import { saveSupplierNote, supplierNoteAccess, supplierNoteOptions } from './modules/purchasing-catalogs/supplier-note.service.js';
@@ -725,6 +726,7 @@ const server = createServer((request, response) => {
     }
     const supplierInvoiceViewRoute=accessUrl.pathname.match(/^\/api\/purchasing\/supplier-invoice-view\/([1-9][0-9]*)$/);
     if(request.method==='GET'&&supplierInvoiceViewRoute)return json(response,200,await supplierInvoiceView(request.headers.authorization!,Number(supplierInvoiceViewRoute[1])));
+    if(request.method==='POST'&&request.url==='/api/dashboard/managerial'){response.setHeader('Cache-Control','private, no-store');return json(response,200,await runManagerialDashboard(request.headers.authorization!,await body(request,16384) as Record<string,unknown>));}
     if(request.method==='GET'&&request.url==='/api/purchasing/supplier-invoice-access')return json(response,200,await supplierInvoiceAccess(request.headers.authorization!));
     if(request.method==='POST'&&request.url==='/api/purchasing/supplier-invoice-bulk')return json(response,200,await importSupplierInvoices(request.headers.authorization!,await body(request,2*1024*1024) as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/purchasing/supplier-invoice-entry'){const authorization=request.headers.authorization!;return json(response,201,await saveSupplierInvoice(authorization,await body(request)as Record<string,unknown>));}

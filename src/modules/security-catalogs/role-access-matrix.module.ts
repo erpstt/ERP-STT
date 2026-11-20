@@ -43,6 +43,7 @@ const catalogs = (moduleKey:string,moduleName:string,items:Catalog[]) => items.m
 const custom = (moduleKey:string,moduleName:string,optionName:string,key:string,actions:Action[]=['view']) => ({key:`${moduleKey}:${key}`,moduleKey,moduleName,optionName,actions});
 
 export const roleAccessModules:AccessModule[] = [
+  {key:'dashboard',name:'Dashboard',resources:[custom('dashboard','Dashboard','Dashboard gerencial','managerial',['view'])]},
   {key:'core',name:'CORE',resources:catalogs('core','CORE',coreCatalogs)},
   {key:'security',name:'Seguridad',resources:catalogs('security','Seguridad',securityCatalogs).filter(x=>x.key!=='security:role-permissions')
     .concat([custom('security','Seguridad','Permisos por rol','role-access-matrix',['view','edit'])])},
