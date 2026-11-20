@@ -63,6 +63,7 @@ import { importJournalCsv } from './modules/accounting-catalogs/journal-import.s
 import { OpeningBalanceFilesValidationError, openingBalances } from './modules/accounting-catalogs/opening-balances.service.js';
 import { supplierInvoiceReceiptSource, saveSupplierInvoice, supplierInvoiceAccess, supplierInvoiceFormOptions } from './modules/purchasing-catalogs/supplier-invoice.service.js';
 import { importSupplierInvoices } from './modules/purchasing-catalogs/supplier-invoice-bulk.service.js';
+import {supplierInvoiceView} from './modules/purchasing-catalogs/supplier-invoice-view.service.js';
 
 import { SupplierInvoiceDuplicateError } from './modules/purchasing-catalogs/supplier-invoice-security.service.js';
 import { saveSupplierNote, supplierNoteAccess, supplierNoteOptions } from './modules/purchasing-catalogs/supplier-note.service.js';
@@ -722,6 +723,8 @@ const server = createServer((request, response) => {
       if(values.length>1||(rawId!==undefined&&(!/^[1-9][0-9]*$/.test(rawId)||!Number.isSafeInteger(Number(rawId))||String(Number(rawId))!==rawId)))return error(response,400,'El identificador de la factura no es válido.');
       return json(response,200,await supplierInvoiceFormOptions(request.headers.authorization!,rawId===undefined?null:Number(rawId)));
     }
+    const supplierInvoiceViewRoute=accessUrl.pathname.match(/^\/api\/purchasing\/supplier-invoice-view\/([1-9][0-9]*)$/);
+    if(request.method==='GET'&&supplierInvoiceViewRoute)return json(response,200,await supplierInvoiceView(request.headers.authorization!,Number(supplierInvoiceViewRoute[1])));
     if(request.method==='GET'&&request.url==='/api/purchasing/supplier-invoice-access')return json(response,200,await supplierInvoiceAccess(request.headers.authorization!));
     if(request.method==='POST'&&request.url==='/api/purchasing/supplier-invoice-bulk')return json(response,200,await importSupplierInvoices(request.headers.authorization!,await body(request,2*1024*1024) as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/purchasing/supplier-invoice-entry'){const authorization=request.headers.authorization!;return json(response,201,await saveSupplierInvoice(authorization,await body(request)as Record<string,unknown>));}

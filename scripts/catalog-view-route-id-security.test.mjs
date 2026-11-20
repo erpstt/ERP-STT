@@ -46,15 +46,16 @@ class Document{
  }
  createElement(tag){const node=new Element(this,tag);this.nodes.push(node);return node;}
 }
-const invoicePaths=['/api/purchasing/supplier-invoices','/api/purchasing/supplier-invoice-lines','/api/accounting/chart-accounts','/api/entities/suppliers','/api/configuration/payment-terms','/api/core/currencies','/api/organization/departments','/api/organization/cost-centers','/api/organization/classes','/api/configuration/tax-codes','/api/accounting/gl-impacts','/api/accounting/journal-supports','/api/organization/subsidiaries','/api/organization/locations','/api/purchasing/supplier-invoice-withholdings'];
+const invoicePaths=['/api/purchasing/supplier-invoice-view/42'];
 const journalPaths=['/api/accounting/journals','/api/accounting/journal-lines','/api/accounting/gl-impacts','/api/accounting/chart-accounts','/api/core/currencies','/api/core/countries','/api/organization/accounting-periods','/api/organization/subsidiaries','/api/organization/locations','/api/configuration/tax-codes','/api/organization/departments','/api/organization/classes','/api/organization/cost-centers','/api/entities/customers','/api/entities/suppliers','/api/entities/employees','/api/accounting/journal-supports'];
 const notePaths=kind=>['/api/purchasing/supplier-note-access/'+kind,'/api/purchasing/supplier-note-options/'+kind,kind==='CREDIT'?'/api/purchasing/supplier-credit-notes':'/api/purchasing/supplier-debit-notes','/api/purchasing/supplier-note-lines','/api/entities/suppliers','/api/accounting/chart-accounts','/api/configuration/tax-codes','/api/organization/departments','/api/organization/cost-centers','/api/organization/classes','/api/core/currencies','/api/organization/subsidiaries','/api/organization/locations','/api/accounting/gl-impacts','/api/accounting/journal-supports'];
-const paths=(screen,kind='CREDIT')=>screen.name==='supplier-invoice-view'?invoicePaths:screen.name==='journal-view'?journalPaths:notePaths(kind);
+const paths=(screen,kind='CREDIT',id='42')=>screen.name==='supplier-invoice-view'?invoicePaths.map(p=>p.replace('/42','/'+id)):screen.name==='journal-view'?journalPaths:notePaths(kind);
 function fixture(screen,path,id,kind){
  const journalId=screen.name==='journal-view'?id:8;
  const support=[{journal_id:journalId,support_type:'Archivo',file_name:'synthetic.pdf',file_data:'data:application/pdf;base64,JVBERi0=',display_name:'Synthetic file'},
   {journal_id:journalId,support_type:'Enlace',support_url:'https://synthetic.invalid/support',display_name:'Synthetic link'}];
  const invoices=[{invoice_id:screen.name==='supplier-invoice-view'?id:10,invoice_number:'SYN-INVOICE',supplier_id:1,currency_id:1,subsidiary_id:1,journal_id:8,transaction_id:9,total_amount:25,invoice_date:'2026-11-04'}];
+ if(path.startsWith('/api/purchasing/supplier-invoice-view/')){const f=path=>fixture(screen,path,id,kind);return{access:{canEdit:true,canViewSupports:true},invoices,invoiceLines:f('/api/purchasing/supplier-invoice-lines'),accounts:f('/api/accounting/chart-accounts'),suppliers:f('/api/entities/suppliers'),terms:f('/api/configuration/payment-terms'),currencies:f('/api/core/currencies'),departments:f('/api/organization/departments'),costs:f('/api/organization/cost-centers'),classes:f('/api/organization/classes'),taxes:f('/api/configuration/tax-codes'),impacts:f('/api/accounting/gl-impacts'),supports:support,subsidiaries:f('/api/organization/subsidiaries'),locations:f('/api/organization/locations'),withholdings:[]};}
  if(path.includes('/supplier-note-access/'))return{canView:true,canEdit:true};
  if(path.includes('/supplier-note-options/'))return{invoices};
  if(path==='/api/purchasing/supplier-invoices')return invoices;
@@ -78,15 +79,15 @@ async function execute(screen,search,{handoff=null,store,canView=true}={}){
  const params=new URLSearchParams(search),id=params.get('id')??handoff??'42',kind=params.get('kind')==='DEBIT'?'DEBIT':'CREDIT';
  const location={search,assign:path=>navigation.push(path)},window={print:()=>prints.push(true)};
  const dependencies=[...screen.source.matchAll(/^import[^\r\n]*from\s*'([^']+)';/gm)].map(match=>match[1]);
- assert.ok(dependencies.every(path=>/^\.\/(route-id|html-safety|frontend-performance)\.js\?v=/.test(path)));
+ assert.ok(dependencies.every(path=>/^\.\/(route-id|html-safety|frontend-performance|bank-ui)\.js\?v=/.test(path)));
  const code=screen.source.replace(/^import[^\r\n]*\r?\n/gm,'');
  const context=vm.createContext({document,location,window,URL,URLSearchParams,Intl,Date,Map,WeakMap,
-  createIndexedLookup,
+  createIndexedLookup,bankContext:()=>"synthetic-context",watchBankContext:()=>{},
   localStorage:storage('local'),sessionStorage:storage('session'),
   setTimeout(callback,delay){timers.push({callback,delay});return timers.length;},
   async fetch(path,init={}){
    events.push('fetch:'+path);const call={path:String(path),method:init.method??'GET',headers:JSON.parse(JSON.stringify(init.headers)),body:init.body};calls.push(call);
-   assert.ok(paths(screen,kind).includes(call.path),'Only fixed synthetic catalog endpoints may be requested');
+   assert.ok(paths(screen,kind,id).includes(call.path),'Only fixed synthetic catalog endpoints may be requested');
    const payload=path.includes('/supplier-note-access/')?{canView,canEdit:canView}:fixture(screen,path,id,kind);
    return{ok:true,async json(){return payload;}};
   }
@@ -111,7 +112,7 @@ for(const screen of screens){
  test(screen.name+' preserves valid canonical ID filtering, fixed catalog calls, attachments and edit behavior',async()=>{
   for(const queryId of['1','42','9007199254740991','%34%32']){
    const id=decodeURIComponent(queryId),f=await execute(screen,'?id='+queryId,{handoff:'INVALID-UNREAD-HANDOFF'});
-   assert.deepEqual(f.calls.map(call=>call.path),paths(screen));
+   assert.deepEqual(f.calls.map(call=>call.path),paths(screen,undefined,id));
    for(const call of f.calls){assert.equal(call.method,'GET');assert.equal(call.body,undefined);assert.equal(call.headers.Authorization,'Bearer synthetic-catalog-token');assert.equal(call.headers['X-Device-Token'],'synthetic-catalog-device');}
    assert.equal(f.document.getElementById(screen.output).textContent,screen.value);assert.equal(f.document.getElementById('error').textContent,'');
    assert.equal(f.document.getElementById(screen.content).hidden,false);assert.equal(f.timers.length,0);assert.equal(f.prints.length,0);
@@ -132,7 +133,7 @@ test('supplier invoice absent query validates only its one-time session ID befor
   const f=await execute(screens[0],'?print=1',{handoff:id});
   assert.deepEqual(f.reads[0],{area:'session',key:handoffKey});assert.deepEqual(f.removes,[{area:'session',key:handoffKey}]);
   assert.ok(f.events.indexOf('remove:'+handoffKey)<f.events.indexOf('read:nexo_token'));
-  assert.equal(f.reads.filter(read=>read.key===handoffKey).length,1);assert.deepEqual(f.calls.map(call=>call.path),invoicePaths);
+  assert.equal(f.reads.filter(read=>read.key===handoffKey).length,1);assert.deepEqual(f.calls.map(call=>call.path),paths(screens[0],undefined,id));
   assert.equal(f.document.getElementById('edit').href,'/supplier-invoice-entry.html?id='+id);assert.equal(f.store.has(handoffKey),false);
  }
 });
@@ -172,7 +173,7 @@ test('three pages refresh only their own view scripts and preserve shared valida
  for(const screen of screens){
   assert.ok(screen.source.includes("import {readRouteId} from './route-id.js?v="+validatorVersion+"';"));
   const references=[...screen.html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)].map(match=>match[1]).filter(src=>src.split('?')[0]==='/'+screen.name+'.js');
-  assert.deepEqual(references,['/'+screen.name+'.js?v='+viewVersion]);
+  assert.deepEqual(references,['/'+screen.name+'.js?v='+(screen.name==='supplier-invoice-view'?'20261120-targeted-view':viewVersion)]);
   assert.ok(screen.source.includes("from './html-safety.js?v="+(screen.name==='journal-view'?'20261101-a03-1':'20261102-a03-media')+"';"));
  }
 });
