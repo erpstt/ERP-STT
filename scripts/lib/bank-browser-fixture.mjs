@@ -15,7 +15,7 @@ export async function bankBrowserFixture(t,{viewport={width:1500,height:950},tim
    const pathname=decodeURIComponent(new URL(request.url,'http://127.0.0.1').pathname);
    if(pathname==='/'){response.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});response.end('<!doctype html><html><head><meta charset="utf-8"></head><body></body></html>');return;}
    const file=resolve(root,'.'+pathname);if(!file.startsWith(root+sep)){response.writeHead(403);response.end();return;}
-   const content=await readFile(file),type={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.csv':'text/csv','.svg':'image/svg+xml'}[extname(file)]||'application/octet-stream';
+   const content=await readFile(file),type={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.csv':'text/csv','.svg':'image/svg+xml'}[extname(file)]||'application/octet-stream';
    response.writeHead(200,{'Content-Type':type+'; charset=utf-8','Cache-Control':'no-store'});response.end(content);
   }catch{response.writeHead(404);response.end();}
  });

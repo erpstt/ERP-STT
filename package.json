@@ -160,13 +160,15 @@
     "test:generic-route:methods": "npm run build && node --test --test-concurrency=1 scripts/generic-route-method-security.test.mjs",
     "test:bank-fees:access-catalog": "npm run build && node --test --test-concurrency=1 scripts/bank-fee-access-catalog.test.mjs",
     "test:user-subsidiary:bulk-isolated": "npm run build && node --test --test-concurrency=1 scripts/user-subsidiary-bulk.test.mjs",
-    "test:bank:public-errors": "npm run build && node --test --test-concurrency=1 scripts/bank-operation-public-errors.test.mjs"
+    "test:bank:public-errors": "npm run build && node --test --test-concurrency=1 scripts/bank-operation-public-errors.test.mjs",
+    "test:sales-invoice-native-pdf": "npm run build && node --test scripts/sales-invoice-native-pdf.test.mjs scripts/sales-invoice-api-security.test.mjs && node scripts/test-sales-invoice-pdf-line-unification.mjs && node scripts/test-sales-invoice-email-delivery.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
     "@playwright/test": "1.64.1",
     "@types/node": "^22.10.2",
     "@types/nodemailer": "^8.0.2",
+    "@types/pdfkit": "0.17.7",
     "@types/sanitize-html": "^2.16.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
@@ -174,6 +176,7 @@
   "dependencies": {
     "exceljs": "^4.4.0",
     "nodemailer": "10.3.1",
+    "pdfkit": "0.17.2",
     "pg": "^8.16.0",
     "read-excel-file": "^9.3.10",
     "sanitize-html": "^2.17.7",

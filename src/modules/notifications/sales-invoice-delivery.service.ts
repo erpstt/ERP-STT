@@ -1,7 +1,7 @@
 import {parseCustomerEmailRecipients} from '../../../public/customer-email-recipients.js';
 import{assertSalesInvoiceAccess,salesInvoiceRpc}from'../sales-catalogs/sales-invoice-security.service.js';
 import nodemailer from 'nodemailer';
-import { renderBankReconciliationPdf } from '../reports/accounting-reports.service.js';
+import {salesInvoiceNativePdf} from './sales-invoice-native-pdf.js';
 import { rpc, smtpStatus } from './email-notification.service.js';
 import { renderSalesInvoiceEmail } from './sales-invoice-email.js';
 
@@ -251,8 +251,9 @@ export function buildSalesInvoicePdfHtml(document:SalesInvoiceDocument){
   </style></head><body><header><div class="brand">${embeddedLogo}<div><h1>${esc(document.company.name)}</h1><p>${esc(document.company.address)}</p></div></div><div class="identity"><small>FACTURA DE VENTA</small><h2>${esc(document.number)}</h2><span>CONTABILIZADA</span></div></header><section class="parties"><div class="customer"><p class="eyebrow">FACTURAR A</p><b>${esc(document.customer.name)}</b><p>${document.customer.taxId?`Identificación fiscal: ${esc(document.customer.taxId)}`:''}</p><p>${esc(document.customer.address)}</p><p>${esc(document.customer.email)}</p></div><dl class="facts"><div><dt>Fecha de emisión</dt><dd>${esc(date(document.issueDate))}</dd></div><div><dt>Fecha de vencimiento</dt><dd>${esc(date(document.dueDate))}</dd></div><div><dt>Términos de pago</dt><dd>${esc(document.paymentTerm||'—')}</dd></div><div><dt>Moneda</dt><dd>${esc(`${document.currency.code} - ${document.currency.name}`)}</dd></div></dl></section><table><thead><tr><th>Producto / descripción</th>${countryHeader}<th class="num">Cantidad</th><th class="num">Precio unitario</th><th class="num">Subtotal</th><th class="num">Impuesto</th><th class="num">Total</th></tr></thead><tbody>${lineRows||`<tr><td colspan="${columnCount}">La factura no contiene líneas.</td></tr>`}</tbody></table><section class="closing"><div class="notes"><p class="eyebrow">NOTA</p><p>${esc(document.memo||'—')}</p></div><dl class="totals"><div><dt>Subtotal</dt><dd>${esc(money(subtotal,document))}</dd></div><div><dt>Impuestos</dt><dd>${esc(money(tax,document))}</dd></div><div><dt>Retenciones</dt><dd>${esc(money(document.withholdingTotal,document))}</dd></div><div class="grand"><dt>Total factura</dt><dd>${esc(money(viewModel.total,document))}</dd></div><div><dt>Saldo por cobrar</dt><dd>${esc(money(document.receivable,document))}</dd></div></dl></section><footer><span>${esc(document.company.name)}</span><span>Documento generado desde GENTIA ERP</span></footer></body></html>`;
 }
 
-export function renderSalesInvoicePdf(document:SalesInvoiceDocument){
-  return renderBankReconciliationPdf({html:buildSalesInvoicePdfHtml(document),fileName:`factura-${safeFileName(document.number,'venta')}.pdf`});
+export async function renderSalesInvoicePdf(document:SalesInvoiceDocument){
+  const pdf=await salesInvoiceNativePdf(document,prepareSalesInvoicePdfViewModel(document));
+  return {fileName:`factura-${safeFileName(document.number,'venta')}.pdf`,mimeType:'application/pdf',base64:pdf.toString('base64')};
 }
 
 function supportLinks(supports:SalesInvoiceSupport[]){return supports.filter(item=>item.type==='Enlace').map(item=>{try{const url=new URL(item.url??'');return ['http:','https:'].includes(url.protocol)?{name:item.name||url.hostname,url:url.href}:null;}catch{return null;}}).filter((item):item is {name:string;url:string}=>!!item);}
