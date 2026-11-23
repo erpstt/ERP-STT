@@ -4,7 +4,7 @@ import { assertJournalAccess } from './journal-entry.service.js';
 
 export const journalCsvOptionalHeaders = ['pais_servicio','entidad','nombre','departamento','centro_costos','clase','acreedor_financiero','compania_relacionada'];
 export const journalCsvHeaders = ['asiento_referencia','tipo_asiento','fecha','moneda','nota_asiento','numero_cuenta','debito','credito','nota_linea','mes_servicio', ...journalCsvOptionalHeaders];
-const automaticServiceDimensionJournalTypes = new Set(['ASI_DIA','ASI_NOM','ASI_LIQ']);
+const automaticServiceDimensionJournalTypes = new Set(['ASI_DIA','ASI_NOM','ASI_LIQ','ASI_UTI']);
 
 // Quoted fields may contain delimiters, escaped quotes and line breaks (RFC 4180).
 export function parseJournalCsv(source: string): Record<string, string>[] {

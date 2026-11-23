@@ -6,7 +6,7 @@ export async function runPayrollJournalReport(auth:string,input:Record<string,un
  if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(k=>!['dateFrom','dateTo','transactionType','accountId','noteMode'].includes(k)))throw bad();
  const from=String(input.dateFrom||''),to=String(input.dateTo||'');
  for(const value of[from,to]){const d=new Date(value+'T00:00:00Z');if(!/^\d{4}-\d{2}-\d{2}$/.test(value)||!Number.isFinite(d.getTime())||d.toISOString().slice(0,10)!==value)throw bad();}
- if(from>to||from.slice(0,7)!==to.slice(0,7)||!['ALL','ASI_NOM','ASI_LIQ'].includes(String(input.transactionType??'ALL')))throw bad();
+ if(from>to||from.slice(0,7)!==to.slice(0,7)||!['ALL','ASI_NOM','ASI_LIQ','ASI_UTI'].includes(String(input.transactionType??'ALL')))throw bad();
  if(!['LINE','HEADER'].includes(String(input.noteMode??'HEADER')))throw bad();
  if(input.accountId!=null&&input.accountId!==''&&!/^[1-9]\d{0,18}$/.test(String(input.accountId)))throw bad();
  const c=getSupabaseConfig();if(!c)throw Error('Supabase no está configurado.');
