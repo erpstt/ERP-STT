@@ -179,10 +179,10 @@ for(const catalog of entityCatalogs.filter(item=>['suppliers','employees','other
  catalog.fields.push(...entityBankFields.map(field=>({...field,showInTable:previous.has(field.key)?previous.get(field.key).showInTable:false,...(catalog.slug==='suppliers'&&field.key==='payment_iban'?{label:'IBAN (CR)'}:{}),...(catalog.slug==='suppliers'&&field.key==='payment_beneficiary_name'?{wide:false}:{})})));
 }
 const supplierCatalog=entityCatalogs.find(c=>c.slug==='suppliers');
-const supplierSecondaryLabels={secondary_payment_bank_id:'Banco secundario',secondary_payment_currency_id:'Moneda secundaria',secondary_payment_iban:'IBAN secundario',secondary_payment_account_number:'Número de cuenta secundaria'};
-const supplierSecondaryFields=Object.entries(supplierSecondaryLabels).map(([key,label])=>({...supplierCatalog.fields.find(field=>field.key===key),key,label,showInTable:true}));
-supplierCatalog.fields=supplierCatalog.fields.filter(field=>!Object.hasOwn(supplierSecondaryLabels,field.key));
-supplierCatalog.fields.splice(supplierCatalog.fields.findIndex(field=>field.key==='tax_id')+1,0,...supplierSecondaryFields);
+const supplierBankColumnLabels={payment_bank_id:'Banco principal',payment_currency_id:'Moneda principal',payment_iban:'IBAN principal (CR)',payment_account_number:'Número de cuenta principal',secondary_payment_bank_id:'Banco secundario',secondary_payment_currency_id:'Moneda secundaria',secondary_payment_iban:'IBAN secundario',secondary_payment_account_number:'Número de cuenta secundaria'};
+const supplierBankColumns=Object.entries(supplierBankColumnLabels).map(([key,label])=>({...supplierCatalog.fields.find(field=>field.key===key),key,label,showInTable:true}));
+supplierCatalog.fields=supplierCatalog.fields.filter(field=>!Object.hasOwn(supplierBankColumnLabels,field.key));
+supplierCatalog.fields.splice(supplierCatalog.fields.findIndex(field=>field.key==='tax_id')+1,0,...supplierBankColumns);
 const inventoryCatalogs = [
  {slug:'product-categories',inventoryGlobal:true,allowCreate:false,allowEdit:false,allowDelete:false,table:'product_categories',title:'Categorías de productos',singular:'categoría',primaryKey:'category_id',description:'Categorías de productos',apiRoot:'inventory',fields:[{key:'category_name',label:'Categoría',type:'text',required:true},{key:'parent_id',label:'Categoría padre',type:'number',reference:'inventory/product-categories'}]},
  {slug:'product-brands',inventoryGlobal:true,allowCreate:false,allowEdit:false,allowDelete:false,table:'product_brands',title:'Marcas',singular:'marca',primaryKey:'brand_id',description:'Marcas de productos',apiRoot:'inventory',fields:[{key:'brand_name',label:'Marca',type:'text',required:true}]},
