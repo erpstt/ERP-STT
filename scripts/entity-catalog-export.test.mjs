@@ -156,3 +156,12 @@ test('PDF vacío sigue siendo un reporte válido y comprensible', () => {
   assert.match(html, />0<\/b>/);
   assert.match(html, /No hay registros que coincidan con los filtros seleccionados/);
 });
+
+test('supplier Excel includes both complete bank accounts after beneficiary and preserves account text',async()=>{
+ const row={...catalogFixtures.suppliers.row,bankCurrency:'CRC',accountNumber:'000012345',secondaryBank:'Banco secundario de prueba',secondaryCurrency:'USD',secondaryIban:'CR000001234567',secondaryAccountNumber:'000098765'};
+ const buffer=await buildEntityCatalogExcel('suppliers',{header:{...header,catalog:'suppliers'},rows:[row],total:1});const workbook=new ExcelJS.Workbook();await workbook.xlsx.load(buffer);const sheet=workbook.worksheets[0];
+ let heading;sheet.eachRow(r=>{if(r.values.includes('Beneficiario bancario'))heading=r;});assert.ok(heading);
+ const labels=heading.values.slice(1),index=labels.indexOf('Beneficiario bancario');
+ assert.deepEqual(labels.slice(index+1,index+9),['Banco principal','Moneda principal','IBAN principal (CR)','N\u00famero de cuenta principal','Banco secundario','Moneda secundaria','IBAN secundario','N\u00famero de cuenta secundaria']);
+ const data=sheet.getRow(heading.number+1);assert.equal(data.getCell(index+5).value,'000012345');assert.equal(data.getCell(index+9).value,'000098765');assert.equal(data.getCell(index+6).value,'Banco secundario de prueba');assert.equal(data.getCell(index+7).value,'USD');assert.equal(data.getCell(index+8).value,'CR000001234567');
+});
