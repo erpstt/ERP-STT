@@ -8,3 +8,10 @@ dialog{border:1px solid #cad7e6;border-radius:12px;width:min(520px,94vw);padding
 .discount-actions button[role=switch]{flex:none;margin:0;padding:6px 0;font-weight:normal}
 .discount-actions button[data-edit-operation]{flex:none;margin:0;padding:8px 12px;border-color:#cbd8e7;background:#f7f9fc;font-size:12px;font-weight:600;line-height:1.2}
 .discount-actions button[data-edit-operation]:hover{background:#eaf1f8;border-color:#9db5d0}
+
+.discount-actions button[data-edit-operation]{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:8px 13px;border:1px solid #b5dfd2;border-radius:999px;background:#eaf7f1;color:#08715d;font-size:12px;font-weight:600;box-shadow:0 1px 2px #075b4610;transition:background .16s,border-color .16s,box-shadow .16s}
+.discount-actions button[data-edit-operation] svg{flex:none}
+.discount-actions button[data-edit-operation]:hover{background:#d8efe5;border-color:#7fc5ab;box-shadow:0 2px 5px #075b4618}
+.discount-actions button[data-edit-operation]:active{background:#cbe7da;box-shadow:none}
+.discount-actions button[data-edit-operation]:focus-visible{outline:3px solid #8bd1b8;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.discount-actions button[data-edit-operation]{transition:none}}
