@@ -22,18 +22,20 @@ test('both invoice lists filter and export all matching rows with numeric amount
  await page.route('**/api/**',route=>{const p=new URL(route.request().url()).pathname;
   if(p==='/api/sales/invoices'||p==='/api/purchasing/supplier-invoices')return route.fulfill({json:docs});
   if(p==='/api/sales/invoice-catalog-options')return route.fulfill({json:{'entities/customers':customers,'organization/subsidiaries':[{subsidiary_id:1,name:'Empresa'}],'sales/sales-orders':[]}});
-  if(p==='/api/entities/suppliers')return route.fulfill({json:suppliers});
+  if(p==='/api/purchasing/supplier-invoice-catalog-options')return route.fulfill({json:{'entities/suppliers':suppliers,'organization/subsidiaries':[{subsidiary_id:1,name:'Empresa'}],'purchasing/orders':[],'transaction-engine/transactions':[],'configuration/payment-terms':[]}});
+  if(p==='/api/entities/suppliers'||p==='/api/transaction-engine/transactions')return route.fulfill({status:403,json:{error:{message:'Restricted catalog'}}});
   if(p==='/api/purchasing/orders'||p==='/api/configuration/payment-terms')return route.fulfill({json:[]});
   return route.fallback();
  });
  await openInvoices();
  for(const kind of ['sales','purchasing']){
   if(kind==='purchasing')await page.evaluate(()=>{const vm=document.getElementById('app').__vue_app__._container._vnode.component.proxy;vm.navigateChild('Compras','Facturas de proveedores');});
+  await expect(page.locator('.table-card .table-message').filter({hasText:'catalog is not defined'})).toHaveCount(0);
   const controls=page.locator('.invoice-catalog-filters');await expect(controls).toBeVisible();await expect(page.locator('.record-count')).toHaveText('31 registros');
   await controls.locator('input[type=date]').nth(0).fill('2026-11-01');await controls.locator('input[type=date]').nth(1).fill('2026-11-30');await expect(page.locator('.record-count')).toHaveText('30 registros');
   const waiting=page.waitForEvent('download');await controls.getByRole('button',{name:/Descargar Excel/}).click();const file=await waiting;const wb=new ExcelJS.Workbook();await wb.xlsx.load(await readFile(await file.path()));
   const values=wb.worksheets[0].getSheetValues();assert.equal(values.filter(r=>Array.isArray(r)&&r.includes('INV-0030')).length,1);assert.equal(values.filter(r=>Array.isArray(r)&&r.some(v=>typeof v==='string'&&v.startsWith('INV-'))).length,30);assert.ok(values.some(r=>Array.isArray(r)&&r.includes(100.25)));
-  await controls.locator('select').selectOption('1');await expect(page.locator('.record-count')).toHaveText('15 registros');
+  await expect(controls.locator('select')).toContainText(kind==='sales'?'Cliente A':'Proveedor A');await controls.locator('select').selectOption('1');await expect(page.locator('.record-count')).toHaveText('15 registros');
   await controls.getByPlaceholder('Número completo o parcial').fill('0001');await expect(page.locator('.record-count')).toHaveText('1 registro');
   await mkdir('.task-tmp',{recursive:true});await page.screenshot({path:`.task-tmp/invoice-filters-${kind}.png`,fullPage:true});
   await controls.getByRole('button',{name:'Limpiar filtros'}).click();await expect(page.locator('.record-count')).toHaveText('31 registros');
