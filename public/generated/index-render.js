@@ -253,437 +253,461 @@ const _hoisted_127 = {
 const _hoisted_128 = {
   key: 7,
   class: "new-record",
-  href: "/sales-invoice-entry.html"
+  href: "/supplier-invoice-bulk.html"
 }
 const _hoisted_129 = {
   key: 8,
   class: "new-record",
-  href: "/supplier-note-entry.html?kind=DEBIT"
+  href: "/sales-invoice-entry.html"
 }
 const _hoisted_130 = {
   key: 9,
   class: "new-record",
-  href: "/sales-note-entry.html?kind=DEBIT"
+  href: "/supplier-note-entry.html?kind=DEBIT"
 }
 const _hoisted_131 = {
+  key: 10,
+  class: "new-record",
+  href: "/sales-note-entry.html?kind=DEBIT"
+}
+const _hoisted_132 = {
   key: 0,
   class: "table-tools"
 }
-const _hoisted_132 = { class: "search-box" }
-const _hoisted_133 = ["placeholder"]
-const _hoisted_134 = { class: "record-count" }
-const _hoisted_135 = {
+const _hoisted_133 = { class: "search-box" }
+const _hoisted_134 = ["placeholder"]
+const _hoisted_135 = { class: "record-count" }
+const _hoisted_136 = {
   key: 1,
+  class: "invoice-catalog-filters",
+  role: "group",
+  "aria-label": "Filtros de facturas"
+}
+const _hoisted_137 = ["disabled"]
+const _hoisted_138 = ["min", "disabled"]
+const _hoisted_139 = ["disabled"]
+const _hoisted_140 = { value: "" }
+const _hoisted_141 = ["value"]
+const _hoisted_142 = ["disabled"]
+const _hoisted_143 = ["disabled"]
+const _hoisted_144 = ["disabled"]
+const _hoisted_145 = {
+  key: 0,
+  class: "form-warning",
+  role: "alert"
+}
+const _hoisted_146 = {
+  key: 2,
   class: "bank-statement-filters",
   role: "group",
   "aria-label": "Filtros de extractos bancarios"
 }
-const _hoisted_136 = ["disabled"]
-const _hoisted_137 = ["value"]
-const _hoisted_138 = ["disabled"]
-const _hoisted_139 = ["value"]
-const _hoisted_140 = ["disabled"]
-const _hoisted_141 = {
-  key: 2,
+const _hoisted_147 = ["disabled"]
+const _hoisted_148 = ["value"]
+const _hoisted_149 = ["disabled"]
+const _hoisted_150 = ["value"]
+const _hoisted_151 = ["disabled"]
+const _hoisted_152 = {
+  key: 3,
   id: "catalogPagination",
   class: "list-pagination",
   "aria-label": "Paginación de registros"
 }
-const _hoisted_142 = {
+const _hoisted_153 = {
   id: "catalogPageRange",
   class: "list-pagination-info",
   role: "status",
   "aria-live": "polite",
   "aria-atomic": "true"
 }
-const _hoisted_143 = { class: "list-pagination-size" }
-const _hoisted_144 = ["disabled"]
-const _hoisted_145 = { class: "list-pagination-controls" }
-const _hoisted_146 = ["disabled"]
-const _hoisted_147 = ["disabled"]
-const _hoisted_148 = {
+const _hoisted_154 = { class: "list-pagination-size" }
+const _hoisted_155 = ["disabled"]
+const _hoisted_156 = { class: "list-pagination-controls" }
+const _hoisted_157 = ["disabled"]
+const _hoisted_158 = ["disabled"]
+const _hoisted_159 = {
   id: "catalogPageCaption",
   class: "list-pagination-caption"
 }
-const _hoisted_149 = ["disabled"]
-const _hoisted_150 = ["disabled"]
-const _hoisted_151 = {
-  key: 3,
+const _hoisted_160 = ["disabled"]
+const _hoisted_161 = ["disabled"]
+const _hoisted_162 = {
+  key: 4,
   class: "table-message form-success",
   role: "status"
 }
-const _hoisted_152 = {
-  key: 4,
+const _hoisted_163 = {
+  key: 5,
   class: "table-message"
 }
-const _hoisted_153 = {
-  key: 5,
+const _hoisted_164 = {
+  key: 6,
   class: "table-message form-warning",
   role: "alert"
 }
-const _hoisted_154 = {
-  key: 6,
+const _hoisted_165 = {
+  key: 7,
   class: "table-message"
 }
-const _hoisted_155 = {
-  key: 7,
+const _hoisted_166 = {
+  key: 8,
   class: "table-message form-error",
   role: "alert"
 }
-const _hoisted_156 = {
-  key: 8,
+const _hoisted_167 = {
+  key: 9,
   class: "table-scroll"
 }
-const _hoisted_157 = ["aria-sort"]
-const _hoisted_158 = ["data-sort-key", "aria-label", "title"]
-const _hoisted_159 = {
+const _hoisted_168 = ["aria-sort"]
+const _hoisted_169 = ["data-sort-key", "aria-label", "title"]
+const _hoisted_170 = {
   class: "catalog-sort-icon",
   "aria-hidden": "true"
 }
-const _hoisted_160 = { key: 1 }
-const _hoisted_161 = ["aria-sort"]
-const _hoisted_162 = ["data-sort-key", "aria-label", "title", "onClick"]
-const _hoisted_163 = {
+const _hoisted_171 = { key: 1 }
+const _hoisted_172 = ["aria-sort"]
+const _hoisted_173 = ["data-sort-key", "aria-label", "title", "onClick"]
+const _hoisted_174 = {
   class: "catalog-sort-icon",
   "aria-hidden": "true"
 }
-const _hoisted_164 = { key: 1 }
-const _hoisted_165 = {
+const _hoisted_175 = { key: 1 }
+const _hoisted_176 = {
   key: 0,
   class: "bank-statement-account-group"
 }
-const _hoisted_166 = ["colspan"]
-const _hoisted_167 = {
+const _hoisted_177 = ["colspan"]
+const _hoisted_178 = {
   key: 0,
   class: "bank-statement-month-group"
 }
-const _hoisted_168 = ["colspan"]
-const _hoisted_169 = ["data-record-id"]
-const _hoisted_170 = { class: "id-cell" }
-const _hoisted_171 = {
+const _hoisted_179 = ["colspan"]
+const _hoisted_180 = ["data-record-id"]
+const _hoisted_181 = { class: "id-cell" }
+const _hoisted_182 = {
   key: 0,
   class: "country-name"
 }
-const _hoisted_172 = ["title"]
-const _hoisted_173 = { class: "row-actions" }
-const _hoisted_174 = ["onClick"]
-const _hoisted_175 = ["onClick"]
-const _hoisted_176 = ["href"]
-const _hoisted_177 = ["href"]
-const _hoisted_178 = ["href"]
-const _hoisted_179 = ["href"]
-const _hoisted_180 = ["href"]
-const _hoisted_181 = ["href"]
-const _hoisted_182 = ["href"]
-const _hoisted_183 = ["href"]
-const _hoisted_184 = ["href"]
-const _hoisted_185 = ["href"]
-const _hoisted_186 = ["href"]
-const _hoisted_187 = ["onClick"]
-const _hoisted_188 = ["onClick"]
-const _hoisted_189 = ["onClick"]
-const _hoisted_190 = ["title", "onClick"]
-const _hoisted_191 = ["title"]
-const _hoisted_192 = { key: 0 }
-const _hoisted_193 = ["colspan"]
-const _hoisted_194 = {
-  key: 9,
+const _hoisted_183 = ["title"]
+const _hoisted_184 = { class: "row-actions" }
+const _hoisted_185 = ["onClick"]
+const _hoisted_186 = ["onClick"]
+const _hoisted_187 = ["href"]
+const _hoisted_188 = ["href"]
+const _hoisted_189 = ["href"]
+const _hoisted_190 = ["href"]
+const _hoisted_191 = ["href"]
+const _hoisted_192 = ["href"]
+const _hoisted_193 = ["href"]
+const _hoisted_194 = ["href"]
+const _hoisted_195 = ["href"]
+const _hoisted_196 = ["href"]
+const _hoisted_197 = ["href"]
+const _hoisted_198 = ["onClick"]
+const _hoisted_199 = ["onClick"]
+const _hoisted_200 = ["onClick"]
+const _hoisted_201 = ["title", "onClick"]
+const _hoisted_202 = ["title"]
+const _hoisted_203 = { key: 0 }
+const _hoisted_204 = ["colspan"]
+const _hoisted_205 = {
+  key: 10,
   class: "table-footer"
 }
-const _hoisted_195 = { class: "modal-head" }
-const _hoisted_196 = ["disabled"]
-const _hoisted_197 = {
+const _hoisted_206 = { class: "modal-head" }
+const _hoisted_207 = ["disabled"]
+const _hoisted_208 = {
   key: 0,
   role: "status"
 }
-const _hoisted_198 = { class: "fiscal-permission-role" }
-const _hoisted_199 = {
+const _hoisted_209 = { class: "fiscal-permission-role" }
+const _hoisted_210 = {
   class: "fiscal-period-toggle-row",
   for: "fiscalPermissionEnabled"
 }
-const _hoisted_200 = { class: "fiscal-period-toggle-copy" }
-const _hoisted_201 = { class: "gentia-switch-control" }
-const _hoisted_202 = ["disabled"]
-const _hoisted_203 = {
+const _hoisted_211 = { class: "fiscal-period-toggle-copy" }
+const _hoisted_212 = { class: "gentia-switch-control" }
+const _hoisted_213 = ["disabled"]
+const _hoisted_214 = {
   key: 2,
   class: "dialog-error",
   role: "alert"
 }
-const _hoisted_204 = ["disabled"]
-const _hoisted_205 = { class: "modal-actions" }
-const _hoisted_206 = ["disabled"]
-const _hoisted_207 = ["disabled"]
-const _hoisted_208 = {
+const _hoisted_215 = ["disabled"]
+const _hoisted_216 = { class: "modal-actions" }
+const _hoisted_217 = ["disabled"]
+const _hoisted_218 = ["disabled"]
+const _hoisted_219 = {
   class: "modal",
   role: "dialog",
   "aria-modal": "true"
 }
-const _hoisted_209 = { class: "modal-head" }
-const _hoisted_210 = { class: "form-grid" }
-const _hoisted_211 = {
+const _hoisted_220 = { class: "modal-head" }
+const _hoisted_221 = { class: "form-grid" }
+const _hoisted_222 = {
   key: 0,
   class: "dialog-error"
 }
-const _hoisted_212 = { class: "modal-actions" }
-const _hoisted_213 = ["disabled"]
-const _hoisted_214 = { class: "modal-head" }
-const _hoisted_215 = { class: "modal-icon" }
-const _hoisted_216 = { id: "country-modal-title" }
-const _hoisted_217 = {
+const _hoisted_223 = { class: "modal-actions" }
+const _hoisted_224 = ["disabled"]
+const _hoisted_225 = { class: "modal-head" }
+const _hoisted_226 = { class: "modal-icon" }
+const _hoisted_227 = { id: "country-modal-title" }
+const _hoisted_228 = {
   key: 0,
   class: "customer-view-tabs"
 }
-const _hoisted_218 = ["table", "record-id"]
-const _hoisted_219 = ["novalidate"]
-const _hoisted_220 = {
+const _hoisted_229 = ["table", "record-id"]
+const _hoisted_230 = ["novalidate"]
+const _hoisted_231 = {
   key: 0,
   class: "subsidiary-form-tabs",
   role: "tablist",
   "aria-label": "Apartados de la subsidiaria"
 }
-const _hoisted_221 = ["id", "aria-selected", "aria-controls", "onClick"]
-const _hoisted_222 = { class: "subsidiary-tab-step" }
-const _hoisted_223 = ["id", "aria-labelledby"]
-const _hoisted_224 = {
+const _hoisted_232 = ["id", "aria-selected", "aria-controls", "onClick"]
+const _hoisted_233 = { class: "subsidiary-tab-step" }
+const _hoisted_234 = ["id", "aria-labelledby"]
+const _hoisted_235 = {
   key: 2,
   class: "subsidiary-form-tabs entity-form-tabs",
   role: "tablist",
   "aria-label": "Apartados de la entidad"
 }
-const _hoisted_225 = ["id", "data-entity-tab", "aria-selected", "aria-controls", "tabindex", "onClick", "onKeydown"]
-const _hoisted_226 = { class: "subsidiary-tab-step" }
-const _hoisted_227 = ["id", "aria-labelledby"]
-const _hoisted_228 = {
+const _hoisted_236 = ["id", "data-entity-tab", "aria-selected", "aria-controls", "tabindex", "onClick", "onKeydown"]
+const _hoisted_237 = { class: "subsidiary-tab-step" }
+const _hoisted_238 = ["id", "aria-labelledby"]
+const _hoisted_239 = {
   key: 4,
   class: "bank-statement-form-overview"
 }
-const _hoisted_229 = {
+const _hoisted_240 = {
   class: "bank-statement-company",
   "data-i18n-ignore": ""
 }
-const _hoisted_230 = {
+const _hoisted_241 = {
   key: 0,
   class: "approver-section"
 }
-const _hoisted_231 = {
+const _hoisted_242 = {
   key: 1,
   class: "fiscal-period-controls-intro"
 }
-const _hoisted_232 = ["data-field-key"]
-const _hoisted_233 = ["for"]
-const _hoisted_234 = { class: "fiscal-period-toggle-copy" }
-const _hoisted_235 = ["id"]
-const _hoisted_236 = { class: "gentia-switch-control" }
-const _hoisted_237 = ["id", "onUpdate:modelValue", "aria-labelledby", "aria-describedby", "disabled"]
-const _hoisted_238 = ["id"]
-const _hoisted_239 = {
+const _hoisted_243 = ["data-field-key"]
+const _hoisted_244 = ["for"]
+const _hoisted_245 = { class: "fiscal-period-toggle-copy" }
+const _hoisted_246 = ["id"]
+const _hoisted_247 = { class: "gentia-switch-control" }
+const _hoisted_248 = ["id", "onUpdate:modelValue", "aria-labelledby", "aria-describedby", "disabled"]
+const _hoisted_249 = ["id"]
+const _hoisted_250 = {
   key: 3,
   "data-field-key": "pending_fx_revaluation"
 }
-const _hoisted_240 = {
+const _hoisted_251 = {
   class: "toggle-field",
   for: "chartAccountFxRevaluation"
 }
-const _hoisted_241 = { class: "gentia-switch-control" }
-const _hoisted_242 = ["disabled"]
-const _hoisted_243 = {
+const _hoisted_252 = { class: "gentia-switch-control" }
+const _hoisted_253 = ["disabled"]
+const _hoisted_254 = {
   id: "chartAccountFxHelp",
   class: "field-help"
 }
-const _hoisted_244 = { key: 0 }
-const _hoisted_245 = ["disabled"]
-const _hoisted_246 = ["data-field-key"]
-const _hoisted_247 = { key: 0 }
-const _hoisted_248 = ["onUpdate:modelValue", "required", "onChange"]
-const _hoisted_249 = ["value"]
-const _hoisted_250 = {
+const _hoisted_255 = { key: 0 }
+const _hoisted_256 = ["disabled"]
+const _hoisted_257 = ["data-field-key"]
+const _hoisted_258 = { key: 0 }
+const _hoisted_259 = ["onUpdate:modelValue", "required", "onChange"]
+const _hoisted_260 = ["value"]
+const _hoisted_261 = {
   key: 1,
   class: "multi-select"
 }
-const _hoisted_251 = {
+const _hoisted_262 = {
   key: 0,
   class: "account-subsidiary-summary"
 }
-const _hoisted_252 = {
+const _hoisted_263 = {
   key: 0,
   class: "account-subsidiary-status"
 }
-const _hoisted_253 = {
+const _hoisted_264 = {
   key: 1,
   class: "account-subsidiary-search"
 }
-const _hoisted_254 = ["onClick"]
-const _hoisted_255 = ["onUpdate:modelValue", "value", "onChange"]
-const _hoisted_256 = { key: 2 }
-const _hoisted_257 = ["onUpdate:modelValue", "required", "disabled", "onChange"]
-const _hoisted_258 = { value: "" }
-const _hoisted_259 = ["value", "disabled"]
-const _hoisted_260 = {
+const _hoisted_265 = ["onClick"]
+const _hoisted_266 = ["onUpdate:modelValue", "value", "onChange"]
+const _hoisted_267 = { key: 2 }
+const _hoisted_268 = ["onUpdate:modelValue", "required", "disabled", "onChange"]
+const _hoisted_269 = { value: "" }
+const _hoisted_270 = ["value", "disabled"]
+const _hoisted_271 = {
   key: 3,
   class: "bank-statement-money-input"
 }
-const _hoisted_261 = ["onUpdate:modelValue", "required", "readonly", "onBlur"]
-const _hoisted_262 = ["onUpdate:modelValue", "required", "readonly"]
-const _hoisted_263 = ["onUpdate:modelValue", "type", "required", "readonly", "placeholder", "inputmode"]
-const _hoisted_264 = {
+const _hoisted_272 = ["onUpdate:modelValue", "required", "readonly", "onBlur"]
+const _hoisted_273 = ["onUpdate:modelValue", "required", "readonly"]
+const _hoisted_274 = ["onUpdate:modelValue", "type", "required", "readonly", "placeholder", "inputmode"]
+const _hoisted_275 = {
   key: 6,
   class: "gentia-switch-control"
 }
-const _hoisted_265 = ["onUpdate:modelValue", "disabled"]
-const _hoisted_266 = {
+const _hoisted_276 = ["onUpdate:modelValue", "disabled"]
+const _hoisted_277 = {
   key: 7,
   class: "account-subsidiary-help"
 }
-const _hoisted_267 = {
+const _hoisted_278 = {
   key: 8,
   class: "field-help"
 }
-const _hoisted_268 = {
+const _hoisted_279 = {
   key: 9,
   class: "user-invitation-warning"
 }
-const _hoisted_269 = {
+const _hoisted_280 = {
   key: 10,
   class: "user-invitation-warning"
 }
-const _hoisted_270 = {
+const _hoisted_281 = {
   key: 5,
   class: "entity-bank-accounts",
   "aria-label": "Cuentas bancarias del beneficiario"
 }
-const _hoisted_271 = ["data-bank-slot", "aria-labelledby"]
-const _hoisted_272 = { class: "entity-bank-step" }
-const _hoisted_273 = ["id"]
-const _hoisted_274 = {
+const _hoisted_282 = ["data-bank-slot", "aria-labelledby"]
+const _hoisted_283 = { class: "entity-bank-step" }
+const _hoisted_284 = ["id"]
+const _hoisted_285 = {
   key: 0,
   class: "entity-bank-optional"
 }
-const _hoisted_275 = { class: "form-grid entity-bank-fields" }
-const _hoisted_276 = ["data-field-key"]
-const _hoisted_277 = ["onUpdate:modelValue", "disabled", "onChange"]
-const _hoisted_278 = ["value"]
-const _hoisted_279 = ["onUpdate:modelValue", "readonly", "autocomplete", "placeholder"]
-const _hoisted_280 = {
+const _hoisted_286 = { class: "form-grid entity-bank-fields" }
+const _hoisted_287 = ["data-field-key"]
+const _hoisted_288 = ["onUpdate:modelValue", "disabled", "onChange"]
+const _hoisted_289 = ["value"]
+const _hoisted_290 = ["onUpdate:modelValue", "readonly", "autocomplete", "placeholder"]
+const _hoisted_291 = {
   key: 6,
   class: "autorent-editor",
   "aria-labelledby": "autorent-title"
 }
-const _hoisted_281 = ["disabled"]
-const _hoisted_282 = {
+const _hoisted_292 = ["disabled"]
+const _hoisted_293 = {
   key: 0,
   class: "autorent-new-help"
 }
-const _hoisted_283 = {
+const _hoisted_294 = {
   key: 1,
   class: "autorent-grid"
 }
-const _hoisted_284 = ["value", "disabled"]
-const _hoisted_285 = {
+const _hoisted_295 = ["value", "disabled"]
+const _hoisted_296 = {
   key: 0,
   class: "autorent-empty"
 }
-const _hoisted_286 = {
+const _hoisted_297 = {
   key: 1,
   class: "autorent-assignment-note"
 }
-const _hoisted_287 = ["value", "disabled"]
-const _hoisted_288 = {
+const _hoisted_298 = ["value", "disabled"]
+const _hoisted_299 = {
   key: 0,
   class: "autorent-empty"
 }
-const _hoisted_289 = {
+const _hoisted_300 = {
   key: 1,
   class: "autorent-assignment-note"
 }
-const _hoisted_290 = { class: "autorent-percentage" }
-const _hoisted_291 = { class: "percentage-control" }
-const _hoisted_292 = {
+const _hoisted_301 = { class: "autorent-percentage" }
+const _hoisted_302 = { class: "percentage-control" }
+const _hoisted_303 = {
   key: 7,
   class: "withholding-rules-editor"
 }
-const _hoisted_293 = { class: "withholding-rules-head" }
-const _hoisted_294 = ["disabled"]
-const _hoisted_295 = {
+const _hoisted_304 = { class: "withholding-rules-head" }
+const _hoisted_305 = ["disabled"]
+const _hoisted_306 = {
   key: 0,
   class: "withholding-empty"
 }
-const _hoisted_296 = {
+const _hoisted_307 = {
   key: 1,
   class: "withholding-empty"
 }
-const _hoisted_297 = {
+const _hoisted_308 = {
   key: 2,
   class: "withholding-rule-list"
 }
-const _hoisted_298 = { class: "withholding-rule-number" }
-const _hoisted_299 = { class: "withholding-select-shell" }
-const _hoisted_300 = ["onUpdate:modelValue", "onChange"]
-const _hoisted_301 = ["value"]
-const _hoisted_302 = { class: "withholding-select-shell" }
-const _hoisted_303 = ["onUpdate:modelValue", "disabled"]
-const _hoisted_304 = {
+const _hoisted_309 = { class: "withholding-rule-number" }
+const _hoisted_310 = { class: "withholding-select-shell" }
+const _hoisted_311 = ["onUpdate:modelValue", "onChange"]
+const _hoisted_312 = ["value"]
+const _hoisted_313 = { class: "withholding-select-shell" }
+const _hoisted_314 = ["onUpdate:modelValue", "disabled"]
+const _hoisted_315 = {
   value: "",
   disabled: ""
 }
-const _hoisted_305 = ["value"]
-const _hoisted_306 = { key: 0 }
-const _hoisted_307 = {
+const _hoisted_316 = ["value"]
+const _hoisted_317 = { key: 0 }
+const _hoisted_318 = {
   key: 1,
   class: "withholding-tax-summary"
 }
-const _hoisted_308 = ["onClick"]
-const _hoisted_309 = {
+const _hoisted_319 = ["onClick"]
+const _hoisted_320 = {
   key: 8,
   class: "dialog-error"
 }
-const _hoisted_310 = { class: "modal-actions" }
-const _hoisted_311 = ["disabled"]
-const _hoisted_312 = ["disabled"]
-const _hoisted_313 = {
+const _hoisted_321 = { class: "modal-actions" }
+const _hoisted_322 = ["disabled"]
+const _hoisted_323 = ["disabled"]
+const _hoisted_324 = {
   key: 2,
   class: "modal-actions",
   style: {"padding":"16px 24px"}
 }
-const _hoisted_314 = {
+const _hoisted_325 = {
   key: 3,
   class: "record-view"
 }
-const _hoisted_315 = {
+const _hoisted_326 = {
   key: 0,
   class: "record-view-grid"
 }
-const _hoisted_316 = { "data-i18n-ignore": "" }
-const _hoisted_317 = ["src"]
-const _hoisted_318 = {
+const _hoisted_327 = { "data-i18n-ignore": "" }
+const _hoisted_328 = ["src"]
+const _hoisted_329 = {
   key: 2,
   class: "customer-cost-centers standalone"
 }
-const _hoisted_319 = { class: "record-section-title" }
-const _hoisted_320 = { "data-i18n-ignore": "" }
-const _hoisted_321 = {
+const _hoisted_330 = { class: "record-section-title" }
+const _hoisted_331 = { "data-i18n-ignore": "" }
+const _hoisted_332 = {
   key: 0,
   class: "cost-center-list"
 }
-const _hoisted_322 = { "data-i18n-ignore": "" }
-const _hoisted_323 = { "data-i18n-ignore": "" }
-const _hoisted_324 = { key: 1 }
-const _hoisted_325 = { class: "modal-actions" }
-const _hoisted_326 = {
+const _hoisted_333 = { "data-i18n-ignore": "" }
+const _hoisted_334 = { "data-i18n-ignore": "" }
+const _hoisted_335 = { key: 1 }
+const _hoisted_336 = { class: "modal-actions" }
+const _hoisted_337 = {
   key: 4,
   class: "delete-confirm"
 }
-const _hoisted_327 = { key: 0 }
-const _hoisted_328 = { key: 1 }
-const _hoisted_329 = {
+const _hoisted_338 = { key: 0 }
+const _hoisted_339 = { key: 1 }
+const _hoisted_340 = {
   key: 2,
   class: "dialog-error"
 }
-const _hoisted_330 = { class: "modal-actions" }
-const _hoisted_331 = ["disabled"]
+const _hoisted_341 = { class: "modal-actions" }
+const _hoisted_342 = ["disabled"]
 
 export function render(_ctx, _cache) {
   return (!_ctx.sessionReady)
-    ? (_openBlock(), _createElementBlock("div", _hoisted_1, [...(_cache[88] || (_cache[88] = [
+    ? (_openBlock(), _createElementBlock("div", _hoisted_1, [...(_cache[94] || (_cache[94] = [
         _createElementVNode("span", { class: "brand gentia-brand gentia-brand-loading" }, [
           _createElementVNode("img", {
             src: "/gentia-logo.svg",
@@ -697,7 +721,7 @@ export function render(_ctx, _cache) {
     : (!_ctx.authenticated)
       ? (_openBlock(), _createElementBlock("main", _hoisted_2, [
           _createElementVNode("section", _hoisted_3, [
-            _cache[90] || (_cache[90] = _createElementVNode("div", { class: "brand-top" }, [
+            _cache[96] || (_cache[96] = _createElementVNode("div", { class: "brand-top" }, [
               _createElementVNode("span", { class: "brand gentia-brand gentia-brand-hero" }, [
                 _createElementVNode("img", {
                   src: "/gentia-logo-reversed.svg",
@@ -720,7 +744,7 @@ export function render(_ctx, _cache) {
                     }, null, 8 /* PROPS */, _hoisted_6)
                   ]))
                 : (_openBlock(), _createElementBlock("img", _hoisted_7)),
-              _cache[89] || (_cache[89] = _createElementVNode("div", { class: "login-video-branding" }, [
+              _cache[95] || (_cache[95] = _createElementVNode("div", { class: "login-video-branding" }, [
                 _createElementVNode("span", { class: "login-video-label" }, "Inteligencia operativa"),
                 _createElementVNode("span", { class: "login-video-live" }, [
                   _createElementVNode("i"),
@@ -728,7 +752,7 @@ export function render(_ctx, _cache) {
                 ])
               ], -1 /* CACHED */))
             ]),
-            _cache[91] || (_cache[91] = _createElementVNode("div", { class: "statement" }, [
+            _cache[97] || (_cache[97] = _createElementVNode("div", { class: "statement" }, [
               _createElementVNode("p", { class: "eyebrow" }, "OPERACIÓN CONECTADA"),
               _createElementVNode("h1", null, [
                 _createTextVNode("La claridad que tu operación"),
@@ -738,13 +762,13 @@ export function render(_ctx, _cache) {
               ]),
               _createElementVNode("p", { class: "statement-copy" }, "Tu gente. Tus agentes. Un solo sistema.")
             ], -1 /* CACHED */)),
-            _cache[92] || (_cache[92] = _createElementVNode("footer", null, [
+            _cache[98] || (_cache[98] = _createElementVNode("footer", null, [
               _createElementVNode("span", null, "© 2026 GENTIA")
             ], -1 /* CACHED */))
           ]),
           _createElementVNode("section", _hoisted_8, [
             _createElementVNode("div", _hoisted_9, [
-              _cache[124] || (_cache[124] = _createElementVNode("span", { class: "mobile-brand gentia-brand gentia-brand-mobile" }, [
+              _cache[130] || (_cache[130] = _createElementVNode("span", { class: "mobile-brand gentia-brand gentia-brand-mobile" }, [
                 _createElementVNode("img", {
                   src: "/gentia-wordmark.svg",
                   width: "380",
@@ -755,14 +779,14 @@ export function render(_ctx, _cache) {
               (_ctx.passwordRecovery.mode==='continue')
                 ? (_openBlock(), _createElementBlock(_Fragment, { key: 0 }, [
                     _createElementVNode("div", _hoisted_10, [
-                      _cache[93] || (_cache[93] = _createElementVNode("p", { class: "eyebrow" }, "VERIFICACIÓN SEGURA", -1 /* CACHED */)),
+                      _cache[99] || (_cache[99] = _createElementVNode("p", { class: "eyebrow" }, "VERIFICACIÓN SEGURA", -1 /* CACHED */)),
                       _createElementVNode("h2", null, _toDisplayString(_ctx.passwordRecovery.flow==='invitation' ? 'Confirma tu invitación.' : 'Confirma la recuperación.'), 1 /* TEXT */),
-                      _cache[94] || (_cache[94] = _createElementVNode("p", null, "Por seguridad, el enlace todavía no se ha utilizado. Continúa solo si solicitaste esta operación.", -1 /* CACHED */))
+                      _cache[100] || (_cache[100] = _createElementVNode("p", null, "Por seguridad, el enlace todavía no se ha utilizado. Continúa solo si solicitaste esta operación.", -1 /* CACHED */))
                     ]),
                     _createElementVNode("form", {
                       onSubmit: _cache[0] || (_cache[0] = _withModifiers((...args) => (_ctx.continuePasswordAccess && _ctx.continuePasswordAccess(...args)), ["prevent"]))
                     }, [
-                      _cache[96] || (_cache[96] = _createElementVNode("p", { class: "recovery-note" }, [
+                      _cache[102] || (_cache[102] = _createElementVNode("p", { class: "recovery-note" }, [
                         _createElementVNode("span", { "aria-hidden": "true" }, "●"),
                         _createTextVNode(" Esta confirmación evita que los verificadores automáticos de correo consuman el enlace antes que tú.")
                       ], -1 /* CACHED */)),
@@ -774,7 +798,7 @@ export function render(_ctx, _cache) {
                         disabled: _ctx.passwordRecovery.saving
                       }, [
                         _createElementVNode("span", null, _toDisplayString(_ctx.passwordRecovery.saving ? 'Verificando…' : (_ctx.passwordRecovery.flow==='invitation' ? 'Continuar con la activación' : 'Continuar con la recuperación')), 1 /* TEXT */),
-                        _cache[95] || (_cache[95] = _createElementVNode("b", null, "→", -1 /* CACHED */))
+                        _cache[101] || (_cache[101] = _createElementVNode("b", null, "→", -1 /* CACHED */))
                       ], 8 /* PROPS */, _hoisted_12)
                     ], 32 /* NEED_HYDRATION */),
                     _createElementVNode("button", {
@@ -786,18 +810,18 @@ export function render(_ctx, _cache) {
                 : (_ctx.passwordRecovery.mode==='request')
                   ? (_openBlock(), _createElementBlock(_Fragment, { key: 1 }, [
                       (!_ctx.passwordRecovery.sent)
-                        ? (_openBlock(), _createElementBlock("div", _hoisted_13, [...(_cache[97] || (_cache[97] = [
+                        ? (_openBlock(), _createElementBlock("div", _hoisted_13, [...(_cache[103] || (_cache[103] = [
                             _createElementVNode("p", { class: "eyebrow" }, "RECUPERACIÓN SEGURA", -1 /* CACHED */),
                             _createElementVNode("h2", null, "Recupera tu acceso.", -1 /* CACHED */),
                             _createElementVNode("p", null, "Ingresa tu correo corporativo. Si está registrado, recibirás un enlace de un solo uso para crear una nueva contraseña.", -1 /* CACHED */)
                           ]))]))
                         : (_openBlock(), _createElementBlock("div", _hoisted_14, [
-                            _cache[98] || (_cache[98] = _createElementVNode("span", {
+                            _cache[104] || (_cache[104] = _createElementVNode("span", {
                               class: "recovery-result-icon",
                               "aria-hidden": "true"
                             }, "✓", -1 /* CACHED */)),
-                            _cache[99] || (_cache[99] = _createElementVNode("p", { class: "eyebrow" }, "SOLICITUD RECIBIDA", -1 /* CACHED */)),
-                            _cache[100] || (_cache[100] = _createElementVNode("h2", null, "Revisa tu correo.", -1 /* CACHED */)),
+                            _cache[105] || (_cache[105] = _createElementVNode("p", { class: "eyebrow" }, "SOLICITUD RECIBIDA", -1 /* CACHED */)),
+                            _cache[106] || (_cache[106] = _createElementVNode("h2", null, "Revisa tu correo.", -1 /* CACHED */)),
                             _createElementVNode("p", null, _toDisplayString(_ctx.passwordRecovery.message), 1 /* TEXT */)
                           ])),
                       (!_ctx.passwordRecovery.sent)
@@ -805,9 +829,9 @@ export function render(_ctx, _cache) {
                             key: 2,
                             onSubmit: _cache[3] || (_cache[3] = _withModifiers((...args) => (_ctx.submitPasswordRecoveryRequest && _ctx.submitPasswordRecoveryRequest(...args)), ["prevent"]))
                           }, [
-                            _cache[104] || (_cache[104] = _createElementVNode("label", { for: "recovery-email" }, "Correo corporativo", -1 /* CACHED */)),
+                            _cache[110] || (_cache[110] = _createElementVNode("label", { for: "recovery-email" }, "Correo corporativo", -1 /* CACHED */)),
                             _createElementVNode("div", _hoisted_15, [
-                              _cache[101] || (_cache[101] = _createElementVNode("span", { class: "input-icon" }, "@", -1 /* CACHED */)),
+                              _cache[107] || (_cache[107] = _createElementVNode("span", { class: "input-icon" }, "@", -1 /* CACHED */)),
                               _withDirectives(_createElementVNode("input", {
                                 id: "recovery-email",
                                 "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => ((_ctx.passwordRecovery.email) = $event)),
@@ -824,14 +848,14 @@ export function render(_ctx, _cache) {
                                 ]
                               ])
                             ]),
-                            _cache[105] || (_cache[105] = _createElementVNode("p", { class: "recovery-note" }, [
+                            _cache[111] || (_cache[111] = _createElementVNode("p", { class: "recovery-note" }, [
                               _createElementVNode("span", { "aria-hidden": "true" }, "●"),
                               _createTextVNode(" Por seguridad, siempre mostraremos la misma confirmación.")
                             ], -1 /* CACHED */)),
                             (_ctx.turnstileEnabled)
                               ? (_openBlock(), _createElementBlock("div", _hoisted_16, [
                                   _createElementVNode("div", _hoisted_17, null, 512 /* NEED_PATCH */),
-                                  _cache[102] || (_cache[102] = _createElementVNode("small", null, "Protección contra solicitudes automatizadas", -1 /* CACHED */))
+                                  _cache[108] || (_cache[108] = _createElementVNode("small", null, "Protección contra solicitudes automatizadas", -1 /* CACHED */))
                                 ]))
                               : _createCommentVNode("v-if", true),
                             (_ctx.passwordRecovery.error)
@@ -842,7 +866,7 @@ export function render(_ctx, _cache) {
                               disabled: _ctx.passwordRecovery.saving || (_ctx.turnstileEnabled && !_ctx.turnstileToken)
                             }, [
                               _createElementVNode("span", null, _toDisplayString(_ctx.passwordRecovery.saving ? 'Enviando enlace…' : 'Enviar enlace de recuperación'), 1 /* TEXT */),
-                              _cache[103] || (_cache[103] = _createElementVNode("b", null, "→", -1 /* CACHED */))
+                              _cache[109] || (_cache[109] = _createElementVNode("b", null, "→", -1 /* CACHED */))
                             ], 8 /* PROPS */, _hoisted_19)
                           ], 32 /* NEED_HYDRATION */))
                         : (_openBlock(), _createElementBlock("button", {
@@ -850,7 +874,7 @@ export function render(_ctx, _cache) {
                             type: "button",
                             class: "submit",
                             onClick: _cache[4] || (_cache[4] = (...args) => (_ctx.returnToLogin && _ctx.returnToLogin(...args)))
-                          }, [...(_cache[106] || (_cache[106] = [
+                          }, [...(_cache[112] || (_cache[112] = [
                             _createElementVNode("span", null, "Volver al inicio de sesión", -1 /* CACHED */),
                             _createElementVNode("b", null, "→", -1 /* CACHED */)
                           ]))])),
@@ -873,9 +897,9 @@ export function render(_ctx, _cache) {
                         _createElementVNode("form", {
                           onSubmit: _cache[9] || (_cache[9] = _withModifiers((...args) => (_ctx.submitPasswordRecoveryCompletion && _ctx.submitPasswordRecoveryCompletion(...args)), ["prevent"]))
                         }, [
-                          _cache[112] || (_cache[112] = _createElementVNode("label", { for: "recovery-new-password" }, "Nueva contraseña", -1 /* CACHED */)),
+                          _cache[118] || (_cache[118] = _createElementVNode("label", { for: "recovery-new-password" }, "Nueva contraseña", -1 /* CACHED */)),
                           _createElementVNode("div", _hoisted_22, [
-                            _cache[107] || (_cache[107] = _createElementVNode("span", { class: "input-icon lock" }, "⌁", -1 /* CACHED */)),
+                            _cache[113] || (_cache[113] = _createElementVNode("span", { class: "input-icon lock" }, "⌁", -1 /* CACHED */)),
                             _withDirectives(_createElementVNode("input", {
                               id: "recovery-new-password",
                               "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => ((_ctx.passwordRecovery.newPassword) = $event)),
@@ -895,12 +919,12 @@ export function render(_ctx, _cache) {
                               onClick: _cache[7] || (_cache[7] = $event => (_ctx.passwordRecovery.showPassword=!_ctx.passwordRecovery.showPassword))
                             }, _toDisplayString(_ctx.passwordRecovery.showPassword ? '◌' : '◉'), 9 /* TEXT, PROPS */, _hoisted_24)
                           ]),
-                          _cache[113] || (_cache[113] = _createElementVNode("label", {
+                          _cache[119] || (_cache[119] = _createElementVNode("label", {
                             class: "recovery-confirm-label",
                             for: "recovery-confirmation"
                           }, "Confirmar nueva contraseña", -1 /* CACHED */)),
                           _createElementVNode("div", _hoisted_25, [
-                            _cache[108] || (_cache[108] = _createElementVNode("span", { class: "input-icon lock" }, "⌁", -1 /* CACHED */)),
+                            _cache[114] || (_cache[114] = _createElementVNode("span", { class: "input-icon lock" }, "⌁", -1 /* CACHED */)),
                             _withDirectives(_createElementVNode("input", {
                               id: "recovery-confirmation",
                               "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((_ctx.passwordRecovery.confirmation) = $event)),
@@ -915,11 +939,11 @@ export function render(_ctx, _cache) {
                             ])
                           ]),
                           _createElementVNode("div", _hoisted_27, [
-                            _cache[109] || (_cache[109] = _createElementVNode("strong", null, "Requisitos de seguridad", -1 /* CACHED */)),
+                            _cache[115] || (_cache[115] = _createElementVNode("strong", null, "Requisitos de seguridad", -1 /* CACHED */)),
                             _createElementVNode("span", {
                               class: _normalizeClass({valid:_ctx.passwordRecovery.newPassword.length>=15})
                             }, "Al menos 15 caracteres", 2 /* CLASS */),
-                            _cache[110] || (_cache[110] = _createElementVNode("span", null, "No reutilizar una de las últimas 6 contraseñas", -1 /* CACHED */))
+                            _cache[116] || (_cache[116] = _createElementVNode("span", null, "No reutilizar una de las últimas 6 contraseñas", -1 /* CACHED */))
                           ]),
                           (_ctx.passwordRecovery.error)
                             ? (_openBlock(), _createElementBlock("p", _hoisted_28, _toDisplayString(_ctx.passwordRecovery.error), 1 /* TEXT */))
@@ -929,14 +953,14 @@ export function render(_ctx, _cache) {
                             disabled: _ctx.passwordRecovery.saving
                           }, [
                             _createElementVNode("span", null, _toDisplayString(_ctx.passwordRecovery.saving ? 'Protegiendo tu acceso…' : (_ctx.passwordRecovery.flow==='invitation' ? 'Crear contraseña y activar acceso' : 'Guardar nueva contraseña')), 1 /* TEXT */),
-                            _cache[111] || (_cache[111] = _createElementVNode("b", null, "→", -1 /* CACHED */))
+                            _cache[117] || (_cache[117] = _createElementVNode("b", null, "→", -1 /* CACHED */))
                           ], 8 /* PROPS */, _hoisted_29)
                         ], 32 /* NEED_HYDRATION */)
                       ], 64 /* STABLE_FRAGMENT */))
                     : (_ctx.passwordRecovery.mode==='success')
                       ? (_openBlock(), _createElementBlock(_Fragment, { key: 3 }, [
                           _createElementVNode("div", _hoisted_30, [
-                            _cache[114] || (_cache[114] = _createElementVNode("span", {
+                            _cache[120] || (_cache[120] = _createElementVNode("span", {
                               class: "recovery-result-icon",
                               "aria-hidden": "true"
                             }, "✓", -1 /* CACHED */)),
@@ -948,13 +972,13 @@ export function render(_ctx, _cache) {
                             type: "button",
                             class: "submit",
                             onClick: _cache[10] || (_cache[10] = (...args) => (_ctx.returnToLogin && _ctx.returnToLogin(...args)))
-                          }, [...(_cache[115] || (_cache[115] = [
+                          }, [...(_cache[121] || (_cache[121] = [
                             _createElementVNode("span", null, "Iniciar sesión", -1 /* CACHED */),
                             _createElementVNode("b", null, "→", -1 /* CACHED */)
                           ]))])
                         ], 64 /* STABLE_FRAGMENT */))
                       : (_openBlock(), _createElementBlock(_Fragment, { key: 4 }, [
-                          _cache[123] || (_cache[123] = _createElementVNode("div", { class: "heading" }, [
+                          _cache[129] || (_cache[129] = _createElementVNode("div", { class: "heading" }, [
                             _createElementVNode("p", { class: "eyebrow" }, "BIENVENIDO DE NUEVO"),
                             _createElementVNode("h2", null, "Ingresa a tu espacio."),
                             _createElementVNode("p", null, "Gestiona cada área de tu empresa desde un solo lugar.")
@@ -962,9 +986,9 @@ export function render(_ctx, _cache) {
                           _createElementVNode("form", {
                             onSubmit: _cache[16] || (_cache[16] = _withModifiers((...args) => (_ctx.signIn && _ctx.signIn(...args)), ["prevent"]))
                           }, [
-                            _cache[122] || (_cache[122] = _createElementVNode("label", { for: "email" }, "Correo corporativo", -1 /* CACHED */)),
+                            _cache[128] || (_cache[128] = _createElementVNode("label", { for: "email" }, "Correo corporativo", -1 /* CACHED */)),
                             _createElementVNode("div", _hoisted_32, [
-                              _cache[116] || (_cache[116] = _createElementVNode("span", { class: "input-icon" }, "@", -1 /* CACHED */)),
+                              _cache[122] || (_cache[122] = _createElementVNode("span", { class: "input-icon" }, "@", -1 /* CACHED */)),
                               _withDirectives(_createElementVNode("input", {
                                 id: "email",
                                 "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((_ctx.email) = $event)),
@@ -976,7 +1000,7 @@ export function render(_ctx, _cache) {
                               ])
                             ]),
                             _createElementVNode("div", _hoisted_33, [
-                              _cache[117] || (_cache[117] = _createElementVNode("label", { for: "password" }, "Contraseña", -1 /* CACHED */)),
+                              _cache[123] || (_cache[123] = _createElementVNode("label", { for: "password" }, "Contraseña", -1 /* CACHED */)),
                               _createElementVNode("a", {
                                 href: "#",
                                 onClick: _cache[12] || (_cache[12] = _withModifiers((...args) => (_ctx.requestPasswordHelp && _ctx.requestPasswordHelp(...args)), ["prevent"]))
@@ -1006,14 +1030,14 @@ export function render(_ctx, _cache) {
                                 }, null, 512 /* NEED_PATCH */), [
                                   [_vModelCheckbox, _ctx.rememberMe]
                                 ]),
-                                _cache[118] || (_cache[118] = _createElementVNode("span", null, null, -1 /* CACHED */)),
-                                _cache[119] || (_cache[119] = _createTextVNode("Recordarme", -1 /* CACHED */))
+                                _cache[124] || (_cache[124] = _createElementVNode("span", null, null, -1 /* CACHED */)),
+                                _cache[125] || (_cache[125] = _createTextVNode("Recordarme", -1 /* CACHED */))
                               ])
                             ]),
                             (_ctx.turnstileEnabled)
                               ? (_openBlock(), _createElementBlock("div", _hoisted_38, [
                                   _createElementVNode("div", _hoisted_39, null, 512 /* NEED_PATCH */),
-                                  _cache[120] || (_cache[120] = _createElementVNode("small", null, "Protección contra accesos automatizados", -1 /* CACHED */))
+                                  _cache[126] || (_cache[126] = _createElementVNode("small", null, "Protección contra accesos automatizados", -1 /* CACHED */))
                                 ]))
                               : _createCommentVNode("v-if", true),
                             _createElementVNode("p", _hoisted_40, _toDisplayString(_ctx.formError), 1 /* TEXT */),
@@ -1022,7 +1046,7 @@ export function render(_ctx, _cache) {
                               disabled: _ctx.isSubmitting || (_ctx.turnstileEnabled && !_ctx.turnstileToken)
                             }, [
                               _createElementVNode("span", null, _toDisplayString(_ctx.isSubmitting ? 'Verificando acceso…' : 'Ingresar a GENTIA'), 1 /* TEXT */),
-                              _cache[121] || (_cache[121] = _createElementVNode("b", null, "→", -1 /* CACHED */))
+                              _cache[127] || (_cache[127] = _createElementVNode("b", null, "→", -1 /* CACHED */))
                             ], 8 /* PROPS */, _hoisted_41)
                           ], 32 /* NEED_HYDRATION */)
                         ], 64 /* STABLE_FRAGMENT */))
@@ -1032,9 +1056,9 @@ export function render(_ctx, _cache) {
       : (_ctx.selectingCompany)
         ? (_openBlock(), _createElementBlock("main", _hoisted_42, [
             _createElementVNode("section", _hoisted_43, [
-              _cache[127] || (_cache[127] = _createStaticVNode("<header class=\"company-picker-brand\"><span class=\"brand gentia-brand gentia-brand-picker\"><img src=\"/gentia-wordmark.svg\" width=\"380\" height=\"124\" alt=\"GENTIA\"></span><span class=\"company-access-badge\"><i></i>Acceso seguro</span></header><div class=\"company-picker-heading\"><span class=\"company-picker-icon\" aria-hidden=\"true\">⌂</span><div><p class=\"eyebrow\">ACCESO POR EMPRESA</p><h1 id=\"company-picker-title\">¿En cuál empresa deseas trabajar?</h1><p>Selecciona el espacio empresarial que deseas administrar durante esta sesión.</p></div></div>", 2)),
+              _cache[133] || (_cache[133] = _createStaticVNode("<header class=\"company-picker-brand\"><span class=\"brand gentia-brand gentia-brand-picker\"><img src=\"/gentia-wordmark.svg\" width=\"380\" height=\"124\" alt=\"GENTIA\"></span><span class=\"company-access-badge\"><i></i>Acceso seguro</span></header><div class=\"company-picker-heading\"><span class=\"company-picker-icon\" aria-hidden=\"true\">⌂</span><div><p class=\"eyebrow\">ACCESO POR EMPRESA</p><h1 id=\"company-picker-title\">¿En cuál empresa deseas trabajar?</h1><p>Selecciona el espacio empresarial que deseas administrar durante esta sesión.</p></div></div>", 2)),
               _createElementVNode("div", _hoisted_44, [
-                _cache[125] || (_cache[125] = _createElementVNode("strong", null, "Empresas disponibles", -1 /* CACHED */)),
+                _cache[131] || (_cache[131] = _createElementVNode("strong", null, "Empresas disponibles", -1 /* CACHED */)),
                 _createElementVNode("span", null, _toDisplayString(_ctx.companies.length) + " asignadas", 1 /* TEXT */)
               ]),
               _createElementVNode("div", _hoisted_45, [
@@ -1056,7 +1080,7 @@ export function render(_ctx, _cache) {
               ]),
               _createElementVNode("p", _hoisted_50, _toDisplayString(_ctx.companyError), 1 /* TEXT */),
               _createElementVNode("footer", _hoisted_51, [
-                _cache[126] || (_cache[126] = _createElementVNode("span", null, [
+                _cache[132] || (_cache[132] = _createElementVNode("span", null, [
                   _createElementVNode("i", null, "✓"),
                   _createTextVNode(" Solo verás información de la empresa seleccionada")
                 ], -1 /* CACHED */)),
@@ -1091,7 +1115,7 @@ export function render(_ctx, _cache) {
               tabindex: "-1",
               "aria-label": "Menú de módulos"
             }, [
-              _cache[132] || (_cache[132] = _createElementVNode("span", { class: "brand gentia-brand gentia-brand-sidebar" }, [
+              _cache[138] || (_cache[138] = _createElementVNode("span", { class: "brand gentia-brand gentia-brand-sidebar" }, [
                 _createElementVNode("img", {
                   src: "/gentia-wordmark-reversed.svg",
                   width: "380",
@@ -1106,7 +1130,7 @@ export function render(_ctx, _cache) {
                 onClick: _cache[19] || (_cache[19] = (...args) => (_ctx.closeMobileSidebar && _ctx.closeMobileSidebar(...args)))
               }, "×"),
               _createElementVNode("nav", _hoisted_53, [
-                _cache[129] || (_cache[129] = _createElementVNode("p", null, "MÓDULOS", -1 /* CACHED */)),
+                _cache[135] || (_cache[135] = _createElementVNode("p", null, "MÓDULOS", -1 /* CACHED */)),
                 (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.visibleModules, (module) => {
                   return (_openBlock(), _createElementBlock(_Fragment, {
                     key: module.name
@@ -1137,7 +1161,7 @@ export function render(_ctx, _cache) {
                               class: _normalizeClass({active:_ctx.currentSection===child}),
                               onClick: _withModifiers($event => (_ctx.navigateChild(module.name, child)), ["prevent"])
                             }, [
-                              _cache[128] || (_cache[128] = _createElementVNode("span", null, null, -1 /* CACHED */)),
+                              _cache[134] || (_cache[134] = _createElementVNode("span", null, null, -1 /* CACHED */)),
                               _createTextVNode(_toDisplayString(child), 1 /* TEXT */)
                             ], 10 /* CLASS, PROPS */, _hoisted_58))
                           }), 128 /* KEYED_FRAGMENT */))
@@ -1149,13 +1173,13 @@ export function render(_ctx, _cache) {
               _createElementVNode("div", _hoisted_59, [
                 _createElementVNode("button", {
                   onClick: _cache[20] || (_cache[20] = $event => {_ctx.closeMobileSidebar(); _ctx.openPasswordDialog()})
-                }, [...(_cache[130] || (_cache[130] = [
+                }, [...(_cache[136] || (_cache[136] = [
                   _createElementVNode("span", null, "⚿", -1 /* CACHED */),
                   _createTextVNode("Cambiar contraseña", -1 /* CACHED */)
                 ]))]),
                 _createElementVNode("button", {
                   onClick: _cache[21] || (_cache[21] = (...args) => (_ctx.logout && _ctx.logout(...args)))
-                }, [...(_cache[131] || (_cache[131] = [
+                }, [...(_cache[137] || (_cache[137] = [
                   _createElementVNode("span", null, "↪", -1 /* CACHED */),
                   _createTextVNode("Cerrar sesión", -1 /* CACHED */)
                 ]))])
@@ -1176,16 +1200,16 @@ export function render(_ctx, _cache) {
                   title: _ctx.sidebarExpanded?'Ocultar menú de módulos':'Mostrar menú de módulos',
                   onClick: _cache[22] || (_cache[22] = (...args) => (_ctx.toggleSidebar && _ctx.toggleSidebar(...args)))
                 }, [
-                  _cache[133] || (_cache[133] = _createElementVNode("span", { "aria-hidden": "true" }, "☰", -1 /* CACHED */)),
+                  _cache[139] || (_cache[139] = _createElementVNode("span", { "aria-hidden": "true" }, "☰", -1 /* CACHED */)),
                   _createElementVNode("span", _hoisted_63, _toDisplayString(_ctx.sidebarExpanded?'Ocultar menú':'Mostrar menú'), 1 /* TEXT */)
                 ], 8 /* PROPS */, _hoisted_62),
                 _createElementVNode("div", _hoisted_64, [
-                  _cache[135] || (_cache[135] = _createElementVNode("span", null, "Espacio de trabajo", -1 /* CACHED */)),
-                  _cache[136] || (_cache[136] = _createElementVNode("b", null, "/", -1 /* CACHED */)),
+                  _cache[141] || (_cache[141] = _createElementVNode("span", null, "Espacio de trabajo", -1 /* CACHED */)),
+                  _cache[142] || (_cache[142] = _createElementVNode("b", null, "/", -1 /* CACHED */)),
                   _createElementVNode("span", null, _toDisplayString(_ctx.currentModule), 1 /* TEXT */),
                   (_ctx.currentSection !== _ctx.currentModule)
                     ? (_openBlock(), _createElementBlock(_Fragment, { key: 0 }, [
-                        _cache[134] || (_cache[134] = _createElementVNode("b", null, "/", -1 /* CACHED */)),
+                        _cache[140] || (_cache[140] = _createElementVNode("b", null, "/", -1 /* CACHED */)),
                         _createElementVNode("strong", null, _toDisplayString(_ctx.currentSection), 1 /* TEXT */)
                       ], 64 /* STABLE_FRAGMENT */))
                     : _createCommentVNode("v-if", true)
@@ -1199,7 +1223,7 @@ export function render(_ctx, _cache) {
                             _createElementVNode("small", null, _toDisplayString(_ctx.t('core.header.activeCompany',{},'EMPRESA ACTIVA')), 1 /* TEXT */),
                             _createElementVNode("strong", _hoisted_69, _toDisplayString(_ctx.activeCompany?.name), 1 /* TEXT */)
                           ]),
-                          _cache[137] || (_cache[137] = _createElementVNode("span", { class: "role-chevron" }, "⌄", -1 /* CACHED */))
+                          _cache[143] || (_cache[143] = _createElementVNode("span", { class: "role-chevron" }, "⌄", -1 /* CACHED */))
                         ]),
                         _createElementVNode("div", _hoisted_70, [
                           _createElementVNode("div", _hoisted_71, [
@@ -1234,7 +1258,7 @@ export function render(_ctx, _cache) {
                   (_ctx.roles.length > 1)
                     ? (_openBlock(), _createElementBlock("details", _hoisted_79, [
                         _createElementVNode("summary", null, [
-                          _cache[138] || (_cache[138] = _createElementVNode("span", {
+                          _cache[144] || (_cache[144] = _createElementVNode("span", {
                             class: "role-badge",
                             "aria-hidden": "true"
                           }, "✓", -1 /* CACHED */)),
@@ -1242,7 +1266,7 @@ export function render(_ctx, _cache) {
                             _createElementVNode("small", null, _toDisplayString(_ctx.t('core.header.activeRole',{},'ROL ACTIVO')), 1 /* TEXT */),
                             _createElementVNode("strong", _hoisted_81, _toDisplayString(_ctx.activeRole?.name), 1 /* TEXT */)
                           ]),
-                          _cache[139] || (_cache[139] = _createElementVNode("span", {
+                          _cache[145] || (_cache[145] = _createElementVNode("span", {
                             class: "role-chevron",
                             "aria-hidden": "true"
                           }, "⌄", -1 /* CACHED */))
@@ -1271,7 +1295,7 @@ export function render(_ctx, _cache) {
                         ])
                       ]))
                     : (_openBlock(), _createElementBlock("div", _hoisted_87, [
-                        _cache[140] || (_cache[140] = _createElementVNode("span", {
+                        _cache[146] || (_cache[146] = _createElementVNode("span", {
                           class: "role-badge",
                           "aria-hidden": "true"
                         }, "✓", -1 /* CACHED */)),
@@ -1289,7 +1313,7 @@ export function render(_ctx, _cache) {
                         _createElementVNode("small", null, _toDisplayString(_ctx.t('core.header.language',{},'IDIOMA')), 1 /* TEXT */),
                         _createElementVNode("strong", _hoisted_94, _toDisplayString(_ctx.currentLanguage.name), 1 /* TEXT */)
                       ]),
-                      _cache[141] || (_cache[141] = _createElementVNode("span", {
+                      _cache[147] || (_cache[147] = _createElementVNode("span", {
                         class: "role-chevron",
                         "aria-hidden": "true"
                       }, "⌄", -1 /* CACHED */))
@@ -1351,9 +1375,9 @@ export function render(_ctx, _cache) {
                             class: "module-mark",
                             innerHTML: _ctx.activeModuleIcon
                           }, null, 8 /* PROPS */, _hoisted_107),
-                          _cache[142] || (_cache[142] = _createElementVNode("p", { class: "eyebrow" }, "MÓDULO", -1 /* CACHED */)),
+                          _cache[148] || (_cache[148] = _createElementVNode("p", { class: "eyebrow" }, "MÓDULO", -1 /* CACHED */)),
                           _createElementVNode("h1", null, _toDisplayString(_ctx.currentModule), 1 /* TEXT */),
-                          _cache[143] || (_cache[143] = _createElementVNode("p", { class: "dashboard-copy" }, "Selecciona una opción del módulo para comenzar a trabajar.", -1 /* CACHED */))
+                          _cache[149] || (_cache[149] = _createElementVNode("p", { class: "dashboard-copy" }, "Selecciona una opción del módulo para comenzar a trabajar.", -1 /* CACHED */))
                         ]))
                       : (_openBlock(), _createElementBlock("section", _hoisted_108, [
                           _createElementVNode("div", _hoisted_109, [
@@ -1386,7 +1410,7 @@ export function render(_ctx, _cache) {
                                       title: 'Descargar '+_ctx.activeCatalog.title+' en CSV',
                                       onClick: _cache[26] || (_cache[26] = $event => (_ctx.downloadOrganizationCatalog('csv')))
                                     }, [
-                                      _cache[144] || (_cache[144] = _createElementVNode("span", null, "↓", -1 /* CACHED */)),
+                                      _cache[150] || (_cache[150] = _createElementVNode("span", null, "↓", -1 /* CACHED */)),
                                       _createTextVNode(" " + _toDisplayString(_ctx.costCenterExporting==='csv' ? 'Preparando…' : 'CSV'), 1 /* TEXT */)
                                     ], 8 /* PROPS */, _hoisted_117),
                                     _createElementVNode("button", {
@@ -1396,7 +1420,7 @@ export function render(_ctx, _cache) {
                                       title: 'Descargar '+_ctx.activeCatalog.title+' en Excel',
                                       onClick: _cache[27] || (_cache[27] = $event => (_ctx.downloadOrganizationCatalog('xlsx')))
                                     }, [
-                                      _cache[145] || (_cache[145] = _createElementVNode("span", null, "↓", -1 /* CACHED */)),
+                                      _cache[151] || (_cache[151] = _createElementVNode("span", null, "↓", -1 /* CACHED */)),
                                       _createTextVNode(" " + _toDisplayString(_ctx.costCenterExporting==='xlsx' ? 'Preparando…' : 'Excel'), 1 /* TEXT */)
                                     ], 8 /* PROPS */, _hoisted_118)
                                   ], 8 /* PROPS */, _hoisted_116))
@@ -1415,7 +1439,7 @@ export function render(_ctx, _cache) {
                                       title: 'Descargar '+_ctx.activeCatalog.title+' en CSV para '+(_ctx.activeCompany?.name || 'la subsidiaria activa'),
                                       onClick: _cache[28] || (_cache[28] = $event => (_ctx.downloadEntityCatalog('csv')))
                                     }, [
-                                      _cache[146] || (_cache[146] = _createElementVNode("span", null, "↓", -1 /* CACHED */)),
+                                      _cache[152] || (_cache[152] = _createElementVNode("span", null, "↓", -1 /* CACHED */)),
                                       _createTextVNode(" " + _toDisplayString(_ctx.entityExporting==='csv' ? 'Preparando…' : 'CSV'), 1 /* TEXT */)
                                     ], 8 /* PROPS */, _hoisted_120),
                                     _createElementVNode("button", {
@@ -1425,7 +1449,7 @@ export function render(_ctx, _cache) {
                                       title: 'Descargar '+_ctx.activeCatalog.title+' en Excel para '+(_ctx.activeCompany?.name || 'la subsidiaria activa'),
                                       onClick: _cache[29] || (_cache[29] = $event => (_ctx.downloadEntityCatalog('xlsx')))
                                     }, [
-                                      _cache[147] || (_cache[147] = _createElementVNode("span", null, "↓", -1 /* CACHED */)),
+                                      _cache[153] || (_cache[153] = _createElementVNode("span", null, "↓", -1 /* CACHED */)),
                                       _createTextVNode(" " + _toDisplayString(_ctx.entityExporting==='xlsx' ? 'Preparando…' : 'Excel'), 1 /* TEXT */)
                                     ], 8 /* PROPS */, _hoisted_121),
                                     _createElementVNode("button", {
@@ -1435,14 +1459,14 @@ export function render(_ctx, _cache) {
                                       title: 'Descargar '+_ctx.activeCatalog.title+' en PDF para '+(_ctx.activeCompany?.name || 'la subsidiaria activa'),
                                       onClick: _cache[30] || (_cache[30] = $event => (_ctx.downloadEntityCatalog('pdf')))
                                     }, [
-                                      _cache[148] || (_cache[148] = _createElementVNode("span", null, "↓", -1 /* CACHED */)),
+                                      _cache[154] || (_cache[154] = _createElementVNode("span", null, "↓", -1 /* CACHED */)),
                                       _createTextVNode(" " + _toDisplayString(_ctx.entityExporting==='pdf' ? 'Preparando…' : 'PDF'), 1 /* TEXT */)
                                     ], 8 /* PROPS */, _hoisted_122)
                                   ], 8 /* PROPS */, _hoisted_119))
                                 : _createCommentVNode("v-if", true),
                               (_ctx.activeCatalog.slug==='exchange-rates' && _ctx.exchangeRateActions.length)
                                 ? (_openBlock(), _createElementBlock("details", _hoisted_123, [
-                                    _cache[149] || (_cache[149] = _createElementVNode("summary", {
+                                    _cache[155] || (_cache[155] = _createElementVNode("summary", {
                                       class: "new-record",
                                       "aria-label": "Consultar tasa de cambio",
                                       title: "Consultar y actualizar tipos de cambio"
@@ -1486,38 +1510,44 @@ export function render(_ctx, _cache) {
                                   }, "Importar CSV"))
                                 : _createCommentVNode("v-if", true),
                               (_ctx.canCurrentAction('create')&&_ctx.activeCatalog.slug==='supplier-credit-notes')
-                                ? (_openBlock(), _createElementBlock("a", _hoisted_126, [...(_cache[150] || (_cache[150] = [
+                                ? (_openBlock(), _createElementBlock("a", _hoisted_126, [...(_cache[156] || (_cache[156] = [
                                     _createElementVNode("span", null, "＋", -1 /* CACHED */),
                                     _createTextVNode(" Crear nota de crédito", -1 /* CACHED */)
                                   ]))]))
                                 : _createCommentVNode("v-if", true),
                               (_ctx.canCurrentAction('create')&&_ctx.activeCatalog.slug==='credit-notes')
-                                ? (_openBlock(), _createElementBlock("a", _hoisted_127, [...(_cache[151] || (_cache[151] = [
+                                ? (_openBlock(), _createElementBlock("a", _hoisted_127, [...(_cache[157] || (_cache[157] = [
                                     _createElementVNode("span", null, "＋", -1 /* CACHED */),
                                     _createTextVNode(" Crear nota de crédito", -1 /* CACHED */)
                                   ]))]))
                                 : _createCommentVNode("v-if", true),
+                              (_ctx.canCurrentAction('create')&&_ctx.activeCatalog.slug==='supplier-invoices')
+                                ? (_openBlock(), _createElementBlock("a", _hoisted_128, [...(_cache[158] || (_cache[158] = [
+                                    _createElementVNode("span", null, "↑", -1 /* CACHED */),
+                                    _createTextVNode(" Carga masiva · Excel", -1 /* CACHED */)
+                                  ]))]))
+                                : _createCommentVNode("v-if", true),
                               (_ctx.canCurrentAction('create')&&_ctx.activeCatalog.slug==='invoices'&&_ctx.currentModule==='Ventas')
-                                ? (_openBlock(), _createElementBlock("a", _hoisted_128, [...(_cache[152] || (_cache[152] = [
+                                ? (_openBlock(), _createElementBlock("a", _hoisted_129, [...(_cache[159] || (_cache[159] = [
                                     _createElementVNode("span", null, "＋", -1 /* CACHED */),
                                     _createTextVNode(" Crear factura", -1 /* CACHED */)
                                   ]))]))
                                 : _createCommentVNode("v-if", true),
                               (_ctx.canCurrentAction('create')&&_ctx.activeCatalog.slug==='supplier-debit-notes')
-                                ? (_openBlock(), _createElementBlock("a", _hoisted_129, [...(_cache[153] || (_cache[153] = [
+                                ? (_openBlock(), _createElementBlock("a", _hoisted_130, [...(_cache[160] || (_cache[160] = [
                                     _createElementVNode("span", null, "＋", -1 /* CACHED */),
                                     _createTextVNode(" Crear nota de débito", -1 /* CACHED */)
                                   ]))]))
                                 : _createCommentVNode("v-if", true),
                               (_ctx.canCurrentAction('create')&&_ctx.activeCatalog.slug==='debit-notes')
-                                ? (_openBlock(), _createElementBlock("a", _hoisted_130, [...(_cache[154] || (_cache[154] = [
+                                ? (_openBlock(), _createElementBlock("a", _hoisted_131, [...(_cache[161] || (_cache[161] = [
                                     _createElementVNode("span", null, "＋", -1 /* CACHED */),
                                     _createTextVNode(" Crear nota de débito", -1 /* CACHED */)
                                   ]))]))
                                 : _createCommentVNode("v-if", true),
                               (_ctx.canConfigureFiscalClosurePermission())
                                 ? (_openBlock(), _createElementBlock("button", {
-                                    key: 10,
+                                    key: 11,
                                     id: "configureFiscalClosurePermission",
                                     class: "button-secondary fiscal-permission-button",
                                     type: "button",
@@ -1526,21 +1556,21 @@ export function render(_ctx, _cache) {
                                 : _createCommentVNode("v-if", true),
                               (_ctx.activeCatalog.slug==='user-subsidiaries' && _ctx.canCurrentAction('edit') && _ctx.activeCatalog.allowEdit === true)
                                 ? (_openBlock(), _createElementBlock("button", {
-                                    key: 11,
+                                    key: 12,
                                     class: "new-record",
                                     onClick: _cache[34] || (_cache[34] = $event => (_ctx.openRecordForm()))
-                                  }, [...(_cache[155] || (_cache[155] = [
+                                  }, [...(_cache[162] || (_cache[162] = [
                                     _createElementVNode("span", null, "＋", -1 /* CACHED */),
                                     _createTextVNode(" Asignar empresas", -1 /* CACHED */)
                                   ]))]))
                                 : _createCommentVNode("v-if", true),
                               (_ctx.canCurrentAction('create')&&_ctx.activeCatalog.allowCreate !== false && _ctx.activeCatalog.slug!=='user-subsidiaries' && !['credit-notes','debit-notes','supplier-credit-notes','supplier-debit-notes','invoices'].includes(_ctx.activeCatalog.slug))
                                 ? (_openBlock(), _createElementBlock("button", {
-                                    key: 12,
+                                    key: 13,
                                     class: "new-record",
                                     onClick: _cache[35] || (_cache[35] = $event => (_ctx.openRecordForm()))
                                   }, [
-                                    _cache[156] || (_cache[156] = _createElementVNode("span", null, "＋", -1 /* CACHED */)),
+                                    _cache[163] || (_cache[163] = _createElementVNode("span", null, "＋", -1 /* CACHED */)),
                                     _createTextVNode(" Crear " + _toDisplayString(_ctx.activeCatalog.singular), 1 /* TEXT */)
                                   ]))
                                 : _createCommentVNode("v-if", true)
@@ -1550,55 +1580,122 @@ export function render(_ctx, _cache) {
                             class: _normalizeClass(["table-card", {'bank-statement-table-card':_ctx.activeCatalog.slug==='bank-statements','fiscal-period-table-card':_ctx.activeCatalog.slug==='accounting-periods'}])
                           }, [
                             (!_ctx.activeCatalog.auditRawRestricted)
-                              ? (_openBlock(), _createElementBlock("div", _hoisted_131, [
-                                  _createElementVNode("div", _hoisted_132, [
-                                    _cache[157] || (_cache[157] = _createElementVNode("span", null, "⌕", -1 /* CACHED */)),
+                              ? (_openBlock(), _createElementBlock("div", _hoisted_132, [
+                                  _createElementVNode("div", _hoisted_133, [
+                                    _cache[164] || (_cache[164] = _createElementVNode("span", null, "⌕", -1 /* CACHED */)),
                                     _withDirectives(_createElementVNode("input", {
                                       "onUpdate:modelValue": _cache[36] || (_cache[36] = $event => ((_ctx.search) = $event)),
                                       placeholder: _ctx.bankStatementCatalog?'Buscar fecha, cuenta o banco':_ctx.activeCatalog?.slug==='exchange-rates'?'Buscar moneda destino o fecha efectiva':'Buscar en el catálogo',
                                       "aria-label": "Buscar registros"
-                                    }, null, 8 /* PROPS */, _hoisted_133), [
+                                    }, null, 8 /* PROPS */, _hoisted_134), [
                                       [_vModelText, _ctx.search]
                                     ])
                                   ]),
-                                  _createElementVNode("span", _hoisted_134, _toDisplayString(_ctx.filteredRows.length) + " " + _toDisplayString(_ctx.filteredRows.length === 1 ? 'registro' : 'registros'), 1 /* TEXT */)
+                                  _createElementVNode("span", _hoisted_135, _toDisplayString(_ctx.filteredRows.length) + " " + _toDisplayString(_ctx.filteredRows.length === 1 ? 'registro' : 'registros'), 1 /* TEXT */)
+                                ]))
+                              : _createCommentVNode("v-if", true),
+                            (_ctx.invoiceCatalogSortingEnabled)
+                              ? (_openBlock(), _createElementBlock("div", _hoisted_136, [
+                                  _createElementVNode("label", null, [
+                                    _cache[165] || (_cache[165] = _createElementVNode("span", null, "Emisión desde", -1 /* CACHED */)),
+                                    _withDirectives(_createElementVNode("input", {
+                                      type: "date",
+                                      "onUpdate:modelValue": _cache[37] || (_cache[37] = $event => ((_ctx.invoiceCatalogFilters.from) = $event)),
+                                      disabled: _ctx.tableLoading
+                                    }, null, 8 /* PROPS */, _hoisted_137), [
+                                      [_vModelText, _ctx.invoiceCatalogFilters.from]
+                                    ])
+                                  ]),
+                                  _createElementVNode("label", null, [
+                                    _cache[166] || (_cache[166] = _createElementVNode("span", null, "Emisión hasta", -1 /* CACHED */)),
+                                    _withDirectives(_createElementVNode("input", {
+                                      type: "date",
+                                      "onUpdate:modelValue": _cache[38] || (_cache[38] = $event => ((_ctx.invoiceCatalogFilters.to) = $event)),
+                                      min: _ctx.invoiceCatalogFilters.from || undefined,
+                                      disabled: _ctx.tableLoading
+                                    }, null, 8 /* PROPS */, _hoisted_138), [
+                                      [_vModelText, _ctx.invoiceCatalogFilters.to]
+                                    ])
+                                  ]),
+                                  _createElementVNode("label", null, [
+                                    _createElementVNode("span", null, _toDisplayString(_ctx.activeCatalog.slug==='supplier-invoices' ? 'Proveedor' : 'Cliente'), 1 /* TEXT */),
+                                    _withDirectives(_createElementVNode("select", {
+                                      "onUpdate:modelValue": _cache[39] || (_cache[39] = $event => ((_ctx.invoiceCatalogFilters.entity) = $event)),
+                                      disabled: _ctx.tableLoading
+                                    }, [
+                                      _createElementVNode("option", _hoisted_140, _toDisplayString(_ctx.activeCatalog.slug==='supplier-invoices' ? 'Todos los proveedores' : 'Todos los clientes'), 1 /* TEXT */),
+                                      (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.invoiceCatalogEntityOptions, (option) => {
+                                        return (_openBlock(), _createElementBlock("option", {
+                                          key: option.id,
+                                          value: option.id
+                                        }, _toDisplayString(option.label), 9 /* TEXT, PROPS */, _hoisted_141))
+                                      }), 128 /* KEYED_FRAGMENT */))
+                                    ], 8 /* PROPS */, _hoisted_139), [
+                                      [_vModelSelect, _ctx.invoiceCatalogFilters.entity]
+                                    ])
+                                  ]),
+                                  _createElementVNode("label", null, [
+                                    _cache[167] || (_cache[167] = _createElementVNode("span", null, "Número de factura", -1 /* CACHED */)),
+                                    _withDirectives(_createElementVNode("input", {
+                                      "onUpdate:modelValue": _cache[40] || (_cache[40] = $event => ((_ctx.invoiceCatalogFilters.number) = $event)),
+                                      placeholder: "Número completo o parcial",
+                                      disabled: _ctx.tableLoading
+                                    }, null, 8 /* PROPS */, _hoisted_142), [
+                                      [_vModelText, _ctx.invoiceCatalogFilters.number]
+                                    ])
+                                  ]),
+                                  _createElementVNode("button", {
+                                    type: "button",
+                                    class: "button-link",
+                                    onClick: _cache[41] || (_cache[41] = $event => {_ctx.invoiceCatalogFilters={from:'',to:'',entity:'',number:''};_ctx.search=''}),
+                                    disabled: _ctx.tableLoading
+                                  }, "Limpiar filtros", 8 /* PROPS */, _hoisted_143),
+                                  _createElementVNode("button", {
+                                    type: "button",
+                                    class: "new-record catalog-export-button",
+                                    onClick: _cache[42] || (_cache[42] = $event => (_ctx.downloadInvoiceCatalog())),
+                                    disabled: _ctx.tableLoading || _ctx.invoiceExporting || Boolean(_ctx.invoiceFilterMessage) || Boolean(_ctx.tableError) || !_ctx.filteredRows.length
+                                  }, _toDisplayString(_ctx.invoiceExporting ? 'Preparando…' : '↓ Descargar Excel'), 9 /* TEXT, PROPS */, _hoisted_144),
+                                  (_ctx.invoiceFilterMessage)
+                                    ? (_openBlock(), _createElementBlock("p", _hoisted_145, _toDisplayString(_ctx.invoiceFilterMessage), 1 /* TEXT */))
+                                    : _createCommentVNode("v-if", true)
                                 ]))
                               : _createCommentVNode("v-if", true),
                             (_ctx.bankStatementCatalog)
-                              ? (_openBlock(), _createElementBlock("div", _hoisted_135, [
+                              ? (_openBlock(), _createElementBlock("div", _hoisted_146, [
                                   _createElementVNode("label", null, [
-                                    _cache[159] || (_cache[159] = _createElementVNode("span", null, "Cuenta bancaria", -1 /* CACHED */)),
+                                    _cache[169] || (_cache[169] = _createElementVNode("span", null, "Cuenta bancaria", -1 /* CACHED */)),
                                     _withDirectives(_createElementVNode("select", {
-                                      "onUpdate:modelValue": _cache[37] || (_cache[37] = $event => ((_ctx.bankStatementFilters.account) = $event)),
+                                      "onUpdate:modelValue": _cache[43] || (_cache[43] = $event => ((_ctx.bankStatementFilters.account) = $event)),
                                       disabled: _ctx.tableLoading,
                                       "aria-label": "Filtrar extractos por cuenta"
                                     }, [
-                                      _cache[158] || (_cache[158] = _createElementVNode("option", { value: "" }, "Todas las cuentas", -1 /* CACHED */)),
+                                      _cache[168] || (_cache[168] = _createElementVNode("option", { value: "" }, "Todas las cuentas", -1 /* CACHED */)),
                                       (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.bankStatementAccountOptions, (option) => {
                                         return (_openBlock(), _createElementBlock("option", {
                                           key: option.value,
                                           value: option.value
-                                        }, _toDisplayString(option.label), 9 /* TEXT, PROPS */, _hoisted_137))
+                                        }, _toDisplayString(option.label), 9 /* TEXT, PROPS */, _hoisted_148))
                                       }), 128 /* KEYED_FRAGMENT */))
-                                    ], 8 /* PROPS */, _hoisted_136), [
+                                    ], 8 /* PROPS */, _hoisted_147), [
                                       [_vModelSelect, _ctx.bankStatementFilters.account]
                                     ])
                                   ]),
                                   _createElementVNode("label", null, [
-                                    _cache[161] || (_cache[161] = _createElementVNode("span", null, "Mes", -1 /* CACHED */)),
+                                    _cache[171] || (_cache[171] = _createElementVNode("span", null, "Mes", -1 /* CACHED */)),
                                     _withDirectives(_createElementVNode("select", {
-                                      "onUpdate:modelValue": _cache[38] || (_cache[38] = $event => ((_ctx.bankStatementFilters.month) = $event)),
+                                      "onUpdate:modelValue": _cache[44] || (_cache[44] = $event => ((_ctx.bankStatementFilters.month) = $event)),
                                       disabled: _ctx.tableLoading,
                                       "aria-label": "Filtrar extractos por mes"
                                     }, [
-                                      _cache[160] || (_cache[160] = _createElementVNode("option", { value: "" }, "Todos los meses", -1 /* CACHED */)),
+                                      _cache[170] || (_cache[170] = _createElementVNode("option", { value: "" }, "Todos los meses", -1 /* CACHED */)),
                                       (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.bankStatementMonthOptions, (option) => {
                                         return (_openBlock(), _createElementBlock("option", {
                                           key: option.value,
                                           value: option.value
-                                        }, _toDisplayString(option.label), 9 /* TEXT, PROPS */, _hoisted_139))
+                                        }, _toDisplayString(option.label), 9 /* TEXT, PROPS */, _hoisted_150))
                                       }), 128 /* KEYED_FRAGMENT */))
-                                    ], 8 /* PROPS */, _hoisted_138), [
+                                    ], 8 /* PROPS */, _hoisted_149), [
                                       [_vModelSelect, _ctx.bankStatementFilters.month]
                                     ])
                                   ]),
@@ -1606,26 +1703,26 @@ export function render(_ctx, _cache) {
                                     type: "button",
                                     class: "button-link",
                                     disabled: !_ctx.search&&!_ctx.bankStatementFilters.account&&!_ctx.bankStatementFilters.month,
-                                    onClick: _cache[39] || (_cache[39] = $event => {_ctx.search='';_ctx.bankStatementFilters={account:'',month:''}})
-                                  }, "Limpiar filtros", 8 /* PROPS */, _hoisted_140)
+                                    onClick: _cache[45] || (_cache[45] = $event => {_ctx.search='';_ctx.bankStatementFilters={account:'',month:''}})
+                                  }, "Limpiar filtros", 8 /* PROPS */, _hoisted_151)
                                 ]))
                               : _createCommentVNode("v-if", true),
                             (!_ctx.activeCatalog.auditRawRestricted && (_ctx.rows.length>10 || _ctx.catalogPageSize!==10))
-                              ? (_openBlock(), _createElementBlock("nav", _hoisted_141, [
-                                  _createElementVNode("p", _hoisted_142, _toDisplayString(_ctx.catalogPagination.from) + "–" + _toDisplayString(_ctx.catalogPagination.to) + " de " + _toDisplayString(_ctx.catalogPagination.total) + " registros", 1 /* TEXT */),
-                                  _createElementVNode("label", _hoisted_143, [
-                                    _cache[163] || (_cache[163] = _createTextVNode("Registros por página", -1 /* CACHED */)),
+                              ? (_openBlock(), _createElementBlock("nav", _hoisted_152, [
+                                  _createElementVNode("p", _hoisted_153, _toDisplayString(_ctx.catalogPagination.from) + "–" + _toDisplayString(_ctx.catalogPagination.to) + " de " + _toDisplayString(_ctx.catalogPagination.total) + " registros", 1 /* TEXT */),
+                                  _createElementVNode("label", _hoisted_154, [
+                                    _cache[173] || (_cache[173] = _createTextVNode("Registros por página", -1 /* CACHED */)),
                                     _withDirectives(_createElementVNode("select", {
                                       id: "catalogPageSize",
-                                      "onUpdate:modelValue": _cache[40] || (_cache[40] = $event => ((_ctx.catalogPageSize) = $event)),
+                                      "onUpdate:modelValue": _cache[46] || (_cache[46] = $event => ((_ctx.catalogPageSize) = $event)),
                                       disabled: _ctx.tableLoading || !!_ctx.tableError,
                                       "aria-label": "Registros por página"
-                                    }, [...(_cache[162] || (_cache[162] = [
+                                    }, [...(_cache[172] || (_cache[172] = [
                                       _createElementVNode("option", { value: 10 }, "10", -1 /* CACHED */),
                                       _createElementVNode("option", { value: 25 }, "25", -1 /* CACHED */),
                                       _createElementVNode("option", { value: 50 }, "50", -1 /* CACHED */),
                                       _createElementVNode("option", { value: 100 }, "100", -1 /* CACHED */)
-                                    ]))], 8 /* PROPS */, _hoisted_144), [
+                                    ]))], 8 /* PROPS */, _hoisted_155), [
                                       [
                                         _vModelSelect,
                                         _ctx.catalogPageSize,
@@ -1634,63 +1731,63 @@ export function render(_ctx, _cache) {
                                       ]
                                     ])
                                   ]),
-                                  _createElementVNode("div", _hoisted_145, [
+                                  _createElementVNode("div", _hoisted_156, [
                                     _createElementVNode("button", {
                                       type: "button",
                                       "data-pagination-action": "first",
                                       "aria-label": "Primera página",
                                       title: "Primera página",
                                       disabled: _ctx.tableLoading || !!_ctx.tableError || _ctx.catalogPagination.page<=1,
-                                      onClick: _cache[41] || (_cache[41] = $event => (_ctx.setCatalogPage(1)))
-                                    }, "«", 8 /* PROPS */, _hoisted_146),
+                                      onClick: _cache[47] || (_cache[47] = $event => (_ctx.setCatalogPage(1)))
+                                    }, "«", 8 /* PROPS */, _hoisted_157),
                                     _createElementVNode("button", {
                                       type: "button",
                                       "data-pagination-action": "previous",
                                       "aria-label": "Página anterior",
                                       title: "Página anterior",
                                       disabled: _ctx.tableLoading || !!_ctx.tableError || _ctx.catalogPagination.page<=1,
-                                      onClick: _cache[42] || (_cache[42] = $event => (_ctx.setCatalogPage(_ctx.catalogPagination.page-1)))
-                                    }, "‹", 8 /* PROPS */, _hoisted_147),
-                                    _createElementVNode("span", _hoisted_148, "Página " + _toDisplayString(_ctx.catalogPagination.page) + " de " + _toDisplayString(_ctx.catalogPagination.pageCount), 1 /* TEXT */),
+                                      onClick: _cache[48] || (_cache[48] = $event => (_ctx.setCatalogPage(_ctx.catalogPagination.page-1)))
+                                    }, "‹", 8 /* PROPS */, _hoisted_158),
+                                    _createElementVNode("span", _hoisted_159, "Página " + _toDisplayString(_ctx.catalogPagination.page) + " de " + _toDisplayString(_ctx.catalogPagination.pageCount), 1 /* TEXT */),
                                     _createElementVNode("button", {
                                       type: "button",
                                       "data-pagination-action": "next",
                                       "aria-label": "Página siguiente",
                                       title: "Página siguiente",
                                       disabled: _ctx.tableLoading || !!_ctx.tableError || _ctx.catalogPagination.page>=_ctx.catalogPagination.pageCount,
-                                      onClick: _cache[43] || (_cache[43] = $event => (_ctx.setCatalogPage(_ctx.catalogPagination.page+1)))
-                                    }, "›", 8 /* PROPS */, _hoisted_149),
+                                      onClick: _cache[49] || (_cache[49] = $event => (_ctx.setCatalogPage(_ctx.catalogPagination.page+1)))
+                                    }, "›", 8 /* PROPS */, _hoisted_160),
                                     _createElementVNode("button", {
                                       type: "button",
                                       "data-pagination-action": "last",
                                       "aria-label": "Última página",
                                       title: "Última página",
                                       disabled: _ctx.tableLoading || !!_ctx.tableError || _ctx.catalogPagination.page>=_ctx.catalogPagination.pageCount,
-                                      onClick: _cache[44] || (_cache[44] = $event => (_ctx.setCatalogPage(_ctx.catalogPagination.pageCount)))
-                                    }, "»", 8 /* PROPS */, _hoisted_150)
+                                      onClick: _cache[50] || (_cache[50] = $event => (_ctx.setCatalogPage(_ctx.catalogPagination.pageCount)))
+                                    }, "»", 8 /* PROPS */, _hoisted_161)
                                   ])
                                 ]))
                               : _createCommentVNode("v-if", true),
                             (_ctx.tableNotice)
-                              ? (_openBlock(), _createElementBlock("p", _hoisted_151, _toDisplayString(_ctx.tableNotice), 1 /* TEXT */))
+                              ? (_openBlock(), _createElementBlock("p", _hoisted_162, _toDisplayString(_ctx.tableNotice), 1 /* TEXT */))
                               : _createCommentVNode("v-if", true),
                             (_ctx.activeCatalog.auditRawRestricted&&_ctx.canOpenAuditReport())
-                              ? (_openBlock(), _createElementBlock("p", _hoisted_152, [
+                              ? (_openBlock(), _createElementBlock("p", _hoisted_163, [
                                   _createElementVNode("button", {
                                     id: "openScopedAuditReport",
                                     type: "button",
                                     class: "button-link",
-                                    onClick: _cache[45] || (_cache[45] = $event => (_ctx.navigateChild('Auditoría','Transacciones modificadas y eliminadas')))
+                                    onClick: _cache[51] || (_cache[51] = $event => (_ctx.navigateChild('Auditoría','Transacciones modificadas y eliminadas')))
                                   }, "Abrir informe de transacciones modificadas y eliminadas")
                                 ]))
                               : _createCommentVNode("v-if", true),
                             (_ctx.tableWarning)
-                              ? (_openBlock(), _createElementBlock("p", _hoisted_153, _toDisplayString(_ctx.tableWarning), 1 /* TEXT */))
+                              ? (_openBlock(), _createElementBlock("p", _hoisted_164, _toDisplayString(_ctx.tableWarning), 1 /* TEXT */))
                               : _createCommentVNode("v-if", true),
                             (_ctx.tableLoading)
-                              ? (_openBlock(), _createElementBlock("p", _hoisted_154, "Cargando registros…"))
+                              ? (_openBlock(), _createElementBlock("p", _hoisted_165, "Cargando registros…"))
                               : (_ctx.tableError)
-                                ? (_openBlock(), _createElementBlock("p", _hoisted_155, [
+                                ? (_openBlock(), _createElementBlock("p", _hoisted_166, [
                                     _createTextVNode(_toDisplayString(_ctx.tableError) + " ", 1 /* TEXT */),
                                     (_ctx.activeCatalog.rateCatalog)
                                       ? (_openBlock(), _createElementBlock("button", {
@@ -1699,12 +1796,12 @@ export function render(_ctx, _cache) {
                                           type: "button",
                                           class: "button-link",
                                           "data-i18n": "common.retry",
-                                          onClick: _cache[46] || (_cache[46] = $event => (_ctx.loadCatalog()))
+                                          onClick: _cache[52] || (_cache[52] = $event => (_ctx.loadCatalog()))
                                         }, "Reintentar"))
                                       : _createCommentVNode("v-if", true)
                                   ]))
                                 : (!_ctx.activeCatalog.auditRawRestricted)
-                                  ? (_openBlock(), _createElementBlock("div", _hoisted_156, [
+                                  ? (_openBlock(), _createElementBlock("div", _hoisted_167, [
                                       _createElementVNode("table", {
                                         id: "catalogRecords",
                                         class: _normalizeClass({'wide-table':_ctx.tableFields.length >= 6}),
@@ -1723,13 +1820,13 @@ export function render(_ctx, _cache) {
                                                     "data-sort-key": _ctx.activeCatalog.primaryKey,
                                                     "aria-label": _ctx.catalogSortLabel('ID interno',_ctx.activeCatalog.primaryKey),
                                                     title: _ctx.catalogSortLabel('ID interno',_ctx.activeCatalog.primaryKey),
-                                                    onClick: _cache[47] || (_cache[47] = $event => (_ctx.sortCatalog(_ctx.activeCatalog.primaryKey)))
+                                                    onClick: _cache[53] || (_cache[53] = $event => (_ctx.sortCatalog(_ctx.activeCatalog.primaryKey)))
                                                   }, [
-                                                    _cache[164] || (_cache[164] = _createElementVNode("span", null, "ID interno", -1 /* CACHED */)),
-                                                    _createElementVNode("span", _hoisted_159, _toDisplayString(_ctx.catalogSortIcon(_ctx.activeCatalog.primaryKey)), 1 /* TEXT */)
-                                                  ], 10 /* CLASS, PROPS */, _hoisted_158))
-                                                : (_openBlock(), _createElementBlock("span", _hoisted_160, "ID interno"))
-                                            ], 8 /* PROPS */, _hoisted_157),
+                                                    _cache[174] || (_cache[174] = _createElementVNode("span", null, "ID interno", -1 /* CACHED */)),
+                                                    _createElementVNode("span", _hoisted_170, _toDisplayString(_ctx.catalogSortIcon(_ctx.activeCatalog.primaryKey)), 1 /* TEXT */)
+                                                  ], 10 /* CLASS, PROPS */, _hoisted_169))
+                                                : (_openBlock(), _createElementBlock("span", _hoisted_171, "ID interno"))
+                                            ], 8 /* PROPS */, _hoisted_168),
                                             (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.tableFields, (field) => {
                                               return (_openBlock(), _createElementBlock("th", {
                                                 key: field.key,
@@ -1747,12 +1844,12 @@ export function render(_ctx, _cache) {
                                                       onClick: $event => (_ctx.sortCatalog(field.key))
                                                     }, [
                                                       _createElementVNode("span", null, _toDisplayString(field.label), 1 /* TEXT */),
-                                                      _createElementVNode("span", _hoisted_163, _toDisplayString(_ctx.catalogSortIcon(field.key)), 1 /* TEXT */)
-                                                    ], 10 /* CLASS, PROPS */, _hoisted_162))
-                                                  : (_openBlock(), _createElementBlock("span", _hoisted_164, _toDisplayString(field.label), 1 /* TEXT */))
-                                              ], 10 /* CLASS, PROPS */, _hoisted_161))
+                                                      _createElementVNode("span", _hoisted_174, _toDisplayString(_ctx.catalogSortIcon(field.key)), 1 /* TEXT */)
+                                                    ], 10 /* CLASS, PROPS */, _hoisted_173))
+                                                  : (_openBlock(), _createElementBlock("span", _hoisted_175, _toDisplayString(field.label), 1 /* TEXT */))
+                                              ], 10 /* CLASS, PROPS */, _hoisted_172))
                                             }), 128 /* KEYED_FRAGMENT */)),
-                                            _cache[165] || (_cache[165] = _createElementVNode("th", { class: "actions-heading" }, "Acciones", -1 /* CACHED */))
+                                            _cache[175] || (_cache[175] = _createElementVNode("th", { class: "actions-heading" }, "Acciones", -1 /* CACHED */))
                                           ])
                                         ]),
                                         _createElementVNode("tbody", null, [
@@ -1761,10 +1858,10 @@ export function render(_ctx, _cache) {
                                               key: group.key
                                             }, [
                                               (_ctx.bankStatementCatalog&&group.label)
-                                                ? (_openBlock(), _createElementBlock("tr", _hoisted_165, [
+                                                ? (_openBlock(), _createElementBlock("tr", _hoisted_176, [
                                                     _createElementVNode("th", {
                                                       colspan: _ctx.tableFields.length+2
-                                                    }, _toDisplayString(group.label), 9 /* TEXT, PROPS */, _hoisted_166)
+                                                    }, _toDisplayString(group.label), 9 /* TEXT, PROPS */, _hoisted_177)
                                                   ]))
                                                 : _createCommentVNode("v-if", true),
                                               (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(group.months, (month) => {
@@ -1772,13 +1869,13 @@ export function render(_ctx, _cache) {
                                                   key: month.key
                                                 }, [
                                                   (_ctx.bankStatementCatalog&&month.label)
-                                                    ? (_openBlock(), _createElementBlock("tr", _hoisted_167, [
+                                                    ? (_openBlock(), _createElementBlock("tr", _hoisted_178, [
                                                         _createElementVNode("th", {
                                                           colspan: _ctx.tableFields.length+2
                                                         }, [
                                                           _createElementVNode("span", null, _toDisplayString(month.label), 1 /* TEXT */),
                                                           _createElementVNode("small", null, _toDisplayString(month.rows.length) + " " + _toDisplayString(month.rows.length===1?'extracto':'extractos') + _toDisplayString(_ctx.catalogPagination.pageCount>1?' en esta página':''), 1 /* TEXT */)
-                                                        ], 8 /* PROPS */, _hoisted_168)
+                                                        ], 8 /* PROPS */, _hoisted_179)
                                                       ]))
                                                     : _createCommentVNode("v-if", true),
                                                   (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(month.rows, (row) => {
@@ -1787,7 +1884,7 @@ export function render(_ctx, _cache) {
                                                       "data-record-id": _ctx.bankStatementCatalog?row[_ctx.activeCatalog.primaryKey]:null
                                                     }, [
                                                       _createElementVNode("td", null, [
-                                                        _createElementVNode("span", _hoisted_170, "#" + _toDisplayString(row[_ctx.activeCatalog.primaryKey]), 1 /* TEXT */)
+                                                        _createElementVNode("span", _hoisted_181, "#" + _toDisplayString(row[_ctx.activeCatalog.primaryKey]), 1 /* TEXT */)
                                                       ]),
                                                       (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.tableFields, (field) => {
                                                         return (_openBlock(), _createElementBlock("td", {
@@ -1796,13 +1893,13 @@ export function render(_ctx, _cache) {
                                                           "data-i18n-ignore": ""
                                                         }, [
                                                           (field.key === 'name')
-                                                            ? (_openBlock(), _createElementBlock("strong", _hoisted_171, _toDisplayString(_ctx.displayValue(field,row[field.key])), 1 /* TEXT */))
+                                                            ? (_openBlock(), _createElementBlock("strong", _hoisted_182, _toDisplayString(_ctx.displayValue(field,row[field.key])), 1 /* TEXT */))
                                                             : (_ctx.fiscalPeriodControl(field))
                                                               ? (_openBlock(), _createElementBlock("span", {
                                                                   key: 1,
                                                                   class: _normalizeClass(["fiscal-period-state", {'is-on':row[field.key]}]),
                                                                   title: field.help
-                                                                }, _toDisplayString(_ctx.fiscalPeriodState(field,row[field.key])), 11 /* TEXT, CLASS, PROPS */, _hoisted_172))
+                                                                }, _toDisplayString(_ctx.fiscalPeriodState(field,row[field.key])), 11 /* TEXT, CLASS, PROPS */, _hoisted_183))
                                                               : (_openBlock(), _createElementBlock("span", {
                                                                   key: 2,
                                                                   class: _normalizeClass({'bank-statement-amount':_ctx.activeCatalog.slug==='bank-statements' && field.numberFormat==='money','bank-statement-account':_ctx.activeCatalog.slug==='bank-statements' && field.key==='bank_account_id'})
@@ -1818,7 +1915,7 @@ export function render(_ctx, _cache) {
                                                             : _createCommentVNode("v-if", true)
                                                         ], 2 /* CLASS */))
                                                       }), 128 /* KEYED_FRAGMENT */)),
-                                                      _createElementVNode("td", _hoisted_173, [
+                                                      _createElementVNode("td", _hoisted_184, [
                                                         (_ctx.activeCatalog.slug==='journals')
                                                           ? (_openBlock(), _createElementBlock("button", {
                                                               key: 0,
@@ -1826,10 +1923,10 @@ export function render(_ctx, _cache) {
                                                               title: "Ver comprobante",
                                                               "aria-label": "Ver asiento",
                                                               onClick: $event => (_ctx.viewJournal(row))
-                                                            }, [...(_cache[166] || (_cache[166] = [
+                                                            }, [...(_cache[176] || (_cache[176] = [
                                                               _createElementVNode("span", null, "◉", -1 /* CACHED */),
                                                               _createElementVNode("b", null, "Ver", -1 /* CACHED */)
-                                                            ]))], 8 /* PROPS */, _hoisted_174))
+                                                            ]))], 8 /* PROPS */, _hoisted_185))
                                                           : _createCommentVNode("v-if", true),
                                                         (_ctx.activeCatalog.slug==='customers')
                                                           ? (_openBlock(), _createElementBlock("button", {
@@ -1838,10 +1935,10 @@ export function render(_ctx, _cache) {
                                                               title: "Ver cliente",
                                                               "aria-label": "Ver cliente",
                                                               onClick: $event => (_ctx.openRecordView(row))
-                                                            }, [...(_cache[167] || (_cache[167] = [
+                                                            }, [...(_cache[177] || (_cache[177] = [
                                                               _createElementVNode("span", null, "◉", -1 /* CACHED */),
                                                               _createElementVNode("b", null, "Ver", -1 /* CACHED */)
-                                                            ]))], 8 /* PROPS */, _hoisted_175))
+                                                            ]))], 8 /* PROPS */, _hoisted_186))
                                                           : _createCommentVNode("v-if", true),
                                                         (_ctx.activeCatalog.slug==='invoices')
                                                           ? (_openBlock(), _createElementBlock("a", {
@@ -1850,10 +1947,10 @@ export function render(_ctx, _cache) {
                                                               title: "Ver factura",
                                                               "aria-label": "Ver factura de venta",
                                                               href: '/sales-invoice-view.html?id='+row.invoice_id
-                                                            }, [...(_cache[168] || (_cache[168] = [
+                                                            }, [...(_cache[178] || (_cache[178] = [
                                                               _createElementVNode("span", null, "◉", -1 /* CACHED */),
                                                               _createElementVNode("b", null, "Ver", -1 /* CACHED */)
-                                                            ]))], 8 /* PROPS */, _hoisted_176))
+                                                            ]))], 8 /* PROPS */, _hoisted_187))
                                                           : _createCommentVNode("v-if", true),
                                                         (_ctx.activeCatalog.slug==='supplier-invoices')
                                                           ? (_openBlock(), _createElementBlock("a", {
@@ -1862,100 +1959,100 @@ export function render(_ctx, _cache) {
                                                               title: "Ver factura",
                                                               "aria-label": "Ver factura de proveedor",
                                                               href: '/supplier-invoice-view.html?id='+row.invoice_id
-                                                            }, [...(_cache[169] || (_cache[169] = [
+                                                            }, [...(_cache[179] || (_cache[179] = [
                                                               _createElementVNode("span", null, "◉", -1 /* CACHED */),
                                                               _createElementVNode("b", null, "Ver", -1 /* CACHED */)
-                                                            ]))], 8 /* PROPS */, _hoisted_177))
+                                                            ]))], 8 /* PROPS */, _hoisted_188))
                                                           : _createCommentVNode("v-if", true),
                                                         (_ctx.activeCatalog.slug==='supplier-credit-notes')
                                                           ? (_openBlock(), _createElementBlock("a", {
                                                               key: 4,
                                                               class: "icon-action view",
                                                               href: '/supplier-note-view.html?kind=CREDIT&id='+row.cn_id
-                                                            }, [...(_cache[170] || (_cache[170] = [
+                                                            }, [...(_cache[180] || (_cache[180] = [
                                                               _createElementVNode("span", null, "◉", -1 /* CACHED */),
                                                               _createElementVNode("b", null, "Ver", -1 /* CACHED */)
-                                                            ]))], 8 /* PROPS */, _hoisted_178))
+                                                            ]))], 8 /* PROPS */, _hoisted_189))
                                                           : _createCommentVNode("v-if", true),
                                                         (_ctx.activeCatalog.slug==='supplier-debit-notes')
                                                           ? (_openBlock(), _createElementBlock("a", {
                                                               key: 5,
                                                               class: "icon-action view",
                                                               href: '/supplier-note-view.html?kind=DEBIT&id='+row.dn_id
-                                                            }, [...(_cache[171] || (_cache[171] = [
+                                                            }, [...(_cache[181] || (_cache[181] = [
                                                               _createElementVNode("span", null, "◉", -1 /* CACHED */),
                                                               _createElementVNode("b", null, "Ver", -1 /* CACHED */)
-                                                            ]))], 8 /* PROPS */, _hoisted_179))
+                                                            ]))], 8 /* PROPS */, _hoisted_190))
                                                           : _createCommentVNode("v-if", true),
                                                         (_ctx.activeCatalog.slug==='credit-notes')
                                                           ? (_openBlock(), _createElementBlock("a", {
                                                               key: 6,
                                                               class: "icon-action view",
                                                               href: '/sales-note-view.html?kind=CREDIT&id='+row.cn_id
-                                                            }, [...(_cache[172] || (_cache[172] = [
+                                                            }, [...(_cache[182] || (_cache[182] = [
                                                               _createElementVNode("span", null, "◉", -1 /* CACHED */),
                                                               _createElementVNode("b", null, "Ver", -1 /* CACHED */)
-                                                            ]))], 8 /* PROPS */, _hoisted_180))
+                                                            ]))], 8 /* PROPS */, _hoisted_191))
                                                           : _createCommentVNode("v-if", true),
                                                         (_ctx.activeCatalog.slug==='debit-notes')
                                                           ? (_openBlock(), _createElementBlock("a", {
                                                               key: 7,
                                                               class: "icon-action view",
                                                               href: '/sales-note-view.html?kind=DEBIT&id='+row.dn_id
-                                                            }, [...(_cache[173] || (_cache[173] = [
+                                                            }, [...(_cache[183] || (_cache[183] = [
                                                               _createElementVNode("span", null, "◉", -1 /* CACHED */),
                                                               _createElementVNode("b", null, "Ver", -1 /* CACHED */)
-                                                            ]))], 8 /* PROPS */, _hoisted_181))
+                                                            ]))], 8 /* PROPS */, _hoisted_192))
                                                           : _createCommentVNode("v-if", true),
                                                         (_ctx.canCurrentAction('edit')&&_ctx.activeCatalog.slug==='supplier-credit-notes')
                                                           ? (_openBlock(), _createElementBlock("a", {
                                                               key: 8,
                                                               class: "icon-action edit",
                                                               href: '/supplier-note-entry.html?kind=CREDIT&id='+row.cn_id
-                                                            }, [...(_cache[174] || (_cache[174] = [
+                                                            }, [...(_cache[184] || (_cache[184] = [
                                                               _createElementVNode("span", null, "✎", -1 /* CACHED */),
                                                               _createElementVNode("b", null, "Editar", -1 /* CACHED */)
-                                                            ]))], 8 /* PROPS */, _hoisted_182))
+                                                            ]))], 8 /* PROPS */, _hoisted_193))
                                                           : _createCommentVNode("v-if", true),
                                                         (_ctx.canCurrentAction('edit')&&_ctx.activeCatalog.slug==='supplier-debit-notes')
                                                           ? (_openBlock(), _createElementBlock("a", {
                                                               key: 9,
                                                               class: "icon-action edit",
                                                               href: '/supplier-note-entry.html?kind=DEBIT&id='+row.dn_id
-                                                            }, [...(_cache[175] || (_cache[175] = [
+                                                            }, [...(_cache[185] || (_cache[185] = [
                                                               _createElementVNode("span", null, "✎", -1 /* CACHED */),
                                                               _createElementVNode("b", null, "Editar", -1 /* CACHED */)
-                                                            ]))], 8 /* PROPS */, _hoisted_183))
+                                                            ]))], 8 /* PROPS */, _hoisted_194))
                                                           : _createCommentVNode("v-if", true),
                                                         (_ctx.canCurrentAction('edit')&&_ctx.activeCatalog.slug==='credit-notes')
                                                           ? (_openBlock(), _createElementBlock("a", {
                                                               key: 10,
                                                               class: "icon-action edit",
                                                               href: '/sales-note-entry.html?kind=CREDIT&id='+row.cn_id
-                                                            }, [...(_cache[176] || (_cache[176] = [
+                                                            }, [...(_cache[186] || (_cache[186] = [
                                                               _createElementVNode("span", null, "✎", -1 /* CACHED */),
                                                               _createElementVNode("b", null, "Editar", -1 /* CACHED */)
-                                                            ]))], 8 /* PROPS */, _hoisted_184))
+                                                            ]))], 8 /* PROPS */, _hoisted_195))
                                                           : _createCommentVNode("v-if", true),
                                                         (_ctx.canCurrentAction('edit')&&_ctx.activeCatalog.slug==='debit-notes')
                                                           ? (_openBlock(), _createElementBlock("a", {
                                                               key: 11,
                                                               class: "icon-action edit",
                                                               href: '/sales-note-entry.html?kind=DEBIT&id='+row.dn_id
-                                                            }, [...(_cache[177] || (_cache[177] = [
+                                                            }, [...(_cache[187] || (_cache[187] = [
                                                               _createElementVNode("span", null, "✎", -1 /* CACHED */),
                                                               _createElementVNode("b", null, "Editar", -1 /* CACHED */)
-                                                            ]))], 8 /* PROPS */, _hoisted_185))
+                                                            ]))], 8 /* PROPS */, _hoisted_196))
                                                           : _createCommentVNode("v-if", true),
                                                         (_ctx.canCurrentAction('edit')&&_ctx.activeCatalog.slug==='invoices')
                                                           ? (_openBlock(), _createElementBlock("a", {
                                                               key: 12,
                                                               class: "icon-action edit",
                                                               href: '/sales-invoice-entry.html?id='+row.invoice_id
-                                                            }, [...(_cache[178] || (_cache[178] = [
+                                                            }, [...(_cache[188] || (_cache[188] = [
                                                               _createElementVNode("span", null, "✎", -1 /* CACHED */),
                                                               _createElementVNode("b", null, "Editar", -1 /* CACHED */)
-                                                            ]))], 8 /* PROPS */, _hoisted_186))
+                                                            ]))], 8 /* PROPS */, _hoisted_197))
                                                           : _createCommentVNode("v-if", true),
                                                         (_ctx.canCurrentAction('edit')&&_ctx.activeCatalog.slug==='supplier-invoices')
                                                           ? (_openBlock(), _createElementBlock("button", {
@@ -1965,10 +2062,10 @@ export function render(_ctx, _cache) {
                                                               title: "Editar factura",
                                                               "aria-label": "Editar factura de proveedor",
                                                               onClick: $event => (_ctx.openRecordForm(row))
-                                                            }, [...(_cache[179] || (_cache[179] = [
+                                                            }, [...(_cache[189] || (_cache[189] = [
                                                               _createElementVNode("span", null, "✎", -1 /* CACHED */),
                                                               _createElementVNode("b", null, "Editar", -1 /* CACHED */)
-                                                            ]))], 8 /* PROPS */, _hoisted_187))
+                                                            ]))], 8 /* PROPS */, _hoisted_198))
                                                           : _createCommentVNode("v-if", true),
                                                         (_ctx.canCurrentAction('edit')&&((!_ctx.activeCatalog.localeCatalog&&!_ctx.activeCatalog.globalConfiguration&&!_ctx.activeCatalog.statusMaster&&!_ctx.activeCatalog.transactionTypeCatalog&&!_ctx.activeCatalog.sequenceCatalog&&!_ctx.activeCatalog.coreDictionary&&!_ctx.activeCatalog.rateCatalog&&!_ctx.activeCatalog.securityMaster&&!_ctx.activeCatalog.taxCatalog&&!_ctx.activeCatalog.entityMaster&&!_ctx.activeCatalog.organizationMaster)||row._actions?.canEdit===true)&&_ctx.activeCatalog.allowEdit !== false && (!_ctx.activeCatalog.inventoryMaster || row._master_editable !== false) && !['invoices','supplier-invoices','credit-notes','debit-notes','supplier-credit-notes','supplier-debit-notes'].includes(_ctx.activeCatalog.slug))
                                                           ? (_openBlock(), _createElementBlock("button", {
@@ -1977,10 +2074,10 @@ export function render(_ctx, _cache) {
                                                               title: "Editar",
                                                               "aria-label": "Editar registro",
                                                               onClick: $event => (_ctx.openRecordForm(row))
-                                                            }, [...(_cache[180] || (_cache[180] = [
+                                                            }, [...(_cache[190] || (_cache[190] = [
                                                               _createElementVNode("span", null, "✎", -1 /* CACHED */),
                                                               _createElementVNode("b", null, "Editar", -1 /* CACHED */)
-                                                            ]))], 8 /* PROPS */, _hoisted_188))
+                                                            ]))], 8 /* PROPS */, _hoisted_199))
                                                           : _createCommentVNode("v-if", true),
                                                         (_ctx.activeCatalog.allowAudit !== false)
                                                           ? (_openBlock(), _createElementBlock("button", {
@@ -1988,9 +2085,9 @@ export function render(_ctx, _cache) {
                                                               class: "icon-action view",
                                                               title: "Ver quién creó o modificó este registro",
                                                               onClick: $event => (_ctx.openRecordAudit(row))
-                                                            }, [...(_cache[181] || (_cache[181] = [
+                                                            }, [...(_cache[191] || (_cache[191] = [
                                                               _createElementVNode("b", null, "Autoría", -1 /* CACHED */)
-                                                            ]))], 8 /* PROPS */, _hoisted_189))
+                                                            ]))], 8 /* PROPS */, _hoisted_200))
                                                           : _createCommentVNode("v-if", true),
                                                         (_ctx.canCurrentAction('delete')&&((!_ctx.activeCatalog.localeCatalog&&!_ctx.activeCatalog.globalConfiguration&&!_ctx.activeCatalog.statusMaster&&!_ctx.activeCatalog.transactionTypeCatalog&&!_ctx.activeCatalog.sequenceCatalog&&!_ctx.activeCatalog.coreDictionary&&!_ctx.activeCatalog.rateCatalog&&!_ctx.activeCatalog.securityMaster&&!_ctx.activeCatalog.taxCatalog&&!_ctx.activeCatalog.entityMaster&&!_ctx.activeCatalog.organizationMaster)||row._actions?.canDelete===true)&&_ctx.activeCatalog.allowDelete !== false)
                                                           ? (_openBlock(), _createElementBlock("button", {
@@ -1999,30 +2096,30 @@ export function render(_ctx, _cache) {
                                                               title: ['sessions','devices'].includes(_ctx.activeCatalog.slug) ? 'Revocar' : 'Eliminar',
                                                               onClick: $event => (_ctx.requestDelete(row))
                                                             }, [
-                                                              _cache[182] || (_cache[182] = _createElementVNode("span", null, "⌫", -1 /* CACHED */)),
+                                                              _cache[192] || (_cache[192] = _createElementVNode("span", null, "⌫", -1 /* CACHED */)),
                                                               _createElementVNode("b", null, _toDisplayString(['sessions','devices'].includes(_ctx.activeCatalog.slug) ? 'Revocar' : 'Eliminar'), 1 /* TEXT */)
-                                                            ], 8 /* PROPS */, _hoisted_190))
+                                                            ], 8 /* PROPS */, _hoisted_201))
                                                           : _createCommentVNode("v-if", true),
                                                         (_ctx.activeCatalog.slug==='accounting-periods' && row._actions?.canDelete!==true)
                                                           ? (_openBlock(), _createElementBlock("span", {
                                                               key: 17,
                                                               class: "fiscal-period-delete-reason",
                                                               title: _ctx.fiscalPeriodDeleteHelp(row)
-                                                            }, _toDisplayString(_ctx.fiscalPeriodDeleteReason(row)), 9 /* TEXT, PROPS */, _hoisted_191))
+                                                            }, _toDisplayString(_ctx.fiscalPeriodDeleteReason(row)), 9 /* TEXT, PROPS */, _hoisted_202))
                                                           : _createCommentVNode("v-if", true)
                                                       ])
-                                                    ], 8 /* PROPS */, _hoisted_169))
+                                                    ], 8 /* PROPS */, _hoisted_180))
                                                   }), 128 /* KEYED_FRAGMENT */))
                                                 ], 64 /* STABLE_FRAGMENT */))
                                               }), 128 /* KEYED_FRAGMENT */))
                                             ], 64 /* STABLE_FRAGMENT */))
                                           }), 128 /* KEYED_FRAGMENT */)),
                                           (!_ctx.filteredRows.length)
-                                            ? (_openBlock(), _createElementBlock("tr", _hoisted_192, [
+                                            ? (_openBlock(), _createElementBlock("tr", _hoisted_203, [
                                                 _createElementVNode("td", {
                                                   colspan: _ctx.tableFields.length + 2,
                                                   class: "empty-row"
-                                                }, "No se encontraron registros.", 8 /* PROPS */, _hoisted_193)
+                                                }, "No se encontraron registros.", 8 /* PROPS */, _hoisted_204)
                                               ]))
                                             : _createCommentVNode("v-if", true)
                                         ])
@@ -2030,9 +2127,9 @@ export function render(_ctx, _cache) {
                                     ]))
                                   : _createCommentVNode("v-if", true),
                             (!_ctx.activeCatalog.auditRawRestricted)
-                              ? (_openBlock(), _createElementBlock("footer", _hoisted_194, [
+                              ? (_openBlock(), _createElementBlock("footer", _hoisted_205, [
                                   _createElementVNode("span", null, "Catálogo de " + _toDisplayString(_ctx.currentModule), 1 /* TEXT */),
-                                  _cache[183] || (_cache[183] = _createElementVNode("span", null, "Actualizado en tiempo real", -1 /* CACHED */))
+                                  _cache[193] || (_cache[193] = _createElementVNode("span", null, "Actualizado en tiempo real", -1 /* CACHED */))
                                 ]))
                               : _createCommentVNode("v-if", true)
                           ], 2 /* CLASS */)
@@ -2046,10 +2143,10 @@ export function render(_ctx, _cache) {
                   class: "modal fiscal-closure-permission-modal",
                   "aria-labelledby": "fiscalClosurePermissionTitle",
                   "aria-describedby": "fiscalPermissionImpact",
-                  onCancel: _cache[53] || (_cache[53] = _withModifiers($event => (_ctx.closeFiscalPermissionDialog()), ["prevent"]))
+                  onCancel: _cache[59] || (_cache[59] = _withModifiers($event => (_ctx.closeFiscalPermissionDialog()), ["prevent"]))
                 }, [
-                  _createElementVNode("div", _hoisted_195, [
-                    _cache[184] || (_cache[184] = _createElementVNode("div", null, [
+                  _createElementVNode("div", _hoisted_206, [
+                    _cache[194] || (_cache[194] = _createElementVNode("div", null, [
                       _createElementVNode("div", null, [
                         _createElementVNode("p", null, "CONFIGURACIÓN DEL ROL ACTIVO"),
                         _createElementVNode("h2", { id: "fiscalClosurePermissionTitle" }, "Configurar permiso de cierre para mi rol")
@@ -2060,51 +2157,51 @@ export function render(_ctx, _cache) {
                       type: "button",
                       "aria-label": "Cerrar configuración de permiso",
                       disabled: _ctx.fiscalPermissionDialog.saving,
-                      onClick: _cache[48] || (_cache[48] = $event => (_ctx.closeFiscalPermissionDialog()))
-                    }, "×", 8 /* PROPS */, _hoisted_196)
+                      onClick: _cache[54] || (_cache[54] = $event => (_ctx.closeFiscalPermissionDialog()))
+                    }, "×", 8 /* PROPS */, _hoisted_207)
                   ]),
                   _createElementVNode("form", {
-                    onSubmit: _cache[52] || (_cache[52] = _withModifiers((...args) => (_ctx.saveFiscalPermissionDialog && _ctx.saveFiscalPermissionDialog(...args)), ["prevent"])),
+                    onSubmit: _cache[58] || (_cache[58] = _withModifiers((...args) => (_ctx.saveFiscalPermissionDialog && _ctx.saveFiscalPermissionDialog(...args)), ["prevent"])),
                     class: "fiscal-permission-form"
                   }, [
                     (_ctx.fiscalPermissionDialog.loading)
-                      ? (_openBlock(), _createElementBlock("p", _hoisted_197, "Consultando el permiso actual…"))
+                      ? (_openBlock(), _createElementBlock("p", _hoisted_208, "Consultando el permiso actual…"))
                       : _createCommentVNode("v-if", true),
                     (_ctx.fiscalPermissionDialog.role)
                       ? (_openBlock(), _createElementBlock(_Fragment, { key: 1 }, [
-                          _createElementVNode("dl", _hoisted_198, [
-                            _cache[185] || (_cache[185] = _createElementVNode("dt", null, "Rol activo", -1 /* CACHED */)),
+                          _createElementVNode("dl", _hoisted_209, [
+                            _cache[195] || (_cache[195] = _createElementVNode("dt", null, "Rol activo", -1 /* CACHED */)),
                             _createElementVNode("dd", null, _toDisplayString(_ctx.fiscalPermissionDialog.role.name), 1 /* TEXT */)
                           ]),
-                          _createElementVNode("label", _hoisted_199, [
-                            _createElementVNode("span", _hoisted_200, [
-                              _cache[186] || (_cache[186] = _createElementVNode("strong", { id: "fiscalPermissionEnabledLabel" }, "Permitir cerrar y reabrir períodos", -1 /* CACHED */)),
+                          _createElementVNode("label", _hoisted_210, [
+                            _createElementVNode("span", _hoisted_211, [
+                              _cache[196] || (_cache[196] = _createElementVNode("strong", { id: "fiscalPermissionEnabledLabel" }, "Permitir cerrar y reabrir períodos", -1 /* CACHED */)),
                               _createElementVNode("small", null, _toDisplayString(_ctx.fiscalPermissionDialog.enabled?'Permiso activado':'Permiso desactivado'), 1 /* TEXT */)
                             ]),
-                            _createElementVNode("span", _hoisted_201, [
+                            _createElementVNode("span", _hoisted_212, [
                               _withDirectives(_createElementVNode("input", {
                                 id: "fiscalPermissionEnabled",
-                                "onUpdate:modelValue": _cache[49] || (_cache[49] = $event => ((_ctx.fiscalPermissionDialog.enabled) = $event)),
+                                "onUpdate:modelValue": _cache[55] || (_cache[55] = $event => ((_ctx.fiscalPermissionDialog.enabled) = $event)),
                                 class: "gentia-switch-input",
                                 type: "checkbox",
                                 role: "switch",
                                 "aria-labelledby": "fiscalPermissionEnabledLabel",
                                 "aria-describedby": "fiscalPermissionImpact",
                                 disabled: _ctx.fiscalPermissionDialog.loading || _ctx.fiscalPermissionDialog.saving
-                              }, null, 8 /* PROPS */, _hoisted_202), [
+                              }, null, 8 /* PROPS */, _hoisted_213), [
                                 [_vModelCheckbox, _ctx.fiscalPermissionDialog.enabled]
                               ]),
-                              _cache[187] || (_cache[187] = _createElementVNode("span", {
+                              _cache[197] || (_cache[197] = _createElementVNode("span", {
                                 class: "gentia-switch-track",
                                 "aria-hidden": "true"
                               }, null, -1 /* CACHED */))
                             ])
                           ]),
-                          _cache[188] || (_cache[188] = _createElementVNode("p", { id: "fiscalPermissionImpact" }, "Este permiso permite gestionar los bloqueos y el cierre de períodos. El cambio afecta a todos los usuarios que tengan este rol. Guardarlo no cambia el estado de ningún período.", -1 /* CACHED */))
+                          _cache[198] || (_cache[198] = _createElementVNode("p", { id: "fiscalPermissionImpact" }, "Este permiso permite gestionar los bloqueos y el cierre de períodos. El cambio afecta a todos los usuarios que tengan este rol. Guardarlo no cambia el estado de ningún período.", -1 /* CACHED */))
                         ], 64 /* STABLE_FRAGMENT */))
                       : _createCommentVNode("v-if", true),
                     (_ctx.fiscalPermissionDialog.error)
-                      ? (_openBlock(), _createElementBlock("p", _hoisted_203, _toDisplayString(_ctx.fiscalPermissionDialog.error), 1 /* TEXT */))
+                      ? (_openBlock(), _createElementBlock("p", _hoisted_214, _toDisplayString(_ctx.fiscalPermissionDialog.error), 1 /* TEXT */))
                       : _createCommentVNode("v-if", true),
                     (_ctx.fiscalPermissionDialog.needsRefresh)
                       ? (_openBlock(), _createElementBlock("button", {
@@ -2112,21 +2209,21 @@ export function render(_ctx, _cache) {
                           class: "button-secondary",
                           type: "button",
                           disabled: _ctx.fiscalPermissionDialog.loading || _ctx.fiscalPermissionDialog.saving,
-                          onClick: _cache[50] || (_cache[50] = (...args) => (_ctx.refreshFiscalPermissionDialog && _ctx.refreshFiscalPermissionDialog(...args)))
-                        }, "Consultar estado del permiso", 8 /* PROPS */, _hoisted_204))
+                          onClick: _cache[56] || (_cache[56] = (...args) => (_ctx.refreshFiscalPermissionDialog && _ctx.refreshFiscalPermissionDialog(...args)))
+                        }, "Consultar estado del permiso", 8 /* PROPS */, _hoisted_215))
                       : _createCommentVNode("v-if", true),
-                    _createElementVNode("div", _hoisted_205, [
+                    _createElementVNode("div", _hoisted_216, [
                       _createElementVNode("button", {
                         class: "button-secondary",
                         type: "button",
                         disabled: _ctx.fiscalPermissionDialog.saving,
-                        onClick: _cache[51] || (_cache[51] = $event => (_ctx.closeFiscalPermissionDialog()))
-                      }, "Cancelar", 8 /* PROPS */, _hoisted_206),
+                        onClick: _cache[57] || (_cache[57] = $event => (_ctx.closeFiscalPermissionDialog()))
+                      }, "Cancelar", 8 /* PROPS */, _hoisted_217),
                       _createElementVNode("button", {
                         class: "button-primary",
                         type: "submit",
                         disabled: _ctx.fiscalPermissionDialog.loading || _ctx.fiscalPermissionDialog.saving || _ctx.fiscalPermissionDialog.needsRefresh || !_ctx.fiscalPermissionDialog.role || _ctx.fiscalPermissionDialog.enabled===_ctx.fiscalPermissionDialog.initialEnabled
-                      }, _toDisplayString(_ctx.fiscalPermissionDialog.saving?'Guardando permiso…':'Guardar permiso'), 9 /* TEXT, PROPS */, _hoisted_207)
+                      }, _toDisplayString(_ctx.fiscalPermissionDialog.saving?'Guardando permiso…':'Guardar permiso'), 9 /* TEXT, PROPS */, _hoisted_218)
                     ])
                   ], 32 /* NEED_HYDRATION */)
                 ], 32 /* NEED_HYDRATION */))
@@ -2135,11 +2232,11 @@ export function render(_ctx, _cache) {
               ? (_openBlock(), _createElementBlock("div", {
                   key: 2,
                   class: "modal-backdrop",
-                  onClick: _cache[60] || (_cache[60] = _withModifiers($event => (_ctx.passwordDialog.open=false), ["self"]))
+                  onClick: _cache[66] || (_cache[66] = _withModifiers($event => (_ctx.passwordDialog.open=false), ["self"]))
                 }, [
-                  _createElementVNode("section", _hoisted_208, [
-                    _createElementVNode("div", _hoisted_209, [
-                      _cache[189] || (_cache[189] = _createElementVNode("div", null, [
+                  _createElementVNode("section", _hoisted_219, [
+                    _createElementVNode("div", _hoisted_220, [
+                      _cache[199] || (_cache[199] = _createElementVNode("div", null, [
                         _createElementVNode("span", { class: "modal-icon" }, "⚿"),
                         _createElementVNode("div", null, [
                           _createElementVNode("p", null, "SEGURIDAD"),
@@ -2148,17 +2245,17 @@ export function render(_ctx, _cache) {
                       ], -1 /* CACHED */)),
                       _createElementVNode("button", {
                         class: "modal-close",
-                        onClick: _cache[54] || (_cache[54] = $event => (_ctx.passwordDialog.open=false))
+                        onClick: _cache[60] || (_cache[60] = $event => (_ctx.passwordDialog.open=false))
                       }, "×")
                     ]),
                     _createElementVNode("form", {
-                      onSubmit: _cache[59] || (_cache[59] = _withModifiers((...args) => (_ctx.submitPasswordChange && _ctx.submitPasswordChange(...args)), ["prevent"]))
+                      onSubmit: _cache[65] || (_cache[65] = _withModifiers((...args) => (_ctx.submitPasswordChange && _ctx.submitPasswordChange(...args)), ["prevent"]))
                     }, [
-                      _createElementVNode("div", _hoisted_210, [
+                      _createElementVNode("div", _hoisted_221, [
                         _createElementVNode("label", null, [
-                          _cache[190] || (_cache[190] = _createElementVNode("span", null, "Contraseña actual *", -1 /* CACHED */)),
+                          _cache[200] || (_cache[200] = _createElementVNode("span", null, "Contraseña actual *", -1 /* CACHED */)),
                           _withDirectives(_createElementVNode("input", {
-                            "onUpdate:modelValue": _cache[55] || (_cache[55] = $event => ((_ctx.passwordDialog.currentPassword) = $event)),
+                            "onUpdate:modelValue": _cache[61] || (_cache[61] = $event => ((_ctx.passwordDialog.currentPassword) = $event)),
                             type: "password",
                             required: "",
                             autocomplete: "current-password"
@@ -2167,9 +2264,9 @@ export function render(_ctx, _cache) {
                           ])
                         ]),
                         _createElementVNode("label", null, [
-                          _cache[191] || (_cache[191] = _createElementVNode("span", null, "Nueva contraseña *", -1 /* CACHED */)),
+                          _cache[201] || (_cache[201] = _createElementVNode("span", null, "Nueva contraseña *", -1 /* CACHED */)),
                           _withDirectives(_createElementVNode("input", {
-                            "onUpdate:modelValue": _cache[56] || (_cache[56] = $event => ((_ctx.passwordDialog.newPassword) = $event)),
+                            "onUpdate:modelValue": _cache[62] || (_cache[62] = $event => ((_ctx.passwordDialog.newPassword) = $event)),
                             type: "password",
                             required: "",
                             minlength: "15",
@@ -2180,9 +2277,9 @@ export function render(_ctx, _cache) {
                           ])
                         ]),
                         _createElementVNode("label", null, [
-                          _cache[192] || (_cache[192] = _createElementVNode("span", null, "Confirmar nueva contraseña *", -1 /* CACHED */)),
+                          _cache[202] || (_cache[202] = _createElementVNode("span", null, "Confirmar nueva contraseña *", -1 /* CACHED */)),
                           _withDirectives(_createElementVNode("input", {
-                            "onUpdate:modelValue": _cache[57] || (_cache[57] = $event => ((_ctx.passwordDialog.confirmation) = $event)),
+                            "onUpdate:modelValue": _cache[63] || (_cache[63] = $event => ((_ctx.passwordDialog.confirmation) = $event)),
                             type: "password",
                             required: "",
                             minlength: "15",
@@ -2193,20 +2290,20 @@ export function render(_ctx, _cache) {
                           ])
                         ])
                       ]),
-                      _cache[193] || (_cache[193] = _createElementVNode("small", null, "Use al menos 15 caracteres. No puede reutilizar ninguna de sus últimas 6 contraseñas.", -1 /* CACHED */)),
+                      _cache[203] || (_cache[203] = _createElementVNode("small", null, "Use al menos 15 caracteres. No puede reutilizar ninguna de sus últimas 6 contraseñas.", -1 /* CACHED */)),
                       (_ctx.passwordDialog.error)
-                        ? (_openBlock(), _createElementBlock("p", _hoisted_211, _toDisplayString(_ctx.passwordDialog.error), 1 /* TEXT */))
+                        ? (_openBlock(), _createElementBlock("p", _hoisted_222, _toDisplayString(_ctx.passwordDialog.error), 1 /* TEXT */))
                         : _createCommentVNode("v-if", true),
-                      _createElementVNode("div", _hoisted_212, [
+                      _createElementVNode("div", _hoisted_223, [
                         _createElementVNode("button", {
                           type: "button",
                           class: "button-secondary",
-                          onClick: _cache[58] || (_cache[58] = $event => (_ctx.passwordDialog.open=false))
+                          onClick: _cache[64] || (_cache[64] = $event => (_ctx.passwordDialog.open=false))
                         }, "Cancelar"),
                         _createElementVNode("button", {
                           class: "button-primary",
                           disabled: _ctx.passwordDialog.saving
-                        }, _toDisplayString(_ctx.passwordDialog.saving ? 'Actualizando…' : 'Actualizar contraseña'), 9 /* TEXT, PROPS */, _hoisted_213)
+                        }, _toDisplayString(_ctx.passwordDialog.saving ? 'Actualizando…' : 'Actualizar contraseña'), 9 /* TEXT, PROPS */, _hoisted_224)
                       ])
                     ], 32 /* NEED_HYDRATION */)
                   ])
@@ -2216,7 +2313,7 @@ export function render(_ctx, _cache) {
               ? (_openBlock(), _createElementBlock("div", {
                   key: 3,
                   class: "modal-backdrop",
-                  onClick: _cache[87] || (_cache[87] = _withModifiers((...args) => (_ctx.closeRecordDialog && _ctx.closeRecordDialog(...args)), ["self"]))
+                  onClick: _cache[93] || (_cache[93] = _withModifiers((...args) => (_ctx.closeRecordDialog && _ctx.closeRecordDialog(...args)), ["self"]))
                 }, [
                   _createElementVNode("section", {
                     class: _normalizeClass(["modal", {'entity-master-modal':['customers','suppliers'].includes(_ctx.activeCatalog.slug),'entity-section-modal':_ctx.isEntitySectioned(),'other-names-modal':_ctx.activeCatalog.slug==='other-names','subsidiary-master-modal':_ctx.activeCatalog.slug==='subsidiaries','account-master-modal':_ctx.activeCatalog.slug==='chart-accounts','user-company-access-modal':_ctx.activeCatalog.slug==='user-subsidiaries','bank-statement-modal':_ctx.activeCatalog.slug==='bank-statements','fiscal-period-modal':_ctx.activeCatalog.slug==='accounting-periods'}]),
@@ -2224,36 +2321,36 @@ export function render(_ctx, _cache) {
                     "aria-modal": "true",
                     "aria-labelledby": "country-modal-title"
                   }, [
-                    _createElementVNode("div", _hoisted_214, [
+                    _createElementVNode("div", _hoisted_225, [
                       _createElementVNode("div", null, [
-                        _createElementVNode("span", _hoisted_215, _toDisplayString(_ctx.recordDialog.mode === 'audit' ? '◉' : _ctx.recordDialog.mode === 'delete' ? '!' : (_ctx.recordDialog.mode === 'view' ? '◉' : (_ctx.recordDialog.id ? '✎' : '+'))), 1 /* TEXT */),
+                        _createElementVNode("span", _hoisted_226, _toDisplayString(_ctx.recordDialog.mode === 'audit' ? '◉' : _ctx.recordDialog.mode === 'delete' ? '!' : (_ctx.recordDialog.mode === 'view' ? '◉' : (_ctx.recordDialog.id ? '✎' : '+'))), 1 /* TEXT */),
                         _createElementVNode("div", null, [
                           _createElementVNode("p", null, _toDisplayString(_ctx.recordDialog.mode === 'audit' ? 'CONTROL DEL REGISTRO' : _ctx.recordDialog.mode === 'delete' ? 'CONFIRMAR ACCIÓN' : (_ctx.activeCatalog.slug==='user-subsidiaries' ? 'SEGURIDAD · ACCESO POR EMPRESA' : (_ctx.activeCatalog.slug==='subsidiaries' ? 'CONFIGURACIÓN ORGANIZACIONAL' : (_ctx.activeCatalog.slug==='bank-statements' ? 'BANCOS · CONTROL DE EXTRACTOS' : (_ctx.activeCatalog.apiRoot==='entities' ? 'ENTIDADES · CATÁLOGOS' : 'CATÁLOGO DE CORE'))))), 1 /* TEXT */),
-                          _createElementVNode("h2", _hoisted_216, _toDisplayString(_ctx.recordDialog.mode === 'audit' ? `Autoría: ${_ctx.recordDialog.label}` : _ctx.recordDialog.mode === 'delete' ? `Eliminar ${_ctx.activeCatalog.singular}` : (_ctx.recordDialog.mode === 'view' ? `Ver ${_ctx.activeCatalog.singular}` : (_ctx.activeCatalog.slug==='user-subsidiaries' ? (_ctx.recordDialog.id ? 'Editar empresas autorizadas' : 'Asignar empresas a un usuario') : (_ctx.recordDialog.id ? `Editar ${_ctx.activeCatalog.singular}` : `Crear ${_ctx.activeCatalog.singular}`)))), 1 /* TEXT */)
+                          _createElementVNode("h2", _hoisted_227, _toDisplayString(_ctx.recordDialog.mode === 'audit' ? `Autoría: ${_ctx.recordDialog.label}` : _ctx.recordDialog.mode === 'delete' ? `Eliminar ${_ctx.activeCatalog.singular}` : (_ctx.recordDialog.mode === 'view' ? `Ver ${_ctx.activeCatalog.singular}` : (_ctx.activeCatalog.slug==='user-subsidiaries' ? (_ctx.recordDialog.id ? 'Editar empresas autorizadas' : 'Asignar empresas a un usuario') : (_ctx.recordDialog.id ? `Editar ${_ctx.activeCatalog.singular}` : `Crear ${_ctx.activeCatalog.singular}`)))), 1 /* TEXT */)
                         ]),
                         (_ctx.recordDialog.mode==='view'&&_ctx.activeCatalog.slug==='customers')
-                          ? (_openBlock(), _createElementBlock("div", _hoisted_217, [
+                          ? (_openBlock(), _createElementBlock("div", _hoisted_228, [
                               _createElementVNode("button", {
                                 class: _normalizeClass({active:_ctx.customerViewTab==='details'}),
-                                onClick: _cache[61] || (_cache[61] = $event => (_ctx.customerViewTab='details'))
+                                onClick: _cache[67] || (_cache[67] = $event => (_ctx.customerViewTab='details'))
                               }, "Ver cliente", 2 /* CLASS */),
                               _createElementVNode("button", {
                                 class: _normalizeClass({active:_ctx.customerViewTab==='costCenters'}),
-                                onClick: _cache[62] || (_cache[62] = $event => (_ctx.customerViewTab='costCenters'))
+                                onClick: _cache[68] || (_cache[68] = $event => (_ctx.customerViewTab='costCenters'))
                               }, "Ver centros de costos", 2 /* CLASS */),
                               _createElementVNode("button", {
                                 class: _normalizeClass({active:_ctx.customerViewTab==='communications'}),
-                                onClick: _cache[63] || (_cache[63] = $event => (_ctx.customerViewTab='communications'))
+                                onClick: _cache[69] || (_cache[69] = $event => (_ctx.customerViewTab='communications'))
                               }, "Historial de Comunicaciones", 2 /* CLASS */),
                               _createElementVNode("button", {
-                                onClick: _cache[64] || (_cache[64] = $event => (_ctx.openCustomerStatement(_ctx.recordDialog.id)))
+                                onClick: _cache[70] || (_cache[70] = $event => (_ctx.openCustomerStatement(_ctx.recordDialog.id)))
                               }, "Enviar Estado de Cuenta")
                             ]))
                           : _createCommentVNode("v-if", true)
                       ]),
                       _createElementVNode("button", {
                         class: "modal-close",
-                        onClick: _cache[65] || (_cache[65] = (...args) => (_ctx.closeRecordDialog && _ctx.closeRecordDialog(...args))),
+                        onClick: _cache[71] || (_cache[71] = (...args) => (_ctx.closeRecordDialog && _ctx.closeRecordDialog(...args))),
                         "aria-label": "Cerrar"
                       }, "×")
                     ]),
@@ -2262,16 +2359,16 @@ export function render(_ctx, _cache) {
                           key: 0,
                           table: _ctx.activeCatalog.table,
                           "record-id": _ctx.recordDialog.id
-                        }, null, 8 /* PROPS */, _hoisted_218))
+                        }, null, 8 /* PROPS */, _hoisted_229))
                       : _createCommentVNode("v-if", true),
                     (_ctx.recordDialog.mode === 'form')
                       ? (_openBlock(), _createElementBlock("form", {
                           key: 1,
                           novalidate: _ctx.activeCatalog.slug==='subsidiaries' || _ctx.isEntitySectioned(),
-                          onSubmit: _cache[81] || (_cache[81] = _withModifiers((...args) => (_ctx.submitRecord && _ctx.submitRecord(...args)), ["prevent"]))
+                          onSubmit: _cache[87] || (_cache[87] = _withModifiers((...args) => (_ctx.submitRecord && _ctx.submitRecord(...args)), ["prevent"]))
                         }, [
                           (_ctx.activeCatalog.slug==='subsidiaries')
-                            ? (_openBlock(), _createElementBlock("nav", _hoisted_220, [
+                            ? (_openBlock(), _createElementBlock("nav", _hoisted_231, [
                                 (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.subsidiaryTabs(), (tab) => {
                                   return (_openBlock(), _createElementBlock("button", {
                                     id: `subsidiary-tab-${tab.id}`,
@@ -2283,12 +2380,12 @@ export function render(_ctx, _cache) {
                                     class: _normalizeClass({active:_ctx.subsidiaryFormTab===tab.id}),
                                     onClick: $event => (_ctx.selectSubsidiaryTab(tab.id))
                                   }, [
-                                    _createElementVNode("span", _hoisted_222, _toDisplayString(tab.step), 1 /* TEXT */),
+                                    _createElementVNode("span", _hoisted_233, _toDisplayString(tab.step), 1 /* TEXT */),
                                     _createElementVNode("span", null, [
                                       _createElementVNode("strong", null, _toDisplayString(tab.label), 1 /* TEXT */),
                                       _createElementVNode("small", null, _toDisplayString(tab.caption), 1 /* TEXT */)
                                     ])
-                                  ], 10 /* CLASS, PROPS */, _hoisted_221))
+                                  ], 10 /* CLASS, PROPS */, _hoisted_232))
                                 }), 128 /* KEYED_FRAGMENT */))
                               ]))
                             : _createCommentVNode("v-if", true),
@@ -2303,10 +2400,10 @@ export function render(_ctx, _cache) {
                                 _createElementVNode("span", null, _toDisplayString(_ctx.subsidiaryActiveTab().eyebrow), 1 /* TEXT */),
                                 _createElementVNode("h3", null, _toDisplayString(_ctx.subsidiaryActiveTab().title), 1 /* TEXT */),
                                 _createElementVNode("p", null, _toDisplayString(_ctx.subsidiaryActiveTab().description), 1 /* TEXT */)
-                              ], 8 /* PROPS */, _hoisted_223))
+                              ], 8 /* PROPS */, _hoisted_234))
                             : _createCommentVNode("v-if", true),
                           (_ctx.isEntitySectioned())
-                            ? (_openBlock(), _createElementBlock("nav", _hoisted_224, [
+                            ? (_openBlock(), _createElementBlock("nav", _hoisted_235, [
                                 (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.entityTabs(), (tab, index) => {
                                   return (_openBlock(), _createElementBlock("button", {
                                     id: `entity-tab-${tab.id}`,
@@ -2321,12 +2418,12 @@ export function render(_ctx, _cache) {
                                     onClick: $event => (_ctx.selectEntityTab(tab.id)),
                                     onKeydown: $event => (_ctx.entityTabKeydown($event,index))
                                   }, [
-                                    _createElementVNode("span", _hoisted_226, _toDisplayString(tab.step), 1 /* TEXT */),
+                                    _createElementVNode("span", _hoisted_237, _toDisplayString(tab.step), 1 /* TEXT */),
                                     _createElementVNode("span", null, [
                                       _createElementVNode("strong", null, _toDisplayString(tab.label), 1 /* TEXT */),
                                       _createElementVNode("small", null, _toDisplayString(tab.caption), 1 /* TEXT */)
                                     ])
-                                  ], 42 /* CLASS, PROPS, NEED_HYDRATION */, _hoisted_225))
+                                  ], 42 /* CLASS, PROPS, NEED_HYDRATION */, _hoisted_236))
                                 }), 128 /* KEYED_FRAGMENT */))
                               ]))
                             : _createCommentVNode("v-if", true),
@@ -2341,19 +2438,19 @@ export function render(_ctx, _cache) {
                                 _createElementVNode("span", null, _toDisplayString(_ctx.entityActiveTab().eyebrow), 1 /* TEXT */),
                                 _createElementVNode("h3", null, _toDisplayString(_ctx.entityActiveTab().title), 1 /* TEXT */),
                                 _createElementVNode("p", null, _toDisplayString(_ctx.entityActiveTab().description), 1 /* TEXT */)
-                              ], 8 /* PROPS */, _hoisted_227))
+                              ], 8 /* PROPS */, _hoisted_238))
                             : _createCommentVNode("v-if", true),
                           (_ctx.activeCatalog.slug==='bank-statements')
-                            ? (_openBlock(), _createElementBlock("section", _hoisted_228, [
-                                _cache[194] || (_cache[194] = _createElementVNode("span", {
+                            ? (_openBlock(), _createElementBlock("section", _hoisted_239, [
+                                _cache[204] || (_cache[204] = _createElementVNode("span", {
                                   class: "bank-statement-form-icon",
                                   "aria-hidden": "true"
                                 }, "▤", -1 /* CACHED */)),
-                                _cache[195] || (_cache[195] = _createElementVNode("div", null, [
+                                _cache[205] || (_cache[205] = _createElementVNode("div", null, [
                                   _createElementVNode("strong", null, "Saldos del extracto bancario"),
                                   _createElementVNode("small", null, "Seleccione la cuenta y registre los saldos oficiales de apertura y cierre.")
                                 ], -1 /* CACHED */)),
-                                _createElementVNode("span", _hoisted_229, _toDisplayString(_ctx.activeCompany?.name), 1 /* TEXT */)
+                                _createElementVNode("span", _hoisted_240, _toDisplayString(_ctx.activeCompany?.name), 1 /* TEXT */)
                               ]))
                             : _createCommentVNode("v-if", true),
                           _withDirectives(_createElementVNode("div", {
@@ -2364,14 +2461,14 @@ export function render(_ctx, _cache) {
                                 key: field.key
                               }, [
                                 (_ctx.activeCatalog.slug==='customers' && field.key==='envio_estado_cuenta_auto')
-                                  ? (_openBlock(), _createElementBlock("div", _hoisted_230, [...(_cache[196] || (_cache[196] = [
+                                  ? (_openBlock(), _createElementBlock("div", _hoisted_241, [...(_cache[206] || (_cache[206] = [
                                       _createElementVNode("h3", null, "Crédito y Cobro", -1 /* CACHED */)
                                     ]))]))
                                   : _createCommentVNode("v-if", true),
                                 (_ctx.activeCatalog.slug==='accounting-periods' && field.key==='checklist_completed')
-                                  ? (_openBlock(), _createElementBlock("div", _hoisted_231, [
-                                      _cache[197] || (_cache[197] = _createElementVNode("h3", null, "Bloqueos y cierre del período", -1 /* CACHED */)),
-                                      _cache[198] || (_cache[198] = _createElementVNode("p", { id: "fiscalPeriodControlsHelp" }, "Cambiar un interruptor prepara el cambio. Pulse Guardar cambios para aplicarlo.", -1 /* CACHED */)),
+                                  ? (_openBlock(), _createElementBlock("div", _hoisted_242, [
+                                      _cache[207] || (_cache[207] = _createElementVNode("h3", null, "Bloqueos y cierre del período", -1 /* CACHED */)),
+                                      _cache[208] || (_cache[208] = _createElementVNode("p", { id: "fiscalPeriodControlsHelp" }, "Cambiar un interruptor prepara el cambio. Pulse Guardar cambios para aplicarlo.", -1 /* CACHED */)),
                                       _createElementVNode("p", {
                                         id: "fiscalPeriodPermissionHelp",
                                         class: _normalizeClass({'is-restricted':field.readOnly})
@@ -2388,13 +2485,13 @@ export function render(_ctx, _cache) {
                                         class: "fiscal-period-toggle-row",
                                         for: 'fiscalPeriodInput-'+field.key
                                       }, [
-                                        _createElementVNode("span", _hoisted_234, [
+                                        _createElementVNode("span", _hoisted_245, [
                                           _createElementVNode("strong", {
                                             id: 'fiscalPeriodLabel-'+field.key
-                                          }, _toDisplayString(field.label), 9 /* TEXT, PROPS */, _hoisted_235),
+                                          }, _toDisplayString(field.label), 9 /* TEXT, PROPS */, _hoisted_246),
                                           _createElementVNode("small", null, _toDisplayString(_ctx.fiscalPeriodState(field,_ctx.recordDialog.values[field.key])), 1 /* TEXT */)
                                         ]),
-                                        _createElementVNode("span", _hoisted_236, [
+                                        _createElementVNode("span", _hoisted_247, [
                                           _withDirectives(_createElementVNode("input", {
                                             id: 'fiscalPeriodInput-'+field.key,
                                             "onUpdate:modelValue": $event => ((_ctx.recordDialog.values[field.key]) = $event),
@@ -2404,52 +2501,52 @@ export function render(_ctx, _cache) {
                                             "aria-labelledby": 'fiscalPeriodLabel-'+field.key,
                                             "aria-describedby": 'fiscalPeriodHelp-'+field.key+' fiscalPeriodPermissionHelp fiscalPeriodControlsHelp',
                                             disabled: field.readOnly || _ctx.dialogSaving
-                                          }, null, 8 /* PROPS */, _hoisted_237), [
+                                          }, null, 8 /* PROPS */, _hoisted_248), [
                                             [_vModelCheckbox, _ctx.recordDialog.values[field.key]]
                                           ]),
-                                          _cache[199] || (_cache[199] = _createElementVNode("span", {
+                                          _cache[209] || (_cache[209] = _createElementVNode("span", {
                                             class: "gentia-switch-track",
                                             "aria-hidden": "true"
                                           }, null, -1 /* CACHED */))
                                         ])
-                                      ], 8 /* PROPS */, _hoisted_233),
+                                      ], 8 /* PROPS */, _hoisted_244),
                                       _createElementVNode("p", {
                                         id: 'fiscalPeriodHelp-'+field.key,
                                         class: "fiscal-period-field-help"
-                                      }, _toDisplayString(field.help), 9 /* TEXT, PROPS */, _hoisted_238)
-                                    ], 10 /* CLASS, PROPS */, _hoisted_232))
+                                      }, _toDisplayString(field.help), 9 /* TEXT, PROPS */, _hoisted_249)
+                                    ], 10 /* CLASS, PROPS */, _hoisted_243))
                                   : (_ctx.activeCatalog.slug==='chart-accounts' && field.key==='pending_fx_revaluation')
-                                    ? _withDirectives((_openBlock(), _createElementBlock("div", _hoisted_239, [
-                                        _createElementVNode("label", _hoisted_240, [
+                                    ? _withDirectives((_openBlock(), _createElementBlock("div", _hoisted_250, [
+                                        _createElementVNode("label", _hoisted_251, [
                                           _createElementVNode("span", null, _toDisplayString(field.label), 1 /* TEXT */),
-                                          _createElementVNode("span", _hoisted_241, [
+                                          _createElementVNode("span", _hoisted_252, [
                                             _withDirectives(_createElementVNode("input", {
                                               id: "chartAccountFxRevaluation",
-                                              "onUpdate:modelValue": _cache[66] || (_cache[66] = $event => ((_ctx.recordDialog.values.pending_fx_revaluation) = $event)),
+                                              "onUpdate:modelValue": _cache[72] || (_cache[72] = $event => ((_ctx.recordDialog.values.pending_fx_revaluation) = $event)),
                                               class: "gentia-switch-input",
                                               type: "checkbox",
                                               role: "switch",
                                               "aria-describedby": "chartAccountFxHelp",
                                               disabled: _ctx.dialogSaving,
-                                              onChange: _cache[67] || (_cache[67] = (...args) => (_ctx.changeChartAccountFx && _ctx.changeChartAccountFx(...args)))
-                                            }, null, 40 /* PROPS, NEED_HYDRATION */, _hoisted_242), [
+                                              onChange: _cache[73] || (_cache[73] = (...args) => (_ctx.changeChartAccountFx && _ctx.changeChartAccountFx(...args)))
+                                            }, null, 40 /* PROPS, NEED_HYDRATION */, _hoisted_253), [
                                               [_vModelCheckbox, _ctx.recordDialog.values.pending_fx_revaluation]
                                             ]),
-                                            _cache[200] || (_cache[200] = _createElementVNode("span", {
+                                            _cache[210] || (_cache[210] = _createElementVNode("span", {
                                               class: "gentia-switch-track",
                                               "aria-hidden": "true"
                                             }, null, -1 /* CACHED */))
                                           ])
                                         ]),
-                                        _createElementVNode("small", _hoisted_243, _toDisplayString(_ctx.chartAccountFxHelp()), 1 /* TEXT */),
+                                        _createElementVNode("small", _hoisted_254, _toDisplayString(_ctx.chartAccountFxHelp()), 1 /* TEXT */),
                                         (_ctx.recordDialog.values.pending_fx_revaluation_override!==null)
-                                          ? (_openBlock(), _createElementBlock("div", _hoisted_244, [
+                                          ? (_openBlock(), _createElementBlock("div", _hoisted_255, [
                                               _createElementVNode("button", {
                                                 class: "button-secondary",
                                                 type: "button",
                                                 disabled: _ctx.dialogSaving || !_ctx.chartAccountFxGroup(),
-                                                onClick: _cache[68] || (_cache[68] = (...args) => (_ctx.resetChartAccountFx && _ctx.resetChartAccountFx(...args)))
-                                              }, "Usar valor del grupo", 8 /* PROPS */, _hoisted_245)
+                                                onClick: _cache[74] || (_cache[74] = (...args) => (_ctx.resetChartAccountFx && _ctx.resetChartAccountFx(...args)))
+                                              }, "Usar valor del grupo", 8 /* PROPS */, _hoisted_256)
                                             ]))
                                           : _createCommentVNode("v-if", true)
                                       ], 512 /* NEED_PATCH */)), [
@@ -2463,7 +2560,7 @@ export function render(_ctx, _cache) {
                                         _createElementVNode("span", null, [
                                           _createTextVNode(_toDisplayString(field.label), 1 /* TEXT */),
                                           (field.required)
-                                            ? (_openBlock(), _createElementBlock("b", _hoisted_247, " *"))
+                                            ? (_openBlock(), _createElementBlock("b", _hoisted_258, " *"))
                                             : _createCommentVNode("v-if", true)
                                         ]),
                                         (field.options)
@@ -2473,7 +2570,7 @@ export function render(_ctx, _cache) {
                                               required: _ctx.fieldRequired(field),
                                               onChange: $event => (_ctx.handleFieldChange(field))
                                             }, [
-                                              _cache[201] || (_cache[201] = _createElementVNode("option", {
+                                              _cache[211] || (_cache[211] = _createElementVNode("option", {
                                                 value: "",
                                                 disabled: ""
                                               }, "Selecciona una opción", -1 /* CACHED */)),
@@ -2481,29 +2578,29 @@ export function render(_ctx, _cache) {
                                                 return (_openBlock(), _createElementBlock("option", {
                                                   key: option,
                                                   value: option
-                                                }, _toDisplayString(option), 9 /* TEXT, PROPS */, _hoisted_249))
+                                                }, _toDisplayString(option), 9 /* TEXT, PROPS */, _hoisted_260))
                                               }), 128 /* KEYED_FRAGMENT */))
-                                            ], 40 /* PROPS, NEED_HYDRATION */, _hoisted_248)), [
+                                            ], 40 /* PROPS, NEED_HYDRATION */, _hoisted_259)), [
                                               [_vModelSelect, _ctx.recordDialog.values[field.key]]
                                             ])
                                           : (field.type==='multi-reference')
-                                            ? (_openBlock(), _createElementBlock("div", _hoisted_250, [
+                                            ? (_openBlock(), _createElementBlock("div", _hoisted_261, [
                                                 (['chart-accounts','user-subsidiaries'].includes(_ctx.activeCatalog.slug) && field.key==='subsidiary_ids')
-                                                  ? (_openBlock(), _createElementBlock("div", _hoisted_251, [
+                                                  ? (_openBlock(), _createElementBlock("div", _hoisted_262, [
                                                       _createElementVNode("div", null, [
                                                         _createElementVNode("strong", null, _toDisplayString(_ctx.selectedReferenceCount(field)) + " de " + _toDisplayString(_ctx.filteredReferenceOptions(field).length), 1 /* TEXT */),
                                                         _createElementVNode("span", null, _toDisplayString(_ctx.activeCatalog.slug==='user-subsidiaries' ? 'filiales asignadas' : 'subsidiarias habilitadas'), 1 /* TEXT */)
                                                       ]),
                                                       (_ctx.allReferenceSelected(field))
-                                                        ? (_openBlock(), _createElementBlock("span", _hoisted_252, _toDisplayString(_ctx.activeCatalog.slug==='user-subsidiaries' ? 'Acceso completo' : 'Cobertura completa'), 1 /* TEXT */))
+                                                        ? (_openBlock(), _createElementBlock("span", _hoisted_263, _toDisplayString(_ctx.activeCatalog.slug==='user-subsidiaries' ? 'Acceso completo' : 'Cobertura completa'), 1 /* TEXT */))
                                                         : _createCommentVNode("v-if", true)
                                                     ]))
                                                   : _createCommentVNode("v-if", true),
                                                 (['chart-accounts','user-subsidiaries'].includes(_ctx.activeCatalog.slug) && field.key==='subsidiary_ids')
-                                                  ? (_openBlock(), _createElementBlock("div", _hoisted_253, [
-                                                      _cache[202] || (_cache[202] = _createElementVNode("span", { "aria-hidden": "true" }, "⌕", -1 /* CACHED */)),
+                                                  ? (_openBlock(), _createElementBlock("div", _hoisted_264, [
+                                                      _cache[212] || (_cache[212] = _createElementVNode("span", { "aria-hidden": "true" }, "⌕", -1 /* CACHED */)),
                                                       _withDirectives(_createElementVNode("input", {
-                                                        "onUpdate:modelValue": _cache[69] || (_cache[69] = $event => ((_ctx.accountSubsidiarySearch) = $event)),
+                                                        "onUpdate:modelValue": _cache[75] || (_cache[75] = $event => ((_ctx.accountSubsidiarySearch) = $event)),
                                                         type: "search",
                                                         placeholder: "Buscar subsidiaria",
                                                         "aria-label": "Buscar subsidiaria"
@@ -2526,7 +2623,7 @@ export function render(_ctx, _cache) {
                                                     class: _normalizeClass({checked:_ctx.allReferenceSelected(field)})
                                                   }, "✓", 2 /* CLASS */),
                                                   _createTextVNode(_toDisplayString(_ctx.allReferenceSelected(field) ? 'Todas seleccionadas' : 'Seleccionar todas'), 1 /* TEXT */)
-                                                ], 8 /* PROPS */, _hoisted_254),
+                                                ], 8 /* PROPS */, _hoisted_265),
                                                 (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.displayedReferenceOptions(field), (option) => {
                                                   return (_openBlock(), _createElementBlock("label", {
                                                     key: _ctx.referenceId(field.reference,option),
@@ -2537,14 +2634,14 @@ export function render(_ctx, _cache) {
                                                       type: "checkbox",
                                                       value: _ctx.referenceId(field.reference,option),
                                                       onChange: $event => (_ctx.handleFieldChange(field))
-                                                    }, null, 40 /* PROPS, NEED_HYDRATION */, _hoisted_255), [
+                                                    }, null, 40 /* PROPS, NEED_HYDRATION */, _hoisted_266), [
                                                       [_vModelCheckbox, _ctx.recordDialog.values[field.key]]
                                                     ]),
                                                     _createElementVNode("span", null, _toDisplayString(_ctx.referenceChoiceLabel(field,option)), 1 /* TEXT */)
                                                   ]))
                                                 }), 128 /* KEYED_FRAGMENT */)),
                                                 (!_ctx.displayedReferenceOptions(field).length)
-                                                  ? (_openBlock(), _createElementBlock("small", _hoisted_256, _toDisplayString(_ctx.accountSubsidiarySearch ? 'No hay subsidiarias que coincidan con la búsqueda.' : 'No hay opciones disponibles.'), 1 /* TEXT */))
+                                                  ? (_openBlock(), _createElementBlock("small", _hoisted_267, _toDisplayString(_ctx.accountSubsidiarySearch ? 'No hay subsidiarias que coincidan con la búsqueda.' : 'No hay opciones disponibles.'), 1 /* TEXT */))
                                                   : _createCommentVNode("v-if", true)
                                               ]))
                                             : (field.reference)
@@ -2555,19 +2652,19 @@ export function render(_ctx, _cache) {
                                                   disabled: field.readOnly || (field.readOnlyOnEdit && _ctx.recordDialog.id),
                                                   onChange: $event => (_ctx.handleReferenceFieldChange(field))
                                                 }, [
-                                                  _createElementVNode("option", _hoisted_258, _toDisplayString(field.required ? 'Selecciona una opción' : 'Sin asignar'), 1 /* TEXT */),
+                                                  _createElementVNode("option", _hoisted_269, _toDisplayString(field.required ? 'Selecciona una opción' : 'Sin asignar'), 1 /* TEXT */),
                                                   (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.filteredReferenceOptions(field), (option) => {
                                                     return (_openBlock(), _createElementBlock("option", {
                                                       key: _ctx.referenceId(field.reference,option),
                                                       value: _ctx.referenceId(field.reference,option),
                                                       disabled: (field.reference==='organization/approver-options' && !option.is_active) || _ctx.chartAccountUnavailable(field,option)
-                                                    }, _toDisplayString(_ctx.referenceChoiceLabel(field,option)) + _toDisplayString(field.reference==='organization/approver-options' && !option.is_active ? ' (Inactivo)' : _ctx.chartAccountUnavailable(field,option) ? ' (No disponible para la subsidiaria)' : ''), 9 /* TEXT, PROPS */, _hoisted_259))
+                                                    }, _toDisplayString(_ctx.referenceChoiceLabel(field,option)) + _toDisplayString(field.reference==='organization/approver-options' && !option.is_active ? ' (Inactivo)' : _ctx.chartAccountUnavailable(field,option) ? ' (No disponible para la subsidiaria)' : ''), 9 /* TEXT, PROPS */, _hoisted_270))
                                                   }), 128 /* KEYED_FRAGMENT */))
-                                                ], 40 /* PROPS, NEED_HYDRATION */, _hoisted_257)), [
+                                                ], 40 /* PROPS, NEED_HYDRATION */, _hoisted_268)), [
                                                   [_vModelSelect, _ctx.recordDialog.values[field.key]]
                                                 ])
                                               : (field.numberFormat==='money')
-                                                ? (_openBlock(), _createElementBlock("div", _hoisted_260, [
+                                                ? (_openBlock(), _createElementBlock("div", _hoisted_271, [
                                                     _createElementVNode("span", null, _toDisplayString(_ctx.bankStatementCurrencyCode()), 1 /* TEXT */),
                                                     _withDirectives(_createElementVNode("input", {
                                                       "onUpdate:modelValue": $event => ((_ctx.recordDialog.values[field.key]) = $event),
@@ -2577,9 +2674,9 @@ export function render(_ctx, _cache) {
                                                       required: _ctx.fieldRequired(field),
                                                       readonly: field.readOnly,
                                                       placeholder: "0,00",
-                                                      onFocus: _cache[70] || (_cache[70] = $event => ($event.target.select())),
+                                                      onFocus: _cache[76] || (_cache[76] = $event => ($event.target.select())),
                                                       onBlur: $event => (_ctx.formatBankStatementMoneyField(field.key))
-                                                    }, null, 40 /* PROPS, NEED_HYDRATION */, _hoisted_261), [
+                                                    }, null, 40 /* PROPS, NEED_HYDRATION */, _hoisted_272), [
                                                       [_vModelText, _ctx.recordDialog.values[field.key]]
                                                     ])
                                                   ]))
@@ -2590,7 +2687,7 @@ export function render(_ctx, _cache) {
                                                       required: _ctx.fieldRequired(field),
                                                       readonly: field.readOnly,
                                                       rows: "4"
-                                                    }, null, 8 /* PROPS */, _hoisted_262)), [
+                                                    }, null, 8 /* PROPS */, _hoisted_273)), [
                                                       [_vModelText, _ctx.recordDialog.values[field.key]]
                                                     ])
                                                   : (field.type !== 'boolean')
@@ -2602,37 +2699,37 @@ export function render(_ctx, _cache) {
                                                         readonly: field.readOnly,
                                                         placeholder: field.readOnly && !_ctx.recordDialog.id ? 'Se asignará automáticamente' : '',
                                                         inputmode: _ctx.activeCatalog.slug==='customers' && field.key==='email' ? 'email' : null
-                                                      }, null, 8 /* PROPS */, _hoisted_263)), [
+                                                      }, null, 8 /* PROPS */, _hoisted_274)), [
                                                         [_vModelDynamic, _ctx.recordDialog.values[field.key]]
                                                       ])
-                                                    : (_openBlock(), _createElementBlock("span", _hoisted_264, [
+                                                    : (_openBlock(), _createElementBlock("span", _hoisted_275, [
                                                         _withDirectives(_createElementVNode("input", {
                                                           "onUpdate:modelValue": $event => ((_ctx.recordDialog.values[field.key]) = $event),
                                                           class: "gentia-switch-input",
                                                           type: "checkbox",
                                                           role: "switch",
                                                           disabled: field.readOnly || (_ctx.activeCatalog.slug==='users' && field.key==='notify_user' && !_ctx.recordDialog.values.is_active)
-                                                        }, null, 8 /* PROPS */, _hoisted_265), [
+                                                        }, null, 8 /* PROPS */, _hoisted_276), [
                                                           [_vModelCheckbox, _ctx.recordDialog.values[field.key]]
                                                         ]),
-                                                        _cache[203] || (_cache[203] = _createElementVNode("span", {
+                                                        _cache[213] || (_cache[213] = _createElementVNode("span", {
                                                           class: "gentia-switch-track",
                                                           "aria-hidden": "true"
                                                         }, null, -1 /* CACHED */))
                                                       ])),
                                         (_ctx.activeCatalog.slug==='chart-accounts' && field.key==='subsidiary_ids')
-                                          ? (_openBlock(), _createElementBlock("small", _hoisted_266, "Las cuentas nuevas se habilitan inicialmente para todas las subsidiarias. Puede ajustar esta selección al editar la cuenta."))
+                                          ? (_openBlock(), _createElementBlock("small", _hoisted_277, "Las cuentas nuevas se habilitan inicialmente para todas las subsidiarias. Puede ajustar esta selección al editar la cuenta."))
                                           : _createCommentVNode("v-if", true),
                                         (field.help)
-                                          ? (_openBlock(), _createElementBlock("small", _hoisted_267, _toDisplayString(field.help), 1 /* TEXT */))
+                                          ? (_openBlock(), _createElementBlock("small", _hoisted_278, _toDisplayString(field.help), 1 /* TEXT */))
                                           : _createCommentVNode("v-if", true),
                                         (_ctx.activeCatalog.slug==='users' && field.key==='notify_user' && _ctx.recordDialog.values.is_active && !_ctx.recordDialog.values.notify_user)
-                                          ? (_openBlock(), _createElementBlock("small", _hoisted_268, _toDisplayString(_ctx.recordDialog.id ? 'No se enviará ningún correo. El usuario también puede recuperar su acceso con «¿Olvidaste tu contraseña?».' : 'Sin correo automático: el usuario deberá utilizar «¿Olvidaste tu contraseña?» o recibir una invitación posteriormente.'), 1 /* TEXT */))
+                                          ? (_openBlock(), _createElementBlock("small", _hoisted_279, _toDisplayString(_ctx.recordDialog.id ? 'No se enviará ningún correo. El usuario también puede recuperar su acceso con «¿Olvidaste tu contraseña?».' : 'Sin correo automático: el usuario deberá utilizar «¿Olvidaste tu contraseña?» o recibir una invitación posteriormente.'), 1 /* TEXT */))
                                           : _createCommentVNode("v-if", true),
                                         (_ctx.activeCatalog.slug==='users' && field.key==='notify_user' && !_ctx.recordDialog.values.is_active)
-                                          ? (_openBlock(), _createElementBlock("small", _hoisted_269, "Active el usuario antes de enviarle un enlace de recuperación."))
+                                          ? (_openBlock(), _createElementBlock("small", _hoisted_280, "Active el usuario antes de enviarle un enlace de recuperación."))
                                           : _createCommentVNode("v-if", true)
-                                      ], 10 /* CLASS, PROPS */, _hoisted_246)), [
+                                      ], 10 /* CLASS, PROPS */, _hoisted_257)), [
                                         [_vShow, (_ctx.activeCatalog.slug!=='subsidiaries' || _ctx.subsidiaryFieldTab(field.key)===_ctx.subsidiaryFormTab) && (!_ctx.isEntitySectioned() || _ctx.entityFieldTab(field.key)===_ctx.entityFormTab)]
                                       ])
                               ], 64 /* STABLE_FRAGMENT */))
@@ -2641,7 +2738,7 @@ export function render(_ctx, _cache) {
                             [_vShow, _ctx.activeCatalog.slug!=='subsidiaries' || _ctx.subsidiaryFormTab!=='tax']
                           ]),
                           (_ctx.isEntitySectioned() && _ctx.entityFormTab==='banking')
-                            ? (_openBlock(), _createElementBlock("section", _hoisted_270, [
+                            ? (_openBlock(), _createElementBlock("section", _hoisted_281, [
                                 (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.entityBankAccounts(), (slot) => {
                                   return (_openBlock(), _createElementBlock("section", {
                                     key: slot.id,
@@ -2651,18 +2748,18 @@ export function render(_ctx, _cache) {
                                     "aria-labelledby": `entity-bank-title-${slot.id}`
                                   }, [
                                     _createElementVNode("header", null, [
-                                      _createElementVNode("span", _hoisted_272, _toDisplayString(slot.step), 1 /* TEXT */),
+                                      _createElementVNode("span", _hoisted_283, _toDisplayString(slot.step), 1 /* TEXT */),
                                       _createElementVNode("div", null, [
                                         _createElementVNode("h4", {
                                           id: `entity-bank-title-${slot.id}`
-                                        }, _toDisplayString(slot.label), 9 /* TEXT, PROPS */, _hoisted_273),
+                                        }, _toDisplayString(slot.label), 9 /* TEXT, PROPS */, _hoisted_284),
                                         _createElementVNode("p", null, _toDisplayString(slot.caption), 1 /* TEXT */)
                                       ]),
                                       (slot.optional)
-                                        ? (_openBlock(), _createElementBlock("span", _hoisted_274, "Opcional"))
+                                        ? (_openBlock(), _createElementBlock("span", _hoisted_285, "Opcional"))
                                         : _createCommentVNode("v-if", true)
                                     ]),
-                                    _createElementVNode("div", _hoisted_275, [
+                                    _createElementVNode("div", _hoisted_286, [
                                       (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.entityBankAccountFields(slot.id), (field) => {
                                         return (_openBlock(), _createElementBlock("label", {
                                           key: field.key,
@@ -2676,14 +2773,14 @@ export function render(_ctx, _cache) {
                                                 disabled: field.readOnly,
                                                 onChange: $event => (_ctx.handleReferenceFieldChange(field))
                                               }, [
-                                                _cache[204] || (_cache[204] = _createElementVNode("option", { value: "" }, "Sin asignar", -1 /* CACHED */)),
+                                                _cache[214] || (_cache[214] = _createElementVNode("option", { value: "" }, "Sin asignar", -1 /* CACHED */)),
                                                 (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.filteredReferenceOptions(field), (option) => {
                                                   return (_openBlock(), _createElementBlock("option", {
                                                     key: _ctx.referenceId(field.reference,option),
                                                     value: _ctx.referenceId(field.reference,option)
-                                                  }, _toDisplayString(_ctx.entityBankReferenceLabel(field,option)), 9 /* TEXT, PROPS */, _hoisted_278))
+                                                  }, _toDisplayString(_ctx.entityBankReferenceLabel(field,option)), 9 /* TEXT, PROPS */, _hoisted_289))
                                                 }), 128 /* KEYED_FRAGMENT */))
-                                              ], 40 /* PROPS, NEED_HYDRATION */, _hoisted_277)), [
+                                              ], 40 /* PROPS, NEED_HYDRATION */, _hoisted_288)), [
                                                 [_vModelSelect, _ctx.recordDialog.values[field.key]]
                                               ])
                                             : _withDirectives((_openBlock(), _createElementBlock("input", {
@@ -2693,20 +2790,20 @@ export function render(_ctx, _cache) {
                                                 readonly: field.readOnly,
                                                 autocomplete: field.key.endsWith('_account_number') ? 'off' : null,
                                                 placeholder: field.key.endsWith('_iban') ? 'Ej. CR05…' : field.key.endsWith('_account_number') ? 'Número de cuenta completo' : ''
-                                              }, null, 8 /* PROPS */, _hoisted_279)), [
+                                              }, null, 8 /* PROPS */, _hoisted_290)), [
                                                 [_vModelText, _ctx.recordDialog.values[field.key]]
                                               ])
-                                        ], 8 /* PROPS */, _hoisted_276))
+                                        ], 8 /* PROPS */, _hoisted_287))
                                       }), 128 /* KEYED_FRAGMENT */))
                                     ]),
-                                    _cache[205] || (_cache[205] = _createElementVNode("p", { class: "entity-bank-help" }, "Complete el banco cuando registre un IBAN o número de cuenta.", -1 /* CACHED */))
-                                  ], 10 /* CLASS, PROPS */, _hoisted_271))
+                                    _cache[215] || (_cache[215] = _createElementVNode("p", { class: "entity-bank-help" }, "Complete el banco cuando registre un IBAN o número de cuenta.", -1 /* CACHED */))
+                                  ], 10 /* CLASS, PROPS */, _hoisted_282))
                                 }), 128 /* KEYED_FRAGMENT */))
                               ]))
                             : _createCommentVNode("v-if", true),
                           (_ctx.activeCatalog.slug==='subsidiaries' && _ctx.subsidiaryFormTab==='tax' && _ctx.isColombiaSelected())
-                            ? (_openBlock(), _createElementBlock("section", _hoisted_280, [
-                                _cache[219] || (_cache[219] = _createElementVNode("div", { class: "autorent-heading" }, [
+                            ? (_openBlock(), _createElementBlock("section", _hoisted_291, [
+                                _cache[229] || (_cache[229] = _createElementVNode("div", { class: "autorent-heading" }, [
                                   _createElementVNode("div", null, [
                                     _createElementVNode("span", null, "CONFIGURACIÓN TRIBUTARIA · COLOMBIA"),
                                     _createElementVNode("h3", { id: "autorent-title" }, "Autorretención a título de renta"),
@@ -2718,35 +2815,35 @@ export function render(_ctx, _cache) {
                                   class: _normalizeClass(["autorent-toggle", {disabled:!_ctx.recordDialog.id}])
                                 }, [
                                   _withDirectives(_createElementVNode("input", {
-                                    "onUpdate:modelValue": _cache[71] || (_cache[71] = $event => ((_ctx.recordDialog.values.applies_income_autorent) = $event)),
+                                    "onUpdate:modelValue": _cache[77] || (_cache[77] = $event => ((_ctx.recordDialog.values.applies_income_autorent) = $event)),
                                     type: "checkbox",
                                     disabled: !_ctx.recordDialog.id,
-                                    onChange: _cache[72] || (_cache[72] = (...args) => (_ctx.handleAutorentToggle && _ctx.handleAutorentToggle(...args)))
-                                  }, null, 40 /* PROPS, NEED_HYDRATION */, _hoisted_281), [
+                                    onChange: _cache[78] || (_cache[78] = (...args) => (_ctx.handleAutorentToggle && _ctx.handleAutorentToggle(...args)))
+                                  }, null, 40 /* PROPS, NEED_HYDRATION */, _hoisted_292), [
                                     [_vModelCheckbox, _ctx.recordDialog.values.applies_income_autorent]
                                   ]),
-                                  _cache[206] || (_cache[206] = _createElementVNode("span", {
+                                  _cache[216] || (_cache[216] = _createElementVNode("span", {
                                     class: "autorent-switch",
                                     "aria-hidden": "true"
                                   }, null, -1 /* CACHED */)),
-                                  _cache[207] || (_cache[207] = _createElementVNode("span", null, [
+                                  _cache[217] || (_cache[217] = _createElementVNode("span", null, [
                                     _createElementVNode("strong", null, "¿Practica Autorretención de Renta?"),
                                     _createElementVNode("small", null, "Activa el cálculo automático en facturas y notas de venta.")
                                   ], -1 /* CACHED */))
                                 ], 2 /* CLASS */),
                                 (!_ctx.recordDialog.id)
-                                  ? (_openBlock(), _createElementBlock("p", _hoisted_282, "Guarde primero la subsidiaria. Luego podrá editarla y seleccionar cuentas asignadas a su plan contable."))
+                                  ? (_openBlock(), _createElementBlock("p", _hoisted_293, "Guarde primero la subsidiaria. Luego podrá editarla y seleccionar cuentas asignadas a su plan contable."))
                                   : _createCommentVNode("v-if", true),
                                 (_ctx.recordDialog.values.applies_income_autorent)
-                                  ? (_openBlock(), _createElementBlock("div", _hoisted_283, [
+                                  ? (_openBlock(), _createElementBlock("div", _hoisted_294, [
                                       _createElementVNode("label", null, [
-                                        _cache[209] || (_cache[209] = _createElementVNode("span", null, [
+                                        _cache[219] || (_cache[219] = _createElementVNode("span", null, [
                                           _createTextVNode("Cuenta de activo (Anticipo Autorretención) "),
                                           _createElementVNode("b", null, "*")
                                         ], -1 /* CACHED */)),
-                                        _cache[210] || (_cache[210] = _createElementVNode("small", null, "Solo cuentas de Activo, naturaleza deudora y con movimientos.", -1 /* CACHED */)),
+                                        _cache[220] || (_cache[220] = _createElementVNode("small", null, "Solo cuentas de Activo, naturaleza deudora y con movimientos.", -1 /* CACHED */)),
                                         _withDirectives(_createElementVNode("input", {
-                                          "onUpdate:modelValue": _cache[73] || (_cache[73] = $event => ((_ctx.autorentAccountSearch.active) = $event)),
+                                          "onUpdate:modelValue": _cache[79] || (_cache[79] = $event => ((_ctx.autorentAccountSearch.active) = $event)),
                                           type: "search",
                                           placeholder: "Buscar por código o nombre",
                                           "aria-label": "Buscar cuenta de activo"
@@ -2759,10 +2856,10 @@ export function render(_ctx, _cache) {
                                           ]
                                         ]),
                                         _withDirectives(_createElementVNode("select", {
-                                          "onUpdate:modelValue": _cache[74] || (_cache[74] = $event => ((_ctx.recordDialog.values.autorent_active_account_id) = $event)),
+                                          "onUpdate:modelValue": _cache[80] || (_cache[80] = $event => ((_ctx.recordDialog.values.autorent_active_account_id) = $event)),
                                           required: ""
                                         }, [
-                                          _cache[208] || (_cache[208] = _createElementVNode("option", {
+                                          _cache[218] || (_cache[218] = _createElementVNode("option", {
                                             value: "",
                                             disabled: ""
                                           }, "Seleccione la cuenta de activo", -1 /* CACHED */)),
@@ -2771,23 +2868,23 @@ export function render(_ctx, _cache) {
                                               key: account.account_id,
                                               value: account.account_id,
                                               disabled: !_ctx.chartAccountAvailable(account)
-                                            }, _toDisplayString(_ctx.autorentAccountLabel(account)) + _toDisplayString(!_ctx.chartAccountAvailable(account) ? ' (No disponible para esta subsidiaria)' : ''), 9 /* TEXT, PROPS */, _hoisted_284))
+                                            }, _toDisplayString(_ctx.autorentAccountLabel(account)) + _toDisplayString(!_ctx.chartAccountAvailable(account) ? ' (No disponible para esta subsidiaria)' : ''), 9 /* TEXT, PROPS */, _hoisted_295))
                                           }), 128 /* KEYED_FRAGMENT */))
                                         ], 512 /* NEED_PATCH */), [
                                           [_vModelSelect, _ctx.recordDialog.values.autorent_active_account_id]
                                         ]),
                                         (!_ctx.autorentAccounts('Activo','active').length)
-                                          ? (_openBlock(), _createElementBlock("small", _hoisted_285, "No existen cuentas de activo compatibles habilitadas para esta subsidiaria."))
-                                          : (_openBlock(), _createElementBlock("small", _hoisted_286, "Solo se muestran cuentas habilitadas para esta subsidiaria."))
+                                          ? (_openBlock(), _createElementBlock("small", _hoisted_296, "No existen cuentas de activo compatibles habilitadas para esta subsidiaria."))
+                                          : (_openBlock(), _createElementBlock("small", _hoisted_297, "Solo se muestran cuentas habilitadas para esta subsidiaria."))
                                       ]),
                                       _createElementVNode("label", null, [
-                                        _cache[212] || (_cache[212] = _createElementVNode("span", null, [
+                                        _cache[222] || (_cache[222] = _createElementVNode("span", null, [
                                           _createTextVNode("Cuenta de pasivo (Autorretención por Pagar) "),
                                           _createElementVNode("b", null, "*")
                                         ], -1 /* CACHED */)),
-                                        _cache[213] || (_cache[213] = _createElementVNode("small", null, "Solo cuentas de Pasivo, naturaleza acreedora y con movimientos.", -1 /* CACHED */)),
+                                        _cache[223] || (_cache[223] = _createElementVNode("small", null, "Solo cuentas de Pasivo, naturaleza acreedora y con movimientos.", -1 /* CACHED */)),
                                         _withDirectives(_createElementVNode("input", {
-                                          "onUpdate:modelValue": _cache[75] || (_cache[75] = $event => ((_ctx.autorentAccountSearch.passive) = $event)),
+                                          "onUpdate:modelValue": _cache[81] || (_cache[81] = $event => ((_ctx.autorentAccountSearch.passive) = $event)),
                                           type: "search",
                                           placeholder: "Buscar por código o nombre",
                                           "aria-label": "Buscar cuenta de pasivo"
@@ -2800,10 +2897,10 @@ export function render(_ctx, _cache) {
                                           ]
                                         ]),
                                         _withDirectives(_createElementVNode("select", {
-                                          "onUpdate:modelValue": _cache[76] || (_cache[76] = $event => ((_ctx.recordDialog.values.autorent_passive_account_id) = $event)),
+                                          "onUpdate:modelValue": _cache[82] || (_cache[82] = $event => ((_ctx.recordDialog.values.autorent_passive_account_id) = $event)),
                                           required: ""
                                         }, [
-                                          _cache[211] || (_cache[211] = _createElementVNode("option", {
+                                          _cache[221] || (_cache[221] = _createElementVNode("option", {
                                             value: "",
                                             disabled: ""
                                           }, "Seleccione la cuenta de pasivo", -1 /* CACHED */)),
@@ -2812,24 +2909,24 @@ export function render(_ctx, _cache) {
                                               key: account.account_id,
                                               value: account.account_id,
                                               disabled: !_ctx.chartAccountAvailable(account)
-                                            }, _toDisplayString(_ctx.autorentAccountLabel(account)) + _toDisplayString(!_ctx.chartAccountAvailable(account) ? ' (No disponible para esta subsidiaria)' : ''), 9 /* TEXT, PROPS */, _hoisted_287))
+                                            }, _toDisplayString(_ctx.autorentAccountLabel(account)) + _toDisplayString(!_ctx.chartAccountAvailable(account) ? ' (No disponible para esta subsidiaria)' : ''), 9 /* TEXT, PROPS */, _hoisted_298))
                                           }), 128 /* KEYED_FRAGMENT */))
                                         ], 512 /* NEED_PATCH */), [
                                           [_vModelSelect, _ctx.recordDialog.values.autorent_passive_account_id]
                                         ]),
                                         (!_ctx.autorentAccounts('Pasivo','passive').length)
-                                          ? (_openBlock(), _createElementBlock("small", _hoisted_288, "No existen cuentas de pasivo compatibles habilitadas para esta subsidiaria."))
-                                          : (_openBlock(), _createElementBlock("small", _hoisted_289, "Solo se muestran cuentas habilitadas para esta subsidiaria."))
+                                          ? (_openBlock(), _createElementBlock("small", _hoisted_299, "No existen cuentas de pasivo compatibles habilitadas para esta subsidiaria."))
+                                          : (_openBlock(), _createElementBlock("small", _hoisted_300, "Solo se muestran cuentas habilitadas para esta subsidiaria."))
                                       ]),
-                                      _createElementVNode("label", _hoisted_290, [
-                                        _cache[215] || (_cache[215] = _createElementVNode("span", null, [
+                                      _createElementVNode("label", _hoisted_301, [
+                                        _cache[225] || (_cache[225] = _createElementVNode("span", null, [
                                           _createTextVNode("Porcentaje de Autorretención "),
                                           _createElementVNode("b", null, "*")
                                         ], -1 /* CACHED */)),
-                                        _cache[216] || (_cache[216] = _createElementVNode("small", null, "Ingrese la tarifa como porcentaje; por ejemplo, 1,10.", -1 /* CACHED */)),
-                                        _createElementVNode("span", _hoisted_291, [
+                                        _cache[226] || (_cache[226] = _createElementVNode("small", null, "Ingrese la tarifa como porcentaje; por ejemplo, 1,10.", -1 /* CACHED */)),
+                                        _createElementVNode("span", _hoisted_302, [
                                           _withDirectives(_createElementVNode("input", {
-                                            "onUpdate:modelValue": _cache[77] || (_cache[77] = $event => ((_ctx.autorentPercentInput) = $event)),
+                                            "onUpdate:modelValue": _cache[83] || (_cache[83] = $event => ((_ctx.autorentPercentInput) = $event)),
                                             type: "text",
                                             inputmode: "decimal",
                                             pattern: "[0-9]+([,.][0-9]{1,2})?",
@@ -2843,11 +2940,11 @@ export function render(_ctx, _cache) {
                                               { trim: true }
                                             ]
                                           ]),
-                                          _cache[214] || (_cache[214] = _createElementVNode("strong", null, "%", -1 /* CACHED */))
+                                          _cache[224] || (_cache[224] = _createElementVNode("strong", null, "%", -1 /* CACHED */))
                                         ]),
-                                        _cache[217] || (_cache[217] = _createElementVNode("small", null, "El sistema conservará 1,10 % como factor contable 0,0110.", -1 /* CACHED */))
+                                        _cache[227] || (_cache[227] = _createElementVNode("small", null, "El sistema conservará 1,10 % como factor contable 0,0110.", -1 /* CACHED */))
                                       ]),
-                                      _cache[218] || (_cache[218] = _createElementVNode("aside", null, [
+                                      _cache[228] || (_cache[228] = _createElementVNode("aside", null, [
                                         _createElementVNode("strong", null, "Movimiento interno de balance"),
                                         _createElementVNode("span", null, "Débito al anticipo de impuestos"),
                                         _createElementVNode("span", null, "Crédito a autorretenciones por pagar"),
@@ -2858,9 +2955,9 @@ export function render(_ctx, _cache) {
                               ]))
                             : _createCommentVNode("v-if", true),
                           (['customers','suppliers'].includes(_ctx.activeCatalog.slug) && _ctx.recordDialog.values.applies_withholding && (!_ctx.isEntitySectioned() || _ctx.entityFormTab==='operation'))
-                            ? (_openBlock(), _createElementBlock("section", _hoisted_292, [
-                                _createElementVNode("div", _hoisted_293, [
-                                  _cache[220] || (_cache[220] = _createElementVNode("div", null, [
+                            ? (_openBlock(), _createElementBlock("section", _hoisted_303, [
+                                _createElementVNode("div", _hoisted_304, [
+                                  _cache[230] || (_cache[230] = _createElementVNode("div", null, [
                                     _createElementVNode("span", null, "CONFIGURACIÓN TRIBUTARIA"),
                                     _createElementVNode("h3", null, "Retenciones por subsidiaria"),
                                     _createElementVNode("p", null, "Asigne una o varias retenciones según el país y la subsidiaria donde opera la entidad.")
@@ -2869,31 +2966,31 @@ export function render(_ctx, _cache) {
                                     type: "button",
                                     class: "button-secondary",
                                     disabled: !_ctx.withholdingSubsidiaries().length,
-                                    onClick: _cache[78] || (_cache[78] = (...args) => (_ctx.addWithholdingRule && _ctx.addWithholdingRule(...args)))
-                                  }, "+ Agregar retención", 8 /* PROPS */, _hoisted_294)
+                                    onClick: _cache[84] || (_cache[84] = (...args) => (_ctx.addWithholdingRule && _ctx.addWithholdingRule(...args)))
+                                  }, "+ Agregar retención", 8 /* PROPS */, _hoisted_305)
                                 ]),
                                 (!_ctx.withholdingSubsidiaries().length)
-                                  ? (_openBlock(), _createElementBlock("p", _hoisted_295, "Seleccione primero las subsidiarias de la entidad."))
+                                  ? (_openBlock(), _createElementBlock("p", _hoisted_306, "Seleccione primero las subsidiarias de la entidad."))
                                   : (!_ctx.recordDialog.values.withholding_rules?.length)
-                                    ? (_openBlock(), _createElementBlock("p", _hoisted_296, "Agregue al menos una configuración de retención."))
-                                    : (_openBlock(), _createElementBlock("div", _hoisted_297, [
+                                    ? (_openBlock(), _createElementBlock("p", _hoisted_307, "Agregue al menos una configuración de retención."))
+                                    : (_openBlock(), _createElementBlock("div", _hoisted_308, [
                                         (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.recordDialog.values.withholding_rules, (rule, index) => {
                                           return (_openBlock(), _createElementBlock("div", {
                                             key: index,
                                             class: "withholding-rule-row"
                                           }, [
-                                            _createElementVNode("div", _hoisted_298, [
+                                            _createElementVNode("div", _hoisted_309, [
                                               _createElementVNode("span", null, _toDisplayString(index + 1), 1 /* TEXT */)
                                             ]),
                                             _createElementVNode("label", null, [
-                                              _cache[222] || (_cache[222] = _createElementVNode("span", null, "Subsidiaria y país *", -1 /* CACHED */)),
-                                              _createElementVNode("div", _hoisted_299, [
+                                              _cache[232] || (_cache[232] = _createElementVNode("span", null, "Subsidiaria y país *", -1 /* CACHED */)),
+                                              _createElementVNode("div", _hoisted_310, [
                                                 _withDirectives(_createElementVNode("select", {
                                                   "onUpdate:modelValue": $event => ((rule.subsidiary_id) = $event),
                                                   required: "",
                                                   onChange: $event => (rule.tax_code_id='')
                                                 }, [
-                                                  _cache[221] || (_cache[221] = _createElementVNode("option", {
+                                                  _cache[231] || (_cache[231] = _createElementVNode("option", {
                                                     value: "",
                                                     disabled: ""
                                                   }, "Seleccione una subsidiaria", -1 /* CACHED */)),
@@ -2901,37 +2998,37 @@ export function render(_ctx, _cache) {
                                                     return (_openBlock(), _createElementBlock("option", {
                                                       key: subsidiary.subsidiary_id,
                                                       value: String(subsidiary.subsidiary_id)
-                                                    }, _toDisplayString(_ctx.subsidiaryCountryLabel(subsidiary)), 9 /* TEXT, PROPS */, _hoisted_301))
+                                                    }, _toDisplayString(_ctx.subsidiaryCountryLabel(subsidiary)), 9 /* TEXT, PROPS */, _hoisted_312))
                                                   }), 128 /* KEYED_FRAGMENT */))
-                                                ], 40 /* PROPS, NEED_HYDRATION */, _hoisted_300), [
+                                                ], 40 /* PROPS, NEED_HYDRATION */, _hoisted_311), [
                                                   [_vModelSelect, rule.subsidiary_id]
                                                 ])
                                               ])
                                             ]),
                                             _createElementVNode("label", null, [
-                                              _cache[223] || (_cache[223] = _createElementVNode("span", null, "Código de retención *", -1 /* CACHED */)),
-                                              _createElementVNode("div", _hoisted_302, [
+                                              _cache[233] || (_cache[233] = _createElementVNode("span", null, "Código de retención *", -1 /* CACHED */)),
+                                              _createElementVNode("div", _hoisted_313, [
                                                 _withDirectives(_createElementVNode("select", {
                                                   "onUpdate:modelValue": $event => ((rule.tax_code_id) = $event),
                                                   required: "",
                                                   disabled: !rule.subsidiary_id
                                                 }, [
-                                                  _createElementVNode("option", _hoisted_304, _toDisplayString(rule.subsidiary_id ? 'Seleccione una retención' : 'Seleccione primero la subsidiaria'), 1 /* TEXT */),
+                                                  _createElementVNode("option", _hoisted_315, _toDisplayString(rule.subsidiary_id ? 'Seleccione una retención' : 'Seleccione primero la subsidiaria'), 1 /* TEXT */),
                                                   (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.withholdingTaxes(rule), (tax) => {
                                                     return (_openBlock(), _createElementBlock("option", {
                                                       key: tax.tax_code_id,
                                                       value: String(tax.tax_code_id)
-                                                    }, _toDisplayString(_ctx.referenceLabel(tax)) + " · " + _toDisplayString(tax.rate_percentage) + "%", 9 /* TEXT, PROPS */, _hoisted_305))
+                                                    }, _toDisplayString(_ctx.referenceLabel(tax)) + " · " + _toDisplayString(tax.rate_percentage) + "%", 9 /* TEXT, PROPS */, _hoisted_316))
                                                   }), 128 /* KEYED_FRAGMENT */))
-                                                ], 8 /* PROPS */, _hoisted_303), [
+                                                ], 8 /* PROPS */, _hoisted_314), [
                                                   [_vModelSelect, rule.tax_code_id]
                                                 ])
                                               ]),
                                               (rule.subsidiary_id && !_ctx.withholdingTaxes(rule).length)
-                                                ? (_openBlock(), _createElementBlock("small", _hoisted_306, "No hay retenciones compatibles para esta subsidiaria."))
+                                                ? (_openBlock(), _createElementBlock("small", _hoisted_317, "No hay retenciones compatibles para esta subsidiaria."))
                                                 : _createCommentVNode("v-if", true),
                                               (_ctx.selectedWithholdingTax(rule))
-                                                ? (_openBlock(), _createElementBlock("div", _hoisted_307, [
+                                                ? (_openBlock(), _createElementBlock("div", _hoisted_318, [
                                                     _createElementVNode("span", null, _toDisplayString(_ctx.selectedWithholdingTax(rule).tax_type_applies_to), 1 /* TEXT */),
                                                     _createElementVNode("span", null, _toDisplayString(_ctx.selectedWithholdingTax(rule).rate_percentage) + "%", 1 /* TEXT */),
                                                     _createElementVNode("span", null, _toDisplayString(_ctx.selectedWithholdingTax(rule).withholding_application_moment), 1 /* TEXT */)
@@ -2944,20 +3041,20 @@ export function render(_ctx, _cache) {
                                               "aria-label": "Eliminar retención",
                                               title: "Eliminar retención",
                                               onClick: $event => (_ctx.removeWithholdingRule(index))
-                                            }, "×", 8 /* PROPS */, _hoisted_308)
+                                            }, "×", 8 /* PROPS */, _hoisted_319)
                                           ]))
                                         }), 128 /* KEYED_FRAGMENT */))
                                       ]))
                               ]))
                             : _createCommentVNode("v-if", true),
                           (_ctx.dialogError)
-                            ? (_openBlock(), _createElementBlock("p", _hoisted_309, _toDisplayString(_ctx.dialogError), 1 /* TEXT */))
+                            ? (_openBlock(), _createElementBlock("p", _hoisted_320, _toDisplayString(_ctx.dialogError), 1 /* TEXT */))
                             : _createCommentVNode("v-if", true),
-                          _createElementVNode("div", _hoisted_310, [
+                          _createElementVNode("div", _hoisted_321, [
                             _createElementVNode("button", {
                               type: "button",
                               class: "button-secondary",
-                              onClick: _cache[79] || (_cache[79] = (...args) => (_ctx.closeRecordDialog && _ctx.closeRecordDialog(...args)))
+                              onClick: _cache[85] || (_cache[85] = (...args) => (_ctx.closeRecordDialog && _ctx.closeRecordDialog(...args)))
                             }, "Cancelar"),
                             (_ctx.activeCatalog.slug==='consolidated-exchange-rates')
                               ? (_openBlock(), _createElementBlock("button", {
@@ -2965,34 +3062,34 @@ export function render(_ctx, _cache) {
                                   type: "button",
                                   class: "button-secondary",
                                   disabled: _ctx.dialogSaving,
-                                  onClick: _cache[80] || (_cache[80] = (...args) => (_ctx.calculateConsolidatedRates && _ctx.calculateConsolidatedRates(...args)))
-                                }, "Calcular desde tasas diarias", 8 /* PROPS */, _hoisted_311))
+                                  onClick: _cache[86] || (_cache[86] = (...args) => (_ctx.calculateConsolidatedRates && _ctx.calculateConsolidatedRates(...args)))
+                                }, "Calcular desde tasas diarias", 8 /* PROPS */, _hoisted_322))
                               : _createCommentVNode("v-if", true),
                             _createElementVNode("button", {
                               class: "button-primary",
                               disabled: _ctx.dialogSaving
-                            }, _toDisplayString(_ctx.dialogSaving ? 'Guardando…' : (_ctx.activeCatalog.slug==='user-subsidiaries' ? 'Guardar asignación' : (_ctx.activeCatalog.slug==='bank-statements' ? (_ctx.recordDialog.id ? 'Guardar extracto' : 'Crear extracto') : (_ctx.recordDialog.id ? 'Guardar cambios' : 'Crear registro')))), 9 /* TEXT, PROPS */, _hoisted_312)
+                            }, _toDisplayString(_ctx.dialogSaving ? 'Guardando…' : (_ctx.activeCatalog.slug==='user-subsidiaries' ? 'Guardar asignación' : (_ctx.activeCatalog.slug==='bank-statements' ? (_ctx.recordDialog.id ? 'Guardar extracto' : 'Crear extracto') : (_ctx.recordDialog.id ? 'Guardar cambios' : 'Crear registro')))), 9 /* TEXT, PROPS */, _hoisted_323)
                           ])
-                        ], 40 /* PROPS, NEED_HYDRATION */, _hoisted_219))
+                        ], 40 /* PROPS, NEED_HYDRATION */, _hoisted_230))
                       : (_ctx.recordDialog.mode === 'audit')
-                        ? (_openBlock(), _createElementBlock("div", _hoisted_313, [
+                        ? (_openBlock(), _createElementBlock("div", _hoisted_324, [
                             _createElementVNode("button", {
                               type: "button",
                               class: "button-secondary",
-                              onClick: _cache[82] || (_cache[82] = (...args) => (_ctx.closeRecordDialog && _ctx.closeRecordDialog(...args)))
+                              onClick: _cache[88] || (_cache[88] = (...args) => (_ctx.closeRecordDialog && _ctx.closeRecordDialog(...args)))
                             }, "Cerrar")
                           ]))
                         : (_ctx.recordDialog.mode === 'view')
-                          ? (_openBlock(), _createElementBlock("div", _hoisted_314, [
+                          ? (_openBlock(), _createElementBlock("div", _hoisted_325, [
                               (_ctx.customerViewTab==='details')
-                                ? (_openBlock(), _createElementBlock("div", _hoisted_315, [
+                                ? (_openBlock(), _createElementBlock("div", _hoisted_326, [
                                     (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.formFields, (field) => {
                                       return (_openBlock(), _createElementBlock("div", {
                                         key: field.key,
                                         class: _normalizeClass({'wide':field.wide||field.type==='multi-reference'})
                                       }, [
                                         _createElementVNode("span", null, _toDisplayString(field.label), 1 /* TEXT */),
-                                        _createElementVNode("strong", _hoisted_316, _toDisplayString(_ctx.displayValue(field,_ctx.recordDialog.values[field.key])), 1 /* TEXT */)
+                                        _createElementVNode("strong", _hoisted_327, _toDisplayString(_ctx.displayValue(field,_ctx.recordDialog.values[field.key])), 1 /* TEXT */)
                                       ], 2 /* CLASS */))
                                     }), 128 /* KEYED_FRAGMENT */))
                                   ]))
@@ -3002,64 +3099,64 @@ export function render(_ctx, _cache) {
                                       src: '/customer-statement-notifications.html?id='+_ctx.recordDialog.id,
                                       title: "Historial de Comunicaciones",
                                       style: {"width":"100%","height":"550px","border":"0"}
-                                    }, null, 8 /* PROPS */, _hoisted_317))
-                                  : (_openBlock(), _createElementBlock("section", _hoisted_318, [
-                                      _createElementVNode("div", _hoisted_319, [
-                                        _cache[224] || (_cache[224] = _createElementVNode("div", null, [
+                                    }, null, 8 /* PROPS */, _hoisted_328))
+                                  : (_openBlock(), _createElementBlock("section", _hoisted_329, [
+                                      _createElementVNode("div", _hoisted_330, [
+                                        _cache[234] || (_cache[234] = _createElementVNode("div", null, [
                                           _createElementVNode("span", null, "RELACIÓN ACTIVA"),
                                           _createElementVNode("h3", null, "Centros de costos del cliente")
                                         ], -1 /* CACHED */)),
-                                        _createElementVNode("small", _hoisted_320, _toDisplayString(_ctx.activeCompany?.name), 1 /* TEXT */)
+                                        _createElementVNode("small", _hoisted_331, _toDisplayString(_ctx.activeCompany?.name), 1 /* TEXT */)
                                       ]),
                                       (_ctx.customerCostCenters.length)
-                                        ? (_openBlock(), _createElementBlock("div", _hoisted_321, [
+                                        ? (_openBlock(), _createElementBlock("div", _hoisted_332, [
                                             (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.customerCostCenters, (center) => {
                                               return (_openBlock(), _createElementBlock("div", {
                                                 key: center.cost_center_id
                                               }, [
-                                                _createElementVNode("strong", _hoisted_322, _toDisplayString(center.code), 1 /* TEXT */),
-                                                _createElementVNode("span", _hoisted_323, _toDisplayString(center.name), 1 /* TEXT */)
+                                                _createElementVNode("strong", _hoisted_333, _toDisplayString(center.code), 1 /* TEXT */),
+                                                _createElementVNode("span", _hoisted_334, _toDisplayString(center.name), 1 /* TEXT */)
                                               ]))
                                             }), 128 /* KEYED_FRAGMENT */))
                                           ]))
-                                        : (_openBlock(), _createElementBlock("p", _hoisted_324, "No hay centros de costos vinculados a este cliente en la subsidiaria activa."))
+                                        : (_openBlock(), _createElementBlock("p", _hoisted_335, "No hay centros de costos vinculados a este cliente en la subsidiaria activa."))
                                     ])),
-                              _createElementVNode("div", _hoisted_325, [
+                              _createElementVNode("div", _hoisted_336, [
                                 _createElementVNode("button", {
                                   class: "button-secondary",
-                                  onClick: _cache[83] || (_cache[83] = (...args) => (_ctx.closeRecordDialog && _ctx.closeRecordDialog(...args)))
+                                  onClick: _cache[89] || (_cache[89] = (...args) => (_ctx.closeRecordDialog && _ctx.closeRecordDialog(...args)))
                                 }, "Cerrar"),
                                 _createElementVNode("button", {
                                   class: "button-primary",
-                                  onClick: _cache[84] || (_cache[84] = $event => (_ctx.openRecordForm(_ctx.recordDialog.values)))
+                                  onClick: _cache[90] || (_cache[90] = $event => (_ctx.openRecordForm(_ctx.recordDialog.values)))
                                 }, "Editar cliente")
                               ])
                             ]))
-                          : (_openBlock(), _createElementBlock("div", _hoisted_326, [
+                          : (_openBlock(), _createElementBlock("div", _hoisted_337, [
                               (_ctx.activeCatalog.connectionCatalog)
-                                ? (_openBlock(), _createElementBlock("p", _hoisted_327, [
-                                    _cache[225] || (_cache[225] = _createTextVNode("¿Deseas revocar ", -1 /* CACHED */)),
+                                ? (_openBlock(), _createElementBlock("p", _hoisted_338, [
+                                    _cache[235] || (_cache[235] = _createTextVNode("¿Deseas revocar ", -1 /* CACHED */)),
                                     _createElementVNode("strong", null, _toDisplayString(_ctx.recordDialog.label), 1 /* TEXT */),
                                     _createTextVNode("? " + _toDisplayString(_ctx.activeCatalog.slug==='devices' ? 'Se bloquearán todas las sesiones vinculadas a este dispositivo.' : 'Esta sesión dejará de tener acceso al ERP.'), 1 /* TEXT */)
                                   ]))
-                                : (_openBlock(), _createElementBlock("p", _hoisted_328, [
-                                    _cache[226] || (_cache[226] = _createTextVNode("¿Deseas eliminar ", -1 /* CACHED */)),
+                                : (_openBlock(), _createElementBlock("p", _hoisted_339, [
+                                    _cache[236] || (_cache[236] = _createTextVNode("¿Deseas eliminar ", -1 /* CACHED */)),
                                     _createElementVNode("strong", null, _toDisplayString(_ctx.recordDialog.label), 1 /* TEXT */),
-                                    _cache[227] || (_cache[227] = _createTextVNode("? Esta acción no se puede deshacer.", -1 /* CACHED */))
+                                    _cache[237] || (_cache[237] = _createTextVNode("? Esta acción no se puede deshacer.", -1 /* CACHED */))
                                   ])),
                               (_ctx.dialogError)
-                                ? (_openBlock(), _createElementBlock("p", _hoisted_329, _toDisplayString(_ctx.dialogError), 1 /* TEXT */))
+                                ? (_openBlock(), _createElementBlock("p", _hoisted_340, _toDisplayString(_ctx.dialogError), 1 /* TEXT */))
                                 : _createCommentVNode("v-if", true),
-                              _createElementVNode("div", _hoisted_330, [
+                              _createElementVNode("div", _hoisted_341, [
                                 _createElementVNode("button", {
                                   class: "button-secondary",
-                                  onClick: _cache[85] || (_cache[85] = (...args) => (_ctx.closeRecordDialog && _ctx.closeRecordDialog(...args)))
+                                  onClick: _cache[91] || (_cache[91] = (...args) => (_ctx.closeRecordDialog && _ctx.closeRecordDialog(...args)))
                                 }, "Cancelar"),
                                 _createElementVNode("button", {
                                   class: "button-danger",
                                   disabled: _ctx.dialogSaving,
-                                  onClick: _cache[86] || (_cache[86] = (...args) => (_ctx.confirmDelete && _ctx.confirmDelete(...args)))
-                                }, _toDisplayString(_ctx.activeCatalog.connectionCatalog ? (_ctx.dialogSaving ? 'Revocando…' : 'Sí, revocar') : (_ctx.dialogSaving ? 'Eliminando…' : 'Sí, eliminar')), 9 /* TEXT, PROPS */, _hoisted_331)
+                                  onClick: _cache[92] || (_cache[92] = (...args) => (_ctx.confirmDelete && _ctx.confirmDelete(...args)))
+                                }, _toDisplayString(_ctx.activeCatalog.connectionCatalog ? (_ctx.dialogSaving ? 'Revocando…' : 'Sí, revocar') : (_ctx.dialogSaving ? 'Eliminando…' : 'Sí, eliminar')), 9 /* TEXT, PROPS */, _hoisted_342)
                               ])
                             ]))
                   ], 2 /* CLASS */)

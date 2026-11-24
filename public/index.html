@@ -27,6 +27,7 @@
   <link rel="stylesheet" href="/security-user-invitation.css?v=20261027-partial-notification">
   <link rel="stylesheet" href="/workspace-shell.css?v=20261110-workspace-layout-focus">
   <link rel="stylesheet" href="/list-pagination.css?v=20261110-list-pagination">
+<link rel="stylesheet" href="/invoice-catalog-filters.css?v=20261124-1">
 </head>
 <body>
 <div id="app">
@@ -442,6 +443,15 @@
 </div>
 <span class="record-count">{{ filteredRows.length }} {{ filteredRows.length === 1 ? 'registro' : 'registros' }}</span>
 </div>
+<div v-if="invoiceCatalogSortingEnabled" class="invoice-catalog-filters" role="group" aria-label="Filtros de facturas">
+<label><span>Emisión desde</span><input type="date" v-model="invoiceCatalogFilters.from" :disabled="tableLoading"></label>
+<label><span>Emisión hasta</span><input type="date" v-model="invoiceCatalogFilters.to" :min="invoiceCatalogFilters.from || undefined" :disabled="tableLoading"></label>
+<label><span>{{ activeCatalog.slug==='supplier-invoices' ? 'Proveedor' : 'Cliente' }}</span><select v-model="invoiceCatalogFilters.entity" :disabled="tableLoading"><option value="">{{ activeCatalog.slug==='supplier-invoices' ? 'Todos los proveedores' : 'Todos los clientes' }}</option><option v-for="option in invoiceCatalogEntityOptions" :key="option.id" :value="option.id">{{ option.label }}</option></select></label>
+<label><span>Número de factura</span><input v-model="invoiceCatalogFilters.number" placeholder="Número completo o parcial" :disabled="tableLoading"></label>
+<button type="button" class="button-link" @click="invoiceCatalogFilters={from:'',to:'',entity:'',number:''};search=''" :disabled="tableLoading">Limpiar filtros</button>
+<button type="button" class="new-record catalog-export-button" @click="downloadInvoiceCatalog()" :disabled="tableLoading || invoiceExporting || Boolean(invoiceFilterMessage) || Boolean(tableError) || !filteredRows.length">{{ invoiceExporting ? 'Preparando…' : '↓ Descargar Excel' }}</button>
+<p v-if="invoiceFilterMessage" class="form-warning" role="alert">{{ invoiceFilterMessage }}</p>
+</div>
 <div v-if="bankStatementCatalog" class="bank-statement-filters" role="group" aria-label="Filtros de extractos bancarios">
 <label><span>Cuenta bancaria</span><select v-model="bankStatementFilters.account" :disabled="tableLoading" aria-label="Filtrar extractos por cuenta"><option value="">Todas las cuentas</option><option v-for="option in bankStatementAccountOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
 <label><span>Mes</span><select v-model="bankStatementFilters.month" :disabled="tableLoading" aria-label="Filtrar extractos por mes"><option value="">Todos los meses</option><option v-for="option in bankStatementMonthOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
@@ -782,7 +792,7 @@
 </div>
 <script defer src="/gentia-brand.js?v=20260929"></script>
 <script type="module" src="/i18n.js?v=20261107-auto-template-rates"></script>
-<script type="module" src="/app.js?v=20261124-journal-list-references">
+<script type="module" src="/app.js?v=20261124-invoice-filters">
 </script>
 <script src="/approval-notifications.js?v=20261101-c04-approval-inbox"></script></body>
 </html>
