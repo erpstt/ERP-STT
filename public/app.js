@@ -182,7 +182,7 @@ const supplierCatalog=entityCatalogs.find(c=>c.slug==='suppliers');
 const supplierBankColumnLabels={payment_bank_id:'Banco principal',payment_currency_id:'Moneda principal',payment_iban:'IBAN principal (CR)',payment_account_number:'Número de cuenta principal',secondary_payment_bank_id:'Banco secundario',secondary_payment_currency_id:'Moneda secundaria',secondary_payment_iban:'IBAN secundario',secondary_payment_account_number:'Número de cuenta secundaria'};
 const supplierBankColumns=Object.entries(supplierBankColumnLabels).map(([key,label])=>({...supplierCatalog.fields.find(field=>field.key===key),key,label,showInTable:true}));
 supplierCatalog.fields=supplierCatalog.fields.filter(field=>!Object.hasOwn(supplierBankColumnLabels,field.key));
-supplierCatalog.fields.splice(supplierCatalog.fields.findIndex(field=>field.key==='tax_id')+1,0,...supplierBankColumns);
+supplierCatalog.fields.splice(supplierCatalog.fields.findIndex(field=>field.key==='payment_beneficiary_name')+1,0,...supplierBankColumns);
 const inventoryCatalogs = [
  {slug:'product-categories',inventoryGlobal:true,allowCreate:false,allowEdit:false,allowDelete:false,table:'product_categories',title:'Categorías de productos',singular:'categoría',primaryKey:'category_id',description:'Categorías de productos',apiRoot:'inventory',fields:[{key:'category_name',label:'Categoría',type:'text',required:true},{key:'parent_id',label:'Categoría padre',type:'number',reference:'inventory/product-categories'}]},
  {slug:'product-brands',inventoryGlobal:true,allowCreate:false,allowEdit:false,allowDelete:false,table:'product_brands',title:'Marcas',singular:'marca',primaryKey:'brand_id',description:'Marcas de productos',apiRoot:'inventory',fields:[{key:'brand_name',label:'Marca',type:'text',required:true}]},
