@@ -20,7 +20,7 @@ test('SQL marks persist across monthly queries, can be undone, audited and prote
  create table user_subsidiaries(user_id bigint,subsidiary_id bigint);insert into user_subsidiaries values(1,10);
  create function app_user_id()returns bigint language sql stable as $$select nullif(current_setting('test.uid',true),'')::bigint$$;
  create function report_template_private.enter(text,text)returns bigint language plpgsql as $$begin if public.app_user_id()is null or current_setting('test.allowed',true)<>'yes' then raise exception using errcode='42501',message='denied';end if;return 10;end$$;
- create table customers(customer_id bigint primary key,is_intercompany boolean);insert into customers values(1,true),(2,false);
+ create table financial_creditors(financial_creditor_id bigint primary key,name text,is_inactive boolean);insert into financial_creditors values(1,'Banco A',false),(2,'Inactivo',true),(3,'Ajeno',false);create table financial_creditor_subsidiaries(financial_creditor_id bigint,subsidiary_id bigint);insert into financial_creditor_subsidiaries values(1,10),(2,10),(3,20);create table customers(customer_id bigint primary key,is_intercompany boolean);insert into customers values(1,true),(2,false);
  create table chart_accounts(account_id bigint primary key,account_number text);insert into chart_accounts values(1,'113002'),(2,'113001');
  create table invoice(invoice_id bigint primary key,customer_id bigint,subsidiary_id bigint,receivable_account_id bigint);
  insert into invoice values(1,1,10,1),(2,2,10,2),(3,2,20,2);
@@ -28,6 +28,7 @@ test('SQL marks persist across monthly queries, can be undone, audited and prote
  grant usage on schema public to authenticated,anon;
  `);
  await db.exec(await readFile(new URL('../supabase/migrations/20261112210026_receivables_classified_report.sql',import.meta.url),'utf8'));
+ await db.exec(await readFile('scripts/receivable-discount-operation.sql','utf8'));await db.exec(await readFile('scripts/receivable-discount-operation-report.sql','utf8'));
  const call=(sql,args=[])=>db.query(sql,args).then(r=>r.rows[0]?.d);
  await db.exec("set role authenticated;select set_config('test.uid','1',false),set_config('test.allowed','yes',false)");
  const run=month=>call('select run_classified_receivables_report($1)d',[{dateTo:month}]);
@@ -41,6 +42,17 @@ test('SQL marks persist across monthly queries, can be undone, audited and prote
  await db.exec("select set_config('test.allowed','no',false)");await assert.rejects(run('2026-12-31'),/denied/);await assert.rejects(call('select set_receivable_discount_mark(1,true,false)d'),/denied/);
  await db.exec('reset role;set role anon');await assert.rejects(run('2026-12-31'),/permission denied/);await assert.rejects(call('select set_receivable_discount_mark(1,true,false)d'),/permission denied/);
  await db.exec('reset role');assert.equal(await call('select count(*)::int d from report_delivery_private.receivable_discount_history'),2);
+ await db.exec("set role authenticated;select set_config('test.uid','1',false),set_config('test.allowed','yes',false)");
+ const current=(await run('2026-12-31')).rows[0];
+ const save=(creditor=1,op='OP-10',stamp=current.discount_updated_at)=>call("select save_receivable_discount_operation(1,$1,$2,'2027-01-31',false,$3)d",[creditor,op,stamp]);
+ for(const creditor of [2,3])await assert.rejects(save(creditor),/acreedor financiero/);
+ await assert.rejects(save(1,''),/Complete/);await save();
+ const saved=(await run('2027-01-31')).rows[0];assert.equal(saved.operation_number,'OP-10');assert.equal(saved.financial_creditor_name,'Banco A');assert.equal(saved.operation_due_date,'2027-01-31');assert.equal(saved.pending,80);
+ await assert.rejects(save(),/Otro usuario/);
+ await call("select save_receivable_discount_operation(1,1,'OP-20','2027-02-01',true,$1)d",[saved.discount_updated_at]);assert.equal((await run('2027-02-28')).rows[0].operation_number,'OP-20');
+ await db.exec('reset role;set role anon');await assert.rejects(save(),/permission denied/);await db.exec('reset role');
  const policies=await db.query("select relrowsecurity from pg_class where oid in ('report_delivery_private.receivable_discount_marks'::regclass,'report_delivery_private.receivable_discount_history'::regclass)");assert.ok(policies.rows.every(r=>r.relrowsecurity));
  }finally{await db.close();}
 });
+
+test('sort discounted invoices by creditor and operation',()=>{const rows=[{document_id:1,discounted:true,financial_creditor_name:'B',operation_number:'1'},{document_id:2,discounted:true,financial_creditor_name:'A',operation_number:'10'},{document_id:3,discounted:true,financial_creditor_name:'A',operation_number:'2'}];assert.deepEqual(currencyGroups({rows},{},{}).find(b=>b.key==='DISCOUNTED').groups[0].rows.map(r=>r.document_id),[3,2,1]);});
