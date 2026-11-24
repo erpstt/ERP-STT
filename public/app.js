@@ -1,7 +1,7 @@
 import {emptyInvoiceFilters,invoiceFilterError,filterInvoiceRows,invoiceEntityOptions,invoiceExportRows} from './invoice-catalog-tools.js?v=20261124-1';
 import {paginationWindow} from './pagination-window.js?v=20261110-list-pagination';
 import {bankContext} from './bank-ui.js?v=20261105-banking-functional';
-import {render} from '/generated/index-render.js?v=20261124-invoice-filters';
+import {render} from '/generated/index-render.js?v=20261124-supplier-bank-columns';
 import {safeNavigationUrl,safeImageUrl,configureImage} from './html-safety.js?v=20261102-a03-media';
 import {csvCell as protectedCsvCell} from '/spreadsheet-safety.js?v=20261102-a03-spreadsheet';
 import { createApp } from "/assets/vue.js?v=20261102-a03-csp";
@@ -178,7 +178,11 @@ for(const catalog of entityCatalogs.filter(item=>['suppliers','employees','other
  catalog.fields=catalog.fields.filter(field=>!entityBankFields.some(bank=>bank.key===field.key));
  catalog.fields.push(...entityBankFields.map(field=>({...field,showInTable:previous.has(field.key)?previous.get(field.key).showInTable:false,...(catalog.slug==='suppliers'&&field.key==='payment_iban'?{label:'IBAN (CR)'}:{}),...(catalog.slug==='suppliers'&&field.key==='payment_beneficiary_name'?{wide:false}:{})})));
 }
-for(const field of entityCatalogs.find(c=>c.slug==='suppliers').fields){if(field.key.startsWith('secondary_payment_')){field.showInTable=true;field.label=({secondary_payment_bank_id:'Banco secundario',secondary_payment_currency_id:'Moneda secundaria',secondary_payment_iban:'IBAN secundario',secondary_payment_account_number:'Número de cuenta secundaria'})[field.key]||field.label;}}
+const supplierCatalog=entityCatalogs.find(c=>c.slug==='suppliers');
+const supplierSecondaryLabels={secondary_payment_bank_id:'Banco secundario',secondary_payment_currency_id:'Moneda secundaria',secondary_payment_iban:'IBAN secundario',secondary_payment_account_number:'Número de cuenta secundaria'};
+const supplierSecondaryFields=Object.entries(supplierSecondaryLabels).map(([key,label])=>({...supplierCatalog.fields.find(field=>field.key===key),key,label,showInTable:true}));
+supplierCatalog.fields=supplierCatalog.fields.filter(field=>!Object.hasOwn(supplierSecondaryLabels,field.key));
+supplierCatalog.fields.splice(supplierCatalog.fields.findIndex(field=>field.key==='tax_id')+1,0,...supplierSecondaryFields);
 const inventoryCatalogs = [
  {slug:'product-categories',inventoryGlobal:true,allowCreate:false,allowEdit:false,allowDelete:false,table:'product_categories',title:'Categorías de productos',singular:'categoría',primaryKey:'category_id',description:'Categorías de productos',apiRoot:'inventory',fields:[{key:'category_name',label:'Categoría',type:'text',required:true},{key:'parent_id',label:'Categoría padre',type:'number',reference:'inventory/product-categories'}]},
  {slug:'product-brands',inventoryGlobal:true,allowCreate:false,allowEdit:false,allowDelete:false,table:'product_brands',title:'Marcas',singular:'marca',primaryKey:'brand_id',description:'Marcas de productos',apiRoot:'inventory',fields:[{key:'brand_name',label:'Marca',type:'text',required:true}]},
