@@ -4,7 +4,7 @@ const clean=v=>String(v??'').replace(/\u00a0/g,' ').trim();
 const skip='nav,footer,script,style,button,input,select,textarea,dialog,.toolbar,.exports,.pager,.view-actions,.journal-actions,#printHeader,#paymentNotifications,#workflowStatusBanner,[data-export-ignore]';
 function visible(e){return !e.hidden&&getComputedStyle(e).display!=='none'&&getComputedStyle(e).visibility!=='hidden';}
 function content(e){const clone=e.cloneNode(true);clone.querySelectorAll('script,style,button:not(.ledger-link):not(.account-drill),input,select,textarea,nav,.journal-actions,[hidden]').forEach(n=>n.remove());return clean(clone.textContent);}
-export function documentSnapshot({root,roots,title,scope,company='',period='',currency=''}){
+export function documentSnapshot({root,roots,title,scope,reportKey,company='',period='',currency=''}){
  const blocks=[];
  function visit(e){if(!e||e.matches(skip)||!visible(e))return;
   if(e.matches('table')){const rows=[...e.rows].filter(visible).map(r=>({header:r.parentElement.tagName==='THEAD',cells:[...r.cells].map(c=>({text:content(c),span:c.colSpan||1,rowSpan:c.rowSpan||1,numeric:c.matches('.number,.num')||/^-?[\d\s.,]+$/.test(content(c))}))}));if(rows.length)blocks.push({kind:'table',rows});return;}
@@ -14,7 +14,7 @@ export function documentSnapshot({root,roots,title,scope,company='',period='',cu
   for(const child of e.children)visit(child);
  }
  for(const element of roots||[root])visit(element);
- return{scope,title:clean(title)||'Documento',company:clean(company),period:clean(period),currency:clean(currency),blocks};
+ return{scope,...(reportKey?{reportKey}:{}),title:clean(title)||'Documento',company:clean(company),period:clean(period),currency:clean(currency),blocks};
 }
 export async function downloadDocumentPdf(options){
  const payload=documentSnapshot(options),context=bankContext();if(!payload.blocks.length)throw Error('Genere o abra el documento antes de descargar.');

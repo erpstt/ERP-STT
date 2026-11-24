@@ -1,3 +1,4 @@
+import {reportCatalog} from '../reports/report-catalog.js';
 import{accessAdminRpc}from'./access-admin.service.js';
 import { fetchSupabase, getSupabaseConfig } from '../../core/database/supabase.client.js';
 import { invalidateReadCacheNamespace, ScopedReadCache } from '../../core/performance/scoped-read-cache.js';
@@ -83,7 +84,7 @@ export const roleAccessModules:AccessModule[] = [
   {key:'documents',name:'Documentos',resources:[custom('documents','Documentos','Diseñador de Plantillas PDF','pdf-templates',['view','create','edit','delete']),...catalogs('documents','Documentos',documentCatalogs)]},
   {key:'audit',name:'Auditoría',resources:[custom('audit','Auditoría','Transacciones modificadas y eliminadas','change-report',['view']),...catalogs('audit','Auditoría',auditCatalogs).map(x=>({...x,actions:['view'] as Action[]}))]},
   {key:'consolidation',name:'Consolidación',resources:[custom('consolidation','Consolidación','Consolidación financiera','financial-consolidation',['view','create','edit']),...catalogs('consolidation','Consolidación',consolidationCatalogs)]},
-  {key:'reports',name:'Informes',resources:[custom('reports','Informes','Reportes de Contabilidad','accounting-reports',['view']),custom('reports','Informes','Envíos programados','scheduled-reports',['view','create','edit','delete'])]},
+  {key:'reports',name:'Informes',resources:[custom('reports','Informes','Acceso al módulo de informes','accounting-reports',['view']),...reportCatalog.map(report=>custom('reports','Informes',report.title,report.key,['view'])),custom('reports','Informes','Envíos programados','scheduled-reports',['view','create','edit','delete'])]},
   {key:'ai',name:'IA',resources:catalogs('ai','IA',aiCatalogs)}
 ];
 const roleAccessResourceKeys=new Set(roleAccessModules.flatMap(module=>module.resources.map(resource=>resource.key)));
@@ -139,6 +140,11 @@ export async function saveRoleAccessMatrix(token:string,input:Record<string,unkn
     const allows=(action:Action)=>resource.actions.includes(action)&&value[`can${action[0].toUpperCase()}${action.slice(1)}`]===true;
     return{resourceKey:resource.key,canView:allows('view'),canCreate:allows('create'),canEdit:allows('edit'),canDelete:allows('delete')};
   });
+  // A selected report also enables the menu entrance, never another report.
+  if(entries.some(e=>reportCatalog.some(r=>e.resourceKey===`reports:${r.key}`)&&e.canView)){
+    const entrance=entries.find(e=>e.resourceKey==='reports:accounting-reports');
+    if(entrance)entrance.canView=true;else entries.push({resourceKey:'reports:accounting-reports',canView:true,canCreate:false,canEdit:false,canDelete:false});
+  }
   const permissionIds=[...new Set((Array.isArray(input.specialPermissionIds)?input.specialPermissionIds:[]).map(Number))];
   if(permissionIds.some(id=>!Number.isInteger(id)||id<=0))throw new Error('La selección de permisos especiales no es válida.');
   const result=await accessAdminRpc(token,'security_save_access_matrix',{p_role_id:roleId,p_entries:entries,p_permission_ids:permissionIds,p_revision:input._revision??null});invalidateRoleAccessCaches();return result;

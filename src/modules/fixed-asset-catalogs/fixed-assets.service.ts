@@ -7,7 +7,11 @@ import { invalidateSalesCatalogCache } from '../sales-catalogs/sales-catalogs.mo
 
 async function rpc(authorization:string,name:string,parameters:Record<string,unknown>={}) {
   if(['fixed_asset_operation_options','fixed_asset_operation_report','save_fixed_asset_operation','delete_fixed_asset_operation'].includes(name))return assetOperationRpc(authorization,name,parameters);
-  if(['fixed_asset_report','fixed_asset_detail','fixed_asset_analytics','save_fixed_asset'].includes(name))return assetMasterRpc(authorization,name==='fixed_asset_analytics'?'fixed-assets:reports':'fixed-assets:assets',name==='save_fixed_asset'?(parameters.p_asset_id===null?'create':'edit'):'view',name,parameters);
+  if(name==='fixed_asset_analytics'){
+    const key=String((parameters.p_filters as Record<string,unknown>)?.reportKey||'');
+    return assetMasterRpc(authorization,key?`reports:asset-${key}`:'fixed-assets:reports','view',name,parameters);
+  }
+  if(['fixed_asset_report','fixed_asset_detail','save_fixed_asset'].includes(name))return assetMasterRpc(authorization,'fixed-assets:assets',name==='save_fixed_asset'?(parameters.p_asset_id===null?'create':'edit'):'view',name,parameters);
   const payload=parameters.p_payload as Record<string,unknown>|undefined;
   const proposal=name==='fixed_asset_proposal_report'||name==='process_fixed_asset_proposals';
   const depreciation=name==='fixed_asset_depreciation_preview'||name==='run_fixed_asset_depreciation';

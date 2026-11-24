@@ -1,3 +1,4 @@
+import {reportCatalog} from './report-catalog.js';
 import {renderPdf} from '../../core/security/pdf-renderer.js';
 import {assertRoleAccess} from '../security-catalogs/role-access-matrix.module.js';
 import {assertSalesDocumentAccess} from '../sales-catalogs/sales-workflow.service.js';
@@ -5,16 +6,17 @@ import {assertPurchaseDocumentAccess} from '../purchasing-catalogs/purchase-work
 const resources:Record<string,string>={accounting:'reports:accounting-reports',assets:'fixed-assets:reports',asset:'fixed-assets:assets',journal:'accounting:journals',check:'banking:bank-checks',deposit:'banking:bank-deposits',fee:'banking:bank-fees',payment:'purchasing:supplier-payments','credit-note':'sales:credit-notes','debit-note':'sales:debit-notes'};
 export type PdfCell={text:string;span:number;rowSpan?:number;numeric:boolean};
 type Block={kind:'heading'|'text'|'metric'|'table';text?:string;rows?:{header:boolean;cells:PdfCell[]}[]};
-export type DocumentSnapshot={scope:string;title:string;company:string;period:string;currency:string;blocks:Block[]};
+export type DocumentSnapshot={scope:string;reportKey?:string;title:string;company:string;period:string;currency:string;blocks:Block[]};
 const invalid=():never=>{throw Object.assign(new Error('El contenido del PDF no es válido o supera el tamaño permitido.'),{status:400});};
 const text=(v:unknown,max=12000)=>typeof v==='string'&&v.length<=max?v:invalid();
 export function validateDocumentSnapshot(value:unknown):DocumentSnapshot{
  if(!value||typeof value!=='object'||Array.isArray(value))return invalid();const p=value as Record<string,unknown>;
- if(Object.keys(p).some(k=>!['scope','title','company','period','currency','blocks'].includes(k)))return invalid();
+ if(Object.keys(p).some(k=>!['scope','reportKey','title','company','period','currency','blocks'].includes(k)))return invalid();
  const scope=text(p.scope,40);if(!resources[scope]&&!['sales-document','purchase-document'].includes(scope))return invalid();
+ if(p.reportKey!==undefined&&(!['accounting','assets'].includes(scope)||!reportCatalog.some(r=>r.key===p.reportKey&&(scope!=='assets'||r.key.startsWith('asset-')))))return invalid();
  if(!Array.isArray(p.blocks)||p.blocks.length>5000)return invalid();let cells=0;
  const blocks:Block[]=p.blocks.map((v:unknown)=>{if(!v||typeof v!=='object')return invalid();const b=v as Record<string,unknown>;if(!['heading','text','metric','table'].includes(String(b.kind)))return invalid();if(b.kind!=='table')return{kind:b.kind as Block['kind'],text:text(b.text)};if(!Array.isArray(b.rows)||b.rows.length>20000)return invalid();return{kind:'table',rows:b.rows.map((v:unknown)=>{if(!v||typeof v!=='object')return invalid();const r=v as Record<string,unknown>;if(!Array.isArray(r.cells)||r.cells.length>50)return invalid();return{header:r.header===true,cells:r.cells.map((v:unknown)=>{if(++cells>200000||!v||typeof v!=='object')return invalid();const c=v as Record<string,unknown>;if(!Number.isInteger(c.span)||Number(c.span)<1||Number(c.span)>50)return invalid();if(c.rowSpan!==undefined&&(!Number.isInteger(c.rowSpan)||Number(c.rowSpan)<1||Number(c.rowSpan)>50))return invalid();return{text:text(c.text),span:Number(c.span),...(c.rowSpan===undefined?{}:{rowSpan:Number(c.rowSpan)}),numeric:c.numeric===true};})};})};});
- return{scope,title:text(p.title,300),company:text(p.company,500),period:text(p.period,1500),currency:text(p.currency,1000),blocks};
+ return{scope,...(p.reportKey?{reportKey:String(p.reportKey)}:{}),title:text(p.title,300),company:text(p.company,500),period:text(p.period,1500),currency:text(p.currency,1000),blocks};
 }
 const esc=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 export function documentSnapshotHtml(p:DocumentSnapshot){
@@ -35,6 +37,6 @@ export function documentSnapshotHtml(p:DocumentSnapshot){
 }
 export async function downloadDocumentSnapshot(auth:string,input:unknown){
  if(!/^Bearer\s+\S+$/i.test(auth||''))throw Object.assign(new Error('Debe iniciar sesión.'),{status:401});const p=validateDocumentSnapshot(input);
- if(p.scope==='sales-document')await assertSalesDocumentAccess(auth,'view');else if(p.scope==='purchase-document')await assertPurchaseDocumentAccess(auth,'view');else await assertRoleAccess(auth,resources[p.scope]!,'view');
+ if(p.reportKey)await assertRoleAccess(auth,`reports:${p.reportKey}`,'view');else if(p.scope==='sales-document')await assertSalesDocumentAccess(auth,'view');else if(p.scope==='purchase-document')await assertPurchaseDocumentAccess(auth,'view');else await assertRoleAccess(auth,resources[p.scope]!,'view');
  const buffer=await renderPdf(documentSnapshotHtml(p));return{base64:buffer.toString('base64'),fileName:p.title.replace(/[\\/:*?"<>|\r\n\0]/g,'-').slice(0,130)+'.pdf'};
 }

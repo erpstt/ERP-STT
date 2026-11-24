@@ -1,5 +1,5 @@
 ﻿import {renderPdf} from '../../core/security/pdf-renderer.js';
-import {customerPaymentReport,customerPaymentDetail} from './customer-payment.service.js';
+import {runCustomerFeesReport} from '../reports/customer-fees-report.service.js';
 type Row=Record<string,any>;
 const esc=(v:unknown)=>String(v??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 const money=(v:unknown)=>Number(v||0).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -12,7 +12,7 @@ export function customerFeesHtml(rows:Row[],period:{from:string,to:string,search
 }
 export async function downloadCustomerFeesPdf(auth:string,input:Record<string,unknown>){
  const from=String(input.from||''),to=String(input.to||''),search=String(input.search||'').trim().slice(0,200);if(!/^\d{4}-\d{2}-\d{2}$/.test(from)||!/^\d{4}-\d{2}-\d{2}$/.test(to)||from>to)throw Object.assign(new Error('Revise el período del informe.'),{status:400});
- const report=await customerPaymentReport(auth,{from,to});const rows:Row[]=[];let company='';
- for(const p of report.rows as Row[]){if(!(Number(p.bankFeeTotal)>0))continue;const d=await customerPaymentDetail(auth,Number(p.id));const applications=d.applications||[];const invoiceText=applications.map((a:Row)=>`${a.invoiceNumber||a.invoice_id}: ${money(a.amount)}`).join('; ');const row=[p.date,p.number,p.customer,invoiceText,p.bank,p.account,p.reference,p.currency,p.grossTotal,p.advanceTotal,p.bankFeeTotal,p.cashNet,[p.bankFeeAccountNumber,p.bankFeeAccountName].filter(Boolean).join(' · '),p.status];if(!row.join(' ').toLowerCase().includes(search.toLowerCase()))continue;company=company||d.header?.subsidiary||d.header?.company||'';rows.push({...p,applications});}
+ const report=await runCustomerFeesReport(auth,{from,to});const rows:Row[]=[];let company='';
+ for(const p of report.rows as Row[]){if(!(Number(p.bankFeeTotal)>0))continue;const applications=p.applications||[];const invoiceText=applications.map((a:Row)=>`${a.invoiceNumber||a.invoice_id}: ${money(a.amount)}`).join('; ');const row=[p.date,p.number,p.customer,invoiceText,p.bank,p.account,p.reference,p.currency,p.grossTotal,p.advanceTotal,p.bankFeeTotal,p.cashNet,[p.bankFeeAccountNumber,p.bankFeeAccountName].filter(Boolean).join(' · '),p.status];if(!row.join(' ').toLowerCase().includes(search.toLowerCase()))continue;company=company||p.company||'';rows.push({...p,applications});}
  const bytes=await renderPdf(customerFeesHtml(rows,{from,to,search},company));return{base64:bytes.toString('base64'),fileName:`comisiones-cobros-${from}-${to}.pdf`};
 }

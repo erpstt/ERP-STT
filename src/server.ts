@@ -1,7 +1,8 @@
+import {runCustomerFeesReport} from './modules/reports/customer-fees-report.service.js';
 import {journalViewDetail} from './modules/accounting-catalogs/journal-entry.service.js';
 import {downloadDocumentSnapshot} from './modules/reports/document-snapshot-pdf.service.js';
 import {downloadCustomerFeesPdf} from './modules/sales-catalogs/customer-payment-fees-pdf.service.js';
-import {isFinancialReportRoute,requireReportAccess} from './modules/reports/report-access.service.js';
+import {isFinancialReportRoute,requireReportAccess,reportForRoute,availableReports} from './modules/reports/report-access.service.js';
 import {runClassifiedReceivables,setReceivableDiscount,exportClassifiedReceivables,currencyGroups} from './modules/reports/classified-receivables.service.js';
 import {contentSecurityPolicy} from './core/security/content-security-policy.js';
 import{rateCatalogs,rateRpc}from'./modules/configuration-catalogs/rate-security.service.js';
@@ -406,7 +407,10 @@ const server = createServer((request, response) => {
     if(request.method==='GET'&&request.url==='/api/auth/language-preference'){return json(response,200,await getLanguagePreference(request.headers.authorization!));}
     if(request.method==='PATCH'&&request.url==='/api/auth/language-preference'){const input=await body(request)as{locale?:unknown};return json(response,200,await setLanguagePreference(request.headers.authorization!,input.locale));}
     if(request.method==='POST'&&request.url==='/api/auth/change-password'){const authorization=request.headers.authorization!;return json(response,200,await changePassword(authorization,await body(request)as{currentPassword?:string;newPassword?:string;confirmation?:string}));}
-    if(isFinancialReportRoute(request.method??'',request.url??''))await requireReportAccess(request.headers.authorization!);
+    if(request.method==='GET'&&request.url==='/api/reports/catalog')return json(response,200,await availableReports(request.headers.authorization||''));
+    const reportPermission=reportForRoute(request.url??'');
+    if(reportPermission&&reportPermission!=='fx-revaluation')await requireReportAccess(request.headers.authorization||'',reportPermission);
+    else if(isFinancialReportRoute(request.method??'',request.url??''))await requireReportAccess(request.headers.authorization!);
     if(request.method==='GET'&&request.url==='/api/reports/accounting/options'){return json(response,200,await accountingReportOptions(request.headers.authorization!));}
     if(request.url?.split('?')[0]==='/api/reports/accounting/general-ledger/export'){
       if(request.method!=='POST')return error(response,405,'Método no permitido.');
@@ -838,6 +842,7 @@ const server = createServer((request, response) => {
       return json(response,200,await customerPaymentOptions(request.headers.authorization!,paymentId));
     }
     if(request.method==='POST'&&request.url==='/api/documents/export-pdf')return json(response,200,await downloadDocumentSnapshot(request.headers.authorization!,await body(request,3000000)));
+    if(request.method==='POST'&&request.url==='/api/reports/customer-payment-fees')return json(response,200,await runCustomerFeesReport(request.headers.authorization!,await body(request)as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/sales/customer-payments/fees/pdf')return json(response,200,await downloadCustomerFeesPdf(request.headers.authorization!,await body(request,16384) as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/sales/customer-payments/report')return json(response,200,await customerPaymentReport(request.headers.authorization!,await body(request)as Record<string,unknown>));
     if(request.method==='POST'&&request.url==='/api/sales/customer-payments/advance')return json(response,201,await registerCustomerAdvance(request.headers.authorization!,await body(request) as Record<string,unknown>));
