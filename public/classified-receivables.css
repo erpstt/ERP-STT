@@ -2,3 +2,9 @@
 :is(th,td):last-child{position:sticky;right:0;min-width:175px;background:#fff;box-shadow:-3px 0 7px #173d6510}th:last-child{background:#f4f6fa}tfoot td:last-child{background:#eef7f3}td:nth-child(3),td:nth-child(4){white-space:nowrap}
 
 dialog{border:1px solid #cad7e6;border-radius:12px;width:min(520px,94vw);padding:0}dialog::backdrop{background:#142c4b80}#operationForm{display:flex;flex-direction:column;border:0;gap:18px}#operationForm h2,#operationForm p{margin:0}.operation-actions{display:flex;justify-content:flex-end;gap:10px}#operationError{color:#9c391a}button[data-edit-operation]{font-size:11px;padding:6px;margin-top:6px}
+
+.discount-cell{min-width:265px;vertical-align:middle}
+.discount-actions{display:flex;align-items:center;justify-content:space-between;gap:20px;white-space:nowrap}
+.discount-actions button[role=switch]{flex:none;margin:0;padding:6px 0;font-weight:normal}
+.discount-actions button[data-edit-operation]{flex:none;margin:0;padding:8px 12px;border-color:#cbd8e7;background:#f7f9fc;font-size:12px;font-weight:600;line-height:1.2}
+.discount-actions button[data-edit-operation]:hover{background:#eaf1f8;border-color:#9db5d0}
