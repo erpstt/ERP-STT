@@ -3,6 +3,8 @@ import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabas
 
 const BNA_HISTORY_URL = 'https://www.bna.com.ar/Cotizador/HistoricoPrincipales';
 type CurrencyRow = { currency_id: number; currency_code: string };
+type BnaDependencies={fetch?:typeof fetch;wait?:(ms:number)=>Promise<unknown>};
+const RETRY_STATUS=new Set([403,408,429,500,502,503,504]);
 
 function effectiveDate(value?: Date | string) {
   const date = value instanceof Date ? value : new Date(value ?? Date.now());
@@ -34,21 +36,32 @@ function parseDollarRows(html: string) {
   return rows;
 }
 
+/** Bounded retries against the public BNA endpoint; no error page is rate data. */
+export async function consultarHistoricoBna(sourceDate:string,dependencies:BnaDependencies={}){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(sourceDate)||Number.isNaN(Date.parse(sourceDate))||new Date(sourceDate).toISOString().slice(0,10)!==sourceDate)throw Error('La fecha efectiva no es válida.');
+  const url=new URL(BNA_HISTORY_URL);url.searchParams.set('id','billetes');url.searchParams.set('fecha',toBnaDate(sourceDate));url.searchParams.set('idMoneda','22');
+  let message='No fue posible conectar con el BNA después de 3 intentos.';
+  for(let attempt=0;attempt<3;attempt++){
+    let response:Response,html:string;
+    try{response=await(dependencies.fetch||fetch)(url,{headers:{Accept:'text/html','User-Agent':'Gentia ERP/1.0'},signal:AbortSignal.timeout(15000)});html=await response.text();}
+    catch{message='No fue posible conectar con el BNA después de 3 intentos.';if(attempt===2)break;await(dependencies.wait||(ms=>new Promise(resolve=>setTimeout(resolve,ms))))(750*2**attempt);continue;}
+    if(response.ok)return html;
+    if(!RETRY_STATUS.has(response.status))throw Error(`El BNA respondió con estado ${response.status}.`);
+    message=`El BNA no estuvo disponible después de 3 intentos (HTTP ${response.status}).`;
+    if(attempt<2)await(dependencies.wait||(ms=>new Promise(resolve=>setTimeout(resolve,ms))))(750*2**attempt);
+  }
+  throw Error(message);
+}
+
 /** Consulta la cotización de venta del dólar billete publicada por el BNA. */
 export async function obtenerTipoDeCambioAR(monedaOrigen = 'USD', monedaDestino = 'ARS', fechaEfectiva?: Date | string) {
   const from = monedaOrigen.trim().toUpperCase(), to = monedaDestino.trim().toUpperCase(), effective = effectiveDate(fechaEfectiva);
   if (from === to) return { monedaOrigen: from, monedaDestino: to, fechaEfectiva: effective, tipoCambio: 1, fuente: 'Banco de la Nación Argentina' };
   if (!((from === 'USD' && to === 'ARS') || (from === 'ARS' && to === 'USD'))) throw new Error('Por ahora la consulta de Argentina admite únicamente USD y ARS.');
   for (let days = 0; days <= 7; days += 1) {
-    const sourceDate = previous(effective, days), url = new URL(BNA_HISTORY_URL);
-    url.searchParams.set('id', 'billetes');
-    url.searchParams.set('fecha', toBnaDate(sourceDate));
-    url.searchParams.set('idMoneda', '22');
-    const response = await fetch(url, { headers: { Accept: 'text/html', 'User-Agent': 'Gentia ERP/1.0' } });
-    const html = await response.text();
-    if (!response.ok) throw new Error(`El BNA respondió con estado ${response.status}.`);
+    const sourceDate = previous(effective, days),html=await consultarHistoricoBna(sourceDate);
     const row = parseDollarRows(html).find((item) => item.fecha === sourceDate);
-    if (row && Number.isFinite(row.venta) && row.venta > 0) return {
+    if (row && Number.isFinite(row.compra) && row.compra > 0 && Number.isFinite(row.venta) && row.venta > 0) return {
       monedaOrigen: from, monedaDestino: to, fechaEfectiva: effective, fechaFuente: sourceDate,
       tipoCambio: from === 'USD' ? row.venta : 1 / row.venta, tasaCompra: row.compra, tasaVenta: row.venta,
       serie: 'Cotización billete - venta', fuente: 'Banco de la Nación Argentina',
