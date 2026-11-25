@@ -3,7 +3,9 @@ import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabas
 const SBS_SERIES_API='https://estadisticas.bcrp.gob.pe/estadisticas/series/api/PD04639PD-PD04640PD/json';
 type CurrencyRow={currency_id:number;currency_code:string};type SeriesResponse={periods?:Array<{name:string;values:string[]}>};
 type SeriesDependencies={fetch?:typeof fetch;wait?:(ms:number)=>Promise<void>;random?:()=>number;timeoutMs?:number;maxAttempts?:number};
-const TRANSIENT_STATUS=new Set([408,425,429,500,502,503,504]);
+// The unauthenticated public API can temporarily return 403 from its edge.
+// Apply the same bounded backoff; never interpret an error page as rate data.
+const TRANSIENT_STATUS=new Set([403,408,425,429,500,502,503,504]);
 const DEFAULT_ATTEMPTS=5,DEFAULT_TIMEOUT_MS=20_000,MAX_WAIT_MS=30_000;
 const MONTHS:Record<string,string>={Ene:'01',Feb:'02',Mar:'03',Abr:'04',May:'05',Jun:'06',Jul:'07',Ago:'08',Set:'09',Sep:'09',Oct:'10',Nov:'11',Dic:'12'};
 function effectiveDate(value?:Date|string){const date=value instanceof Date?value:new Date(value??Date.now());if(Number.isNaN(date.getTime()))throw new Error('La fecha efectiva no es válida.');return date.toISOString().slice(0,10);}
@@ -44,7 +46,7 @@ export async function consultarSeriesSbs(start:string,end:string,dependencies:Se
  }
  throw new Error(finalMessage);
 }
-async function latestSbsRate(effective:string){const start=previous(effective,7),payload=await consultarSeriesSbs(start,effective);const valid=(payload.periods??[]).map(period=>({fecha:periodDate(period.name),buy:Number(period.values[0]),sell:Number(period.values[1])})).filter(row=>row.fecha&&Number.isFinite(row.sell)&&row.sell>0);return valid.at(-1);}
+async function latestSbsRate(effective:string){const start=previous(effective,7),payload=await consultarSeriesSbs(start,effective);const valid=(payload.periods??[]).map(period=>({fecha:periodDate(period.name),buy:Number(period.values[0]),sell:Number(period.values[1])})).filter(row=>row.fecha>=start&&row.fecha<=effective&&Number.isFinite(row.buy)&&row.buy>0&&Number.isFinite(row.sell)&&row.sell>0).sort((a,b)=>a.fecha.localeCompare(b.fecha));return valid.at(-1);}
 /** Consulta el tipo de cambio promedio ponderado de compra y venta publicado por la SBS. */
 export async function obtenerTipoDeCambioPE(monedaOrigen='USD',monedaDestino='PEN',fechaEfectiva?:Date|string){const from=monedaOrigen.trim().toUpperCase(),to=monedaDestino.trim().toUpperCase(),effective=effectiveDate(fechaEfectiva);if(from===to)return{monedaOrigen:from,monedaDestino:to,fechaEfectiva:effective,tipoCambio:1,fuente:'Superintendencia de Banca, Seguros y AFP del Perú'};if(!((from==='USD'&&to==='PEN')||(from==='PEN'&&to==='USD')))throw new Error('Por ahora la consulta de Perú admite únicamente USD y PEN.');const rate=await latestSbsRate(effective);if(rate)return{monedaOrigen:from,monedaDestino:to,fechaEfectiva:effective,fechaFuente:rate.fecha,tipoCambio:from==='USD'?rate.sell:1/rate.sell,tasaCompra:rate.buy,tasaVenta:rate.sell,serie:'TC Sistema bancario SBS (S/ por US$) - Venta',fuente:'Superintendencia de Banca, Seguros y AFP del Perú'};throw new Error('La SBS no devolvió una tasa de venta válida para la fecha solicitada ni los 7 días anteriores.');}
 function claims(auth:string){const part=auth.replace(/^Bearer\s+/,'').split('.')[1];if(!part)throw new Error('La sesión no es válida.');return JSON.parse(Buffer.from(part,'base64url').toString('utf8'))as Record<string,unknown>;}

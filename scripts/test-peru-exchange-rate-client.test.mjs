@@ -87,6 +87,36 @@ test('un 4xx permanente falla inmediatamente y no expone el cuerpo',async()=>{
   assert.equal(calls,1);
 });
 
+test('recupera un 403 temporal del servicio público con espera y sin procesar su HTML',async()=>{
+ let calls=0;const waits=[];
+ const result=await consultarSeriesSbs('2026-11-18','2026-11-25',{
+  fetch:async()=>++calls===1?new Response('<html>edge-private-detail</html>',{status:403}):new Response(periods([{name:'23.Nov.26',values:['3.444','3.455']}])) ,
+  wait:async ms=>waits.push(ms),random:()=>0
+ });
+ assert.equal(calls,2);assert.deepEqual(waits,[750]);assert.equal(result.periods[0].values[1],'3.455');
+});
+
+test('un 403 persistente termina al límite y conserva un error claro sin inventar la tasa',async()=>{
+ let calls=0;const waits=[];
+ await assert.rejects(consultarSeriesSbs('2026-11-18','2026-11-25',{
+  fetch:async()=>{calls++;return new Response('edge-private-detail',{status:403});},
+  wait:async ms=>waits.push(ms),random:()=>0,maxAttempts:3
+ }),error=>/3 intentos/.test(error.message)&&/HTTP 403/.test(error.message)&&!error.message.includes('edge-private-detail'));
+ assert.equal(calls,3);assert.deepEqual(waits,[750,1500]);
+});
+
+test('selecciona la fuente más reciente dentro del rango aunque los períodos vengan desordenados',async t=>{
+ t.mock.method(globalThis,'fetch',async()=>new Response(periods([
+  {name:'26.Nov.26',values:['90','99']},
+  {name:'23.Nov.26',values:['3.444','3.455']},
+  {name:'18.Nov.26',values:['3.426','3.433']},
+  {name:'17.Nov.26',values:['3.4','3.5']},
+  {name:'25.Nov.26',values:['n.d.','n.d.']}
+ ])));
+ const result=await obtenerTipoDeCambioPE('USD','PEN','2026-11-25');
+ assert.equal(result.fechaEfectiva,'2026-11-25');assert.equal(result.fechaFuente,'2026-11-23');assert.equal(result.tipoCambio,3.455);
+});
+
 test('mantiene el fallback oficial de siete días y usa la última venta válida',async t=>{
   t.mock.method(globalThis,'fetch',async()=>new Response(periods([
     {name:'26.Oct.26',values:['3.436','3.446']},
