@@ -1,6 +1,6 @@
 import {downloadDocumentPdf,downloadTablePdf} from './document-pdf-download.js?v=20261124-report-permissions';
 import {bankContext,watchBankContext,lockBankForm} from './bank-ui.js?v=20261105-banking-functional';
-import {csvCell,reportWorkbook,reportNumber} from './spreadsheet-safety.js?v=20261125-financial-statement';
+import {csvCell,reportWorkbook,reportNumber} from './spreadsheet-safety.js?v=20261125-financial-statement-fix';
 import {escapeHtml as htmlText,safeNavigationUrl,safeAttachmentUrl,canPreviewAttachmentBlob,securePreviewPopup,configureImage} from './html-safety.js?v=20261102-a03-media';
 
 import {createAccruedPayrollPayablesReport} from './accounting-accrued-payroll-payables.js?v=20261111-export-review';
