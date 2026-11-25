@@ -13,3 +13,10 @@ test('financial statement sheet properties follow OOXML order and retain present
  assert.ok(xml.includes('fitToWidth="1"'));assert.ok(xml.includes('showGridLines="0"'));
  const book=new ExcelJS.Workbook();await book.xlsx.load(bytes);assert.equal(book.worksheets[0].getCell('C8').value,100);assert.equal(book.worksheets[0].getCell('A1').value,'Empresa');
 });
+
+test('income statement matrices retain every numeric column and print the full width',async()=>{
+ const blob=await reportWorkbook({headers:['Cuenta','Concepto','Depto A','Depto B','Total'],rows:[['','Resultado neto',70,-20,50]],financialStatement:true,rowStyles:['statement-net'],context:{subsidiaryName:'Empresa',currencyLabel:'USD'}});
+ const bytes=await blob.arrayBuffer(),book=new ExcelJS.Workbook();await book.xlsx.load(bytes);const sheet=book.worksheets[0];
+ assert.equal(sheet.getCell('E7').value,50);assert.equal(sheet.getCell('D7').value,-20);assert.equal(sheet.getCell('E7').numFmt,sheet.getCell('C7').numFmt);assert.equal(sheet.pageSetup.orientation,'landscape');assert.equal(sheet.getCell('E1').value,'Empresa');
+ const zip=await JSZip.loadAsync(bytes),xml=await zip.file('xl/workbook.xml').async('string');assert.ok(xml.includes('$E7'));assert.ok(xml.includes('_xlnm.Print_Area'));
+});
