@@ -52,7 +52,7 @@ async function addLogo(workbook,sheet,value){
  }catch{/* A missing or unavailable logo must not prevent the report download. */}
 }
 
-export async function reportWorkbook({headers,rows,context={},title='Reporte',totalColumns=[],columnNumberFormats={},links=[],extraSheets=[]}){
+export async function reportWorkbook({headers,rows,context={},title='Reporte',totalColumns=[],columnNumberFormats={},links=[],extraSheets=[],financialStatement=false,rowStyles=[]}){
  const ExcelJS=await excelRuntime(),workbook=new ExcelJS.Workbook();workbook.creator='GENTIA ERP';
  workbook.calcProperties.fullCalcOnLoad=true;
  const sheet=workbook.addWorksheet('Reporte');
@@ -65,6 +65,20 @@ export async function reportWorkbook({headers,rows,context={},title='Reporte',to
  for(const link of links){if(!Number.isInteger(link.row)||link.row<0||link.row>=rows.length||!Number.isInteger(link.column)||link.column<0||link.column>=headers.length)continue;const url=linkUrl(link.url);if(url){const cell=sheet.getCell(first+link.row,link.column+1);cell.value={text:String(rows[link.row][link.column]??''),hyperlink:url};}}
  const style=(target,header)=>{header.font={bold:true,color:{argb:'FFFFFFFF'}};header.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF063B79'}};target.views=[{state:'frozen',ySplit:header.number}];for(let i=1;i<=target.columnCount;i++)target.getColumn(i).width=i===1?22:30;};style(sheet,heading);
  for(const [index,extra]of extraSheets.entries()){const target=workbook.addWorksheet('Detalle '+(index+1)),header=target.addRow(extra.headers.map(value=>String(value??'')));addRows(target,extra.rows);style(target,header);for(const link of extra.links||[]){const url=linkUrl(link.url);if(url&&Number.isInteger(link.row)&&link.row>=0&&link.row<extra.rows.length&&Number.isInteger(link.column)&&link.column>=0&&link.column<extra.headers.length)target.getCell(link.row+2,link.column+1).value={text:String(extra.rows[link.row][link.column]??''),hyperlink:url};}}
- await addLogo(workbook,sheet,context.logoUrl);
+ if(financialStatement){
+  sheet.properties.outlineProperties={summaryBelow:true};
+  sheet.columns=[{width:19},{width:70},{width:25}];
+  sheet.views=[{state:'frozen',ySplit:6,showGridLines:false}];
+  sheet.pageSetup={paperSize:9,orientation:'portrait',fitToPage:true,fitToWidth:1,fitToHeight:0,printTitlesRow:'1:6',printArea:`A1:C${sheet.rowCount}`,horizontalCentered:true,margins:{left:.3,right:.3,top:.45,bottom:.45,header:.2,footer:.2}};
+  sheet.headerFooter.oddFooter='&LGENTIA ERP&R Página &P de &N';
+  for(let r=1;r<=4;r++){sheet.mergeCells(r,1,r,3);const cell=sheet.getCell(r,1);cell.font={name:'Aptos',size:r===1?15:r===2?13:10,bold:r<=2,color:{argb:r<=2?'FF17354A':'FF526575'}};cell.alignment={horizontal:'center',vertical:'middle',wrapText:true};sheet.getRow(r).height=r<=2?29:24;}
+  heading.height=25;
+  for(let r=first;r<=sheet.rowCount;r++){
+   const row=sheet.getRow(r),kind=rowStyles[r-first]||'',major=/balance-root|statement-net|statement-equation/.test(kind),subtotal=/statement-subtotal|statement-section|tree-group|injected-result/.test(kind);
+   row.height=major?29:subtotal?24:22;
+   row.eachCell({includeEmpty:true},cell=>{cell.font={name:'Aptos',size:10,bold:major||subtotal,color:{argb:major?'FFFFFFFF':'FF243E50'}};cell.alignment={vertical:'middle',horizontal:cell.col===3?'right':'left',wrapText:cell.col===2};if(major||subtotal)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:major?'FF17354A':'FFEAF0F4'}};if(cell.col===3){cell.numFmt='#,##0.00;[Red](#,##0.00);"—"';if(major||subtotal)cell.border={top:{style:'thin',color:{argb:'FF9AAEBB'}},bottom:{style:major?'double':'thin',color:{argb:'FF9AAEBB'}}};}});
+   if(/tree-account/.test(kind)){row.getCell(2).alignment={vertical:'middle',wrapText:true,indent:2};row.height=Math.max(22,Math.ceil(String(row.getCell(2).value||'').length/65)*15);}
+  }
+ }else await addLogo(workbook,sheet,context.logoUrl);
  return new Blob([await workbook.xlsx.writeBuffer()],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
 }
