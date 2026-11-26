@@ -9,7 +9,7 @@ if(routeId===null){
  document.getElementById('pdf').disabled=true;
 }else{
 const esc=escapeHtml;
-﻿const $=id=>document.getElementById(id),token=localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo_token'),device=localStorage.getItem('nexo_device_token'),id=routeId;
+﻿const $=id=>document.getElementById(id),token=localStorage.getItem('nexo_token')||sessionStorage.getItem('nexo_token'),device=localStorage.getItem('nexo_device_token')||sessionStorage.getItem('nexo_device_token')||'',id=routeId;
 async function api(path){const r=await fetch(path,{headers:{Authorization:`Bearer ${token}`,'X-Device-Token':device}}),x=await r.json();if(!r.ok)throw Error(x.error?.message||'No fue posible cargar el comprobante.');return x}
 let data={};
 $('document').hidden=true;$('edit').disabled=true;$('pdf').disabled=true;
