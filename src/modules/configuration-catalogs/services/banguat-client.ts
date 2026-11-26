@@ -24,7 +24,7 @@ export async function consultarBanguat(date:string,dependencies:Dependencies={})
  for(let attempt=0;attempt<3;attempt++){
   try{
    const response=await(dependencies.fetch||fetch)(services[attempt%services.length]!,{method:'POST',headers:{'Content-Type':'text/xml; charset=utf-8',SOAPAction:'"http://www.banguat.gob.gt/variables/ws/TipoCambioRango"','User-Agent':'Gentia ERP/1.0'},body,signal:AbortSignal.timeout(12000)});
-   if(!response.ok)throw new BanguatError(`El servicio del Banco de Guatemala respondió con estado ${response.status}.`,[408,429,500,502,503,504].includes(response.status));
+   if(!response.ok)throw new BanguatError(`El servicio del Banco de Guatemala respondió con estado ${response.status}.`,[408,429,500,502,503,504,525].includes(response.status));
    return parseBanguatRate(await response.text(),date);
   }catch(cause){
    if(cause instanceof BanguatError){if(!cause.retryable)throw cause;detail=cause.message;}
