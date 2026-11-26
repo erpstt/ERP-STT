@@ -6,7 +6,7 @@ const row=(date='25/11/2026',sell='1.625,0000')=>`<tr><td>Dolar U.S.A</td><td>1.
 test('recovers a temporary 403 using bounded backoff and the dated official endpoint',async()=>{
  let calls=0;const waits=[];
  const html=await consultarHistoricoBna('2026-11-25',{fetch:async(url,options)=>{
-  calls++;assert.equal(new URL(url).origin,'https://www.bna.com.ar');assert.equal(new URL(url).searchParams.get('fecha'),'25/11/2026');assert.equal(new URL(url).searchParams.get('id'),'billetes');assert.ok(options.signal instanceof AbortSignal);
+  calls++;assert.equal(new URL(url).origin,calls===2?'https://bna.com.ar':'https://www.bna.com.ar');assert.equal(new URL(url).searchParams.get('fecha'),'25/11/2026');assert.equal(new URL(url).searchParams.get('id'),'billetes');assert.ok(options.signal instanceof AbortSignal);
   return calls===1?new Response('private error page',{status:403}):new Response(row());
  },wait:async ms=>waits.push(ms)});
  assert.equal(calls,2);assert.deepEqual(waits,[750]);assert.match(html,/1.625,0000/);
