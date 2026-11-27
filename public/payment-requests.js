@@ -1,4 +1,4 @@
-import {downloadPaymentRequestPdf} from './payment-request-pdf.js?v=20261127-request-pdf';
+import {downloadPaymentRequestPdf} from './payment-request-pdf.js?v=20261127-request-pdf-polish';
 import {viewPaymentRequestAttachment} from './payment-request-attachment-viewer.js?v=20261112-attachment-viewer';
 import {configureAttachmentLink,safeHttpUrl} from './html-safety.js?v=20261102-a03-media';
 import {readRouteId} from './route-id.js?v=20261103-route-id-guard';

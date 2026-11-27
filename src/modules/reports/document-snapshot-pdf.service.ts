@@ -1,3 +1,4 @@
+import {paymentRequestPdfHtml} from './payment-request-pdf-layout.js';
 import {assertPaymentRequestAccess} from '../treasury-catalogs/payment-request-security.service.js';
 import {reportCatalog} from './report-catalog.js';
 import {renderPdf} from '../../core/security/pdf-renderer.js';
@@ -21,6 +22,7 @@ export function validateDocumentSnapshot(value:unknown):DocumentSnapshot{
 }
 const esc=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 export function documentSnapshotHtml(p:DocumentSnapshot){
+ if(p.scope==='payment-request')return paymentRequestPdfHtml(p);
  // Wide ledgers are divided into readable column panels, repeating the identifying columns.
  const panels:Block[]=[];for(const block of p.blocks){
   const width=Math.max(0,...(block.rows||[]).map(r=>r.cells.reduce((n,c)=>n+c.span,0)));
