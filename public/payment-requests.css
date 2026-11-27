@@ -58,3 +58,5 @@
 @media(max-width:600px){.support-viewer>header{padding:12px;gap:12px;flex-wrap:wrap}.support-viewer h2{font-size:14px}.support-viewer-body{padding:8px}}
 
 .support-pdf{display:flex;flex-direction:column;width:100%;height:100%;min-height:0}.support-pdf-toolbar{display:flex;align-items:center;justify-content:center;gap:12px;padding:0 0 12px;flex-wrap:wrap}.support-pdf-toolbar button,.support-pdf-toolbar select{width:auto;padding:7px 12px;border:1px solid #cbd8e5;background:white;border-radius:6px;color:#193b5b}.support-pdf-toolbar button:disabled{opacity:.45}.support-pdf-stage{flex:1;min-height:0;overflow:auto;padding:16px;text-align:center}.support-pdf-stage canvas{display:block;margin:0 auto;background:white;box-shadow:0 3px 15px #15345126}
+
+.request-row-actions{white-space:nowrap}.request-row-actions .button{margin:2px}
