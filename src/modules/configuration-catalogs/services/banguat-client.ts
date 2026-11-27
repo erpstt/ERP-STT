@@ -1,3 +1,4 @@
+import {officialFxRequest} from './official-fx-transport.js';
 import {setTimeout as wait} from 'node:timers/promises';
 
 const services=['https://www.banguat.gob.gt/variables/ws/TipoCambio.asmx','https://banguat.gob.gt/variables/ws/TipoCambio.asmx'];
@@ -23,7 +24,7 @@ export async function consultarBanguat(date:string,dependencies:Dependencies={})
  let detail='error de conexión';
  for(let attempt=0;attempt<3;attempt++){
   try{
-   const response=await(dependencies.fetch||fetch)(services[attempt%services.length]!,{method:'POST',headers:{'Content-Type':'text/xml; charset=utf-8',SOAPAction:'"http://www.banguat.gob.gt/variables/ws/TipoCambioRango"','User-Agent':'Gentia ERP/1.0'},body,signal:AbortSignal.timeout(12000)});
+   const response=await(dependencies.fetch||((url,init)=>officialFxRequest('GT',date,url,init)))(services[attempt%services.length]!,{method:'POST',headers:{'Content-Type':'text/xml; charset=utf-8',SOAPAction:'"http://www.banguat.gob.gt/variables/ws/TipoCambioRango"','User-Agent':'Gentia ERP/1.0'},body,signal:AbortSignal.timeout(12000)});
    if(!response.ok)throw new BanguatError(`El servicio del Banco de Guatemala respondió con estado ${response.status}.`,[408,429,500,502,503,504,525].includes(response.status));
    return parseBanguatRate(await response.text(),date);
   }catch(cause){

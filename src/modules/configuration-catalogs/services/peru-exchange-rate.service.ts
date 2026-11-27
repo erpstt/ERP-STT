@@ -1,3 +1,4 @@
+import {officialFxRequest} from './official-fx-transport.js';
 import{saveFetchedRate}from'../rate-security.service.js';
 import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
 const SBS_SERIES_API='https://estadisticas.bcrp.gob.pe/estadisticas/series/api/PD04639PD-PD04640PD/json';
@@ -23,7 +24,7 @@ async function pause(response:Response|undefined,attempt:number,dependencies:Ser
  * expone ese cuerpo ni se interpreta como una tasa.
  */
 export async function consultarSeriesSbs(start:string,end:string,dependencies:SeriesDependencies={}):Promise<SeriesResponse>{
- const request=dependencies.fetch??fetch,total=attempts(dependencies.maxAttempts),requestTimeout=timeout(dependencies.timeoutMs),url=`${SBS_SERIES_API}/${start}/${end}/esp`;
+ const request=dependencies.fetch??((url,init)=>officialFxRequest('PE',end,url,init)),total=attempts(dependencies.maxAttempts),requestTimeout=timeout(dependencies.timeoutMs),url=`${SBS_SERIES_API}/${start}/${end}/esp`;
  let finalMessage=`No fue posible consultar el servicio oficial de series BCRP/SBS después de ${total} intentos.`;
  for(let attempt=0;attempt<total;attempt++){
   let response:Response,raw:string;

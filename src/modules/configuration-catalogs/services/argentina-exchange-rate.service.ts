@@ -1,3 +1,4 @@
+import {officialFxRequest} from './official-fx-transport.js';
 import{saveFetchedRate}from'../rate-security.service.js';
 import { fetchSupabase, getSupabaseConfig } from '../../../core/database/supabase.client.js';
 
@@ -43,7 +44,7 @@ export async function consultarHistoricoBna(sourceDate:string,dependencies:BnaDe
   let message='No fue posible conectar con el BNA después de 3 intentos.';
   for(let attempt=0;attempt<3;attempt++){
     let response:Response,html:string;
-    try{const endpoint=new URL(url);if(attempt===1)endpoint.hostname='bna.com.ar';response=await(dependencies.fetch||fetch)(endpoint,{headers:{Accept:'text/html','User-Agent':'Gentia ERP/1.0'},signal:AbortSignal.timeout(15000)});html=await response.text();}
+    try{const endpoint=new URL(url);if(attempt===1)endpoint.hostname='bna.com.ar';response=await(dependencies.fetch||((url,init)=>officialFxRequest('AR',sourceDate,url,init)))(endpoint,{headers:{Accept:'text/html','User-Agent':'Gentia ERP/1.0'},signal:AbortSignal.timeout(15000)});html=await response.text();}
     catch{message='No fue posible conectar con el BNA después de 3 intentos.';if(attempt===2)break;await(dependencies.wait||(ms=>new Promise(resolve=>setTimeout(resolve,ms))))(750*2**attempt);continue;}
     if(response.ok)return html;
     if(!RETRY_STATUS.has(response.status))throw Error(`El BNA respondió con estado ${response.status}.`);
