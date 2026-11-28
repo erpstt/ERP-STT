@@ -159,3 +159,5 @@ body.supplier-success-open{overflow:hidden}
 
 /* Preserve read-only invoice controls against the shared flex footer rule. */
 main > footer[hidden] { display: none !important; }
+
+#lines select[data-key="cost_center_id"]{min-width:240px}
